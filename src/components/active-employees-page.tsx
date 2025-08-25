@@ -46,7 +46,7 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
 
 
 function ActiveEmployeesPageComponent() {
-  const { employees, departments, jobTitles, managers, nationalities, isLoading } from useConfig();
+  const { employees = [], departments = [], jobTitles = [], managers = [], nationalities = [], isLoading } = useConfig();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     department: '',
