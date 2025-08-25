@@ -31,7 +31,7 @@ export default function NoLoginFormPage() {
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <PageHeader
         title="Formularz braku logowania"
         description="Wygeneruj i wydrukuj formularz dotyczący incydentu braku logowania."
@@ -42,12 +42,12 @@ export default function NoLoginFormPage() {
         </Button>
       </PageHeader>
       
-        <Card className="mx-auto max-w-2xl">
+        <Card className="flex flex-grow flex-col">
           <CardHeader>
               <CardTitle>Formularz</CardTitle>
               <CardDescription>Wypełnij pola, aby wygenerować dokument.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="flex flex-grow flex-col space-y-6">
               <div className="space-y-2">
                   <Label>Wybierz pracownika</Label>
                   <Select onValueChange={handleEmployeeSelect} value={selectedEmployee?.id}>
@@ -105,6 +105,8 @@ export default function NoLoginFormPage() {
                   </div>
               </div>
               
+              <div className="flex-grow"></div>
+
               <Button className="w-full" disabled={!selectedEmployee}>Zapisz incydent</Button>
 
           </CardContent>
