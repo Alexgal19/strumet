@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { activeEmployees } from '@/lib/mock-data';
 import type { Employee } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,10 +18,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useConfig } from '@/context/config-context';
 
 export default function ClothingIssuancePage() {
+  const { employees, clothingItems, isLoading } = useConfig();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [issuanceDate, setIssuanceDate] = useState<Date | undefined>(new Date());
   const [selectedClothing, setSelectedClothing] = useState<string[]>([]);
-  const { clothingItems } = useConfig();
+  
+  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const handleEmployeeSelect = (employeeId: string) => {
     const employee = activeEmployees.find(e => e.id === employeeId);
@@ -34,6 +35,8 @@ export default function ClothingIssuancePage() {
       checked ? [...prev, itemId] : prev.filter(id => id !== itemId)
     );
   }
+  
+  if (isLoading) return <div>Ładowanie...</div>;
 
   return (
     <div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import type { ConfigItem } from '@/lib/types';
+import type { ConfigItem, Employee } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { ref, onValue, set, push, remove } from 'firebase/database';
 
@@ -11,6 +11,7 @@ interface ConfigContextType {
   managers: ConfigItem[];
   nationalities: ConfigItem[];
   clothingItems: ConfigItem[];
+  employees: Employee[];
   updateConfig: (configType: ConfigType, newItems: ConfigItem[]) => void;
   isLoading: boolean;
 }
@@ -21,7 +22,8 @@ const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
 export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [configData, setConfigData] = useState<Omit<ConfigContextType, 'updateConfig' | 'isLoading'>>({
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [configData, setConfigData] = useState<Omit<ConfigContextType, 'updateConfig' | 'isLoading' | 'employees'>>({
     departments: [],
     jobTitles: [],
     managers: [],
@@ -30,8 +32,11 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   });
 
   useEffect(() => {
+    setIsLoading(true);
     const configRef = ref(db, 'config');
-    const unsubscribe = onValue(configRef, (snapshot) => {
+    const employeesRef = ref(db, 'employees');
+
+    const unsubscribeConfig = onValue(configRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setConfigData({
@@ -42,13 +47,29 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
             clothingItems: data.clothingItems ? Object.keys(data.clothingItems).map(key => ({ id: key, ...data.clothingItems[key] })) : [],
         });
       }
-      setIsLoading(false);
     }, (error) => {
         console.error("Failed to load config from Firebase", error);
+    });
+
+    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
+      const data = snapshot.val();
+      const loadedEmployees = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+      setEmployees(loadedEmployees);
+    });
+    
+    // Set loading to false once both have been tried
+    Promise.allSettled([
+        new Promise(resolve => onValue(configRef, resolve, { onlyOnce: true })),
+        new Promise(resolve => onValue(employeesRef, resolve, { onlyOnce: true }))
+    ]).then(() => {
         setIsLoading(false);
     });
 
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribeConfig();
+      unsubscribeEmployees();
+    };
   }, []);
 
   const updateConfig = useCallback(async (configType: ConfigType, newItems: ConfigItem[]) => {
@@ -61,32 +82,17 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         
         // Get current items from state to compare
         const currentItems = configData[configType];
-        const currentItemsMap = new Map(currentItems.map(item => [item.id, item]));
-
-        // Identify deleted items
-        for (const currentItem of currentItems) {
-            if (!newItemsMap.has(currentItem.id)) {
-                updates[currentItem.id] = null; // Mark for deletion
-            }
-        }
         
         // Identify added or updated items
-        for (const newItem of newItems) {
-            if (!newItem.id.startsWith(`${configType.slice(0,2)}-`)) { // New item from form
-                 const newItemRef = push(ref(db, `config/${configType}`));
-                 await set(newItemRef, { name: newItem.name });
-            } else { // Existing item
-                const { id, ...data } = newItem;
-                updates[id] = data;
-            }
-        }
-
         const itemsToSet = newItems.reduce((acc, item) => {
-            if(item.id.startsWith(`${configType.slice(0,2)}-`)) {
+            if(item.id.startsWith(`${configType.slice(0,2)}-`)) { // Existing item
                 acc[item.id] = { name: item.name };
+            } else { // New item
+                const newItemRef = push(ref(db, `config/${configType}`));
+                acc[newItemRef.key!] = { name: item.name };
             }
             return acc;
-        }, {} as any)
+        }, {} as any);
         
         await set(configTypeRef, itemsToSet);
 
@@ -96,7 +102,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   }, [configData]);
   
   return (
-    <ConfigContext.Provider value={{ ...configData, updateConfig, isLoading }}>
+    <ConfigContext.Provider value={{ ...configData, employees, updateConfig, isLoading }}>
       {children}
     </ConfigContext.Provider>
   );

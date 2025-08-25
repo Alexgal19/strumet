@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { activeEmployees } from '@/lib/mock-data';
 import type { Employee } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,15 +14,21 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CalendarIcon, Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useConfig } from '@/context/config-context';
 
 export default function NoLoginFormPage() {
+  const { employees, isLoading } = useConfig();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [incidentDate, setIncidentDate] = useState<Date | undefined>(new Date());
+  
+  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const handleEmployeeSelect = (employeeId: string) => {
     const employee = activeEmployees.find(e => e.id === employeeId);
     setSelectedEmployee(employee || null);
   };
+  
+  if (isLoading) return <div>Ładowanie...</div>;
   
   return (
     <div>

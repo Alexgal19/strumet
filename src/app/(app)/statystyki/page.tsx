@@ -1,46 +1,17 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useConfig } from '@/context/config-context';
-import { db } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
 
 
 export default function StatisticsPage() {
-    const { departments, jobTitles, managers, nationalities, isLoading: isConfigLoading } = useConfig();
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-     useEffect(() => {
-        if (!isConfigLoading) {
-            const employeesRef = ref(db, 'employees');
-            const unsubscribe = onValue(employeesRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    const employeesList = Object.keys(data).map(key => ({
-                        id: key,
-                        ...data[key]
-                    }));
-                    setEmployees(employeesList);
-                } else {
-                    setEmployees([]);
-                }
-                setIsLoading(false);
-            }, (error) => {
-                console.error(error);
-                setIsLoading(false);
-            });
-
-            return () => unsubscribe();
-        }
-    }, [isConfigLoading]);
-
+    const { employees, departments, jobTitles, managers, nationalities, isLoading } = useConfig();
+    
     const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
     const statsByDepartment = useMemo(() => {
@@ -106,7 +77,7 @@ export default function StatisticsPage() {
       </Card>
     );
 
-    if (isLoading || isConfigLoading) return <div>Ładowanie statystyk...</div>;
+    if (isLoading) return <div>Ładowanie statystyk...</div>;
 
     return (
       <div>

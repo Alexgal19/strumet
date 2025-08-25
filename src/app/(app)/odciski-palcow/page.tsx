@@ -30,11 +30,12 @@ import {
 import { Label } from '@/components/ui/label';
 import { db } from '@/lib/firebase';
 import { ref, onValue, set, push, remove } from 'firebase/database';
+import { useConfig } from '@/context/config-context';
 
 
 export default function FingerprintAppointmentsPage() {
     const [appointments, setAppointments] = useState<FingerprintAppointment[]>([]);
-    const [employees, setEmployees] = useState<Employee[]>([]);
+    const { employees, isLoading: isConfigLoading } = useConfig();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<FingerprintAppointment | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -51,16 +52,8 @@ export default function FingerprintAppointmentsPage() {
             setIsLoading(false);
         });
 
-        const employeesRef = ref(db, 'employees');
-        const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-            const data = snapshot.val();
-            const loadedEmployees = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
-            setEmployees(loadedEmployees);
-        });
-
         return () => {
             unsubscribeAppointments();
-            unsubscribeEmployees();
         };
     }, []);
 
@@ -109,7 +102,7 @@ export default function FingerprintAppointmentsPage() {
     const activeEmployees = employees.filter(e => e.status === 'aktywny');
 
 
-    if (isLoading) return <div>Ładowanie...</div>;
+    if (isLoading || isConfigLoading) return <div>Ładowanie...</div>;
 
     return (
         <div>

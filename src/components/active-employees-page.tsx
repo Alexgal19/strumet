@@ -44,8 +44,7 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
 
 
 export default function ActiveEmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const { departments, jobTitles, managers, nationalities, isLoading: isConfigLoading } = useConfig();
+  const { employees, departments, jobTitles, managers, nationalities, isLoading } = useConfig();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     department: '',
@@ -55,31 +54,6 @@ export default function ActiveEmployeesPage() {
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isConfigLoading) {
-        const employeesRef = ref(db, 'employees');
-        const unsubscribe = onValue(employeesRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                const employeesList = Object.keys(data).map(key => ({
-                    id: key,
-                    ...data[key]
-                }));
-                setEmployees(employeesList);
-            } else {
-                setEmployees([]);
-            }
-            setIsLoading(false);
-        }, (error) => {
-            console.error(error);
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
-    }
-  }, [isConfigLoading]);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
@@ -139,7 +113,7 @@ export default function ActiveEmployeesPage() {
       }
   };
 
-  if (isLoading || isConfigLoading) return <div>Ładowanie...</div>;
+  if (isLoading) return <div>Ładowanie...</div>;
 
   return (
     <div className="h-full flex flex-col">

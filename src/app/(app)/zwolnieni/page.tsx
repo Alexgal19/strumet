@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -13,35 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-import { db } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
+import { useConfig } from '@/context/config-context';
 
 export default function TerminatedEmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { employees, isLoading } = useConfig();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const employeesRef = ref(db, 'employees');
-    const unsubscribe = onValue(employeesRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            const employeesList = Object.keys(data).map(key => ({
-                id: key,
-                ...data[key]
-            }));
-            setEmployees(employeesList);
-        } else {
-            setEmployees([]);
-        }
-        setIsLoading(false);
-    }, (error) => {
-        console.error(error);
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
