@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import type { ConfigItem, Employee } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { ref, onValue, set, push } from 'firebase/database';
+import { ref, onValue, set, push, runTransaction } from 'firebase/database';
+import { departments, jobTitles, managers, nationalities, clothingItems, activeEmployees } from '@/lib/mock-data';
 
 interface ConfigContextType {
   departments: ConfigItem[];
@@ -34,6 +35,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     clothingItems: ConfigItem[];
     employees: Employee[];
   }>({
+    // Load initial empty structure immediately
     departments: [],
     jobTitles: [],
     managers: [],
@@ -43,41 +45,32 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   });
 
   useEffect(() => {
-    const configRef = ref(db, 'config');
-    const employeesRef = ref(db, 'employees');
     let isMounted = true;
-
-    const handleInitialLoad = async () => {
-        const configPromise = new Promise<any>((resolve, reject) => onValue(configRef, (snap) => resolve(snap.val()), reject, { onlyOnce: true }));
-        const employeesPromise = new Promise<any>((resolve, reject) => onValue(employeesRef, (snap) => resolve(snap.val()), reject, { onlyOnce: true }));
-
-        try {
-            const [configSnapshot, employeesSnapshot] = await Promise.all([configPromise, employeesPromise]);
-            
-            if (isMounted) {
-                setData({
-                    departments: objectToArray(configSnapshot?.departments),
-                    jobTitles: objectToArray(configSnapshot?.jobTitles),
-                    managers: objectToArray(configSnapshot?.managers),
-                    nationalities: objectToArray(configSnapshot?.nationalities),
-                    clothingItems: objectToArray(configSnapshot?.clothingItems),
-                    employees: objectToArray(employeesSnapshot),
-                });
-            }
-        } catch (error) {
-            console.error("Firebase initial load failed:", error);
-        } finally {
-            if (isMounted) {
-                setIsLoading(false);
-            }
-        }
-    };
     
-    handleInitialLoad();
+    // Function to initialize config data if it's empty
+    const initializeConfigData = async () => {
+        const configRef = ref(db, 'config');
+        runTransaction(configRef, (currentData) => {
+            if (currentData === null) {
+                return {
+                    departments: departments.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
+                    jobTitles: jobTitles.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
+                    managers: managers.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
+                    nationalities: nationalities.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
+                    clothingItems: clothingItems.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
+                };
+            }
+            return currentData; // Abort transaction
+        });
+    };
 
-    const unsubscribeConfig = onValue(ref(db, 'config'), (snapshot) => {
-        const configData = snapshot.val();
+    initializeConfigData();
+
+    // Listener for config
+    const configRef = ref(db, 'config');
+    const unsubscribeConfig = onValue(configRef, (snapshot) => {
         if (isMounted) {
+            const configData = snapshot.val();
             setData(prevData => ({
                 ...prevData,
                 departments: objectToArray(configData?.departments),
@@ -86,13 +79,22 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                 nationalities: objectToArray(configData?.nationalities),
                 clothingItems: objectToArray(configData?.clothingItems),
             }));
+            // We can consider loading done when config is loaded
+            setIsLoading(false);
         }
+    }, (error) => {
+        console.error("Firebase config listener failed:", error);
+        if(isMounted) setIsLoading(false);
     });
 
-    const unsubscribeEmployees = onValue(ref(db, 'employees'), (snapshot) => {
+    // Listener for employees
+    const employeesRef = ref(db, 'employees');
+    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
         if (isMounted) {
             setData(prevData => ({ ...prevData, employees: objectToArray(snapshot.val()) }));
         }
+    }, (error) => {
+        console.error("Firebase employees listener failed:", error);
     });
 
     return () => {
@@ -103,35 +105,35 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const updateConfig = useCallback(async (configType: ConfigType, newItems: ConfigItem[]) => {
-      try {
+    try {
         const configTypeRef = ref(db, `config/${configType}`);
-        
-        // Convert array to Firebase object format
-        const itemsToSet = newItems.reduce((acc, item) => {
-          let itemId = item.id;
-          // If it's a temporary ID, it means it's a new item.
-          // We don't push here, we let Firebase create the key on `set`.
-          if (item.id.startsWith(`${configType.slice(0, 2)}-`)) {
-             const newItemRef = push(configTypeRef);
-             itemId = newItemRef.key!;
-          }
-          acc[itemId] = { name: item.name };
-          return acc;
-        }, {} as Record<string, { name: string }>);
-
-        // Find items to remove
         const currentItems = data[configType as keyof typeof data] as ConfigItem[];
-        const newItemsIds = new Set(newItems.map(i => i.id));
-        const itemsToRemove = currentItems.filter(item => !newItemsIds.has(item.id));
-        
+        const currentItemsMap = new Map(currentItems.map(item => [item.id, item]));
+        const newItemsMap = new Map(newItems.map(item => [item.id, item]));
+
         const updates: { [key: string]: any } = {};
-        itemsToRemove.forEach(item => {
-            updates[item.id] = null;
-        });
+
+        // Add or update items
+        for (const newItem of newItems) {
+            if (!currentItemsMap.has(newItem.id) || currentItemsMap.get(newItem.id)?.name !== newItem.name) {
+                let itemId = newItem.id;
+                // If it's a temporary ID, it means it's a new item.
+                if (itemId.startsWith(`${configType.slice(0, 2)}-`)) {
+                   const newItemRef = push(configTypeRef);
+                   itemId = newItemRef.key!;
+                }
+                updates[itemId] = { name: newItem.name };
+            }
+        }
         
-        // Since `set` replaces the entire node, we need to create the final state
-        const finalState = { ...itemsToSet };
+        // Remove items
+        for(const currentItem of currentItems) {
+            if (!newItemsMap.has(currentItem.id)) {
+                updates[currentItem.id] = null;
+            }
+        }
         
+        const finalState = { ...updates };
         await set(configTypeRef, finalState);
 
       } catch (error) {
