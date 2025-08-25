@@ -24,7 +24,6 @@ import {
   Building,
   LogOut,
 } from 'lucide-react';
-import { SheetTitle } from '@/components/ui/sheet';
 
 const AppSidebar = () => {
   const pathname = usePathname();
@@ -42,8 +41,6 @@ const AppSidebar = () => {
   return (
     <Sidebar>
       <SidebarHeader>
-        {/* This title is required for accessibility, but we can hide it visually. */}
-        <SheetTitle className="sr-only">Menu nawigacyjne</SheetTitle>
         <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 text-primary">
                 <Building className="h-6 w-6" />
