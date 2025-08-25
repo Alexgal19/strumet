@@ -47,7 +47,7 @@ const ConfigList: React.FC<ConfigListProps> = ({ title, items, configType, updat
   };
   
   return (
-    <Card>
+    <Card className="flex flex-col flex-grow">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>{title}</span>
@@ -76,8 +76,8 @@ const ConfigList: React.FC<ConfigListProps> = ({ title, items, configType, updat
             </Dialog>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
+      <CardContent className="flex-grow overflow-auto">
+        <div className="rounded-md border h-full">
           <Table>
             <TableHeader>
               <TableRow>
@@ -126,12 +126,12 @@ function ConfigurationPageComponent() {
     }
 
     return (
-        <div>
+        <div className="flex h-full flex-col">
         <PageHeader
             title="Konfiguracja"
             description="Zarządzaj listami używanymi w całej aplikacji."
         />
-        <Tabs defaultValue="departments">
+        <Tabs defaultValue="departments" className="flex flex-col flex-grow">
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
             <TabsTrigger value="departments">Działy</TabsTrigger>
             <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
@@ -139,19 +139,19 @@ function ConfigurationPageComponent() {
             <TabsTrigger value="nationalities">Narodowości</TabsTrigger>
             <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
             </TabsList>
-            <TabsContent value="departments" className="mt-4">
+            <TabsContent value="departments" className="mt-4 flex flex-col flex-grow">
                 <ConfigList title="Działy" items={localConfig.departments} configType='departments' updateLocalItems={handleUpdate('departments')} />
             </TabsContent>
-            <TabsContent value="jobTitles" className="mt-4">
+            <TabsContent value="jobTitles" className="mt-4 flex flex-col flex-grow">
                 <ConfigList title="Miejsca pracy" items={localConfig.jobTitles} configType='jobTitles' updateLocalItems={handleUpdate('jobTitles')} />
             </TabsContent>
-            <TabsContent value="managers" className="mt-4">
+            <TabsContent value="managers" className="mt-4 flex flex-col flex-grow">
                 <ConfigList title="Kierownicy" items={localConfig.managers} configType='managers' updateLocalItems={handleUpdate('managers')} />
             </TabsContent>
-            <TabsContent value="nationalities" className="mt-4">
+            <TabsContent value="nationalities" className="mt-4 flex flex-col flex-grow">
                 <ConfigList title="Narodowości" items={localConfig.nationalities} configType='nationalities' updateLocalItems={handleUpdate('nationalities')} />
             </TabsContent>
-            <TabsContent value="clothingItems" className="mt-4">
+            <TabsContent value="clothingItems" className="mt-4 flex flex-col flex-grow">
                 <ConfigList title="Elementy odzieży" items={localConfig.clothingItems} configType='clothingItems' updateLocalItems={handleUpdate('clothingItems')} />
             </TabsContent>
         </Tabs>

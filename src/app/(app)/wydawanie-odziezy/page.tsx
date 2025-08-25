@@ -40,7 +40,7 @@ function ClothingIssuancePageComponent() {
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <PageHeader
         title="Wydawanie odzieży"
         description="Rejestruj wydawanie odzieży pracownikom."
@@ -51,14 +51,14 @@ function ClothingIssuancePageComponent() {
         </Button>
       </PageHeader>
       
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-            <Card>
+      <div className="grid gap-6 lg:grid-cols-3 flex-grow">
+        <div className="lg:col-span-2 flex flex-col">
+            <Card className="flex flex-col flex-grow">
             <CardHeader>
                 <CardTitle>Formularz wydania</CardTitle>
                 <CardDescription>Wybierz pracownika i przypisz elementy odzieży.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex flex-col flex-grow">
                 <div className="space-y-2">
                     <Label>Wybierz pracownika</Label>
                     <Select onValueChange={handleEmployeeSelect} value={selectedEmployee?.id ?? ''}>
@@ -140,18 +140,19 @@ function ClothingIssuancePageComponent() {
                     </div>
                 </div>
 
-                <Button className="w-full" disabled={!selectedEmployee || selectedClothing.length === 0}>Zapisz wydanie</Button>
+                <div className="flex-grow"></div>
+                <Button className="w-full mt-auto" disabled={!selectedEmployee || selectedClothing.length === 0}>Zapisz wydanie</Button>
 
             </CardContent>
             </Card>
         </div>
-        <div className="lg:col-span-1">
-            <Card>
+        <div className="lg:col-span-1 flex flex-col">
+            <Card className="flex flex-col flex-grow">
                 <CardHeader>
                     <CardTitle>Historia wydań</CardTitle>
                     <CardDescription>Poprzednie wydania dla wybranego pracownika.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-grow">
                     {selectedEmployee ? (
                          <div className="text-sm text-muted-foreground">Brak historii wydań dla tego pracownika.</div>
                     ) : (
