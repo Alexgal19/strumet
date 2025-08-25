@@ -185,35 +185,37 @@ function ActiveEmployeesPageComponent() {
        {/* Mobile View - Cards */}
       <div className="flex-grow space-y-4 md:hidden">
         {filteredEmployees.map(employee => (
-          <Card key={employee.id} className="w-full">
+          <Card key={employee.id} className="w-full" onClick={() => handleEditEmployee(employee)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                <CardTitle className="text-lg">{employee.lastName} {employee.firstName}</CardTitle>
-                <EmployeeSummary employee={employee}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Otwórz menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edytuj
-                        </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <Bot className="mr-2 h-4 w-4" />
-                              Generuj podsumowanie
-                          </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
-                          <UserX className="mr-2 h-4 w-4" />
-                          Zwolnij
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                  </DropdownMenu>
-                </EmployeeSummary>
+                <div onClick={(e) => e.stopPropagation()}>
+                    <EmployeeSummary employee={employee}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Otwórz menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                            <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edytuj
+                            </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <Bot className="mr-2 h-4 w-4" />
+                                  Generuj podsumowanie
+                              </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
+                              <UserX className="mr-2 h-4 w-4" />
+                              Zwolnij
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                    </EmployeeSummary>
+                </div>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
                 <p><strong className="text-muted-foreground">Stanowisko:</strong> {employee.jobTitle}</p>
@@ -245,7 +247,7 @@ function ActiveEmployeesPageComponent() {
           </TableHeader>
           <TableBody>
             {filteredEmployees.length > 0 ? filteredEmployees.map(employee => (
-              <TableRow key={employee.id}>
+              <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
                 <TableCell className="font-medium">{employee.lastName} {employee.firstName}</TableCell>
                 <TableCell>{employee.hireDate}</TableCell>
                 <TableCell>{employee.jobTitle}</TableCell>
@@ -254,7 +256,7 @@ function ActiveEmployeesPageComponent() {
                 <TableCell>{employee.cardNumber}</TableCell>
                 <TableCell>{employee.nationality}</TableCell>
                 <TableCell>{employee.lockerNumber}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <EmployeeSummary employee={employee}>
                          <DropdownMenu>
                             <DropdownMenuTrigger asChild>
