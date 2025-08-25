@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,32 +19,31 @@ import { PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import type { ConfigItem } from '@/lib/types';
 import { useConfig, type ConfigType } from '@/context/config-context';
 
-interface ConfigManagerProps {
+interface ConfigListProps {
   title: string;
   items: ConfigItem[];
-  onItemsChange: (newItems: ConfigItem[]) => void;
   configType: ConfigType;
+  updateLocalItems: (items: ConfigItem[]) => void;
 }
 
-const ConfigList: React.FC<ConfigManagerProps> = ({ title, items, onItemsChange, configType }) => {
+const ConfigList: React.FC<ConfigListProps> = ({ title, items, configType, updateLocalItems }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newItemName, setNewItemName] = useState('');
 
   const handleAddItem = () => {
     if (newItemName.trim()) {
       const newItem: ConfigItem = {
-        // Temporary ID, Firebase will generate the real one
         id: `${configType.slice(0, 2)}-${Date.now()}`, 
         name: newItemName.trim(),
       };
-      onItemsChange([...items, newItem]);
+      updateLocalItems([...items, newItem]);
       setNewItemName('');
       setIsDialogOpen(false);
     }
   };
 
   const handleDeleteItem = (id: string) => {
-    onItemsChange(items.filter(item => item.id !== id));
+    updateLocalItems(items.filter(item => item.id !== id));
   };
   
   return (
@@ -108,45 +107,54 @@ const ConfigList: React.FC<ConfigManagerProps> = ({ title, items, onItemsChange,
 
 export default function ConfigurationPage() {
     const { departments, jobTitles, managers, nationalities, clothingItems, updateConfig, isLoading } = useConfig();
+    const [localConfig, setLocalConfig] = useState({
+      departments, jobTitles, managers, nationalities, clothingItems
+    });
+    
+    useEffect(() => {
+        setLocalConfig({ departments, jobTitles, managers, nationalities, clothingItems });
+    }, [departments, jobTitles, managers, nationalities, clothingItems]);
 
-  const handleItemsChange = (configType: ConfigType) => (newItems: ConfigItem[]) => {
-    updateConfig(configType, newItems);
-  };
+    const handleUpdate = (configType: ConfigType) => (newItems: ConfigItem[]) => {
+      const newLocalConfig = { ...localConfig, [configType]: newItems };
+      setLocalConfig(newLocalConfig);
+      updateConfig(configType, newItems);
+    };
 
-  if (isLoading) {
-    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
+    if (isLoading) {
+        return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
 
-  return (
-    <div>
-      <PageHeader
-        title="Konfiguracja"
-        description="Zarządzaj listami używanymi w całej aplikacji."
-      />
-      <Tabs defaultValue="departments">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-          <TabsTrigger value="departments">Działy</TabsTrigger>
-          <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
-          <TabsTrigger value="managers">Kierownicy</TabsTrigger>
-          <TabsTrigger value="nationalities">Narodowości</TabsTrigger>
-          <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
-        </TabsList>
-        <TabsContent value="departments" className="mt-4">
-            <ConfigList title="Działy" items={departments} onItemsChange={handleItemsChange('departments')} configType='departments' />
-        </TabsContent>
-        <TabsContent value="jobTitles" className="mt-4">
-            <ConfigList title="Miejsca pracy" items={jobTitles} onItemsChange={handleItemsChange('jobTitles')} configType='jobTitles' />
-        </TabsContent>
-        <TabsContent value="managers" className="mt-4">
-            <ConfigList title="Kierownicy" items={managers} onItemsChange={handleItemsChange('managers')} configType='managers' />
-        </TabsContent>
-        <TabsContent value="nationalities" className="mt-4">
-            <ConfigList title="Narodowości" items={nationalities} onItemsChange={handleItemsChange('nationalities')} configType='nationalities' />
-        </TabsContent>
-        <TabsContent value="clothingItems" className="mt-4">
-            <ConfigList title="Elementy odzieży" items={clothingItems} onItemsChange={handleItemsChange('clothingItems')} configType='clothingItems' />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+    return (
+        <div>
+        <PageHeader
+            title="Konfiguracja"
+            description="Zarządzaj listami używanymi w całej aplikacji."
+        />
+        <Tabs defaultValue="departments">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+            <TabsTrigger value="departments">Działy</TabsTrigger>
+            <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
+            <TabsTrigger value="managers">Kierownicy</TabsTrigger>
+            <TabsTrigger value="nationalities">Narodowości</TabsTrigger>
+            <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
+            </TabsList>
+            <TabsContent value="departments" className="mt-4">
+                <ConfigList title="Działy" items={localConfig.departments} configType='departments' updateLocalItems={handleUpdate('departments')} />
+            </TabsContent>
+            <TabsContent value="jobTitles" className="mt-4">
+                <ConfigList title="Miejsca pracy" items={localConfig.jobTitles} configType='jobTitles' updateLocalItems={handleUpdate('jobTitles')} />
+            </TabsContent>
+            <TabsContent value="managers" className="mt-4">
+                <ConfigList title="Kierownicy" items={localConfig.managers} configType='managers' updateLocalItems={handleUpdate('managers')} />
+            </TabsContent>
+            <TabsContent value="nationalities" className="mt-4">
+                <ConfigList title="Narodowości" items={localConfig.nationalities} configType='nationalities' updateLocalItems={handleUpdate('nationalities')} />
+            </TabsContent>
+            <TabsContent value="clothingItems" className="mt-4">
+                <ConfigList title="Elementy odzieży" items={localConfig.clothingItems} configType='clothingItems' updateLocalItems={handleUpdate('clothingItems')} />
+            </TabsContent>
+        </Tabs>
+        </div>
+    );
 }
