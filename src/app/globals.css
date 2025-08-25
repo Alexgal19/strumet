@@ -8,7 +8,7 @@ html, body, #__next {
 
 html {
   /* This enables auto-scaling of the entire UI based on viewport width */
-  font-size: clamp(14px, 1.5vw, 16px);
+  font-size: clamp(16px, 1.5vw, 18px);
 }
 
 body {

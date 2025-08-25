@@ -14,6 +14,8 @@ import { Loader2, Search } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { useConfig } from '@/context/config-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 function TerminatedEmployeesPageComponent() {
   const { employees = [], departments = [], jobTitles = [], managers = [], nationalities = [], isLoading } = useConfig();
@@ -83,7 +85,28 @@ function TerminatedEmployeesPageComponent() {
         </Select>
       </div>
 
-      <div className="flex-grow overflow-auto rounded-lg border">
+       {/* Mobile View - Cards */}
+      <div className="flex-grow space-y-4 md:hidden">
+        {filteredEmployees.map(employee => (
+          <Card key={employee.id} className="w-full">
+            <CardHeader>
+              <CardTitle className="text-lg">{employee.lastName} {employee.firstName}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+                <p><strong className="text-muted-foreground">Data zatrudnienia:</strong> {employee.hireDate}</p>
+                <p><strong className="text-muted-foreground">Data zwolnienia:</strong> <span className="text-destructive font-medium">{employee.terminationDate}</span></p>
+                <p><strong className="text-muted-foreground">Stanowisko:</strong> {employee.jobTitle}</p>
+                <p><strong className="text-muted-foreground">Dział:</strong> {employee.department}</p>
+            </CardContent>
+          </Card>
+        ))}
+        {filteredEmployees.length === 0 && (
+            <div className="text-center text-muted-foreground py-10">Brak zwolnionych pracowników.</div>
+        )}
+      </div>
+
+      {/* Desktop View - Table */}
+      <div className="hidden flex-grow overflow-auto rounded-lg border md:block">
         <Table>
           <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
             <TableRow>

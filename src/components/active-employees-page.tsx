@@ -34,6 +34,7 @@ import { useConfig } from '@/context/config-context';
 import { db } from '@/lib/firebase';
 import { ref, set, push, update } from "firebase/database";
 import { format } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const EmployeeForm = dynamic(() => import('./employee-form').then(mod => mod.EmployeeForm), {
   loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
@@ -176,7 +177,53 @@ function ActiveEmployeesPageComponent() {
         </Select>
       </div>
 
-      <div className="flex-grow overflow-auto rounded-lg border">
+       {/* Mobile View - Cards */}
+      <div className="flex-grow space-y-4 md:hidden">
+        {filteredEmployees.map(employee => (
+          <Card key={employee.id} className="w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+               <CardTitle className="text-lg">{employee.lastName} {employee.firstName}</CardTitle>
+                <EmployeeSummary employee={employee}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Otwórz menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                        <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edytuj
+                        </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Bot className="mr-2 h-4 w-4" />
+                              Generuj podsumowanie
+                          </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
+                          <UserX className="mr-2 h-4 w-4" />
+                          Zwolnij
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
+                </EmployeeSummary>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+                <p><strong className="text-muted-foreground">Stanowisko:</strong> {employee.jobTitle}</p>
+                <p><strong className="text-muted-foreground">Dział:</strong> {employee.department}</p>
+                <p><strong className="text-muted-foreground">Nr karty:</strong> {employee.cardNumber}</p>
+            </CardContent>
+          </Card>
+        ))}
+         {filteredEmployees.length === 0 && (
+            <div className="text-center text-muted-foreground py-10">Brak aktywnych pracowników.</div>
+        )}
+      </div>
+
+      {/* Desktop View - Table */}
+      <div className="hidden flex-grow overflow-auto rounded-lg border md:block">
         <Table>
           <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
             <TableRow>
@@ -232,6 +279,13 @@ function ActiveEmployeesPageComponent() {
                 </TableCell>
               </TableRow>
             ))}
+             {filteredEmployees.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={9} className="h-24 text-center">
+                    Brak aktywnych pracowników.
+                    </TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

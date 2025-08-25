@@ -11,13 +11,11 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger,
+  SidebarTrigger as SidebarTriggerButton,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import {
   Users,
   UserX,
-  UserPlus,
   Settings,
   BarChart3,
   Shirt,
@@ -29,6 +27,16 @@ import {
 
 const AppSidebar = () => {
   const pathname = usePathname();
+
+  const menuItems = [
+    { href: '/aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
+    { href: '/zwolnieni', icon: <UserX />, label: 'Pracownicy zwolnieni' },
+    { href: '/statystyki', icon: <BarChart3 />, label: 'Statystyki' },
+    { href: '/wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
+    { href: '/odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
+    { href: '/brak-logowania', icon: <FileText />, label: 'Brak logowania' },
+    { href: '/konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
+  ];
 
   return (
     <Sidebar>
@@ -42,62 +50,16 @@ const AppSidebar = () => {
       </SidebarHeader>
       <SidebarContent className="flex-grow">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/aktywni')}>
-              <Link href="/aktywni">
-                <Users />
-                <span>Pracownicy aktywni</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/zwolnieni')}>
-              <Link href="/zwolnieni">
-                <UserX />
-                <span>Pracownicy zwolnieni</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/statystyki')}>
-              <Link href="/statystyki">
-                <BarChart3 />
-                <span>Statystyki</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/wydawanie-odziezy')}>
-              <Link href="/wydawanie-odziezy">
-                <Shirt />
-                <span>Wydawanie odzieży</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/odciski-palcow')}>
-              <Link href="/odciski-palcow">
-                <Fingerprint />
-                <span>Terminy na odciski</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/brak-logowania')}>
-              <Link href="/brak-logowania">
-                <FileText />
-                <span>Brak logowania</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/konfiguracja')}>
-              <Link href="/konfiguracja">
-                <Settings />
-                <span>Konfiguracja</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {menuItems.map((item) => (
+             <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
+                  <Link href={item.href}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
@@ -116,4 +78,5 @@ const AppSidebar = () => {
   );
 };
 
+export const SidebarTrigger = SidebarTriggerButton;
 export default AppSidebar;
