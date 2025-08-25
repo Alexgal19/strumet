@@ -20,7 +20,7 @@ import {
   UserPlus,
   Settings,
   BarChart3,
-  Tshirt,
+  Shirt,
   Fingerprint,
   FileText,
   Building,
@@ -69,7 +69,7 @@ const AppSidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname.startsWith('/wydawanie-odziezy')}>
               <Link href="/wydawanie-odziezy">
-                <Tshirt />
+                <Shirt />
                 <span>Wydawanie odzieży</span>
               </Link>
             </SidebarMenuButton>
