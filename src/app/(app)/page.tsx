@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import MainLayout from '@/components/main-layout';
 
 export default function AppPage() {
-  redirect('/aktywni');
+  return <MainLayout />;
 }

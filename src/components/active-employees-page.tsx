@@ -47,7 +47,7 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
 });
 
 
-function ActiveEmployeesPageComponent() {
+export default function ActiveEmployeesPage() {
   const { employees, config, isLoading } = useFirebaseData();
   const { departments, jobTitles, managers, nationalities } = config;
   const { toast } = useToast();
@@ -319,6 +319,3 @@ function ActiveEmployeesPageComponent() {
     </div>
   );
 }
-
-const ActiveEmployeesPage = React.memo(ActiveEmployeesPageComponent);
-export default ActiveEmployeesPage;

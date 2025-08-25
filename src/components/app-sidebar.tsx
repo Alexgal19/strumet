@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import {
   Sidebar,
   SidebarHeader,
@@ -24,19 +23,24 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import type { ActiveView } from './main-layout';
 
-const AppSidebar = () => {
-  const pathname = usePathname();
+interface AppSidebarProps {
+  activeView: ActiveView;
+  setActiveView: (view: ActiveView) => void;
+}
+
+const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
   const isMobile = useIsMobile();
 
-  const menuItems = [
-    { href: '/aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
-    { href: '/zwolnieni', icon: <UserX />, label: 'Pracownicy zwolnieni' },
-    { href: '/statystyki', icon: <BarChart3 />, label: 'Statystyki' },
-    { href: '/wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
-    { href: '/odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
-    { href: '/brak-logowania', icon: <FileText />, label: 'Brak logowania' },
-    { href: '/konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
+  const menuItems: { view: ActiveView, icon: React.ReactNode, label: string }[] = [
+    { view: 'aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
+    { view: 'zwolnieni', icon: <UserX />, label: 'Pracownicy zwolnieni' },
+    { view: 'statystyki', icon: <BarChart3 />, label: 'Statystyki' },
+    { view: 'wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
+    { view: 'odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
+    { view: 'brak-logowania', icon: <FileText />, label: 'Brak logowania' },
+    { view: 'konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
   ];
 
   if (isMobile) {
@@ -56,12 +60,13 @@ const AppSidebar = () => {
       <SidebarContent className="flex-grow">
         <SidebarMenu>
           {menuItems.map((item) => (
-             <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
-                  <Link href={item.href}>
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </Link>
+             <SidebarMenuItem key={item.view}>
+                <SidebarMenuButton 
+                  onClick={() => setActiveView(item.view)} 
+                  isActive={activeView === item.view}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
                 </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
