@@ -137,7 +137,7 @@ function ConfigurationPageComponent() {
             title="Konfiguracja"
             description="Zarządzaj listami używanymi w całej aplikacji."
         />
-        <Tabs defaultValue="departments" className="flex flex-col flex-grow">
+        <Tabs defaultValue="departments" className="mt-4 flex flex-col flex-grow">
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
             <TabsTrigger value="departments">Działy</TabsTrigger>
             <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
