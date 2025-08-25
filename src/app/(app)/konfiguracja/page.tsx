@@ -145,19 +145,19 @@ function ConfigurationPageComponent() {
             <TabsTrigger value="nationalities">Narodowości</TabsTrigger>
             <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
             </TabsList>
-            <TabsContent value="departments" className="mt-6 flex flex-col flex-grow">
+            <TabsContent value="departments" className="mt-12 flex flex-col flex-grow">
                 <ConfigList title="Działy" items={departments} configType='departments' onUpdate={handleUpdate} />
             </TabsContent>
-            <TabsContent value="jobTitles" className="mt-6 flex flex-col flex-grow">
+            <TabsContent value="jobTitles" className="mt-12 flex flex-col flex-grow">
                 <ConfigList title="Miejsca pracy" items={jobTitles} configType='jobTitles' onUpdate={handleUpdate} />
             </TabsContent>
-            <TabsContent value="managers" className="mt-6 flex flex-col flex-grow">
+            <TabsContent value="managers" className="mt-12 flex flex-col flex-grow">
                 <ConfigList title="Kierownicy" items={managers} configType='managers' onUpdate={handleUpdate} />
             </TabsContent>
-            <TabsContent value="nationalities" className="mt-6 flex flex-col flex-grow">
+            <TabsContent value="nationalities" className="mt-12 flex flex-col flex-grow">
                 <ConfigList title="Narodowości" items={nationalities} configType='nationalities' onUpdate={handleUpdate} />
             </TabsContent>
-            <TabsContent value="clothingItems" className="mt-6 flex flex-col flex-grow">
+            <TabsContent value="clothingItems" className="mt-12 flex flex-col flex-grow">
                 <ConfigList title="Elementy odzieży" items={clothingItems} configType='clothingItems' onUpdate={handleUpdate} />
             </TabsContent>
         </Tabs>
