@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { MoreHorizontal, PlusCircle, Trash2, Edit, Calendar as CalendarIcon } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Edit, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { Employee, FingerprintAppointment } from '@/lib/types';
@@ -102,7 +102,7 @@ export default function FingerprintAppointmentsPage() {
     const activeEmployees = employees.filter(e => e.status === 'aktywny');
 
 
-    if (isLoading || isConfigLoading) return <div>Ładowanie...</div>;
+    if (isLoading || isConfigLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
     return (
         <div>

@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useConfig } from '@/context/config-context';
@@ -32,7 +32,7 @@ export default function TerminatedEmployeesPage() {
     });
   }, [terminatedEmployees, searchTerm]);
 
-  if (isLoading) return <div>Ładowanie...</div>;
+  if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
     <div className="h-full flex flex-col">

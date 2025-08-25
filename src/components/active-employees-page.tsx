@@ -31,7 +31,7 @@ import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useConfig } from '@/context/config-context';
 import { db } from '@/lib/firebase';
-import { ref, onValue, set, remove, push } from "firebase/database";
+import { ref, set, remove, push } from "firebase/database";
 
 const EmployeeForm = dynamic(() => import('./employee-form').then(mod => mod.EmployeeForm), {
   loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
@@ -113,7 +113,7 @@ export default function ActiveEmployeesPage() {
       }
   };
 
-  if (isLoading) return <div>Ładowanie...</div>;
+  if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
     <div className="h-full flex flex-col">

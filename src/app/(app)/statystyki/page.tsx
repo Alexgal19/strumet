@@ -7,6 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { PageHeader } from '@/components/page-header';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useConfig } from '@/context/config-context';
+import { Loader2 } from 'lucide-react';
 
 
 export default function StatisticsPage() {
@@ -77,7 +78,7 @@ export default function StatisticsPage() {
       </Card>
     );
 
-    if (isLoading) return <div>Ładowanie statystyk...</div>;
+    if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
     return (
       <div>

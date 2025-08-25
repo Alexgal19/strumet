@@ -15,7 +15,7 @@ import {
   DialogFooter,
   DialogClose
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import type { ConfigItem } from '@/lib/types';
 import { useConfig, type ConfigType } from '@/context/config-context';
 
@@ -114,7 +114,7 @@ export default function ConfigurationPage() {
   };
 
   if (isLoading) {
-    return <div>Ładowanie konfiguracji...</div>;
+    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
   return (
