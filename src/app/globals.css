@@ -6,6 +6,11 @@ html, body, #__next {
   height: 100%;
 }
 
+html {
+  /* This enables auto-scaling of the entire UI based on viewport width */
+  font-size: clamp(14px, 1.5vw, 16px);
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
