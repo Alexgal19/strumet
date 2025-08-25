@@ -72,94 +72,96 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className="space-y-2">
-        <Label htmlFor="firstName">Imię</Label>
-        <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
+    <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto pr-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="firstName">Imię</Label>
+          <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lastName">Nazwisko</Label>
+          <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="hireDate">Data zatrudnienia</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !formData.hireDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formData.hireDate ? format(new Date(formData.hireDate), "PPP", { locale: pl }) : <span>Wybierz datę</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={new Date(formData.hireDate)}
+                onSelect={handleDateChange}
+                initialFocus
+                locale={pl}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="jobTitle">Stanowisko</Label>
+          <Select name="jobTitle" onValueChange={handleSelectChange('jobTitle')} value={formData.jobTitle} required>
+            <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+            <SelectContent>
+              {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="department">Dział</Label>
+          <Select name="department" onValueChange={handleSelectChange('department')} value={formData.department} required>
+            <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+            <SelectContent>
+              {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="manager">Kierownik</Label>
+          <Select name="manager" onValueChange={handleSelectChange('manager')} value={formData.manager} required>
+            <SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
+            <SelectContent>
+              {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="nationality">Narodowość</Label>
+          <Select name="nationality" onValueChange={handleSelectChange('nationality')} value={formData.nationality} required>
+            <SelectTrigger><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
+            <SelectContent>
+              {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="cardNumber">Numer karty</Label>
+          <Input id="cardNumber" name="cardNumber" value={formData.cardNumber} onChange={handleChange} required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lockerNumber">Numer szafki</Label>
+          <Input id="lockerNumber" name="lockerNumber" value={formData.lockerNumber} onChange={handleChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="departmentLockerNumber">Numer szafki w dziale</Label>
+          <Input id="departmentLockerNumber" name="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={handleChange} />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="sealNumber">Numer pieczęci</Label>
+          <Input id="sealNumber" name="sealNumber" value={formData.sealNumber} onChange={handleChange} />
+        </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="lastName">Nazwisko</Label>
-        <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="hireDate">Data zatrudnienia</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !formData.hireDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {formData.hireDate ? format(new Date(formData.hireDate), "PPP", { locale: pl }) : <span>Wybierz datę</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={new Date(formData.hireDate)}
-              onSelect={handleDateChange}
-              initialFocus
-              locale={pl}
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-       <div className="space-y-2">
-        <Label htmlFor="jobTitle">Stanowisko</Label>
-        <Select name="jobTitle" onValueChange={handleSelectChange('jobTitle')} value={formData.jobTitle} required>
-          <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
-          <SelectContent>
-            {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="department">Dział</Label>
-        <Select name="department" onValueChange={handleSelectChange('department')} value={formData.department} required>
-          <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
-          <SelectContent>
-            {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="manager">Kierownik</Label>
-        <Select name="manager" onValueChange={handleSelectChange('manager')} value={formData.manager} required>
-          <SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
-          <SelectContent>
-            {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-       <div className="space-y-2">
-        <Label htmlFor="nationality">Narodowość</Label>
-        <Select name="nationality" onValueChange={handleSelectChange('nationality')} value={formData.nationality} required>
-          <SelectTrigger><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
-          <SelectContent>
-            {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="cardNumber">Numer karty</Label>
-        <Input id="cardNumber" name="cardNumber" value={formData.cardNumber} onChange={handleChange} required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="lockerNumber">Numer szafki</Label>
-        <Input id="lockerNumber" name="lockerNumber" value={formData.lockerNumber} onChange={handleChange} />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="departmentLockerNumber">Numer szafki w dziale</Label>
-        <Input id="departmentLockerNumber" name="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={handleChange} />
-      </div>
-      <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor="sealNumber">Numer pieczęci</Label>
-        <Input id="sealNumber" name="sealNumber" value={formData.sealNumber} onChange={handleChange} />
-      </div>
-      <div className="flex justify-end gap-2 sm:col-span-2">
+      <div className="flex justify-end gap-2 sm:col-span-2 pt-4 flex-shrink-0">
         <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
         <Button type="submit">Zapisz</Button>
       </div>

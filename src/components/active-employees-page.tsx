@@ -175,8 +175,8 @@ function ActiveEmployeesPageComponent() {
       </PageHeader>
       
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[625px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>{editingEmployee ? 'Edytuj pracownika' : 'Dodaj nowego pracownika'}</DialogTitle>
           </DialogHeader>
           <EmployeeForm
