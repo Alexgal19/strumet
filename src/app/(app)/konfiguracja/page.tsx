@@ -15,17 +15,9 @@ import {
   DialogFooter,
   DialogClose
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import type { ConfigItem } from '@/lib/types';
-import { departments, jobTitles, managers, nationalities, clothingItems } from '@/lib/mock-data';
-
-type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
+import { useConfig, type ConfigType } from '@/context/config-context';
 
 interface ConfigManagerProps {
   title: string;
@@ -113,16 +105,10 @@ const ConfigList: React.FC<ConfigManagerProps> = ({ title, items, onItemsChange 
 
 
 export default function ConfigurationPage() {
-  const [configData, setConfigData] = useState({
-    departments,
-    jobTitles,
-    managers,
-    nationalities,
-    clothingItems,
-  });
+    const { departments, jobTitles, managers, nationalities, clothingItems, updateConfig } = useConfig();
 
   const handleItemsChange = (configType: ConfigType) => (newItems: ConfigItem[]) => {
-    setConfigData(prev => ({ ...prev, [configType]: newItems }));
+    updateConfig(configType, newItems);
   };
 
   return (
@@ -140,19 +126,19 @@ export default function ConfigurationPage() {
           <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
         </TabsList>
         <TabsContent value="departments" className="mt-4">
-            <ConfigList title="Działy" items={configData.departments} onItemsChange={handleItemsChange('departments')} />
+            <ConfigList title="Działy" items={departments} onItemsChange={handleItemsChange('departments')} />
         </TabsContent>
         <TabsContent value="jobTitles" className="mt-4">
-            <ConfigList title="Miejsca pracy" items={configData.jobTitles} onItemsChange={handleItemsChange('jobTitles')} />
+            <ConfigList title="Miejsca pracy" items={jobTitles} onItemsChange={handleItemsChange('jobTitles')} />
         </TabsContent>
         <TabsContent value="managers" className="mt-4">
-            <ConfigList title="Kierownicy" items={configData.managers} onItemsChange={handleItemsChange('managers')} />
+            <ConfigList title="Kierownicy" items={managers} onItemsChange={handleItemsChange('managers')} />
         </TabsContent>
         <TabsContent value="nationalities" className="mt-4">
-            <ConfigList title="Narodowości" items={configData.nationalities} onItemsChange={handleItemsChange('nationalities')} />
+            <ConfigList title="Narodowości" items={nationalities} onItemsChange={handleItemsChange('nationalities')} />
         </TabsContent>
         <TabsContent value="clothingItems" className="mt-4">
-            <ConfigList title="Elementy odzieży" items={configData.clothingItems} onItemsChange={handleItemsChange('clothingItems')} />
+            <ConfigList title="Elementy odzieży" items={clothingItems} onItemsChange={handleItemsChange('clothingItems')} />
         </TabsContent>
       </Tabs>
     </div>

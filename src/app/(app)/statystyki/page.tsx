@@ -4,18 +4,20 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { activeEmployees, departments, jobTitles, managers, nationalities } from '@/lib/mock-data';
+import { activeEmployees } from '@/lib/mock-data';
 import { PageHeader } from '@/components/page-header';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { useConfig } from '@/context/config-context';
 
 export default function StatisticsPage() {
+    const { departments, jobTitles, managers, nationalities } = useConfig();
   const statsByDepartment = useMemo(() => {
     const data = departments.map(d => ({
       name: d.name,
       'Liczba pracowników': activeEmployees.filter(e => e.department === d.name).length,
     }));
     return data.filter(d => d['Liczba pracowników'] > 0);
-  }, []);
+  }, [departments]);
   
   const statsByJobTitle = useMemo(() => {
     const data = jobTitles.map(j => ({
@@ -23,7 +25,7 @@ export default function StatisticsPage() {
       'Liczba pracowników': activeEmployees.filter(e => e.jobTitle === j.name).length,
     }));
     return data.filter(d => d['Liczba pracowników'] > 0);
-  }, []);
+  }, [jobTitles]);
 
   const statsByManager = useMemo(() => {
     const data = managers.map(m => ({
@@ -31,7 +33,7 @@ export default function StatisticsPage() {
       'Liczba pracowników': activeEmployees.filter(e => e.manager === m.name).length,
     }));
     return data.filter(d => d['Liczba pracowników'] > 0);
-  }, []);
+  }, [managers]);
 
   const statsByNationality = useMemo(() => {
     const data = nationalities.map(n => ({
@@ -39,7 +41,7 @@ export default function StatisticsPage() {
       'Liczba pracowników': activeEmployees.filter(e => e.nationality === n.name).length,
     }));
     return data.filter(d => d['Liczba pracowników'] > 0);
-  }, []);
+  }, [nationalities]);
 
   const chartConfig = {
     'Liczba pracowników': {

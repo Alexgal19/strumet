@@ -29,15 +29,17 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, Bot } from 'lucide-react';
-import { activeEmployees, departments, jobTitles, managers, nationalities } from '@/lib/mock-data';
+import { activeEmployees } from '@/lib/mock-data';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { EmployeeForm } from './employee-form';
 import { EmployeeSummary } from './employee-summary';
+import { useConfig } from '@/context/config-context';
 
 export default function ActiveEmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>(activeEmployees);
   const [searchTerm, setSearchTerm] = useState('');
+  const { departments, jobTitles, managers, nationalities } = useConfig();
   const [filters, setFilters] = useState({
     department: '',
     manager: '',
