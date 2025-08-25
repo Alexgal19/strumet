@@ -11,7 +11,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger as SidebarTriggerButton,
 } from '@/components/ui/sidebar';
 import {
   Users,
@@ -24,9 +23,11 @@ import {
   Building,
   LogOut,
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AppSidebar = () => {
   const pathname = usePathname();
+  const isMobile = useIsMobile();
 
   const menuItems = [
     { href: '/aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
@@ -37,6 +38,10 @@ const AppSidebar = () => {
     { href: '/brak-logowania', icon: <FileText />, label: 'Brak logowania' },
     { href: '/konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
   ];
+
+  if (isMobile) {
+    return null;
+  }
 
   return (
     <Sidebar>
@@ -78,5 +83,4 @@ const AppSidebar = () => {
   );
 };
 
-export const SidebarTrigger = SidebarTriggerButton;
 export default AppSidebar;
