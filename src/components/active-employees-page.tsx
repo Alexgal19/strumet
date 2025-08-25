@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
@@ -35,6 +35,7 @@ import { db } from '@/lib/firebase';
 import { ref, set, push, update } from "firebase/database";
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 const EmployeeForm = dynamic(() => import('./employee-form').then(mod => mod.EmployeeForm), {
   loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
@@ -49,6 +50,7 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
 function ActiveEmployeesPageComponent() {
   const { employees, config, isLoading } = useFirebaseData();
   const { departments, jobTitles, managers, nationalities } = config;
+  const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -120,6 +122,16 @@ function ActiveEmployeesPageComponent() {
     setEditingEmployee(null);
     setIsFormOpen(true);
   }
+
+  const handleCopy = (employee: Employee) => {
+    const textToCopy = `${employee.lastName} ${employee.firstName}, ${employee.jobTitle}, ${employee.department}`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        toast({
+            title: 'Skopiowano!',
+            description: 'Dane pracownika zostały skopiowane do schowka.',
+        });
+    });
+  };
 
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
@@ -203,6 +215,10 @@ function ActiveEmployeesPageComponent() {
                               <Edit className="mr-2 h-4 w-4" />
                               Edytuj
                             </DropdownMenuItem>
+                             <DropdownMenuItem onSelect={() => handleCopy(employee)}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Kopiuj dane
+                            </DropdownMenuItem>
                               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                 <Bot className="mr-2 h-4 w-4" />
                                   Generuj podsumowanie
@@ -270,6 +286,10 @@ function ActiveEmployeesPageComponent() {
                               <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edytuj
+                              </DropdownMenuItem>
+                               <DropdownMenuItem onSelect={() => handleCopy(employee)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Kopiuj dane
                               </DropdownMenuItem>
                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                   <Bot className="mr-2 h-4 w-4" />
