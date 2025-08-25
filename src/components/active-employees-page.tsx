@@ -26,18 +26,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, Bot } from 'lucide-react';
-import { activeEmployees as initialEmployees } from '@/lib/mock-data';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { EmployeeForm } from './employee-form';
 import { EmployeeSummary } from './employee-summary';
 import { useConfig } from '@/context/config-context';
-
-const EMPLOYEES_STORAGE_KEY = 'kadry-online-employees';
+import { db } from '@/lib/firebase';
+import { ref, onValue, set, remove, push } from "firebase/database";
 
 export default function ActiveEmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const { departments, jobTitles, managers, nationalities, isLoading } = useConfig();
+  const { departments, jobTitles, managers, nationalities, isLoading: isConfigLoading } = useConfig();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     department: '',
@@ -47,31 +46,31 @@ export default function ActiveEmployeesPage() {
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isLoading) {
-        try {
-            const storedEmployees = window.localStorage.getItem(EMPLOYEES_STORAGE_KEY);
-            if (storedEmployees) {
-                setEmployees(JSON.parse(storedEmployees));
+    if (!isConfigLoading) {
+        const employeesRef = ref(db, 'employees');
+        const unsubscribe = onValue(employeesRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const employeesList = Object.keys(data).map(key => ({
+                    id: key,
+                    ...data[key]
+                }));
+                setEmployees(employeesList);
             } else {
-                setEmployees(initialEmployees);
+                setEmployees([]);
             }
-        } catch (error) {
-            console.error("Failed to load employees from localStorage", error);
-            setEmployees(initialEmployees);
-        }
-    }
-  }, [isLoading]);
+            setIsLoading(false);
+        }, (error) => {
+            console.error(error);
+            setIsLoading(false);
+        });
 
-  const updateAndStoreEmployees = (newEmployees: Employee[]) => {
-      setEmployees(newEmployees);
-      try {
-          window.localStorage.setItem(EMPLOYEES_STORAGE_KEY, JSON.stringify(newEmployees));
-      } catch (error) {
-          console.error("Failed to save employees to localStorage", error);
-      }
-  }
+        return () => unsubscribe();
+    }
+  }, [isConfigLoading]);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
@@ -81,7 +80,7 @@ export default function ActiveEmployeesPage() {
       return (
         (employee.firstName.toLowerCase().includes(searchLower) ||
           employee.lastName.toLowerCase().includes(searchLower) ||
-          employee.cardNumber.toLowerCase().includes(searchLower)) &&
+          (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
         (filters.department ? employee.department === filters.department : true) &&
         (filters.manager ? employee.manager === filters.manager : true) &&
         (filters.jobTitle ? employee.jobTitle === filters.jobTitle : true) &&
@@ -94,16 +93,20 @@ export default function ActiveEmployeesPage() {
     setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
   };
 
-  const handleSaveEmployee = (employee: Employee) => {
-    let updatedEmployees;
-    if (editingEmployee) {
-      updatedEmployees = employees.map(e => e.id === employee.id ? employee : e);
-    } else {
-      updatedEmployees = [...employees, { ...employee, id: `e${Date.now()}` }];
+  const handleSaveEmployee = async (employeeData: Omit<Employee, 'id'>) => {
+    try {
+        if (editingEmployee) {
+            const employeeRef = ref(db, `employees/${editingEmployee.id}`);
+            await set(employeeRef, employeeData);
+        } else {
+            const newEmployeeRef = push(ref(db, 'employees'));
+            await set(newEmployeeRef, employeeData);
+        }
+        setEditingEmployee(null);
+        setIsFormOpen(false);
+    } catch (error) {
+        console.error("Error saving employee: ", error);
     }
-    updateAndStoreEmployees(updatedEmployees);
-    setEditingEmployee(null);
-    setIsFormOpen(false);
   };
 
   const handleEditEmployee = (employee: Employee) => {
@@ -116,12 +119,18 @@ export default function ActiveEmployeesPage() {
     setIsFormOpen(true);
   }
 
-  const handleDeleteEmployee = (id: string) => {
-    const updatedEmployees = employees.filter(e => e.id !== id);
-    updateAndStoreEmployees(updatedEmployees);
+  const handleDeleteEmployee = async (id: string) => {
+      if (window.confirm('Czy na pewno chcesz usunąć tego pracownika?')) {
+          try {
+              const employeeRef = ref(db, `employees/${id}`);
+              await remove(employeeRef);
+          } catch (error) {
+              console.error("Error deleting employee: ", error);
+          }
+      }
   };
 
-  if (isLoading) return <div>Ładowanie...</div>;
+  if (isLoading || isConfigLoading) return <div>Ładowanie...</div>;
 
   return (
     <div className="h-full flex flex-col">
@@ -142,7 +151,10 @@ export default function ActiveEmployeesPage() {
           </DialogHeader>
           <EmployeeForm
             employee={editingEmployee}
-            onSave={handleSaveEmployee}
+            onSave={(employeeData) => {
+                const { id, ...dataToSave } = employeeData;
+                handleSaveEmployee(dataToSave);
+            }}
             onCancel={() => setIsFormOpen(false)}
           />
         </DialogContent>

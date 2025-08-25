@@ -17,7 +17,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { MoreHorizontal, PlusCircle, Trash2, Edit, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { activeEmployees } from '@/lib/mock-data';
 import type { Employee, FingerprintAppointment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -29,42 +28,56 @@ import {
   DialogClose
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { db } from '@/lib/firebase';
+import { ref, onValue, set, push, remove } from 'firebase/database';
 
-const APPOINTMENTS_STORAGE_KEY = 'kadry-online-appointments';
 
 export default function FingerprintAppointmentsPage() {
     const [appointments, setAppointments] = useState<FingerprintAppointment[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<FingerprintAppointment | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        try {
-            const storedAppointments = window.localStorage.getItem(APPOINTMENTS_STORAGE_KEY);
-            if (storedAppointments) {
-                setAppointments(JSON.parse(storedAppointments));
-            }
-        } catch (error) {
-            console.error("Failed to load appointments from localStorage", error);
-        }
+        const appointmentsRef = ref(db, 'fingerprintAppointments');
+        const unsubscribeAppointments = onValue(appointmentsRef, (snapshot) => {
+            const data = snapshot.val();
+            const loadedAppointments = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+            setAppointments(loadedAppointments);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Failed to load appointments from Firebase", error);
+            setIsLoading(false);
+        });
+
+        const employeesRef = ref(db, 'employees');
+        const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
+            const data = snapshot.val();
+            const loadedEmployees = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+            setEmployees(loadedEmployees);
+        });
+
+        return () => {
+            unsubscribeAppointments();
+            unsubscribeEmployees();
+        };
     }, []);
 
-    const updateAndStoreAppointments = (newAppointments: FingerprintAppointment[]) => {
-        setAppointments(newAppointments);
+    const handleSave = async (appointmentData: Omit<FingerprintAppointment, 'id'>) => {
         try {
-            window.localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(newAppointments));
-        } catch (error) {
-            console.error("Failed to save appointments to localStorage", error);
+            if (editingAppointment) {
+                const appointmentRef = ref(db, `fingerprintAppointments/${editingAppointment.id}`);
+                await set(appointmentRef, appointmentData);
+            } else {
+                const newAppointmentRef = push(ref(db, 'fingerprintAppointments'));
+                await set(newAppointmentRef, appointmentData);
+            }
+            setIsFormOpen(false);
+            setEditingAppointment(null);
+        } catch(error) {
+            console.error("Failed to save appointment", error);
         }
-    }
-
-    const handleSave = (appointment: Omit<FingerprintAppointment, 'id'>) => {
-        if (editingAppointment) {
-            updateAndStoreAppointments(appointments.map(a => a.id === editingAppointment.id ? { ...a, ...appointment } : a));
-        } else {
-            updateAndStoreAppointments([...appointments, { ...appointment, id: `fa-${Date.now()}` }]);
-        }
-        setIsFormOpen(false);
-        setEditingAppointment(null);
     };
 
     const handleEdit = (appointment: FingerprintAppointment) => {
@@ -77,14 +90,26 @@ export default function FingerprintAppointmentsPage() {
         setIsFormOpen(true);
     };
 
-    const handleDelete = (id: string) => {
-        updateAndStoreAppointments(appointments.filter(a => a.id !== id));
+    const handleDelete = async (id: string) => {
+        if(window.confirm('Czy na pewno chcesz usunąć ten termin?')) {
+            try {
+                const appointmentRef = ref(db, `fingerprintAppointments/${id}`);
+                await remove(appointmentRef);
+            } catch(error) {
+                console.error("Failed to delete appointment", error);
+            }
+        }
     };
 
     const getEmployeeName = (id: string) => {
-        const emp = activeEmployees.find(e => e.id === id);
+        const emp = employees.find(e => e.id === id);
         return emp ? `${emp.lastName} ${emp.firstName}` : 'Nieznany';
     }
+    
+    const activeEmployees = employees.filter(e => e.status === 'aktywny');
+
+
+    if (isLoading) return <div>Ładowanie...</div>;
 
     return (
         <div>
@@ -102,6 +127,7 @@ export default function FingerprintAppointmentsPage() {
                 onOpenChange={setIsFormOpen}
                 appointment={editingAppointment}
                 onSave={handleSave}
+                employees={activeEmployees}
             />
             <div className="rounded-lg border">
                 <Table>
@@ -141,9 +167,10 @@ interface AppointmentFormProps {
     onOpenChange: (isOpen: boolean) => void;
     appointment: FingerprintAppointment | null;
     onSave: (appointment: Omit<FingerprintAppointment, 'id'>) => void;
+    employees: Employee[];
 }
 
-function AppointmentForm({ isOpen, onOpenChange, appointment, onSave }: AppointmentFormProps) {
+function AppointmentForm({ isOpen, onOpenChange, appointment, onSave, employees }: AppointmentFormProps) {
     const [employeeId, setEmployeeId] = useState('');
     const [appointmentDate, setAppointmentDate] = useState<Date | undefined>();
 
@@ -175,7 +202,7 @@ function AppointmentForm({ isOpen, onOpenChange, appointment, onSave }: Appointm
                         <Select onValueChange={setEmployeeId} value={employeeId}>
                             <SelectTrigger><SelectValue placeholder="Wybierz pracownika" /></SelectTrigger>
                             <SelectContent>
-                                {activeEmployees.map(e => (
+                                {employees.map(e => (
                                     <SelectItem key={e.id} value={e.id}>{e.lastName} {e.firstName}</SelectItem>
                                 ))}
                             </SelectContent>

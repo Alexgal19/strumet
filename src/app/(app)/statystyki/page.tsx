@@ -4,34 +4,40 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { activeEmployees as initialEmployees } from '@/lib/mock-data';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useConfig } from '@/context/config-context';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
 
-const EMPLOYEES_STORAGE_KEY = 'kadry-online-employees';
 
 export default function StatisticsPage() {
     const { departments, jobTitles, managers, nationalities, isLoading: isConfigLoading } = useConfig();
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
+     useEffect(() => {
         if (!isConfigLoading) {
-            try {
-                const storedEmployees = window.localStorage.getItem(EMPLOYEES_STORAGE_KEY);
-                if (storedEmployees) {
-                    setEmployees(JSON.parse(storedEmployees));
+            const employeesRef = ref(db, 'employees');
+            const unsubscribe = onValue(employeesRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    const employeesList = Object.keys(data).map(key => ({
+                        id: key,
+                        ...data[key]
+                    }));
+                    setEmployees(employeesList);
                 } else {
-                    setEmployees(initialEmployees);
+                    setEmployees([]);
                 }
-            } catch (error) {
-                console.error("Failed to load employees from localStorage", error);
-                setEmployees(initialEmployees);
-            } finally {
                 setIsLoading(false);
-            }
+            }, (error) => {
+                console.error(error);
+                setIsLoading(false);
+            });
+
+            return () => unsubscribe();
         }
     }, [isConfigLoading]);
 

@@ -23,16 +23,18 @@ interface ConfigManagerProps {
   title: string;
   items: ConfigItem[];
   onItemsChange: (newItems: ConfigItem[]) => void;
+  configType: ConfigType;
 }
 
-const ConfigList: React.FC<ConfigManagerProps> = ({ title, items, onItemsChange }) => {
+const ConfigList: React.FC<ConfigManagerProps> = ({ title, items, onItemsChange, configType }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newItemName, setNewItemName] = useState('');
 
   const handleAddItem = () => {
     if (newItemName.trim()) {
       const newItem: ConfigItem = {
-        id: `${title.slice(0, 2)}-${Date.now()}`,
+        // Temporary ID, Firebase will generate the real one
+        id: `${configType.slice(0, 2)}-${Date.now()}`, 
         name: newItemName.trim(),
       };
       onItemsChange([...items, newItem]);
@@ -105,11 +107,15 @@ const ConfigList: React.FC<ConfigManagerProps> = ({ title, items, onItemsChange 
 
 
 export default function ConfigurationPage() {
-    const { departments, jobTitles, managers, nationalities, clothingItems, updateConfig } = useConfig();
+    const { departments, jobTitles, managers, nationalities, clothingItems, updateConfig, isLoading } = useConfig();
 
   const handleItemsChange = (configType: ConfigType) => (newItems: ConfigItem[]) => {
     updateConfig(configType, newItems);
   };
+
+  if (isLoading) {
+    return <div>Ładowanie konfiguracji...</div>;
+  }
 
   return (
     <div>
@@ -126,19 +132,19 @@ export default function ConfigurationPage() {
           <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
         </TabsList>
         <TabsContent value="departments" className="mt-4">
-            <ConfigList title="Działy" items={departments} onItemsChange={handleItemsChange('departments')} />
+            <ConfigList title="Działy" items={departments} onItemsChange={handleItemsChange('departments')} configType='departments' />
         </TabsContent>
         <TabsContent value="jobTitles" className="mt-4">
-            <ConfigList title="Miejsca pracy" items={jobTitles} onItemsChange={handleItemsChange('jobTitles')} />
+            <ConfigList title="Miejsca pracy" items={jobTitles} onItemsChange={handleItemsChange('jobTitles')} configType='jobTitles' />
         </TabsContent>
         <TabsContent value="managers" className="mt-4">
-            <ConfigList title="Kierownicy" items={managers} onItemsChange={handleItemsChange('managers')} />
+            <ConfigList title="Kierownicy" items={managers} onItemsChange={handleItemsChange('managers')} configType='managers' />
         </TabsContent>
         <TabsContent value="nationalities" className="mt-4">
-            <ConfigList title="Narodowości" items={nationalities} onItemsChange={handleItemsChange('nationalities')} />
+            <ConfigList title="Narodowości" items={nationalities} onItemsChange={handleItemsChange('nationalities')} configType='nationalities' />
         </TabsContent>
         <TabsContent value="clothingItems" className="mt-4">
-            <ConfigList title="Elementy odzieży" items={clothingItems} onItemsChange={handleItemsChange('clothingItems')} />
+            <ConfigList title="Elementy odzieży" items={clothingItems} onItemsChange={handleItemsChange('clothingItems')} configType='clothingItems' />
         </TabsContent>
       </Tabs>
     </div>

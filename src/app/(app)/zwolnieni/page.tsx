@@ -11,36 +11,39 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { terminatedEmployees as initialTerminatedEmployees } from '@/lib/mock-data';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-
-const EMPLOYEES_STORAGE_KEY = 'kadry-online-employees';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
 
 export default function TerminatedEmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-        const storedEmployees = window.localStorage.getItem(EMPLOYEES_STORAGE_KEY);
-        if (storedEmployees) {
-            const allEmployees = JSON.parse(storedEmployees) as Employee[];
-            setEmployees(allEmployees);
+    const employeesRef = ref(db, 'employees');
+    const unsubscribe = onValue(employeesRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            const employeesList = Object.keys(data).map(key => ({
+                id: key,
+                ...data[key]
+            }));
+            setEmployees(employeesList);
         } else {
-            // If nothing in storage, use mock data. This might not be ideal
-            // as active employees page initializes storage.
-            // A shared state management would be better.
-             setEmployees(initialTerminatedEmployees);
+            setEmployees([]);
         }
-    } catch (error) {
-        console.error("Failed to load employees from localStorage", error);
-        setEmployees(initialTerminatedEmployees);
-    }
+        setIsLoading(false);
+    }, (error) => {
+        console.error(error);
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
-
 
   const filteredEmployees = useMemo(() => {
     return terminatedEmployees.filter(employee => {
@@ -52,6 +55,8 @@ export default function TerminatedEmployeesPage() {
       );
     });
   }, [terminatedEmployees, searchTerm]);
+
+  if (isLoading) return <div>Ładowanie...</div>;
 
   return (
     <div className="h-full flex flex-col">
