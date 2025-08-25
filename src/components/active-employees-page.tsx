@@ -220,7 +220,7 @@ export default function ActiveEmployeesPage() {
                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                   <Bot className="mr-2 h-4 w-4" />
                                    Generuj podsumowanie
-                               </DLropdownMenuItem>
+                               </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteEmployee(employee.id)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Usuń
