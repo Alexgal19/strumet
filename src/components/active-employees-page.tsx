@@ -124,7 +124,7 @@ function ActiveEmployeesPageComponent() {
   }
 
   const handleCopy = (employee: Employee) => {
-    const textToCopy = `${employee.lastName} ${employee.firstName}, ${employee.jobTitle}, ${employee.department}`;
+    const textToCopy = `${employee.lastName} ${employee.firstName}\n${employee.jobTitle}\n${employee.department}`;
     navigator.clipboard.writeText(textToCopy).then(() => {
         toast({
             title: 'Skopiowano!',
