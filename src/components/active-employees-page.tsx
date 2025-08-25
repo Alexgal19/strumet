@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Table,
   TableBody,
@@ -25,14 +26,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, Bot } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, Bot, Loader2 } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-import { EmployeeForm } from './employee-form';
-import { EmployeeSummary } from './employee-summary';
 import { useConfig } from '@/context/config-context';
 import { db } from '@/lib/firebase';
 import { ref, onValue, set, remove, push } from "firebase/database";
+
+const EmployeeForm = dynamic(() => import('./employee-form').then(mod => mod.EmployeeForm), {
+  loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
+  ssr: false
+});
+
+const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => mod.EmployeeSummary), {
+  ssr: false
+});
+
 
 export default function ActiveEmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
