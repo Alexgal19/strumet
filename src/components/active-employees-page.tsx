@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -24,22 +24,21 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, Bot } from 'lucide-react';
-import { activeEmployees } from '@/lib/mock-data';
+import { activeEmployees as initialEmployees } from '@/lib/mock-data';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { EmployeeForm } from './employee-form';
 import { EmployeeSummary } from './employee-summary';
 import { useConfig } from '@/context/config-context';
 
+const EMPLOYEES_STORAGE_KEY = 'kadry-online-employees';
+
 export default function ActiveEmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>(activeEmployees);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { departments, jobTitles, managers, nationalities, isLoading } = useConfig();
   const [searchTerm, setSearchTerm] = useState('');
-  const { departments, jobTitles, managers, nationalities } = useConfig();
   const [filters, setFilters] = useState({
     department: '',
     manager: '',
@@ -49,8 +48,35 @@ export default function ActiveEmployeesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
+  useEffect(() => {
+    if (!isLoading) {
+        try {
+            const storedEmployees = window.localStorage.getItem(EMPLOYEES_STORAGE_KEY);
+            if (storedEmployees) {
+                setEmployees(JSON.parse(storedEmployees));
+            } else {
+                setEmployees(initialEmployees);
+            }
+        } catch (error) {
+            console.error("Failed to load employees from localStorage", error);
+            setEmployees(initialEmployees);
+        }
+    }
+  }, [isLoading]);
+
+  const updateAndStoreEmployees = (newEmployees: Employee[]) => {
+      setEmployees(newEmployees);
+      try {
+          window.localStorage.setItem(EMPLOYEES_STORAGE_KEY, JSON.stringify(newEmployees));
+      } catch (error) {
+          console.error("Failed to save employees to localStorage", error);
+      }
+  }
+
+  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+
   const filteredEmployees = useMemo(() => {
-    return employees.filter(employee => {
+    return activeEmployees.filter(employee => {
       const searchLower = searchTerm.toLowerCase();
       return (
         (employee.firstName.toLowerCase().includes(searchLower) ||
@@ -62,18 +88,20 @@ export default function ActiveEmployeesPage() {
         (filters.nationality ? employee.nationality === filters.nationality : true)
       );
     });
-  }, [employees, searchTerm, filters]);
+  }, [activeEmployees, searchTerm, filters]);
 
   const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
   };
 
   const handleSaveEmployee = (employee: Employee) => {
+    let updatedEmployees;
     if (editingEmployee) {
-      setEmployees(prev => prev.map(e => e.id === employee.id ? employee : e));
+      updatedEmployees = employees.map(e => e.id === employee.id ? employee : e);
     } else {
-      setEmployees(prev => [...prev, { ...employee, id: `e${prev.length + 10}` }]);
+      updatedEmployees = [...employees, { ...employee, id: `e${Date.now()}` }];
     }
+    updateAndStoreEmployees(updatedEmployees);
     setEditingEmployee(null);
     setIsFormOpen(false);
   };
@@ -89,8 +117,11 @@ export default function ActiveEmployeesPage() {
   }
 
   const handleDeleteEmployee = (id: string) => {
-    setEmployees(prev => prev.filter(e => e.id !== id));
+    const updatedEmployees = employees.filter(e => e.id !== id);
+    updateAndStoreEmployees(updatedEmployees);
   };
+
+  if (isLoading) return <div>Ładowanie...</div>;
 
   return (
     <div className="h-full flex flex-col">
@@ -189,7 +220,7 @@ export default function ActiveEmployeesPage() {
                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                   <Bot className="mr-2 h-4 w-4" />
                                    Generuj podsumowanie
-                               </DropdownMenuItem>
+                               </DLropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteEmployee(employee.id)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Usuń

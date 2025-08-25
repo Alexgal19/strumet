@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import {
   Table,
@@ -30,16 +30,38 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
+const APPOINTMENTS_STORAGE_KEY = 'kadry-online-appointments';
+
 export default function FingerprintAppointmentsPage() {
     const [appointments, setAppointments] = useState<FingerprintAppointment[]>([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<FingerprintAppointment | null>(null);
 
+    useEffect(() => {
+        try {
+            const storedAppointments = window.localStorage.getItem(APPOINTMENTS_STORAGE_KEY);
+            if (storedAppointments) {
+                setAppointments(JSON.parse(storedAppointments));
+            }
+        } catch (error) {
+            console.error("Failed to load appointments from localStorage", error);
+        }
+    }, []);
+
+    const updateAndStoreAppointments = (newAppointments: FingerprintAppointment[]) => {
+        setAppointments(newAppointments);
+        try {
+            window.localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(newAppointments));
+        } catch (error) {
+            console.error("Failed to save appointments to localStorage", error);
+        }
+    }
+
     const handleSave = (appointment: Omit<FingerprintAppointment, 'id'>) => {
         if (editingAppointment) {
-            setAppointments(prev => prev.map(a => a.id === editingAppointment.id ? { ...a, ...appointment } : a));
+            updateAndStoreAppointments(appointments.map(a => a.id === editingAppointment.id ? { ...a, ...appointment } : a));
         } else {
-            setAppointments(prev => [...prev, { ...appointment, id: `fa-${Date.now()}` }]);
+            updateAndStoreAppointments([...appointments, { ...appointment, id: `fa-${Date.now()}` }]);
         }
         setIsFormOpen(false);
         setEditingAppointment(null);
@@ -56,7 +78,7 @@ export default function FingerprintAppointmentsPage() {
     };
 
     const handleDelete = (id: string) => {
-        setAppointments(prev => prev.filter(a => a.id !== id));
+        updateAndStoreAppointments(appointments.filter(a => a.id !== id));
     };
 
     const getEmployeeName = (id: string) => {

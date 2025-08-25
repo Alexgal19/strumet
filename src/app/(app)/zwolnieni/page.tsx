@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -11,24 +11,47 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { terminatedEmployees } from '@/lib/mock-data';
+import { terminatedEmployees as initialTerminatedEmployees } from '@/lib/mock-data';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 
+const EMPLOYEES_STORAGE_KEY = 'kadry-online-employees';
+
 export default function TerminatedEmployeesPage() {
-  const [employees] = useState<Employee[]>(terminatedEmployees);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
+  useEffect(() => {
+    try {
+        const storedEmployees = window.localStorage.getItem(EMPLOYEES_STORAGE_KEY);
+        if (storedEmployees) {
+            const allEmployees = JSON.parse(storedEmployees) as Employee[];
+            setEmployees(allEmployees);
+        } else {
+            // If nothing in storage, use mock data. This might not be ideal
+            // as active employees page initializes storage.
+            // A shared state management would be better.
+             setEmployees(initialTerminatedEmployees);
+        }
+    } catch (error) {
+        console.error("Failed to load employees from localStorage", error);
+        setEmployees(initialTerminatedEmployees);
+    }
+  }, []);
+
+  const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
+
+
   const filteredEmployees = useMemo(() => {
-    return employees.filter(employee => {
+    return terminatedEmployees.filter(employee => {
       const searchLower = searchTerm.toLowerCase();
       return (
         employee.firstName.toLowerCase().includes(searchLower) ||
         employee.lastName.toLowerCase().includes(searchLower) ||
-        employee.cardNumber.toLowerCase().includes(searchLower)
+        (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))
       );
     });
-  }, [employees, searchTerm]);
+  }, [terminatedEmployees, searchTerm]);
 
   return (
     <div className="h-full flex flex-col">
