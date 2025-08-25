@@ -30,7 +30,7 @@ const AppBottomNav = () => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-sm md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-sm md:hidden">
       <nav className="flex h-16 items-center justify-around">
         {menuItems.map((item) => (
           <Link
