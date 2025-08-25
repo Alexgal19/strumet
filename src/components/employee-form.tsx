@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Employee, ConfigItem } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface EmployeeFormProps {
   employee: Employee | null;
@@ -27,6 +28,7 @@ interface EmployeeFormProps {
 
 export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
   const { departments, jobTitles, managers, nationalities } = config;
+  const { toast } = useToast();
   const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>({
     firstName: '',
     lastName: '',
@@ -84,9 +86,29 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
       status: 'aktywny',
     });
   };
+  
+  const handleCopy = () => {
+    if (!employee) return;
+    const textToCopy = `${employee.lastName} ${employee.firstName}, ${employee.jobTitle}, ${employee.department}`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        toast({
+            title: 'Skopiowano!',
+            description: 'Dane pracownika zostały skopiowane do schowka.',
+        });
+    });
+  };
+
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 relative">
+       {employee && (
+        <div className="absolute top-0 right-0">
+          <Button type="button" variant="ghost" size="icon" onClick={handleCopy}>
+            <Copy className="h-4 w-4" />
+            <span className="sr-only">Kopiuj dane</span>
+          </Button>
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="firstName">Imię</Label>
