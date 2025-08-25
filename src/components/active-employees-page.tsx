@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Table,
@@ -43,7 +43,7 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
 });
 
 
-export default function ActiveEmployeesPage() {
+function ActiveEmployeesPageComponent() {
   const { employees, departments, jobTitles, managers, nationalities, isLoading } = useConfig();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -148,21 +148,21 @@ export default function ActiveEmployeesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <Select onValueChange={handleFilterChange('department')}>
+        <Select onValueChange={handleFilterChange('department')} value={filters.department}>
           <SelectTrigger><SelectValue placeholder="Filtruj po dziale" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Wszystkie działy</SelectItem>
             {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select onValueChange={handleFilterChange('jobTitle')}>
+        <Select onValueChange={handleFilterChange('jobTitle')} value={filters.jobTitle}>
           <SelectTrigger><SelectValue placeholder="Filtruj po stanowisku" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Wszystkie stanowiska</SelectItem>
             {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select onValueChange={handleFilterChange('manager')}>
+        <Select onValueChange={handleFilterChange('manager')} value={filters.manager}>
           <SelectTrigger><SelectValue placeholder="Filtruj po kierowniku" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Wszyscy kierownicy</SelectItem>
@@ -232,3 +232,6 @@ export default function ActiveEmployeesPage() {
     </div>
   );
 }
+
+const ActiveEmployeesPage = React.memo(ActiveEmployeesPageComponent);
+export default ActiveEmployeesPage;

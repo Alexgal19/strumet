@@ -1,9 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import type { ConfigItem, Employee, FingerprintAppointment } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { ref, onValue, set, push, runTransaction } from 'firebase/database';
+import { ref, onValue, set, get } from 'firebase/database';
 import { departments, jobTitles, managers, nationalities, clothingItems } from '@/lib/mock-data';
 
 interface ConfigContextType {
@@ -22,9 +22,17 @@ export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationaliti
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
-const objectToArray = (obj: Record<string, any> | undefined): any[] => {
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
     return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 }
+
+const arrayToObject = (arr: ConfigItem[]) => {
+    return arr.reduce((acc, item) => {
+        const { id, ...rest } = item;
+        acc[id] = rest;
+        return acc;
+    }, {} as Record<string, {name: string}>);
+};
 
 export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -37,106 +45,120 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     employees: Employee[];
     fingerprintAppointments: FingerprintAppointment[];
   }>({
-    departments: departments,
-    jobTitles: jobTitles,
-    managers: managers,
-    nationalities: nationalities,
-    clothingItems: clothingItems,
+    departments,
+    jobTitles,
+    managers,
+    nationalities,
+    clothingItems,
     employees: [],
     fingerprintAppointments: [],
   });
 
   useEffect(() => {
     let isMounted = true;
-    
-    const initializeConfigData = async () => {
-        const configRef = ref(db, 'config');
-        runTransaction(configRef, (currentData) => {
-            if (currentData === null) {
-                return {
-                    departments: departments.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
-                    jobTitles: jobTitles.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
-                    managers: managers.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
-                    nationalities: nationalities.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
-                    clothingItems: clothingItems.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
-                };
-            }
-            return currentData; 
+    const dbRef = ref(db);
+
+    const fetchData = async () => {
+      try {
+        const snapshot = await get(dbRef);
+        if (!isMounted) return;
+
+        const dbData = snapshot.val();
+        
+        let configData = dbData?.config;
+        
+        // Seed initial config data if it doesn't exist
+        if (!configData) {
+          const initialConfig = {
+            departments: arrayToObject(departments),
+            jobTitles: arrayToObject(jobTitles),
+            managers: arrayToObject(managers),
+            nationalities: arrayToObject(nationalities),
+            clothingItems: arrayToObject(clothingItems),
+          };
+          await set(ref(db, 'config'), initialConfig);
+          configData = initialConfig;
+        }
+
+        setData({
+          departments: objectToArray(configData.departments),
+          jobTitles: objectToArray(configData.jobTitles),
+          managers: objectToArray(configData.managers),
+          nationalities: objectToArray(configData.nationalities),
+          clothingItems: objectToArray(configData.clothingItems),
+          employees: objectToArray(dbData?.employees),
+          fingerprintAppointments: objectToArray(dbData?.fingerprintAppointments),
         });
+
+      } catch (error) {
+        console.error("Firebase initial data load failed:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     };
 
-    initializeConfigData();
+    fetchData();
 
-    const listeners = [
-        onValue(ref(db, 'config'), (snapshot) => {
-            if (isMounted) {
-                const configData = snapshot.val();
-                setData(prevData => ({
-                    ...prevData,
-                    departments: objectToArray(configData?.departments),
-                    jobTitles: objectToArray(configData?.jobTitles),
-                    managers: objectToArray(configData?.managers),
-                    nationalities: objectToArray(configData?.nationalities),
-                    clothingItems: objectToArray(configData?.clothingItems),
-                }));
-            }
-        }),
-        onValue(ref(db, 'employees'), (snapshot) => {
-            if (isMounted) setData(prevData => ({ ...prevData, employees: objectToArray(snapshot.val()) }));
-        }),
-        onValue(ref(db, 'fingerprintAppointments'), (snapshot) => {
-          if(isMounted) setData(prevData => ({ ...prevData, fingerprintAppointments: objectToArray(snapshot.val()) }));
-        })
-    ];
-    
-    // Once all initial data is potentially loaded (or listeners are set up)
-    Promise.all(listeners).then(() => {
-      if(isMounted) setIsLoading(false);
-    }).catch(error => {
-      console.error("Firebase initial data load failed:", error);
-      if(isMounted) setIsLoading(false);
+    // Set up real-time listeners after initial fetch
+    const configListener = onValue(ref(db, 'config'), (snapshot) => {
+        if (!isMounted || !snapshot.exists()) return;
+        const configData = snapshot.val();
+        setData(prev => ({
+            ...prev,
+            departments: objectToArray(configData.departments),
+            jobTitles: objectToArray(configData.jobTitles),
+            managers: objectToArray(configData.managers),
+            nationalities: objectToArray(configData.nationalities),
+            clothingItems: objectToArray(configData.clothingItems),
+        }));
+    });
+
+    const employeesListener = onValue(ref(db, 'employees'), (snapshot) => {
+        if (isMounted) setData(prev => ({ ...prev, employees: objectToArray(snapshot.val()) }));
+    });
+
+    const appointmentsListener = onValue(ref(db, 'fingerprintAppointments'), (snapshot) => {
+      if (isMounted) setData(prev => ({ ...prev, fingerprintAppointments: objectToArray(snapshot.val()) }));
     });
 
     return () => {
       isMounted = false;
+      // Detach listeners - onValue returns an unsubscribe function
+      configListener();
+      employeesListener();
+      appointmentsListener();
     };
   }, []);
 
   const updateConfig = useCallback(async (configType: ConfigType, newItems: ConfigItem[]) => {
     try {
         const configTypeRef = ref(db, `config/${configType}`);
-        const currentItems = (data as any)[configType] as ConfigItem[];
-        
-        const updates: { [key: string]: any } = {};
-
-        const newItemsMap = new Map(newItems.map(item => [item.id, item]));
-
-        for(const currentItem of currentItems) {
-            if (!newItemsMap.has(currentItem.id)) {
-                updates[currentItem.id] = null;
-            }
-        }
-
-        for (const newItem of newItems) {
-            let itemId = newItem.id;
-            if (itemId.startsWith(`${configType.slice(0, 2)}-`)) {
-               const newItemRef = push(configTypeRef);
-               itemId = newItemRef.key!;
-               updates[itemId] = { name: newItem.name };
-            } else {
-               updates[itemId] = { name: newItem.name };
-            }
-        }
+        const updates = newItems.reduce((acc, item) => {
+          const { id, ...rest } = item;
+          // If it's a new item, Firebase will generate an ID, but we need a key here.
+          // For simplicity, we convert the whole array to an object and 'set' it.
+          const key = id.startsWith(`${configType.slice(0, 2)}-`) ? push(configTypeRef).key! : id;
+          acc[key] = rest;
+          return acc;
+        }, {} as Record<string, {name: string}>);
         
         await set(configTypeRef, updates);
 
       } catch (error) {
           console.error("Failed to save config to Firebase", error);
       }
-  }, [data]);
+  }, []);
+
+  const memoizedValue = useMemo(() => ({
+    ...data,
+    updateConfig,
+    isLoading,
+  }), [data, updateConfig, isLoading]);
   
   return (
-    <ConfigContext.Provider value={{ ...data, updateConfig, isLoading }}>
+    <ConfigContext.Provider value={memoizedValue}>
       {children}
     </ConfigContext.Provider>
   );

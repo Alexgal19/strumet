@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useConfig } from '@/context/config-context';
 
-export default function ClothingIssuancePage() {
+function ClothingIssuancePageComponent() {
   const { employees, clothingItems, isLoading } = useConfig();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [issuanceDate, setIssuanceDate] = useState<Date | undefined>(new Date());
@@ -164,3 +164,6 @@ export default function ClothingIssuancePage() {
     </div>
   );
 }
+
+const ClothingIssuancePage = React.memo(ClothingIssuancePageComponent);
+export default ClothingIssuancePage;

@@ -14,7 +14,7 @@ import { Loader2, Search } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { useConfig } from '@/context/config-context';
 
-export default function TerminatedEmployeesPage() {
+function TerminatedEmployeesPageComponent() {
   const { employees, isLoading } = useConfig();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -78,3 +78,6 @@ export default function TerminatedEmployeesPage() {
     </div>
   );
 }
+
+const TerminatedEmployeesPage = React.memo(TerminatedEmployeesPageComponent);
+export default TerminatedEmployeesPage;

@@ -10,7 +10,7 @@ import { useConfig } from '@/context/config-context';
 import { Loader2 } from 'lucide-react';
 
 
-export default function StatisticsPage() {
+function StatisticsPageComponent() {
     const { employees, departments, jobTitles, managers, nationalities, isLoading } = useConfig();
     
     const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
@@ -109,3 +109,6 @@ export default function StatisticsPage() {
       </div>
     );
 }
+
+const StatisticsPage = React.memo(StatisticsPageComponent);
+export default StatisticsPage;

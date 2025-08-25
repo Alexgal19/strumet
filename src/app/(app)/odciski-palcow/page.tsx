@@ -33,7 +33,7 @@ import { ref, set, push, remove } from 'firebase/database';
 import { useConfig } from '@/context/config-context';
 
 
-export default function FingerprintAppointmentsPage() {
+function FingerprintAppointmentsPageComponent() {
     const { employees, fingerprintAppointments: appointments, isLoading } = useConfig();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<FingerprintAppointment | null>(null);
@@ -207,3 +207,6 @@ function AppointmentForm({ isOpen, onOpenChange, appointment, onSave, employees 
         </Dialog>
     )
 }
+
+const FingerprintAppointmentsPage = React.memo(FingerprintAppointmentsPageComponent);
+export default FingerprintAppointmentsPage;

@@ -105,7 +105,7 @@ const ConfigList: React.FC<ConfigListProps> = ({ title, items, configType, updat
 };
 
 
-export default function ConfigurationPage() {
+function ConfigurationPageComponent() {
     const { departments, jobTitles, managers, nationalities, clothingItems, updateConfig, isLoading } = useConfig();
     const [localConfig, setLocalConfig] = useState({
       departments, jobTitles, managers, nationalities, clothingItems
@@ -158,3 +158,6 @@ export default function ConfigurationPage() {
         </div>
     );
 }
+
+const ConfigurationPage = React.memo(ConfigurationPageComponent);
+export default ConfigurationPage;
