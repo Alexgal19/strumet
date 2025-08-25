@@ -239,7 +239,7 @@ function ActiveEmployeesPageComponent() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredEmployees.map(employee => (
+            {filteredEmployees.length > 0 ? filteredEmployees.map(employee => (
               <TableRow key={employee.id}>
                 <TableCell className="font-medium">{employee.lastName} {employee.firstName}</TableCell>
                 <TableCell>{employee.hireDate}</TableCell>
@@ -278,13 +278,12 @@ function ActiveEmployeesPageComponent() {
                     </EmployeeSummary>
                 </TableCell>
               </TableRow>
-            ))}
-             {filteredEmployees.length === 0 && (
-                <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center">
-                    Brak aktywnych pracowników.
-                    </TableCell>
-                </TableRow>
+            )) : (
+              <TableRow>
+                <TableCell colSpan={9} className="h-24 text-center">
+                  Brak aktywnych pracowników.
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>

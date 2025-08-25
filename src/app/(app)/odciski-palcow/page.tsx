@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import {
   Table,
@@ -75,12 +75,18 @@ function FingerprintAppointmentsPageComponent() {
         }
     };
 
+    const employeeMap = useMemo(() => {
+        return employees.reduce((acc, emp) => {
+            acc[emp.id] = `${emp.lastName} ${emp.firstName}`;
+            return acc;
+        }, {} as Record<string, string>);
+    }, [employees]);
+
     const getEmployeeName = (id: string) => {
-        const emp = employees.find(e => e.id === id);
-        return emp ? `${emp.lastName} ${emp.firstName}` : 'Nieznany';
+        return employeeMap[id] || 'Nieznany';
     }
     
-    const activeEmployees = employees.filter(e => e.status === 'aktywny');
+    const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
     if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 

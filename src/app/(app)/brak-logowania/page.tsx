@@ -16,7 +16,7 @@ import { CalendarIcon, Loader2, Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useConfig } from '@/context/config-context';
 
-export default function NoLoginFormPage() {
+function NoLoginPageComponent() {
   const { employees, isLoading } = useConfig();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [incidentDate, setIncidentDate] = useState<Date | undefined>(new Date());
@@ -114,3 +114,6 @@ export default function NoLoginFormPage() {
     </div>
   );
 }
+
+const NoLoginFormPage = React.memo(NoLoginPageComponent);
+export default NoLoginFormPage;

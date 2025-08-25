@@ -51,14 +51,14 @@ function ClothingIssuancePageComponent() {
         </Button>
       </PageHeader>
       
-      <div className="flex flex-grow gap-6 lg:flex-row flex-col">
-        <div className="lg:w-2/3 flex flex-col">
+      <div className="flex flex-grow flex-col gap-6 lg:flex-row">
+        <div className="flex flex-col lg:w-2/3">
             <Card className="flex flex-col flex-grow">
             <CardHeader>
                 <CardTitle>Formularz wydania</CardTitle>
                 <CardDescription>Wybierz pracownika i przypisz elementy odzieży.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6 flex flex-col flex-grow">
+            <CardContent className="flex flex-col flex-grow space-y-6">
                 <div className="space-y-2">
                     <Label>Wybierz pracownika</Label>
                     <Select onValueChange={handleEmployeeSelect} value={selectedEmployee?.id ?? ''}>
@@ -146,7 +146,7 @@ function ClothingIssuancePageComponent() {
             </CardContent>
             </Card>
         </div>
-        <div className="lg:w-1/3 flex flex-col">
+        <div className="flex flex-col lg:w-1/3">
             <Card className="flex flex-col flex-grow">
                 <CardHeader>
                     <CardTitle>Historia wydań</CardTitle>

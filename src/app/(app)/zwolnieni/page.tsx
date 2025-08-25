@@ -15,10 +15,9 @@ import { PageHeader } from '@/components/page-header';
 import { useConfig } from '@/context/config-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 function TerminatedEmployeesPageComponent() {
-  const { employees = [], departments = [], jobTitles = [], managers = [], nationalities = [], isLoading } = useConfig();
+  const { employees = [], departments = [], jobTitles = [], managers = [], isLoading } = useConfig();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     department: '',
