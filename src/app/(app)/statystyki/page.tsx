@@ -66,16 +66,35 @@ function StatisticsPageComponent() {
         <CardContent className="flex-grow pl-0">
           <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="horizontal" margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tickMargin={10} width={120} />
-                  <XAxis type="number" dataKey="Liczba pracowników" />
+              <BarChart 
+                data={data} 
+                layout="vertical" 
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" hide />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false} 
+                    axisLine={false} 
+                    tickMargin={10}
+                    width={150}
+                  />
                   <Tooltip
                       cursor={{ fill: 'hsl(var(--muted))' }}
                       content={<ChartTooltipContent />}
                   />
                   <Bar dataKey="Liczba pracowników" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}>
-                     <LabelList dataKey="Liczba pracowników" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                     <LabelList 
+                        dataKey="Liczba pracowników" 
+                        position="right" 
+                        offset={8} 
+                        className="fill-foreground font-semibold" 
+                        fontSize={12} 
+                      />
                   </Bar>
               </BarChart>
               </ResponsiveContainer>
