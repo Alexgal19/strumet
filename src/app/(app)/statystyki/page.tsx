@@ -100,23 +100,15 @@ function StatisticsPageComponent() {
         <CardContent className="flex-grow">
           <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+              <BarChart data={data} layout="horizontal" margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    tickLine={false} 
-                    axisLine={false}
-                    tickMargin={10}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis />
+                  <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tickMargin={10} width={120} />
+                  <XAxis type="number" />
                   <Tooltip
                       cursor={{ fill: 'hsl(var(--muted))' }}
                       content={<ChartTooltipContent />}
                   />
-                  <Bar dataKey="Liczba pracowników" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Liczba pracowników" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
               </BarChart>
               </ResponsiveContainer>
           </ChartContainer>
@@ -139,16 +131,16 @@ function StatisticsPageComponent() {
             <TabsTrigger value="manager">Wg kierowników</TabsTrigger>
             <TabsTrigger value="nationality">Wg narodowości</TabsTrigger>
           </TabsList>
-          <TabsContent value="department" className="mt-4 flex flex-col flex-grow">
+          <TabsContent value="department" className="mt-12 flex flex-col flex-grow">
             {renderChart(statsByDepartment, 'Liczba pracowników według działów')}
           </TabsContent>
-          <TabsContent value="jobTitle" className="mt-4 flex flex-col flex-grow">
+          <TabsContent value="jobTitle" className="mt-12 flex flex-col flex-grow">
             {renderChart(statsByJobTitle, 'Liczba pracowników według stanowisk')}
           </TabsContent>
-          <TabsContent value="manager" className="mt-4 flex flex-col flex-grow">
+          <TabsContent value="manager" className="mt-12 flex flex-col flex-grow">
             {renderChart(statsByManager, 'Liczba pracowników według kierowników')}
           </TabsContent>
-          <TabsContent value="nationality" className="mt-4 flex flex-col flex-grow">
+          <TabsContent value="nationality" className="mt-12 flex flex-col flex-grow">
             {renderChart(statsByNationality, 'Liczba pracowników według narodowości')}
           </TabsContent>
         </Tabs>
