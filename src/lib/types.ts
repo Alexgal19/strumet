@@ -12,7 +12,7 @@ export interface Employee {
   departmentLockerNumber: string;
   sealNumber: string;
   status: 'aktywny' | 'zwolniony';
-  terminationDate?: string; // ISO string format
+  terminationDate?: string; // ISO string format will be present for 'zwolniony'
 }
 
 export interface ConfigItem {

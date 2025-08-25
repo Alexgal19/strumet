@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,12 +27,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, Trash2, Edit, Bot, Loader2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2 } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useConfig } from '@/context/config-context';
 import { db } from '@/lib/firebase';
-import { ref, set, remove, push } from "firebase/database";
+import { ref, set, push, update } from "firebase/database";
+import { format } from 'date-fns';
 
 const EmployeeForm = dynamic(() => import('./employee-form').then(mod => mod.EmployeeForm), {
   loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
@@ -91,6 +93,20 @@ function ActiveEmployeesPageComponent() {
         console.error("Error saving employee: ", error);
     }
   };
+  
+  const handleTerminateEmployee = async (id: string) => {
+    if (window.confirm('Czy na pewno chcesz zwolnić tego pracownika?')) {
+        try {
+            const employeeRef = ref(db, `employees/${id}`);
+            await update(employeeRef, {
+                status: 'zwolniony',
+                terminationDate: format(new Date(), 'yyyy-MM-dd')
+            });
+        } catch (error) {
+            console.error("Error terminating employee: ", error);
+        }
+    }
+  };
 
   const handleEditEmployee = (employee: Employee) => {
     setEditingEmployee(employee);
@@ -101,17 +117,6 @@ function ActiveEmployeesPageComponent() {
     setEditingEmployee(null);
     setIsFormOpen(true);
   }
-
-  const handleDeleteEmployee = async (id: string) => {
-      if (window.confirm('Czy na pewno chcesz usunąć tego pracownika?')) {
-          try {
-              const employeeRef = ref(db, `employees/${id}`);
-              await remove(employeeRef);
-          } catch (error) {
-              console.error("Error deleting employee: ", error);
-          }
-      }
-  };
 
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
@@ -173,7 +178,7 @@ function ActiveEmployeesPageComponent() {
 
       <div className="flex-grow overflow-auto rounded-lg border">
         <Table>
-          <TableHeader className="sticky top-0 bg-muted/50">
+          <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
             <TableRow>
               <TableHead>Nazwisko i imię</TableHead>
               <TableHead>Data zatrudnienia</TableHead>
@@ -216,9 +221,10 @@ function ActiveEmployeesPageComponent() {
                                   <Bot className="mr-2 h-4 w-4" />
                                    Generuj podsumowanie
                                </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteEmployee(employee.id)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Usuń
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
+                                <UserX className="mr-2 h-4 w-4" />
+                                Zwolnij
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
