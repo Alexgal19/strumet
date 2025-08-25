@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search } from 'lucide-react';
-import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useConfig } from '@/context/config-context';
 
@@ -22,8 +21,10 @@ export default function TerminatedEmployeesPage() {
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
   const filteredEmployees = useMemo(() => {
+    if (!searchTerm) return terminatedEmployees;
+    
+    const searchLower = searchTerm.toLowerCase();
     return terminatedEmployees.filter(employee => {
-      const searchLower = searchTerm.toLowerCase();
       return (
         employee.firstName.toLowerCase().includes(searchLower) ||
         employee.lastName.toLowerCase().includes(searchLower) ||

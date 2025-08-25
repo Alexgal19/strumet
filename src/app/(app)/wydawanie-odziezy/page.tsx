@@ -28,6 +28,7 @@ export default function ClothingIssuancePage() {
   const handleEmployeeSelect = (employeeId: string) => {
     const employee = activeEmployees.find(e => e.id === employeeId);
     setSelectedEmployee(employee || null);
+    setSelectedClothing([]);
   };
   
   const handleClothingSelect = (itemId: string, checked: boolean | string) => {
@@ -60,7 +61,7 @@ export default function ClothingIssuancePage() {
             <CardContent className="space-y-6">
                 <div className="space-y-2">
                     <Label>Wybierz pracownika</Label>
-                    <Select onValueChange={handleEmployeeSelect}>
+                    <Select onValueChange={handleEmployeeSelect} value={selectedEmployee?.id ?? ''}>
                         <SelectTrigger>
                             <SelectValue placeholder="Wybierz pracownika..." />
                         </SelectTrigger>
@@ -93,6 +94,7 @@ export default function ClothingIssuancePage() {
                             <div key={item.id} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={item.id}
+                                    checked={selectedClothing.includes(item.id)}
                                     onCheckedChange={(checked) => handleClothingSelect(item.id, checked)}
                                     disabled={!selectedEmployee}
                                 />

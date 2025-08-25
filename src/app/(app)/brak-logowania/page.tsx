@@ -50,7 +50,7 @@ export default function NoLoginFormPage() {
           <CardContent className="space-y-6">
               <div className="space-y-2">
                   <Label>Wybierz pracownika</Label>
-                  <Select onValueChange={handleEmployeeSelect}>
+                  <Select onValueChange={handleEmployeeSelect} value={selectedEmployee?.id}>
                       <SelectTrigger>
                           <SelectValue placeholder="Wybierz pracownika..." />
                       </SelectTrigger>
