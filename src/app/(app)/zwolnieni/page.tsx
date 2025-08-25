@@ -49,7 +49,7 @@ function TerminatedEmployeesPageComponent() {
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full flex-col">
       <PageHeader
         title="Pracownicy zwolnieni"
         description="Archiwum pracowników, którzy zakończyli współpracę."

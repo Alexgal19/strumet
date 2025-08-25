@@ -46,7 +46,7 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
 
 
 function ActiveEmployeesPageComponent() {
-  const { employees, departments, jobTitles, managers, nationalities, isLoading } = useConfig();
+  const { employees, departments, jobTitles, managers, nationalities, isLoading } from useConfig();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     department: '',
@@ -121,7 +121,7 @@ function ActiveEmployeesPageComponent() {
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full flex-col">
       <PageHeader
         title="Pracownicy aktywni"
         description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
