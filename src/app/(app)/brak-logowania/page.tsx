@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,13 +14,26 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CalendarIcon, Loader2, Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useConfig } from '@/context/config-context';
+import { useFirebaseData } from '@/context/config-context';
 
 function NoLoginPageComponent() {
-  const { employees, isLoading } = useConfig();
+  const { fetchEmployees } = useFirebaseData();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [incidentDate, setIncidentDate] = useState<Date | undefined>(new Date());
   
+  useEffect(() => {
+    const loadData = async () => {
+        setIsLoading(true);
+        const employeesData = await fetchEmployees();
+        setEmployees(employeesData);
+        setIsLoading(false);
+    };
+    loadData();
+  }, [fetchEmployees]);
+
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const handleEmployeeSelect = (employeeId: string) => {

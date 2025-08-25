@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import {
   Table,
@@ -29,14 +29,39 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { db } from '@/lib/firebase';
-import { ref, set, push, remove } from 'firebase/database';
-import { useConfig } from '@/context/config-context';
+import { ref, set, push, remove, onValue } from 'firebase/database';
+import { useFirebaseData } from '@/context/config-context';
 
 
 function FingerprintAppointmentsPageComponent() {
-    const { employees, fingerprintAppointments: appointments, isLoading } = useConfig();
+    const { fetchEmployees, fetchFingerprintAppointments } = useFirebaseData();
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [appointments, setAppointments] = useState<FingerprintAppointment[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<FingerprintAppointment | null>(null);
+
+    useEffect(() => {
+        const loadData = async () => {
+            setIsLoading(true);
+            const [employeesData, appointmentsData] = await Promise.all([
+                fetchEmployees(),
+                fetchFingerprintAppointments(),
+            ]);
+            setEmployees(employeesData);
+            setAppointments(appointmentsData);
+            setIsLoading(false);
+        };
+        loadData();
+
+        const appointmentsRef = ref(db, 'fingerprintAppointments');
+        const unsubscribe = onValue(appointmentsRef, (snapshot) => {
+            const data = snapshot.val();
+            setAppointments(data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : []);
+        });
+
+        return () => unsubscribe();
+    }, [fetchEmployees, fetchFingerprintAppointments]);
 
     const handleSave = async (appointmentData: Omit<FingerprintAppointment, 'id'>) => {
         try {
@@ -82,9 +107,9 @@ function FingerprintAppointmentsPageComponent() {
         }, {} as Record<string, string>);
     }, [employees]);
 
-    const getEmployeeName = (id: string) => {
+    const getEmployeeName = useCallback((id: string) => {
         return employeeMap[id] || 'Nieznany';
-    }
+    }, [employeeMap]);
     
     const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 

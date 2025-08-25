@@ -1,21 +1,55 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { PageHeader } from '@/components/page-header';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { useConfig } from '@/context/config-context';
+import { useFirebaseData } from '@/context/config-context';
 import { Loader2 } from 'lucide-react';
+import type { Employee, ConfigItem } from '@/lib/types';
 
 
 function StatisticsPageComponent() {
-    const { employees, departments, jobTitles, managers, nationalities, isLoading } = useConfig();
+    const { fetchEmployees, fetchConfig } = useFirebaseData();
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [departments, setDepartments] = useState<ConfigItem[]>([]);
+    const [jobTitles, setJobTitles] = useState<ConfigItem[]>([]);
+    const [managers, setManagers] = useState<ConfigItem[]>([]);
+    const [nationalities, setNationalities] = useState<ConfigItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadData = async () => {
+            setIsLoading(true);
+            const [
+                employeesData,
+                departmentsData,
+                jobTitlesData,
+                managersData,
+                nationalitiesData
+            ] = await Promise.all([
+                fetchEmployees(),
+                fetchConfig('departments'),
+                fetchConfig('jobTitles'),
+                fetchConfig('managers'),
+                fetchConfig('nationalities')
+            ]);
+            setEmployees(employeesData);
+            setDepartments(departmentsData);
+            setJobTitles(jobTitlesData);
+            setManagers(managersData);
+            setNationalities(nationalitiesData);
+            setIsLoading(false);
+        };
+        loadData();
+    }, [fetchEmployees, fetchConfig]);
     
     const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
     const statsByDepartment = useMemo(() => {
+      if (!departments.length || !activeEmployees.length) return [];
       const data = departments.map(d => ({
         name: d.name,
         'Liczba pracowników': activeEmployees.filter(e => e.department === d.name).length,
@@ -24,6 +58,7 @@ function StatisticsPageComponent() {
     }, [departments, activeEmployees]);
     
     const statsByJobTitle = useMemo(() => {
+      if (!jobTitles.length || !activeEmployees.length) return [];
       const data = jobTitles.map(j => ({
         name: j.name,
         'Liczba pracowników': activeEmployees.filter(e => e.jobTitle === j.name).length,
@@ -32,6 +67,7 @@ function StatisticsPageComponent() {
     }, [jobTitles, activeEmployees]);
 
     const statsByManager = useMemo(() => {
+      if (!managers.length || !activeEmployees.length) return [];
       const data = managers.map(m => ({
         name: m.name,
         'Liczba pracowników': activeEmployees.filter(e => e.manager === m.name).length,
@@ -40,6 +76,7 @@ function StatisticsPageComponent() {
     }, [managers, activeEmployees]);
 
     const statsByNationality = useMemo(() => {
+      if (!nationalities.length || !activeEmployees.length) return [];
       const data = nationalities.map(n => ({
         name: n.name,
         'Liczba pracowników': activeEmployees.filter(e => e.nationality === n.name).length,

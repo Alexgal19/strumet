@@ -11,17 +11,22 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { Employee } from '@/lib/types';
-import { useConfig } from '@/context/config-context';
+import type { Employee, ConfigItem } from '@/lib/types';
 
 interface EmployeeFormProps {
   employee: Employee | null;
   onSave: (employee: Employee) => void;
   onCancel: () => void;
+  config: {
+    departments: ConfigItem[];
+    jobTitles: ConfigItem[];
+    managers: ConfigItem[];
+    nationalities: ConfigItem[];
+  };
 }
 
-export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) {
-  const { departments, jobTitles, managers, nationalities } = useConfig();
+export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
+  const { departments, jobTitles, managers, nationalities } = config;
   const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>({
     firstName: '',
     lastName: '',

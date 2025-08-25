@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,9 @@ import {
 } from '@/components/ui/dialog';
 import { PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import type { ConfigItem } from '@/lib/types';
-import { useConfig, type ConfigType } from '@/context/config-context';
+import { useFirebaseData, type ConfigType } from '@/context/config-context';
+import { onValue, ref } from 'firebase/database';
+import { db } from '@/lib/firebase';
 
 interface ConfigListProps {
   title: string;
@@ -106,20 +108,58 @@ const ConfigList: React.FC<ConfigListProps> = ({ title, items, configType, updat
 
 
 function ConfigurationPageComponent() {
-    const { departments, jobTitles, managers, nationalities, clothingItems, updateConfig, isLoading } = useConfig();
+    const { fetchConfig, updateConfig } = useFirebaseData();
+    const [isLoading, setIsLoading] = useState(true);
     const [localConfig, setLocalConfig] = useState({
-      departments, jobTitles, managers, nationalities, clothingItems
+      departments: [] as ConfigItem[], 
+      jobTitles: [] as ConfigItem[], 
+      managers: [] as ConfigItem[], 
+      nationalities: [] as ConfigItem[], 
+      clothingItems: [] as ConfigItem[]
     });
     
     useEffect(() => {
-        setLocalConfig({ departments, jobTitles, managers, nationalities, clothingItems });
-    }, [departments, jobTitles, managers, nationalities, clothingItems]);
+        const loadData = async () => {
+            setIsLoading(true);
+            const [depts, jobs, mgrs, nats, clothes] = await Promise.all([
+                fetchConfig('departments'),
+                fetchConfig('jobTitles'),
+                fetchConfig('managers'),
+                fetchConfig('nationalities'),
+                fetchConfig('clothingItems'),
+            ]);
+            setLocalConfig({
+                departments: depts,
+                jobTitles: jobs,
+                managers: mgrs,
+                nationalities: nats,
+                clothingItems: clothes
+            });
+            setIsLoading(false);
+        };
+        loadData();
 
-    const handleUpdate = (configType: ConfigType) => (newItems: ConfigItem[]) => {
-      const newLocalConfig = { ...localConfig, [configType]: newItems };
-      setLocalConfig(newLocalConfig);
+        const configRef = ref(db, 'config');
+        const unsubscribe = onValue(configRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                 setLocalConfig({
+                    departments: data.departments ? Object.keys(data.departments).map(key => ({ id: key, ...data.departments[key] })) : [],
+                    jobTitles: data.jobTitles ? Object.keys(data.jobTitles).map(key => ({ id: key, ...data.jobTitles[key] })) : [],
+                    managers: data.managers ? Object.keys(data.managers).map(key => ({ id: key, ...data.managers[key] })) : [],
+                    nationalities: data.nationalities ? Object.keys(data.nationalities).map(key => ({ id: key, ...data.nationalities[key] })) : [],
+                    clothingItems: data.clothingItems ? Object.keys(data.clothingItems).map(key => ({ id: key, ...data.clothingItems[key] })) : [],
+                });
+            }
+        });
+
+        return () => unsubscribe();
+    }, [fetchConfig]);
+
+    const handleUpdate = useCallback((configType: ConfigType, newItems: ConfigItem[]) => {
+      setLocalConfig(prev => ({ ...prev, [configType]: newItems }));
       updateConfig(configType, newItems);
-    };
+    }, [updateConfig]);
 
     if (isLoading) {
         return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -140,19 +180,19 @@ function ConfigurationPageComponent() {
             <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
             </TabsList>
             <TabsContent value="departments" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Działy" items={localConfig.departments} configType='departments' updateLocalItems={handleUpdate('departments')} />
+                <ConfigList title="Działy" items={localConfig.departments} configType='departments' updateLocalItems={(items) => handleUpdate('departments', items)} />
             </TabsContent>
             <TabsContent value="jobTitles" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Miejsca pracy" items={localConfig.jobTitles} configType='jobTitles' updateLocalItems={handleUpdate('jobTitles')} />
+                <ConfigList title="Miejsca pracy" items={localConfig.jobTitles} configType='jobTitles' updateLocalItems={(items) => handleUpdate('jobTitles', items)} />
             </TabsContent>
             <TabsContent value="managers" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Kierownicy" items={localConfig.managers} configType='managers' updateLocalItems={handleUpdate('managers')} />
+                <ConfigList title="Kierownicy" items={localConfig.managers} configType='managers' updateLocalItems={(items) => handleUpdate('managers', items)} />
             </TabsContent>
             <TabsContent value="nationalities" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Narodowości" items={localConfig.nationalities} configType='nationalities' updateLocalItems={handleUpdate('nationalities')} />
+                <ConfigList title="Narodowości" items={localConfig.nationalities} configType='nationalities' updateLocalItems={(items) => handleUpdate('nationalities', items)} />
             </TabsContent>
             <TabsContent value="clothingItems" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Elementy odzieży" items={localConfig.clothingItems} configType='clothingItems' updateLocalItems={handleUpdate('clothingItems')} />
+                <ConfigList title="Elementy odzieży" items={localConfig.clothingItems} configType='clothingItems' updateLocalItems={(items) => handleUpdate('clothingItems', items)} />
             </TabsContent>
         </Tabs>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -12,12 +12,19 @@ import {
 import { Input } from '@/components/ui/input';
 import { Loader2, Search } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { useConfig } from '@/context/config-context';
+import { useFirebaseData } from '@/context/config-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Employee, ConfigItem } from '@/lib/types';
 
 function TerminatedEmployeesPageComponent() {
-  const { employees = [], departments = [], jobTitles = [], managers = [], isLoading } = useConfig();
+  const { fetchEmployees, fetchConfig } = useFirebaseData();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<ConfigItem[]>([]);
+  const [jobTitles, setJobTitles] = useState<ConfigItem[]>([]);
+  const [managers, setManagers] = useState<ConfigItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     department: '',
@@ -25,6 +32,29 @@ function TerminatedEmployeesPageComponent() {
     jobTitle: '',
     nationality: '',
   });
+
+   useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      const [
+        employeesData,
+        departmentsData,
+        jobTitlesData,
+        managersData,
+      ] = await Promise.all([
+        fetchEmployees(),
+        fetchConfig('departments'),
+        fetchConfig('jobTitles'),
+        fetchConfig('managers'),
+      ]);
+      setEmployees(employeesData);
+      setDepartments(departmentsData);
+      setJobTitles(jobTitlesData);
+      setManagers(managersData);
+      setIsLoading(false);
+    };
+    loadData();
+  }, [fetchEmployees, fetchConfig]);
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
@@ -99,7 +129,7 @@ function TerminatedEmployeesPageComponent() {
             </CardContent>
           </Card>
         ))}
-        {filteredEmployees.length === 0 && (
+        {filteredEmployees.length === 0 && !isLoading && (
             <div className="text-center text-muted-foreground py-10">Brak zwolnionych pracowników.</div>
         )}
       </div>
@@ -133,7 +163,7 @@ function TerminatedEmployeesPageComponent() {
                 <TableCell>{employee.nationality}</TableCell>
                 <TableCell>{employee.lockerNumber}</TableCell>
               </TableRow>
-            )) : (
+            )) : !isLoading && (
               <TableRow>
                 <TableCell colSpan={9} className="h-24 text-center">
                   Brak zwolnionych pracowników.

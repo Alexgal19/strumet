@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Employee } from '@/lib/types';
+import type { Employee, ConfigItem } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -15,14 +15,32 @@ import { pl } from 'date-fns/locale';
 import { CalendarIcon, Loader2, PlusCircle, Printer, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useConfig } from '@/context/config-context';
+import { useFirebaseData } from '@/context/config-context';
 
 function ClothingIssuancePageComponent() {
-  const { employees, clothingItems, isLoading } = useConfig();
+  const { fetchEmployees, fetchConfig } = useFirebaseData();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [clothingItems, setClothingItems] = useState<ConfigItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [issuanceDate, setIssuanceDate] = useState<Date | undefined>(new Date());
   const [selectedClothing, setSelectedClothing] = useState<string[]>([]);
   
+  useEffect(() => {
+    const loadData = async () => {
+        setIsLoading(true);
+        const [employeesData, clothingData] = await Promise.all([
+            fetchEmployees(),
+            fetchConfig('clothingItems'),
+        ]);
+        setEmployees(employeesData);
+        setClothingItems(clothingData);
+        setIsLoading(false);
+    };
+    loadData();
+  }, [fetchEmployees, fetchConfig]);
+
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const handleEmployeeSelect = (employeeId: string) => {
