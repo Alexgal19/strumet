@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,22 +17,9 @@ import { cn } from '@/lib/utils';
 import { useFirebaseData } from '@/context/config-context';
 
 function NoLoginPageComponent() {
-  const { fetchEmployees } = useFirebaseData();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+  const { employees, isLoading } = useFirebaseData();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [incidentDate, setIncidentDate] = useState<Date | undefined>(new Date());
-  
-  useEffect(() => {
-    const loadData = async () => {
-        setIsLoading(true);
-        const employeesData = await fetchEmployees();
-        setEmployees(employeesData);
-        setIsLoading(false);
-    };
-    loadData();
-  }, [fetchEmployees]);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
@@ -55,78 +42,78 @@ function NoLoginPageComponent() {
         </Button>
       </PageHeader>
       
-        <Card className="flex flex-grow flex-col">
-          <CardHeader>
-              <CardTitle>Formularz</CardTitle>
-              <CardDescription>Wypełnij pola, aby wygenerować dokument.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-grow flex-col space-y-6">
-              <div className="space-y-2">
-                  <Label>Wybierz pracownika</Label>
-                  <Select onValueChange={handleEmployeeSelect} value={selectedEmployee?.id}>
-                      <SelectTrigger>
-                          <SelectValue placeholder="Wybierz pracownika..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                      <SelectGroup>
-                          <SelectLabel>Pracownicy aktywni</SelectLabel>
-                          {activeEmployees.map(e => (
-                              <SelectItem key={e.id} value={e.id}>{e.lastName} {e.firstName}</SelectItem>
-                          ))}
-                      </SelectGroup>
-                      </SelectContent>
-                  </Select>
-              </div>
+      <Card className="flex flex-grow flex-col">
+        <CardHeader>
+            <CardTitle>Formularz</CardTitle>
+            <CardDescription>Wypełnij pola, aby wygenerować dokument.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-grow flex-col space-y-6">
+            <div className="space-y-2">
+                <Label>Wybierz pracownika</Label>
+                <Select onValueChange={handleEmployeeSelect} value={selectedEmployee?.id}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Wybierz pracownika..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectGroup>
+                        <SelectLabel>Pracownicy aktywni</SelectLabel>
+                        {activeEmployees.map(e => (
+                            <SelectItem key={e.id} value={e.id}>{e.lastName} {e.firstName}</SelectItem>
+                        ))}
+                    </SelectGroup>
+                    </SelectContent>
+                </Select>
+            </div>
 
-              {selectedEmployee && (
-                  <Card className="bg-muted/50">
-                      <CardContent className="p-4 grid grid-cols-2 gap-4 text-sm">
-                          <div><span className="font-semibold">Imię i nazwisko:</span> {selectedEmployee.firstName} {selectedEmployee.lastName}</div>
-                          <div><span className="font-semibold">Dział:</span> {selectedEmployee.department}</div>
-                      </CardContent>
-                  </Card>
-              )}
+            {selectedEmployee && (
+                <Card className="bg-muted/50">
+                    <CardContent className="p-4 grid grid-cols-2 gap-4 text-sm">
+                        <div><span className="font-semibold">Imię i nazwisko:</span> {selectedEmployee.firstName} {selectedEmployee.lastName}</div>
+                        <div><span className="font-semibold">Dział:</span> {selectedEmployee.department}</div>
+                    </CardContent>
+                </Card>
+            )}
+          
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label>Data incydentu</Label>
+                    <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant={"outline"}
+                        className={cn("w-full justify-start text-left font-normal", !incidentDate && "text-muted-foreground")}
+                        disabled={!selectedEmployee}
+                        >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {incidentDate ? format(incidentDate, "PPP", { locale: pl }) : <span>Wybierz datę</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                            mode="single"
+                            selected={incidentDate}
+                            onSelect={setIncidentDate}
+                            initialFocus
+                            locale={pl}
+                        />
+                    </PopoverContent>
+                    </Popover>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="managerSignature">Podpis kierownika</Label>
+                    <Input id="managerSignature" placeholder="Miejsce na podpis..." disabled={!selectedEmployee} />
+                </div>
+            </div>
             
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                      <Label>Data incydentu</Label>
-                      <Popover>
-                      <PopoverTrigger asChild>
-                          <Button
-                          variant={"outline"}
-                          className={cn("w-full justify-start text-left font-normal", !incidentDate && "text-muted-foreground")}
-                          disabled={!selectedEmployee}
-                          >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {incidentDate ? format(incidentDate, "PPP", { locale: pl }) : <span>Wybierz datę</span>}
-                          </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                          <Calendar
-                              mode="single"
-                              selected={incidentDate}
-                              onSelect={setIncidentDate}
-                              initialFocus
-                              locale={pl}
-                          />
-                      </PopoverContent>
-                      </Popover>
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="managerSignature">Podpis kierownika</Label>
-                      <Input id="managerSignature" placeholder="Miejsce na podpis..." disabled={!selectedEmployee} />
-                  </div>
-              </div>
-              
-              <div className="flex-grow"></div>
+            <div className="flex-grow"></div>
 
-              <Button className="w-full" disabled={!selectedEmployee}>Zapisz incydent</Button>
+            <Button className="w-full" disabled={!selectedEmployee}>Zapisz incydent</Button>
 
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-const NoLoginFormPage = React.memo(NoLoginPageComponent);
-export default NoLoginFormPage;
+const NoLoginPage = React.memo(NoLoginPageComponent);
+export default NoLoginPage;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -15,16 +15,12 @@ import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Employee, ConfigItem } from '@/lib/types';
+import type { Employee } from '@/lib/types';
 
 function TerminatedEmployeesPageComponent() {
-  const { fetchEmployees, fetchConfig } = useFirebaseData();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<ConfigItem[]>([]);
-  const [jobTitles, setJobTitles] = useState<ConfigItem[]>([]);
-  const [managers, setManagers] = useState<ConfigItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+  const { employees, config, isLoading } = useFirebaseData();
+  const { departments, jobTitles, managers, nationalities } = config;
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     department: '',
@@ -32,30 +28,7 @@ function TerminatedEmployeesPageComponent() {
     jobTitle: '',
     nationality: '',
   });
-
-   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      const [
-        employeesData,
-        departmentsData,
-        jobTitlesData,
-        managersData,
-      ] = await Promise.all([
-        fetchEmployees(),
-        fetchConfig('departments'),
-        fetchConfig('jobTitles'),
-        fetchConfig('managers'),
-      ]);
-      setEmployees(employeesData);
-      setDepartments(departmentsData);
-      setJobTitles(jobTitlesData);
-      setManagers(managersData);
-      setIsLoading(false);
-    };
-    loadData();
-  }, [fetchEmployees, fetchConfig]);
-
+  
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
   const filteredEmployees = useMemo(() => {

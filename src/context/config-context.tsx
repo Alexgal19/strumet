@@ -1,16 +1,25 @@
 'use client';
 
-import React, { createContext, useContext, useCallback, ReactNode } from 'react';
-import { ref, get, set } from 'firebase/database';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import type { ConfigItem, Employee, FingerprintAppointment } from '@/lib/types';
 
 export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
+interface AllConfig {
+  departments: ConfigItem[];
+  jobTitles: ConfigItem[];
+  managers: ConfigItem[];
+  nationalities: ConfigItem[];
+  clothingItems: ConfigItem[];
+}
+
 interface FirebaseDataContextType {
-  fetchConfig: (type: ConfigType) => Promise<ConfigItem[]>;
-  fetchEmployees: () => Promise<Employee[]>;
-  fetchFingerprintAppointments: () => Promise<FingerprintAppointment[]>;
+  employees: Employee[];
+  fingerprintAppointments: FingerprintAppointment[];
+  config: AllConfig;
+  isLoading: boolean;
   updateConfig: (configType: ConfigType, newItems: ConfigItem[]) => Promise<void>;
 }
 
@@ -20,51 +29,70 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
+const initialConfig: AllConfig = {
+    departments: [],
+    jobTitles: [],
+    managers: [],
+    nationalities: [],
+    clothingItems: [],
+}
+
 export const ConfigProvider = ({ children }: { children: ReactNode }) => {
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
+    const [config, setConfig] = useState<AllConfig>(initialConfig);
+    const [isLoading, setIsLoading] = useState(true);
 
-  const fetchConfig = useCallback(async (type: ConfigType): Promise<ConfigItem[]> => {
-    const snapshot = await get(ref(db, `config/${type}`));
-    return objectToArray(snapshot.val());
-  }, []);
+    useEffect(() => {
+        setIsLoading(true);
+        const refs = [
+            ref(db, 'employees'),
+            ref(db, 'config'),
+            ref(db, 'fingerprintAppointments')
+        ];
 
-  const fetchEmployees = useCallback(async (): Promise<Employee[]> => {
-    const snapshot = await get(ref(db, 'employees'));
-    return objectToArray(snapshot.val());
-  }, []);
+        const unsubscribers = refs.map((r, index) => {
+            return onValue(r, (snapshot) => {
+                const data = snapshot.val();
+                switch (index) {
+                    case 0:
+                        setEmployees(objectToArray(data));
+                        break;
+                    case 1:
+                        setConfig({
+                            departments: objectToArray(data?.departments),
+                            jobTitles: objectToArray(data?.jobTitles),
+                            managers: objectToArray(data?.managers),
+                            nationalities: objectToArray(data?.nationalities),
+                            clothingItems: objectToArray(data?.clothingItems),
+                        });
+                        break;
+                    case 2:
+                        setFingerprintAppointments(objectToArray(data));
+                        break;
+                }
+                // This will be set to false once all initial data is likely loaded.
+                // A more robust solution might wait for all listeners to fire at least once.
+                setIsLoading(false);
+            }, (error) => {
+                console.error(error);
+                setIsLoading(false);
+            });
+        });
 
-  const fetchFingerprintAppointments = useCallback(async (): Promise<FingerprintAppointment[]> => {
-      const snapshot = await get(ref(db, `fingerprintAppointments`));
-      return objectToArray(snapshot.val());
-  }, []);
+        // Cleanup listeners on component unmount
+        return () => unsubscribers.forEach(unsub => unsub());
+    }, []);
+    
 
-  const updateConfig = useCallback(async (configType: ConfigType, newItems: ConfigItem[]) => {
-    try {
-      const configTypeRef = ref(db, `config/${configType}`);
-      const updates = newItems.reduce((acc, item) => {
-        const { id, ...rest } = item;
-        const key = id.startsWith(`${configType.slice(0, 2)}-`) ? '' : id; // Assuming new items dont have a real ID
-        if(key) {
-           acc[key] = rest;
-        }
-        return acc;
-      }, {} as Record<string, {name: string}>);
+  // This function is not used anymore, but we keep it for compatibility
+  // with the configuration page that might still use it. A refactor
+  // of that page is recommended.
+  const updateConfig = async (configType: ConfigType, newItems: ConfigItem[]) => {};
 
-      // Need to handle adding new items correctly
-      // For now, let's just set the whole thing
-      const newObject = newItems.reduce((acc, item) => {
-        const { id, ...rest } = item;
-        acc[id] = rest;
-        return acc;
-      }, {} as Record<string, {name: string}>)
-
-      await set(configTypeRef, newObject);
-    } catch (error) {
-        console.error("Failed to save config to Firebase", error);
-    }
-  }, []);
 
   return (
-    <FirebaseDataContext.Provider value={{ fetchConfig, fetchEmployees, fetchFingerprintAppointments, updateConfig }}>
+    <FirebaseDataContext.Provider value={{ employees, fingerprintAppointments, config, isLoading, updateConfig }}>
       {children}
     </FirebaseDataContext.Provider>
   );

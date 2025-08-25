@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import {
   Table,
@@ -29,39 +29,14 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { db } from '@/lib/firebase';
-import { ref, set, push, remove, onValue } from 'firebase/database';
+import { ref, set, push, remove } from 'firebase/database';
 import { useFirebaseData } from '@/context/config-context';
 
 
 function FingerprintAppointmentsPageComponent() {
-    const { fetchEmployees, fetchFingerprintAppointments } = useFirebaseData();
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [appointments, setAppointments] = useState<FingerprintAppointment[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { employees, fingerprintAppointments, isLoading } = useFirebaseData();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<FingerprintAppointment | null>(null);
-
-    useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            const [employeesData, appointmentsData] = await Promise.all([
-                fetchEmployees(),
-                fetchFingerprintAppointments(),
-            ]);
-            setEmployees(employeesData);
-            setAppointments(appointmentsData);
-            setIsLoading(false);
-        };
-        loadData();
-
-        const appointmentsRef = ref(db, 'fingerprintAppointments');
-        const unsubscribe = onValue(appointmentsRef, (snapshot) => {
-            const data = snapshot.val();
-            setAppointments(data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : []);
-        });
-
-        return () => unsubscribe();
-    }, [fetchEmployees, fetchFingerprintAppointments]);
 
     const handleSave = async (appointmentData: Omit<FingerprintAppointment, 'id'>) => {
         try {
@@ -143,7 +118,7 @@ function FingerprintAppointmentsPageComponent() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {appointments.length > 0 ? appointments.map(appt => (
+                        {fingerprintAppointments.length > 0 ? fingerprintAppointments.map(appt => (
                             <TableRow key={appt.id}>
                                 <TableCell className="font-medium">{getEmployeeName(appt.employeeId)}</TableCell>
                                 <TableCell>{format(new Date(appt.appointmentDate), 'PPP', { locale: pl })}</TableCell>

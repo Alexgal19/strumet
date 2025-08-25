@@ -44,6 +44,20 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
   useEffect(() => {
     if (employee) {
       setFormData(employee);
+    } else {
+      setFormData({
+        firstName: '',
+        lastName: '',
+        hireDate: new Date().toISOString().split('T')[0],
+        jobTitle: '',
+        department: '',
+        manager: '',
+        cardNumber: '',
+        nationality: '',
+        lockerNumber: '',
+        departmentLockerNumber: '',
+        sealNumber: '',
+      });
     }
   }, [employee]);
 
@@ -72,7 +86,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto pr-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="firstName">Imię</Label>
@@ -161,7 +175,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
           <Input id="sealNumber" name="sealNumber" value={formData.sealNumber} onChange={handleChange} />
         </div>
       </div>
-      <div className="flex justify-end gap-2 sm:col-span-2 pt-4 flex-shrink-0">
+      <div className="flex justify-end gap-2 sm:col-span-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
         <Button type="submit">Zapisz</Button>
       </div>

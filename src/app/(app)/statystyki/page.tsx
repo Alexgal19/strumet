@@ -1,51 +1,17 @@
-
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { PageHeader } from '@/components/page-header';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useFirebaseData } from '@/context/config-context';
 import { Loader2 } from 'lucide-react';
-import type { Employee, ConfigItem } from '@/lib/types';
-
 
 function StatisticsPageComponent() {
-    const { fetchEmployees, fetchConfig } = useFirebaseData();
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [departments, setDepartments] = useState<ConfigItem[]>([]);
-    const [jobTitles, setJobTitles] = useState<ConfigItem[]>([]);
-    const [managers, setManagers] = useState<ConfigItem[]>([]);
-    const [nationalities, setNationalities] = useState<ConfigItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            const [
-                employeesData,
-                departmentsData,
-                jobTitlesData,
-                managersData,
-                nationalitiesData
-            ] = await Promise.all([
-                fetchEmployees(),
-                fetchConfig('departments'),
-                fetchConfig('jobTitles'),
-                fetchConfig('managers'),
-                fetchConfig('nationalities')
-            ]);
-            setEmployees(employeesData);
-            setDepartments(departmentsData);
-            setJobTitles(jobTitlesData);
-            setManagers(managersData);
-            setNationalities(nationalitiesData);
-            setIsLoading(false);
-        };
-        loadData();
-    }, [fetchEmployees, fetchConfig]);
+    const { employees, config, isLoading } = useFirebaseData();
+    const { departments, jobTitles, managers, nationalities } = config;
     
     const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
@@ -97,18 +63,20 @@ function StatisticsPageComponent() {
         <CardHeader>
           <CardTitle>{title}</CardTitle>
         </CardHeader>
-        <CardContent className="flex-grow">
+        <CardContent className="flex-grow pl-0">
           <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} layout="horizontal" margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tickMargin={10} width={120} />
-                  <XAxis type="number" />
+                  <XAxis type="number" dataKey="Liczba pracowników" />
                   <Tooltip
                       cursor={{ fill: 'hsl(var(--muted))' }}
                       content={<ChartTooltipContent />}
                   />
-                  <Bar dataKey="Liczba pracowników" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="Liczba pracowników" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}>
+                     <LabelList dataKey="Liczba pracowników" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                  </Bar>
               </BarChart>
               </ResponsiveContainer>
           </ChartContainer>

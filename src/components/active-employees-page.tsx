@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Table,
@@ -28,11 +28,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2 } from 'lucide-react';
-import type { Employee, ConfigItem } from '@/lib/types';
+import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
-import { ref, set, push, update, onValue } from "firebase/database";
+import { ref, set, push, update } from "firebase/database";
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -47,13 +47,8 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
 
 
 function ActiveEmployeesPageComponent() {
-  const { fetchEmployees, fetchConfig } = useFirebaseData();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<ConfigItem[]>([]);
-  const [jobTitles, setJobTitles] = useState<ConfigItem[]>([]);
-  const [managers, setManagers] = useState<ConfigItem[]>([]);
-  const [nationalities, setNationalities] = useState<ConfigItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { employees, config, isLoading } = useFirebaseData();
+  const { departments, jobTitles, managers, nationalities } = config;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -64,40 +59,6 @@ function ActiveEmployeesPageComponent() {
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      const [
-        employeesData,
-        departmentsData,
-        jobTitlesData,
-        managersData,
-        nationalitiesData
-      ] = await Promise.all([
-        fetchEmployees(),
-        fetchConfig('departments'),
-        fetchConfig('jobTitles'),
-        fetchConfig('managers'),
-        fetchConfig('nationalities')
-      ]);
-      setEmployees(employeesData);
-      setDepartments(departmentsData);
-      setJobTitles(jobTitlesData);
-      setManagers(managersData);
-      setNationalities(nationalitiesData);
-      setIsLoading(false);
-    };
-    loadData();
-
-    const employeesRef = ref(db, 'employees');
-    const unsubscribe = onValue(employeesRef, (snapshot) => {
-        const data = snapshot.val();
-        setEmployees(data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : []);
-    });
-
-    return () => unsubscribe();
-  }, [fetchEmployees, fetchConfig]);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
@@ -127,7 +88,7 @@ function ActiveEmployeesPageComponent() {
             await set(employeeRef, employeeData);
         } else {
             const newEmployeeRef = push(ref(db, 'employees'));
-            await set(newEmployeeRef, employeeData);
+            await set(newEmployeeRef, { ...employeeData, id: newEmployeeRef.key });
         }
         setEditingEmployee(null);
         setIsFormOpen(false);
@@ -179,15 +140,17 @@ function ActiveEmployeesPageComponent() {
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>{editingEmployee ? 'Edytuj pracownika' : 'Dodaj nowego pracownika'}</DialogTitle>
           </DialogHeader>
-          <EmployeeForm
-            employee={editingEmployee}
-            onSave={(employeeData) => {
-                const { id, ...dataToSave } = employeeData;
-                handleSaveEmployee(dataToSave);
-            }}
-            onCancel={() => setIsFormOpen(false)}
-            config={{ departments, jobTitles, managers, nationalities }}
-          />
+          <div className="flex-grow overflow-y-auto pr-2">
+            <EmployeeForm
+              employee={editingEmployee}
+              onSave={(employeeData) => {
+                  const { id, ...dataToSave } = employeeData;
+                  handleSaveEmployee(dataToSave);
+              }}
+              onCancel={() => setIsFormOpen(false)}
+              config={{ departments, jobTitles, managers, nationalities }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
       

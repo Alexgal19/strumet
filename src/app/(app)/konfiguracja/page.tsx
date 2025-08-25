@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,17 +18,18 @@ import {
 import { PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import type { ConfigItem } from '@/lib/types';
 import { useFirebaseData, type ConfigType } from '@/context/config-context';
-import { onValue, ref } from 'firebase/database';
+import { set, ref } from 'firebase/database';
 import { db } from '@/lib/firebase';
+
 
 interface ConfigListProps {
   title: string;
   items: ConfigItem[];
   configType: ConfigType;
-  updateLocalItems: (items: ConfigItem[]) => void;
+  onUpdate: (configType: ConfigType, items: ConfigItem[]) => void;
 }
 
-const ConfigList: React.FC<ConfigListProps> = ({ title, items, configType, updateLocalItems }) => {
+const ConfigList: React.FC<ConfigListProps> = ({ title, items, configType, onUpdate }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newItemName, setNewItemName] = useState('');
 
@@ -38,14 +39,14 @@ const ConfigList: React.FC<ConfigListProps> = ({ title, items, configType, updat
         id: `${configType.slice(0, 2)}-${Date.now()}`, 
         name: newItemName.trim(),
       };
-      updateLocalItems([...items, newItem]);
+      onUpdate(configType, [...items, newItem]);
       setNewItemName('');
       setIsDialogOpen(false);
     }
   };
 
   const handleDeleteItem = (id: string) => {
-    updateLocalItems(items.filter(item => item.id !== id));
+    onUpdate(configType, items.filter(item => item.id !== id));
   };
   
   return (
@@ -108,58 +109,23 @@ const ConfigList: React.FC<ConfigListProps> = ({ title, items, configType, updat
 
 
 function ConfigurationPageComponent() {
-    const { fetchConfig, updateConfig } = useFirebaseData();
-    const [isLoading, setIsLoading] = useState(true);
-    const [localConfig, setLocalConfig] = useState({
-      departments: [] as ConfigItem[], 
-      jobTitles: [] as ConfigItem[], 
-      managers: [] as ConfigItem[], 
-      nationalities: [] as ConfigItem[], 
-      clothingItems: [] as ConfigItem[]
-    });
+    const { config, isLoading, updateConfig } = useFirebaseData();
     
-    useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            const [depts, jobs, mgrs, nats, clothes] = await Promise.all([
-                fetchConfig('departments'),
-                fetchConfig('jobTitles'),
-                fetchConfig('managers'),
-                fetchConfig('nationalities'),
-                fetchConfig('clothingItems'),
-            ]);
-            setLocalConfig({
-                departments: depts,
-                jobTitles: jobs,
-                managers: mgrs,
-                nationalities: nats,
-                clothingItems: clothes
-            });
-            setIsLoading(false);
-        };
-        loadData();
+    const { departments, jobTitles, managers, nationalities, clothingItems } = config;
 
-        const configRef = ref(db, 'config');
-        const unsubscribe = onValue(configRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                 setLocalConfig({
-                    departments: data.departments ? Object.keys(data.departments).map(key => ({ id: key, ...data.departments[key] })) : [],
-                    jobTitles: data.jobTitles ? Object.keys(data.jobTitles).map(key => ({ id: key, ...data.jobTitles[key] })) : [],
-                    managers: data.managers ? Object.keys(data.managers).map(key => ({ id: key, ...data.managers[key] })) : [],
-                    nationalities: data.nationalities ? Object.keys(data.nationalities).map(key => ({ id: key, ...data.nationalities[key] })) : [],
-                    clothingItems: data.clothingItems ? Object.keys(data.clothingItems).map(key => ({ id: key, ...data.clothingItems[key] })) : [],
-                });
-            }
-        });
+    const handleUpdate = useCallback(async (configType: ConfigType, newItems: ConfigItem[]) => {
+      try {
+        const newObject = newItems.reduce((acc, item) => {
+          const { id, ...rest } = item;
+          acc[id] = rest;
+          return acc;
+        }, {} as Record<string, {name: string}>);
 
-        return () => unsubscribe();
-    }, [fetchConfig]);
-
-    const handleUpdate = useCallback((configType: ConfigType, newItems: ConfigItem[]) => {
-      setLocalConfig(prev => ({ ...prev, [configType]: newItems }));
-      updateConfig(configType, newItems);
-    }, [updateConfig]);
+        await set(ref(db, `config/${configType}`), newObject);
+      } catch (error) {
+          console.error("Failed to save config to Firebase", error);
+      }
+    }, []);
 
     if (isLoading) {
         return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -180,19 +146,19 @@ function ConfigurationPageComponent() {
             <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
             </TabsList>
             <TabsContent value="departments" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Działy" items={localConfig.departments} configType='departments' updateLocalItems={(items) => handleUpdate('departments', items)} />
+                <ConfigList title="Działy" items={departments} configType='departments' onUpdate={handleUpdate} />
             </TabsContent>
             <TabsContent value="jobTitles" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Miejsca pracy" items={localConfig.jobTitles} configType='jobTitles' updateLocalItems={(items) => handleUpdate('jobTitles', items)} />
+                <ConfigList title="Miejsca pracy" items={jobTitles} configType='jobTitles' onUpdate={handleUpdate} />
             </TabsContent>
             <TabsContent value="managers" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Kierownicy" items={localConfig.managers} configType='managers' updateLocalItems={(items) => handleUpdate('managers', items)} />
+                <ConfigList title="Kierownicy" items={managers} configType='managers' onUpdate={handleUpdate} />
             </TabsContent>
             <TabsContent value="nationalities" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Narodowości" items={localConfig.nationalities} configType='nationalities' updateLocalItems={(items) => handleUpdate('nationalities', items)} />
+                <ConfigList title="Narodowości" items={nationalities} configType='nationalities' onUpdate={handleUpdate} />
             </TabsContent>
             <TabsContent value="clothingItems" className="mt-4 flex flex-col flex-grow">
-                <ConfigList title="Elementy odzieży" items={localConfig.clothingItems} configType='clothingItems' updateLocalItems={(items) => handleUpdate('clothingItems', items)} />
+                <ConfigList title="Elementy odzieży" items={clothingItems} configType='clothingItems' onUpdate={handleUpdate} />
             </TabsContent>
         </Tabs>
         </div>
