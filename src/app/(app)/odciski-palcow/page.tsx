@@ -29,33 +29,14 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { db } from '@/lib/firebase';
-import { ref, onValue, set, push, remove } from 'firebase/database';
+import { ref, set, push, remove } from 'firebase/database';
 import { useConfig } from '@/context/config-context';
 
 
 export default function FingerprintAppointmentsPage() {
-    const [appointments, setAppointments] = useState<FingerprintAppointment[]>([]);
-    const { employees, isLoading: isConfigLoading } = useConfig();
+    const { employees, fingerprintAppointments: appointments, isLoading } = useConfig();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<FingerprintAppointment | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const appointmentsRef = ref(db, 'fingerprintAppointments');
-        const unsubscribeAppointments = onValue(appointmentsRef, (snapshot) => {
-            const data = snapshot.val();
-            const loadedAppointments = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
-            setAppointments(loadedAppointments);
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Failed to load appointments from Firebase", error);
-            setIsLoading(false);
-        });
-
-        return () => {
-            unsubscribeAppointments();
-        };
-    }, []);
 
     const handleSave = async (appointmentData: Omit<FingerprintAppointment, 'id'>) => {
         try {
@@ -101,8 +82,7 @@ export default function FingerprintAppointmentsPage() {
     
     const activeEmployees = employees.filter(e => e.status === 'aktywny');
 
-
-    if (isLoading || isConfigLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
     return (
         <div>

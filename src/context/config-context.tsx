@@ -1,10 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import type { ConfigItem, Employee } from '@/lib/types';
+import type { ConfigItem, Employee, FingerprintAppointment } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { ref, onValue, set, push, runTransaction } from 'firebase/database';
-import { departments, jobTitles, managers, nationalities, clothingItems, activeEmployees } from '@/lib/mock-data';
+import { departments, jobTitles, managers, nationalities, clothingItems } from '@/lib/mock-data';
 
 interface ConfigContextType {
   departments: ConfigItem[];
@@ -13,6 +13,7 @@ interface ConfigContextType {
   nationalities: ConfigItem[];
   clothingItems: ConfigItem[];
   employees: Employee[];
+  fingerprintAppointments: FingerprintAppointment[];
   updateConfig: (configType: ConfigType, newItems: ConfigItem[]) => Promise<void>;
   isLoading: boolean;
 }
@@ -34,20 +35,20 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     nationalities: ConfigItem[];
     clothingItems: ConfigItem[];
     employees: Employee[];
+    fingerprintAppointments: FingerprintAppointment[];
   }>({
-    // Load initial empty structure immediately
-    departments: [],
-    jobTitles: [],
-    managers: [],
-    nationalities: [],
-    clothingItems: [],
+    departments: departments,
+    jobTitles: jobTitles,
+    managers: managers,
+    nationalities: nationalities,
+    clothingItems: clothingItems,
     employees: [],
+    fingerprintAppointments: [],
   });
 
   useEffect(() => {
     let isMounted = true;
     
-    // Function to initialize config data if it's empty
     const initializeConfigData = async () => {
         const configRef = ref(db, 'config');
         runTransaction(configRef, (currentData) => {
@@ -60,81 +61,74 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                     clothingItems: clothingItems.reduce((acc, item) => ({...acc, [item.id]: {name: item.name}}), {}),
                 };
             }
-            return currentData; // Abort transaction
+            return currentData; 
         });
     };
 
     initializeConfigData();
 
-    // Listener for config
-    const configRef = ref(db, 'config');
-    const unsubscribeConfig = onValue(configRef, (snapshot) => {
-        if (isMounted) {
-            const configData = snapshot.val();
-            setData(prevData => ({
-                ...prevData,
-                departments: objectToArray(configData?.departments),
-                jobTitles: objectToArray(configData?.jobTitles),
-                managers: objectToArray(configData?.managers),
-                nationalities: objectToArray(configData?.nationalities),
-                clothingItems: objectToArray(configData?.clothingItems),
-            }));
-            // We can consider loading done when config is loaded
-            setIsLoading(false);
-        }
-    }, (error) => {
-        console.error("Firebase config listener failed:", error);
-        if(isMounted) setIsLoading(false);
-    });
-
-    // Listener for employees
-    const employeesRef = ref(db, 'employees');
-    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-        if (isMounted) {
-            setData(prevData => ({ ...prevData, employees: objectToArray(snapshot.val()) }));
-        }
-    }, (error) => {
-        console.error("Firebase employees listener failed:", error);
+    const listeners = [
+        onValue(ref(db, 'config'), (snapshot) => {
+            if (isMounted) {
+                const configData = snapshot.val();
+                setData(prevData => ({
+                    ...prevData,
+                    departments: objectToArray(configData?.departments),
+                    jobTitles: objectToArray(configData?.jobTitles),
+                    managers: objectToArray(configData?.managers),
+                    nationalities: objectToArray(configData?.nationalities),
+                    clothingItems: objectToArray(configData?.clothingItems),
+                }));
+            }
+        }),
+        onValue(ref(db, 'employees'), (snapshot) => {
+            if (isMounted) setData(prevData => ({ ...prevData, employees: objectToArray(snapshot.val()) }));
+        }),
+        onValue(ref(db, 'fingerprintAppointments'), (snapshot) => {
+          if(isMounted) setData(prevData => ({ ...prevData, fingerprintAppointments: objectToArray(snapshot.val()) }));
+        })
+    ];
+    
+    // Once all initial data is potentially loaded (or listeners are set up)
+    Promise.all(listeners).then(() => {
+      if(isMounted) setIsLoading(false);
+    }).catch(error => {
+      console.error("Firebase initial data load failed:", error);
+      if(isMounted) setIsLoading(false);
     });
 
     return () => {
       isMounted = false;
-      unsubscribeConfig();
-      unsubscribeEmployees();
     };
   }, []);
 
   const updateConfig = useCallback(async (configType: ConfigType, newItems: ConfigItem[]) => {
     try {
         const configTypeRef = ref(db, `config/${configType}`);
-        const currentItems = data[configType as keyof typeof data] as ConfigItem[];
-        const currentItemsMap = new Map(currentItems.map(item => [item.id, item]));
-        const newItemsMap = new Map(newItems.map(item => [item.id, item]));
-
+        const currentItems = (data as any)[configType] as ConfigItem[];
+        
         const updates: { [key: string]: any } = {};
 
-        // Add or update items
-        for (const newItem of newItems) {
-            if (!currentItemsMap.has(newItem.id) || currentItemsMap.get(newItem.id)?.name !== newItem.name) {
-                let itemId = newItem.id;
-                // If it's a temporary ID, it means it's a new item.
-                if (itemId.startsWith(`${configType.slice(0, 2)}-`)) {
-                   const newItemRef = push(configTypeRef);
-                   itemId = newItemRef.key!;
-                }
-                updates[itemId] = { name: newItem.name };
-            }
-        }
-        
-        // Remove items
+        const newItemsMap = new Map(newItems.map(item => [item.id, item]));
+
         for(const currentItem of currentItems) {
             if (!newItemsMap.has(currentItem.id)) {
                 updates[currentItem.id] = null;
             }
         }
+
+        for (const newItem of newItems) {
+            let itemId = newItem.id;
+            if (itemId.startsWith(`${configType.slice(0, 2)}-`)) {
+               const newItemRef = push(configTypeRef);
+               itemId = newItemRef.key!;
+               updates[itemId] = { name: newItem.name };
+            } else {
+               updates[itemId] = { name: newItem.name };
+            }
+        }
         
-        const finalState = { ...updates };
-        await set(configTypeRef, finalState);
+        await set(configTypeRef, updates);
 
       } catch (error) {
           console.error("Failed to save config to Firebase", error);
