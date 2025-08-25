@@ -16,7 +16,7 @@ import { useConfig } from '@/context/config-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function TerminatedEmployeesPageComponent() {
-  const { employees, departments, jobTitles, managers, nationalities, isLoading } = useConfig();
+  const { employees, departments, jobTitles, managers, nationalities, isLoading } from useConfig();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     department: '',
