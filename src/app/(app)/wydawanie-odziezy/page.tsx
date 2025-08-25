@@ -51,8 +51,8 @@ function ClothingIssuancePageComponent() {
         </Button>
       </PageHeader>
       
-      <div className="grid gap-6 lg:grid-cols-3 flex-grow">
-        <div className="lg:col-span-2 flex flex-col">
+      <div className="flex flex-grow gap-6 lg:flex-row flex-col">
+        <div className="lg:w-2/3 flex flex-col">
             <Card className="flex flex-col flex-grow">
             <CardHeader>
                 <CardTitle>Formularz wydania</CardTitle>
@@ -146,7 +146,7 @@ function ClothingIssuancePageComponent() {
             </CardContent>
             </Card>
         </div>
-        <div className="lg:col-span-1 flex flex-col">
+        <div className="lg:w-1/3 flex flex-col">
             <Card className="flex flex-col flex-grow">
                 <CardHeader>
                     <CardTitle>Historia wydań</CardTitle>
