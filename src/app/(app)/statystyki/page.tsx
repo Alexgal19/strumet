@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList, Bar } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
@@ -9,7 +9,6 @@ import { useFirebaseData } from '@/context/config-context';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
@@ -167,7 +166,6 @@ export default function StatisticsPage() {
                 <CardContent>
                     <ChartContainer config={{}} className="h-[450px] w-full">
                         <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={120} />
                              <Tooltip 
@@ -218,7 +216,6 @@ export default function StatisticsPage() {
                 <CardContent>
                     <ChartContainer config={{}} className="h-[450px] w-full">
                         <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={200} interval={0} />
                              <Tooltip 
