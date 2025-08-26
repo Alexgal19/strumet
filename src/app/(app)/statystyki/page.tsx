@@ -166,7 +166,7 @@ export default function StatisticsPage() {
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{}} className="h-[450px] w-full">
-                        <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 30, top: 5, bottom: 5 }}>
+                        <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 30, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={120} interval={0}/>
@@ -215,7 +215,7 @@ export default function StatisticsPage() {
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{}} className="h-[450px] w-full">
-                        <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 30, top: 5, bottom: 5 }}>
+                        <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 30, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={120} interval={0} />
