@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
@@ -47,6 +47,7 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
   ssr: false
 });
 
+const ITEMS_PER_PAGE = 50;
 
 export default function ActiveEmployeesPage() {
   const { employees, config, isLoading } = useFirebaseData();
@@ -62,6 +63,7 @@ export default function ActiveEmployeesPage() {
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
@@ -78,6 +80,18 @@ export default function ActiveEmployeesPage() {
       );
     });
   }, [activeEmployees, searchTerm, filters]);
+  
+  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+
+  const paginatedEmployees = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredEmployees.slice(startIndex, endIndex);
+  }, [filteredEmployees, currentPage]);
+  
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filters]);
 
   const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
@@ -132,6 +146,32 @@ export default function ActiveEmployeesPage() {
         });
     });
   };
+  
+  const PaginationControls = () => (
+    <div className="flex items-center justify-center space-x-4 pt-4">
+        <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+        >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Poprzednia
+        </Button>
+        <span className="text-sm font-medium">
+            Strona {currentPage} z {totalPages}
+        </span>
+        <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+        >
+            Następna
+            <ChevronRight className="h-4 w-4 ml-1" />
+        </Button>
+    </div>
+  );
 
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
@@ -197,7 +237,7 @@ export default function ActiveEmployeesPage() {
 
        {/* Mobile View - Cards */}
        <div className="flex-grow space-y-4 lg:hidden">
-        {filteredEmployees.map(employee => (
+        {paginatedEmployees.map(employee => (
           <Card key={employee.id} className="w-full" onClick={() => handleEditEmployee(employee)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg">{employee.fullName}</CardTitle>
@@ -241,81 +281,85 @@ export default function ActiveEmployeesPage() {
             </CardContent>
           </Card>
         ))}
+        {totalPages > 1 && <PaginationControls />}
         {filteredEmployees.length === 0 && !isLoading && (
-          <div className="text-center text-muted-foreground py-10">Brak aktywnych pracowników.</div>
+          <div className="text-center text-muted-foreground py-10">Brak aktywnych pracowników pasujących do kryteriów.</div>
         )}
       </div>
 
 
       {/* Desktop View - Table */}
-      <div className="hidden flex-grow overflow-auto rounded-lg border lg:block">
-        <Table>
-          <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
-            <TableRow>
-              <TableHead>Nazwisko i imię</TableHead>
-              <TableHead>Data zatrudnienia</TableHead>
-              <TableHead>Stanowisko</TableHead>
-              <TableHead>Dział</TableHead>
-              <TableHead>Kierownik</TableHead>
-              <TableHead>Nr karty</TableHead>
-              <TableHead>Narodowość</TableHead>
-              <TableHead>Nr szafki</TableHead>
-              <TableHead className="text-right">Akcje</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredEmployees.length > 0 ? filteredEmployees.map(employee => (
-              <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
-                <TableCell className="font-medium">{employee.fullName}</TableCell>
-                <TableCell>{employee.hireDate}</TableCell>
-                <TableCell>{employee.jobTitle}</TableCell>
-                <TableCell>{employee.department}</TableCell>
-                <TableCell>{employee.manager}</TableCell>
-                <TableCell>{employee.cardNumber}</TableCell>
-                <TableCell>{employee.nationality}</TableCell>
-                <TableCell>{employee.lockerNumber}</TableCell>
-                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <EmployeeSummary employee={employee}>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Otwórz menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                              <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edytuj
-                              </DropdownMenuItem>
-                               <DropdownMenuItem onSelect={() => handleCopy(employee)}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Kopiuj dane
-                              </DropdownMenuItem>
-                               <DropdownMenuItem>
-                                  <Bot className="mr-2 h-4 w-4" />
-                                   Generuj podsumowanie
-                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
-                                <UserX className="mr-2 h-4 w-4" />
-                                Zwolnij
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </EmployeeSummary>
-                </TableCell>
-              </TableRow>
-            )) : !isLoading && (
-              <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center">
-                  Brak aktywnych pracowników.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="hidden flex-col flex-grow lg:flex">
+        <div className="flex-grow overflow-auto rounded-lg border">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
+                <TableRow>
+                  <TableHead>Nazwisko i imię</TableHead>
+                  <TableHead>Data zatrudnienia</TableHead>
+                  <TableHead>Stanowisko</TableHead>
+                  <TableHead>Dział</TableHead>
+                  <TableHead>Kierownik</TableHead>
+                  <TableHead>Nr karty</TableHead>
+                  <TableHead>Narodowość</TableHead>
+                  <TableHead>Nr szafki</TableHead>
+                  <TableHead className="text-right">Akcje</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedEmployees.length > 0 ? paginatedEmployees.map(employee => (
+                  <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
+                    <TableCell className="font-medium">{employee.fullName}</TableCell>
+                    <TableCell>{employee.hireDate}</TableCell>
+                    <TableCell>{employee.jobTitle}</TableCell>
+                    <TableCell>{employee.department}</TableCell>
+                    <TableCell>{employee.manager}</TableCell>
+                    <TableCell>{employee.cardNumber}</TableCell>
+                    <TableCell>{employee.nationality}</TableCell>
+                    <TableCell>{employee.lockerNumber}</TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <EmployeeSummary employee={employee}>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Otwórz menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                                  <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edytuj
+                                  </DropdownMenuItem>
+                                   <DropdownMenuItem onSelect={() => handleCopy(employee)}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Kopiuj dane
+                                  </DropdownMenuItem>
+                                   <DropdownMenuItem>
+                                      <Bot className="mr-2 h-4 w-4" />
+                                       Generuj podsumowanie
+                                   </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
+                                    <UserX className="mr-2 h-4 w-4" />
+                                    Zwolnij
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </EmployeeSummary>
+                    </TableCell>
+                  </TableRow>
+                )) : !isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-24 text-center">
+                      Brak aktywnych pracowników pasujących do kryteriów.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+        </div>
+        {totalPages > 1 && <PaginationControls />}
       </div>
     </div>
   );
