@@ -123,7 +123,8 @@ export default function StatisticsPage() {
                                     offset={8} 
                                     className="fill-foreground"
                                     fontSize={12}
-                                    formatter={(value: number, {payload}: any) => {
+                                    formatter={(value: number, entry: any) => {
+                                      const { payload } = entry;
                                       return `${value} (${payload.percentage.toFixed(1)}%)`
                                     }}
                                 />
