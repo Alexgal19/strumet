@@ -136,7 +136,7 @@ export default function ActiveEmployeesPage() {
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full w-full flex-col">
       <PageHeader
         title="Pracownicy aktywni"
         description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
