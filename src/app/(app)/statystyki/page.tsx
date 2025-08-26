@@ -8,7 +8,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { Loader2 } from 'lucide-react';
-import { activeEmployees } from '@/lib/mock-data';
+import { Progress } from '@/components/ui/progress';
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
@@ -19,16 +19,20 @@ export default function StatisticsPage() {
   const totalActiveEmployees = activeEmployees.length;
 
   const departmentData = useMemo(() => {
+    if (totalActiveEmployees === 0) return [];
     const counts: { [key: string]: number } = {};
     activeEmployees.forEach(employee => {
       counts[employee.department] = (counts[employee.department] || 0) + 1;
     });
-    return Object.entries(counts).map(([name, value], index) => ({ 
-      name, 
-      value, 
-      fill: CHART_COLORS[index % CHART_COLORS.length] 
-    }));
-  }, [activeEmployees]);
+    return Object.entries(counts)
+      .map(([name, value], index) => ({ 
+        name, 
+        value, 
+        percentage: (value / totalActiveEmployees) * 100,
+        fill: CHART_COLORS[index % CHART_COLORS.length] 
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [activeEmployees, totalActiveEmployees]);
 
   const nationalityData = useMemo(() => {
     const counts: { [key: string]: number } = {};
@@ -76,44 +80,17 @@ export default function StatisticsPage() {
                     <CardDescription>Liczba i odsetek pracowników w poszczególnych działach.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={departmentConfig} className="mx-auto aspect-square max-h-[300px]">
-                        <PieChart>
-                            <ChartTooltip 
-                                content={<ChartTooltipContent 
-                                    formatter={(value, name, props) => {
-                                        const percentage = totalActiveEmployees > 0 ? (Number(value) / totalActiveEmployees * 100).toFixed(1) : 0;
-                                        return `${value} (${percentage}%)`;
-                                    }}
-                                />} 
-                            />
-                            <Pie 
-                                data={departmentData} 
-                                dataKey="value" 
-                                nameKey="name" 
-                                cx="50%" 
-                                cy="50%" 
-                                innerRadius={60} 
-                                outerRadius={100} 
-                                labelLine={false} 
-                                label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                                    const RADIAN = Math.PI / 180;
-                                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                                    const x  = cx + radius * Math.cos(-midAngle * RADIAN);
-                                    const y = cy  + radius * Math.sin(-midAngle * RADIAN);
-                                    return (
-                                        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold">
-                                            {`${(percent * 100).toFixed(0)}%`}
-                                        </text>
-                                    );
-                                }}
-                            >
-                                 {departmentData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                 ))}
-                            </Pie>
-                             <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                        </PieChart>
-                    </ChartContainer>
+                    <div className="space-y-4">
+                        {departmentData.map((dept) => (
+                            <div key={dept.name} className="space-y-1">
+                                <div className="flex justify-between items-center text-sm font-medium">
+                                    <span style={{ color: dept.fill }}>{dept.name}</span>
+                                    <span>{dept.value} ({dept.percentage.toFixed(1)}%)</span>
+                                </div>
+                                <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
+                            </div>
+                        ))}
+                    </div>
                 </CardContent>
             </Card>
 
@@ -160,4 +137,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
