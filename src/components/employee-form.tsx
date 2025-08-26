@@ -104,7 +104,6 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                 mode="single"
                 selected={formData.hireDate ? new Date(formData.hireDate) : undefined}
                 onSelect={handleDateChange}
-                initialFocus
                 locale={pl}
               />
             </PopoverContent>
