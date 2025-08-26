@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -123,11 +122,12 @@ export default function StatisticsPage() {
                                     offset={8} 
                                     className="fill-foreground"
                                     fontSize={12}
-                                    formatter={(value: number, entry: any) => {
-                                      if (entry && entry.payload) {
-                                        return `${value} (${entry.payload.percentage.toFixed(1)}%)`
-                                      }
-                                      return value;
+                                    formatter={(value: number) => {
+                                        const item = nationalityData.find(d => d.value === value);
+                                        if (item) {
+                                          return `${value} (${item.percentage.toFixed(1)}%)`;
+                                        }
+                                        return value;
                                     }}
                                 />
                                 {nationalityData.map((entry, index) => (
