@@ -9,6 +9,20 @@ import { db } from '@/lib/firebase';
 import { ref, set, push } from "firebase/database";
 import type { Employee } from '@/lib/types';
 
+const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status' | 'terminationDate'>> = {
+  'imię': 'firstName',
+  'nazwisko': 'lastName',
+  'dataZatrudnienia': 'hireDate',
+  'stanowisko': 'jobTitle',
+  'dział': 'department',
+  'kierownik': 'manager',
+  'numerKarty': 'cardNumber',
+  'narodowość': 'nationality',
+  'numerSzafki': 'lockerNumber',
+  'numerSzafkiDział': 'departmentLockerNumber',
+  'numerPlomby': 'sealNumber',
+};
+
 export function ExcelImportButton() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,24 +48,33 @@ export function ExcelImportButton() {
         for (const item of jsonData) {
           const employeeId = push(ref(db, 'employees')).key;
           if (!employeeId) continue;
+
+          const englishItem: any = {};
+          for (const polishKey in item) {
+            if (polishToEnglishMapping[polishKey]) {
+              const englishKey = polishToEnglishMapping[polishKey];
+              englishItem[englishKey] = item[polishKey];
+            } else {
+              englishItem[polishKey] = item[polishKey]; // Keep unmapped columns as is
+            }
+          }
             
-          // Basic validation and type conversion
-          const hireDate = item.hireDate instanceof Date 
-            ? item.hireDate.toISOString().split('T')[0]
-            : (typeof item.hireDate === 'string' ? item.hireDate : new Date().toISOString().split('T')[0]);
+          const hireDate = englishItem.hireDate instanceof Date 
+            ? englishItem.hireDate.toISOString().split('T')[0]
+            : (typeof englishItem.hireDate === 'string' ? englishItem.hireDate : new Date().toISOString().split('T')[0]);
 
           const employee: Omit<Employee, 'id'> = {
-            firstName: String(item.firstName || ''),
-            lastName: String(item.lastName || ''),
+            firstName: String(englishItem.firstName || ''),
+            lastName: String(englishItem.lastName || ''),
             hireDate: hireDate,
-            jobTitle: String(item.jobTitle || ''),
-            department: String(item.department || ''),
-            manager: String(item.manager || ''),
-            cardNumber: String(item.cardNumber || ''),
-            nationality: String(item.nationality || ''),
-            lockerNumber: String(item.lockerNumber || ''),
-            departmentLockerNumber: String(item.departmentLockerNumber || ''),
-            sealNumber: String(item.sealNumber || ''),
+            jobTitle: String(englishItem.jobTitle || ''),
+            department: String(englishItem.department || ''),
+            manager: String(englishItem.manager || ''),
+            cardNumber: String(englishItem.cardNumber || ''),
+            nationality: String(englishItem.nationality || ''),
+            lockerNumber: String(englishItem.lockerNumber || ''),
+            departmentLockerNumber: String(englishItem.departmentLockerNumber || ''),
+            sealNumber: String(englishItem.sealNumber || ''),
             status: 'aktywny',
           };
           
@@ -67,12 +90,12 @@ export function ExcelImportButton() {
             toast({
                 variant: 'destructive',
                 title: 'Błąd importu',
-                description: 'Nie znaleziono prawidłowych danych do importu. Sprawdź strukturę pliku.',
+                description: 'Nie znaleziono prawidłowych danych do importu. Sprawdź strukturę pliku i nazwy kolumn.',
             });
+            setIsImporting(false);
             return;
         }
 
-        // Replace all employees with the new data
         await set(ref(db, 'employees'), employeesToImport);
 
         toast({
@@ -88,7 +111,6 @@ export function ExcelImportButton() {
         });
       } finally {
         setIsImporting(false);
-        // Reset file input
         if(fileInputRef.current) {
             fileInputRef.current.value = '';
         }
