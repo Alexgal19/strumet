@@ -196,7 +196,7 @@ export default function ActiveEmployeesPage() {
       </div>
 
        {/* Mobile View - Cards */}
-       <div className="flex-grow space-y-4 md:hidden">
+       <div className="flex-grow space-y-4 lg:hidden">
         {filteredEmployees.map(employee => (
           <Card key={employee.id} className="w-full" onClick={() => handleEditEmployee(employee)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -248,7 +248,7 @@ export default function ActiveEmployeesPage() {
 
 
       {/* Desktop View - Table */}
-      <div className="hidden flex-grow overflow-auto rounded-lg border md:block">
+      <div className="hidden flex-grow overflow-auto rounded-lg border lg:block">
         <Table>
           <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
             <TableRow>
