@@ -100,7 +100,7 @@ export default function ConfigurationPage() {
       />
       
       <Tabs defaultValue="departments" className="flex h-full w-full flex-col">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto justify-start">
           <TabsTrigger value="departments">Działy</TabsTrigger>
           <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
           <TabsTrigger value="managers">Kierownicy</TabsTrigger>
