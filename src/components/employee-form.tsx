@@ -28,6 +28,7 @@ interface EmployeeFormProps {
 
 export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
   const { departments, jobTitles, managers, nationalities } = config;
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>({
     firstName: '',
     lastName: '',
@@ -74,6 +75,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
       setFormData(prev => ({ ...prev, hireDate: format(date, 'yyyy-MM-dd') }));
+      setIsCalendarOpen(false);
     }
   };
 
@@ -99,7 +101,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         </div>
         <div className="space-y-2">
           <Label htmlFor="hireDate">Data zatrudnienia</Label>
-          <Popover>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant={"outline"}
