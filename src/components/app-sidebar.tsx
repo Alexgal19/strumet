@@ -76,7 +76,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
       <SidebarFooter className="p-4">
         <SidebarMenu>
           <SidebarMenuItem className="p-0">
-             <Link href="/login" passHref legacyBehavior>
+             <Link href="/login">
                 <SidebarMenuButton className="h-11 justify-start">
                     <LogOut />
                     <span>Wyloguj</span>
