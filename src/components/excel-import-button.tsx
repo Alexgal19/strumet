@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { FileUp, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { ref, set, push } from "firebase/database";
+import { ref, update } from "firebase/database";
 import type { Employee } from '@/lib/types';
+import { push } from 'firebase/database';
 
 const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status' | 'terminationDate'>> = {
   'imięNazwisko': 'fullName',
@@ -42,7 +43,7 @@ export function ExcelImportButton() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        const employeesToImport: Record<string, Omit<Employee, 'id'>> = {};
+        const updates: Record<string, Omit<Employee, 'id'>> = {};
 
         for (const item of jsonData) {
           const employeeId = push(ref(db, 'employees')).key;
@@ -81,10 +82,10 @@ export function ExcelImportButton() {
             continue;
           }
 
-          employeesToImport[employeeId] = employee;
+          updates[`/employees/${employeeId}`] = employee;
         }
         
-        if (Object.keys(employeesToImport).length === 0) {
+        if (Object.keys(updates).length === 0) {
             toast({
                 variant: 'destructive',
                 title: 'Błąd importu',
@@ -94,11 +95,11 @@ export function ExcelImportButton() {
             return;
         }
 
-        await set(ref(db, 'employees'), employeesToImport);
+        await update(ref(db), updates);
 
         toast({
           title: 'Import zakończony sukcesem',
-          description: `Zaimportowano ${Object.keys(employeesToImport).length} pracowników.`,
+          description: `Zaimportowano ${Object.keys(updates).length} pracowników.`,
         });
       } catch (error) {
         console.error("Error importing from Excel: ", error);
