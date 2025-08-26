@@ -190,7 +190,10 @@ export default function ActiveEmployeesPage() {
       </PageHeader>
       
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col">
+        <DialogContent 
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            className="sm:max-w-[625px] max-h-[90vh] flex flex-col"
+        >
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>{editingEmployee ? 'Edytuj pracownika' : 'Dodaj nowego pracownika'}</DialogTitle>
           </DialogHeader>
