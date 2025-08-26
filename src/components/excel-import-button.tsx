@@ -10,8 +10,7 @@ import { ref, set, push } from "firebase/database";
 import type { Employee } from '@/lib/types';
 
 const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status' | 'terminationDate'>> = {
-  'imię': 'firstName',
-  'nazwisko': 'lastName',
+  'imięNazwisko': 'fullName',
   'dataZatrudnienia': 'hireDate',
   'stanowisko': 'jobTitle',
   'dział': 'department',
@@ -64,8 +63,7 @@ export function ExcelImportButton() {
             : (typeof englishItem.hireDate === 'string' ? englishItem.hireDate : new Date().toISOString().split('T')[0]);
 
           const employee: Omit<Employee, 'id'> = {
-            firstName: String(englishItem.firstName || ''),
-            lastName: String(englishItem.lastName || ''),
+            fullName: String(englishItem.fullName || ''),
             hireDate: hireDate,
             jobTitle: String(englishItem.jobTitle || ''),
             department: String(englishItem.department || ''),
@@ -78,8 +76,8 @@ export function ExcelImportButton() {
             status: 'aktywny',
           };
           
-          if(!employee.firstName || !employee.lastName) {
-            console.warn("Skipping row due to missing first or last name:", item);
+          if(!employee.fullName) {
+            console.warn("Skipping row due to missing full name:", item);
             continue;
           }
 

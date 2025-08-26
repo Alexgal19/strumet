@@ -12,8 +12,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateEmployeeSummaryInputSchema = z.object({
-  firstName: z.string().describe('The first name of the employee.'),
-  lastName: z.string().describe('The last name of the employee.'),
+  fullName: z.string().describe("The full name of the employee."),
   hireDate: z.string().describe('The hire date of the employee.'),
   jobTitle: z.string().describe('The job title of the employee.'),
   department: z.string().describe('The department of the employee.'),
@@ -42,7 +41,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an HR assistant. Generate a concise summary of the employee using the provided information in Polish.
 
 Employee Information:
-Name: {{firstName}} {{lastName}}
+Name: {{fullName}}
 Hire Date: {{hireDate}}
 Job Title: {{jobTitle}}
 Department: {{department}}

@@ -33,8 +33,7 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
     setSummary("");
     try {
       const result = await generateEmployeeSummary({
-        firstName: employee.firstName,
-        lastName: employee.lastName,
+        fullName: employee.fullName,
         hireDate: employee.hireDate,
         jobTitle: employee.jobTitle,
         department: employee.department,
@@ -83,7 +82,7 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
           <DialogTitle>Podsumowanie pracownika</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
-            <p className="font-semibold">{employee.firstName} {employee.lastName}</p>
+            <p className="font-semibold">{employee.fullName}</p>
             {loading && (
                 <div className="flex items-center justify-center p-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />

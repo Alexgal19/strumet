@@ -44,8 +44,7 @@ export default function TerminatedEmployeesPage() {
     return terminatedEmployees.filter(employee => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        (employee.firstName.toLowerCase().includes(searchLower) ||
-          employee.lastName.toLowerCase().includes(searchLower) ||
+        (employee.fullName.toLowerCase().includes(searchLower) ||
           (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
         (filters.department ? employee.department === filters.department : true) &&
         (filters.manager ? employee.manager === filters.manager : true) &&
@@ -107,7 +106,7 @@ export default function TerminatedEmployeesPage() {
         {filteredEmployees.map(employee => (
           <Card key={employee.id} className="w-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg">{employee.lastName} {employee.firstName}</CardTitle>
+              <CardTitle className="text-lg">{employee.fullName}</CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-8 w-8 p-0">
@@ -154,7 +153,7 @@ export default function TerminatedEmployeesPage() {
           <TableBody>
             {filteredEmployees.length > 0 ? filteredEmployees.map(employee => (
               <TableRow key={employee.id} className="cursor-pointer">
-                <TableCell className="font-medium">{employee.lastName} {employee.firstName}</TableCell>
+                <TableCell className="font-medium">{employee.fullName}</TableCell>
                 <TableCell>{employee.hireDate}</TableCell>
                 <TableCell>{employee.terminationDate}</TableCell>
                 <TableCell>{employee.jobTitle}</TableCell>

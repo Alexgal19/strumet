@@ -1,7 +1,6 @@
 export interface Employee {
   id: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   hireDate: string; // ISO string format
   jobTitle: string;
   department: string;

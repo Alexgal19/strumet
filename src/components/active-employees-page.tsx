@@ -69,8 +69,7 @@ export default function ActiveEmployeesPage() {
     return activeEmployees.filter(employee => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        (employee.firstName.toLowerCase().includes(searchLower) ||
-          employee.lastName.toLowerCase().includes(searchLower) ||
+        (employee.fullName.toLowerCase().includes(searchLower) ||
           (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
         (filters.department ? employee.department === filters.department : true) &&
         (filters.manager ? employee.manager === filters.manager : true) &&
@@ -125,7 +124,7 @@ export default function ActiveEmployeesPage() {
   }
 
   const handleCopy = (employee: Employee) => {
-    const textToCopy = `${employee.lastName} ${employee.firstName}\n${employee.jobTitle}\n${employee.department}`;
+    const textToCopy = `${employee.fullName}\n${employee.jobTitle}\n${employee.department}`;
     navigator.clipboard.writeText(textToCopy).then(() => {
         toast({
             title: 'Skopiowano!',
@@ -201,7 +200,7 @@ export default function ActiveEmployeesPage() {
         {filteredEmployees.map(employee => (
           <Card key={employee.id} className="w-full" onClick={() => handleEditEmployee(employee)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg">{employee.lastName} {employee.firstName}</CardTitle>
+              <CardTitle className="text-lg">{employee.fullName}</CardTitle>
               <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => handleCopy(employee)}>
                     <span className="sr-only">Kopiuj dane</span>
@@ -267,7 +266,7 @@ export default function ActiveEmployeesPage() {
           <TableBody>
             {filteredEmployees.length > 0 ? filteredEmployees.map(employee => (
               <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
-                <TableCell className="font-medium">{employee.lastName} {employee.firstName}</TableCell>
+                <TableCell className="font-medium">{employee.fullName}</TableCell>
                 <TableCell>{employee.hireDate}</TableCell>
                 <TableCell>{employee.jobTitle}</TableCell>
                 <TableCell>{employee.department}</TableCell>

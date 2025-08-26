@@ -30,8 +30,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
   const { departments, jobTitles, managers, nationalities } = config;
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>({
-    firstName: '',
-    lastName: '',
+    fullName: '',
     hireDate: new Date().toISOString().split('T')[0],
     jobTitle: '',
     department: '',
@@ -48,8 +47,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
       setFormData(employee);
     } else {
       setFormData({
-        firstName: '',
-        lastName: '',
+        fullName: '',
         hireDate: new Date().toISOString().split('T')[0],
         jobTitle: '',
         department: '',
@@ -68,7 +66,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (name: keyof typeof formData) => (value: string) => {
+  const handleSelectChange = (name: keyof Omit<Employee, 'id' | 'status'>) => (value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -91,13 +89,9 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">Imię</Label>
-          <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Nazwisko</Label>
-          <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="fullName">Imię i nazwisko</Label>
+          <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} required />
         </div>
         <div className="space-y-2">
           <Label htmlFor="hireDate">Data zatrudnienia</Label>
