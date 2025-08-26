@@ -48,11 +48,11 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
   }
 
   return (
-    <Sidebar className="backdrop-blur-sm border-r border-sidebar-border/50">
+    <Sidebar variant="floating" collapsible="icon" className="border-r border-sidebar-border/50">
       <SidebarHeader>
         <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Building className="h-6 w-6" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Building className="h-7 w-7" />
             </div>
             <span className="font-bold text-lg text-sidebar-foreground">Kadry Online</span>
         </div>
@@ -64,7 +64,8 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
                 <SidebarMenuButton 
                   onClick={() => setActiveView(item.view)} 
                   isActive={activeView === item.view}
-                  className="h-11 justify-start"
+                  className="h-12 justify-start"
+                  size="lg"
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -77,7 +78,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
         <SidebarMenu>
           <SidebarMenuItem className="p-0">
              <Link href="/login">
-                <SidebarMenuButton className="h-11 justify-start">
+                <SidebarMenuButton className="h-12 justify-start" size="lg">
                     <LogOut />
                     <span>Wyloguj</span>
                 </SidebarMenuButton>

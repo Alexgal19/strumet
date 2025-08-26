@@ -27,15 +27,15 @@ html, body, #__next__ {
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 206 84% 68%;
-    --radius: 0.5rem;
+    --radius: 0.8rem;
     
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-background: 224 71% 4%;
+    --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 206 84% 68%;
     --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 206 84% 68%;
 
     --chart-1: 206 84% 68%;
@@ -65,7 +65,7 @@ html, body, #__next__ {
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 206 84% 68%;
-    --radius: 0.5rem;
+    --radius: 0.8rem;
     
     --sidebar-background: 224 71% 4%;
     --sidebar-foreground: 210 40% 98%;
@@ -91,6 +91,7 @@ html, body, #__next__ {
   body {
     @apply text-foreground;
     background-color: hsl(var(--background));
-    background-image: radial-gradient(circle at top left, hsl(var(--secondary)), hsl(var(--background)));
+    background-image: radial-gradient(circle at top left, hsl(var(--primary) / 0.2), transparent 40%),
+                      radial-gradient(circle at bottom right, hsl(var(--accent) / 0.2), transparent 40%);
   }
 }

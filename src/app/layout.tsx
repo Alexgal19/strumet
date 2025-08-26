@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl">
+    <html lang="pl" className="dark">
       <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-geist/latest/geist.css" />
       </head>
