@@ -175,6 +175,7 @@ export default function TerminatedEmployeesPage() {
             <CardContent className="space-y-2 text-sm">
               <p><strong className="text-muted-foreground">Stanowisko:</strong> {employee.jobTitle}</p>
               <p><strong className="text-muted-foreground">Dział:</strong> {employee.department}</p>
+              <p><strong className="text-muted-foreground">Narodowość:</strong> {employee.nationality}</p>
               <p><strong className="text-muted-foreground">Data zwolnienia:</strong> {employee.terminationDate}</p>
             </CardContent>
           </Card>
@@ -196,6 +197,7 @@ export default function TerminatedEmployeesPage() {
               <TableHead>Dział</TableHead>
               <TableHead>Kierownik</TableHead>
               <TableHead>Nr karty</TableHead>
+              <TableHead>Narodowość</TableHead>
               <TableHead className="text-right">Akcje</TableHead>
             </TableRow>
           </TableHeader>
@@ -209,6 +211,7 @@ export default function TerminatedEmployeesPage() {
                 <TableCell>{employee.department}</TableCell>
                 <TableCell>{employee.manager}</TableCell>
                 <TableCell>{employee.cardNumber}</TableCell>
+                <TableCell>{employee.nationality}</TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -233,7 +236,7 @@ export default function TerminatedEmployeesPage() {
               </TableRow>
             )) : !isLoading && (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   Brak zwolnionych pracowników.
                 </TableCell>
               </TableRow>
