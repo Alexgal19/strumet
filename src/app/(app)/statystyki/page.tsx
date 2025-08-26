@@ -169,7 +169,7 @@ export default function StatisticsPage() {
                         <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, textAnchor: 'start'}} width={120} interval={0} />
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={120} interval={0} />
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
@@ -217,7 +217,7 @@ export default function StatisticsPage() {
                         <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, textAnchor: 'start'}} width={200} interval={0} scale="auto"/>
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={200} interval={0} scale="auto"/>
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
