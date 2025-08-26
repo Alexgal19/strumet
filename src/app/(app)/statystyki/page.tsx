@@ -188,13 +188,9 @@ export default function StatisticsPage() {
                                     offset={8} 
                                     className="fill-foreground"
                                     fontSize={12}
-                                    formatter={(value: number, _index: number, props: any) => {
-                                      const entry = props[0];
-                                      if (entry && entry.payload) {
-                                        const percentage = entry.payload.percentage;
-                                        if (typeof percentage === 'number') {
-                                          return `${value} (${percentage.toFixed(1)}%)`;
-                                        }
+                                    formatter={(value: number, props: any) => {
+                                      if (props && typeof props.percentage === 'number') {
+                                        return `${value} (${props.percentage.toFixed(1)}%)`;
                                       }
                                       return value;
                                     }}
@@ -238,13 +234,9 @@ export default function StatisticsPage() {
                                     offset={8} 
                                     className="fill-foreground"
                                     fontSize={12}
-                                    formatter={(value: number, _index: number, props: any) => {
-                                      const entry = props[0];
-                                      if (entry && entry.payload) {
-                                        const percentage = entry.payload.percentage;
-                                        if (typeof percentage === 'number') {
-                                          return `${value} (${percentage.toFixed(1)}%)`;
-                                        }
+                                    formatter={(value: number, props: any) => {
+                                      if (props && typeof props.percentage === 'number') {
+                                          return `${value} (${props.percentage.toFixed(1)}%)`;
                                       }
                                       return value;
                                     }}
