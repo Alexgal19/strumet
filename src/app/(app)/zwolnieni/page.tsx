@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Table,
   TableBody,
@@ -19,17 +20,23 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, Search, Loader2, RotateCcw } from 'lucide-react';
+import { MoreHorizontal, Search, Loader2, RotateCcw, Edit } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
-import { ref, update } from "firebase/database";
+import { ref, update, get } from "firebase/database";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+const EmployeeForm = dynamic(() => import('@/components/employee-form').then(mod => mod.EmployeeForm), {
+  loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
+  ssr: false
+});
 
 export default function TerminatedEmployeesPage() {
   const { employees, config, isLoading } = useFirebaseData();
-  const { departments, jobTitles, managers } = config;
+  const { departments, jobTitles, managers, nationalities } = config;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -37,6 +44,8 @@ export default function TerminatedEmployeesPage() {
     manager: '',
     jobTitle: '',
   });
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
@@ -57,10 +66,10 @@ export default function TerminatedEmployeesPage() {
     setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
   };
 
-  const handleRestoreEmployee = async (id: string) => {
+  const handleRestoreEmployee = async (employeeId: string) => {
     if (window.confirm('Czy na pewno chcesz przywrócić tego pracownika?')) {
         try {
-            const employeeRef = ref(db, `employees/${id}`);
+            const employeeRef = ref(db, `employees/${employeeId}`);
             await update(employeeRef, {
                 status: 'aktywny',
                 terminationDate: null 
@@ -68,6 +77,23 @@ export default function TerminatedEmployeesPage() {
         } catch (error) {
             console.error("Error restoring employee: ", error);
         }
+    }
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    setEditingEmployee(employee);
+    setIsFormOpen(true);
+  };
+  
+  const handleSaveEmployee = async (employeeData: Omit<Employee, 'id'>) => {
+    if (!editingEmployee) return;
+    try {
+        const employeeRef = ref(db, `employees/${editingEmployee.id}`);
+        await update(employeeRef, employeeData);
+        setEditingEmployee(null);
+        setIsFormOpen(false);
+    } catch (error) {
+        console.error("Error saving employee: ", error);
     }
   };
   
@@ -79,6 +105,25 @@ export default function TerminatedEmployeesPage() {
         title="Pracownicy zwolnieni"
         description="Przeglądaj historię zwolnionych pracowników."
       />
+
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Edytuj pracownika</DialogTitle>
+          </DialogHeader>
+          <div className="flex-grow overflow-y-auto pr-2">
+            <EmployeeForm
+              employee={editingEmployee}
+              onSave={(employeeData) => {
+                  const { id, ...dataToSave } = employeeData;
+                  handleSaveEmployee(dataToSave);
+              }}
+              onCancel={() => setIsFormOpen(false)}
+              config={{ departments, jobTitles, managers, nationalities }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         <div className="relative lg:col-span-2">
@@ -104,19 +149,23 @@ export default function TerminatedEmployeesPage() {
        {/* Mobile View - Cards */}
        <div className="flex-grow space-y-4 lg:hidden">
         {filteredEmployees.map(employee => (
-          <Card key={employee.id} className="w-full">
+          <Card key={employee.id} className="w-full" onClick={() => handleEditEmployee(employee)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg">{employee.fullName}</CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
+                  <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
                     <span className="sr-only">Otwórz menu</span>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                  <DropdownMenuItem className="text-destructive" onSelect={() => handleRestoreEmployee(employee.id)}>
+                   <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edytuj
+                    </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => handleRestoreEmployee(employee.id)}>
                     <RotateCcw className="mr-2 h-4 w-4" />
                     Przywróć
                   </DropdownMenuItem>
@@ -152,7 +201,7 @@ export default function TerminatedEmployeesPage() {
           </TableHeader>
           <TableBody>
             {filteredEmployees.length > 0 ? filteredEmployees.map(employee => (
-              <TableRow key={employee.id} className="cursor-pointer">
+              <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
                 <TableCell className="font-medium">{employee.fullName}</TableCell>
                 <TableCell>{employee.hireDate}</TableCell>
                 <TableCell>{employee.terminationDate}</TableCell>
@@ -160,7 +209,7 @@ export default function TerminatedEmployeesPage() {
                 <TableCell>{employee.department}</TableCell>
                 <TableCell>{employee.manager}</TableCell>
                 <TableCell>{employee.cardNumber}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -170,7 +219,11 @@ export default function TerminatedEmployeesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                          <DropdownMenuItem className="text-destructive" onSelect={() => handleRestoreEmployee(employee.id)}>
+                           <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                             <Edit className="mr-2 h-4 w-4" />
+                              Edytuj
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleRestoreEmployee(employee.id)}>
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Przywróć
                           </DropdownMenuItem>
@@ -191,5 +244,3 @@ export default function TerminatedEmployeesPage() {
     </div>
   );
 }
-
-    
