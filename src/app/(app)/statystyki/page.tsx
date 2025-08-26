@@ -124,7 +124,7 @@ export default function StatisticsPage() {
                                     className="fill-foreground"
                                     fontSize={12}
                                     formatter={(value: number, entry: any) => {
-                                      if (entry.payload) {
+                                      if (entry && entry.payload) {
                                         return `${value} (${entry.payload.percentage.toFixed(1)}%)`
                                       }
                                       return value;
