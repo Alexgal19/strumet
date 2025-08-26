@@ -91,7 +91,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="fullName">Imię i nazwisko</Label>
-          <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} required />
+          <Input id="fullName" name="fullName" value={formData.fullName || ''} onChange={handleChange} required />
         </div>
         <div className="space-y-2">
           <Label htmlFor="hireDate">Data zatrudnienia</Label>
@@ -121,7 +121,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         </div>
         <div className="space-y-2">
           <Label htmlFor="jobTitle">Stanowisko</Label>
-          <Select name="jobTitle" onValueChange={handleSelectChange('jobTitle')} value={formData.jobTitle} required>
+          <Select name="jobTitle" onValueChange={handleSelectChange('jobTitle')} value={formData.jobTitle || ''} required>
             <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
             <SelectContent>
               {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
@@ -130,7 +130,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         </div>
         <div className="space-y-2">
           <Label htmlFor="department">Dział</Label>
-          <Select name="department" onValueChange={handleSelectChange('department')} value={formData.department} required>
+          <Select name="department" onValueChange={handleSelectChange('department')} value={formData.department || ''} required>
             <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
             <SelectContent>
               {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
@@ -139,7 +139,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         </div>
         <div className="space-y-2">
           <Label htmlFor="manager">Kierownik</Label>
-          <Select name="manager" onValueChange={handleSelectChange('manager')} value={formData.manager} required>
+          <Select name="manager" onValueChange={handleSelectChange('manager')} value={formData.manager || ''} required>
             <SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
             <SelectContent>
               {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
@@ -148,7 +148,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         </div>
         <div className="space-y-2">
           <Label htmlFor="nationality">Narodowość</Label>
-          <Select name="nationality" onValueChange={handleSelectChange('nationality')} value={formData.nationality} required>
+          <Select name="nationality" onValueChange={handleSelectChange('nationality')} value={formData.nationality || ''} required>
             <SelectTrigger><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
             <SelectContent>
               {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
@@ -157,19 +157,19 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         </div>
         <div className="space-y-2">
           <Label htmlFor="cardNumber">Numer karty</Label>
-          <Input id="cardNumber" name="cardNumber" value={formData.cardNumber} onChange={handleChange} required />
+          <Input id="cardNumber" name="cardNumber" value={formData.cardNumber || ''} onChange={handleChange} required />
         </div>
         <div className="space-y-2">
           <Label htmlFor="lockerNumber">Numer szafki</Label>
-          <Input id="lockerNumber" name="lockerNumber" value={formData.lockerNumber} onChange={handleChange} />
+          <Input id="lockerNumber" name="lockerNumber" value={formData.lockerNumber || ''} onChange={handleChange} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="departmentLockerNumber">Numer szafki w dziale</Label>
-          <Input id="departmentLockerNumber" name="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={handleChange} />
+          <Input id="departmentLockerNumber" name="departmentLockerNumber" value={formData.departmentLockerNumber || ''} onChange={handleChange} />
         </div>
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="sealNumber">Numer pieczęci</Label>
-          <Input id="sealNumber" name="sealNumber" value={formData.sealNumber} onChange={handleChange} />
+          <Input id="sealNumber" name="sealNumber" value={formData.sealNumber || ''} onChange={handleChange} />
         </div>
       </div>
       <div className="flex justify-end gap-2 sm:col-span-2 pt-4">
