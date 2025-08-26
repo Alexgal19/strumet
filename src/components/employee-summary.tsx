@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, cloneElement } from "react";
 import { generateEmployeeSummary } from "@/ai/flows/generate-employee-summary";
 import {
   Dialog,
@@ -18,7 +18,7 @@ import type { Employee } from "@/lib/types";
 
 interface EmployeeSummaryProps {
   employee: Employee;
-  children: React.ReactNode;
+  children: React.ReactElement;
 }
 
 export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
@@ -63,18 +63,21 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
     }
   }
 
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    // We find the menu item for summary generation and trigger the dialog
+    const target = e.target as HTMLElement;
+    const menuItem = target.closest('[role="menuitem"]');
+    if (menuItem && menuItem.textContent?.includes('Generuj podsumowanie')) {
+      e.preventDefault();
+      setIsOpen(true);
+    }
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogTrigger asChild onClick={(e) => {
-             // We find the menu item for summary generation and trigger the dialog
-            const target = e.target as HTMLElement;
-            if (target.textContent?.includes('Generuj podsumowanie')) {
-                e.preventDefault();
-                setIsOpen(true);
-            }
-        }}>
-            {children}
-        </DialogTrigger>
+      <DialogTrigger asChild>
+        {cloneElement(children, { onClick: handleTriggerClick, onSelect: handleTriggerClick })}
+      </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Podsumowanie pracownika</DialogTitle>

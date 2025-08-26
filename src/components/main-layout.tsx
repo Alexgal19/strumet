@@ -49,10 +49,10 @@ export default function MainLayout() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-full flex-col md:flex-row">
+      <div className="flex h-full flex-col md:flex-row bg-background">
         <AppSidebar activeView={activeView} setActiveView={setActiveView} />
-        <main className="flex flex-1 flex-col overflow-hidden bg-background">
-          <div className="flex-grow overflow-auto p-4 sm:p-6 lg:p-8 pb-20 md:pb-8">
+        <main className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex-grow overflow-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
             {renderContent()}
           </div>
         </main>

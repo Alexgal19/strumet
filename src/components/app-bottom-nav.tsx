@@ -21,11 +21,11 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const isMobile = useIsMobile();
 
   const menuItems = [
-    { view: 'aktywni', icon: <Users className="h-5 w-5" />, label: 'Aktywni' },
-    { view: 'zwolnieni', icon: <UserX className="h-5 w-5" />, label: 'Zwolnieni' },
-    { view: 'statystyki', icon: <BarChart3 className="h-5 w-5" />, label: 'Statystyki' },
-    { view: 'wydawanie-odziezy', icon: <Shirt className="h-5 w-5" />, label: 'Odzież' },
-    { view: 'konfiguracja', icon: <Settings className="h-5 w-5" />, label: 'Ustawienia' },
+    { view: 'aktywni', icon: Users, label: 'Aktywni' },
+    { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
+    { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
+    { view: 'wydawanie-odziezy', icon: Shirt, label: 'Odzież' },
+    { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];
   
   if (!isMobile) {
@@ -33,23 +33,30 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/10 bg-background/80 backdrop-blur-sm md:hidden">
-      <nav className="flex h-16 items-center justify-around">
-        {menuItems.map((item) => (
-          <button
-            key={item.view}
-            onClick={() => setActiveView(item.view as ActiveView)}
-            className={cn(
-              'flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium rounded-md transition-colors w-16',
-              activeView === item.view
-                ? 'text-primary'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            )}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-          </button>
-        ))}
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:hidden">
+      <nav className="flex h-16 items-center justify-around rounded-2xl bg-card shadow-lg border border-border/50">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeView === item.view;
+          return (
+            <button
+              key={item.view}
+              onClick={() => setActiveView(item.view as ActiveView)}
+              className={cn(
+                'flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium rounded-lg transition-all w-16 h-16 transform',
+                isActive ? 'text-primary -translate-y-2' : 'text-muted-foreground hover:text-primary'
+              )}
+            >
+              <div className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-full transition-colors',
+                 isActive ? 'bg-primary/10' : ''
+              )}>
+                 <Icon className="h-5 w-5" />
+              </div>
+              <span className={cn('transition-opacity', isActive ? 'opacity-100' : 'opacity-0')}>{item.label}</span>
+            </button>
+          )
+        })}
       </nav>
     </div>
   );

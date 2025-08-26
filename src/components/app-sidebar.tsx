@@ -48,22 +48,23 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
   }
 
   return (
-    <Sidebar className="backdrop-blur-sm">
+    <Sidebar className="backdrop-blur-sm border-r border-sidebar-border/50">
       <SidebarHeader>
-        <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 text-primary">
+        <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Building className="h-6 w-6" />
             </div>
-            <span className="font-bold text-lg">Kadry Online</span>
+            <span className="font-bold text-lg text-sidebar-foreground">Kadry Online</span>
         </div>
       </SidebarHeader>
-      <SidebarContent className="flex-grow">
+      <SidebarContent className="flex-grow p-4">
         <SidebarMenu>
           {menuItems.map((item) => (
-             <SidebarMenuItem key={item.view}>
+             <SidebarMenuItem key={item.view} className="p-0">
                 <SidebarMenuButton 
                   onClick={() => setActiveView(item.view)} 
                   isActive={activeView === item.view}
+                  className="h-11 justify-start"
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -72,10 +73,10 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="p-4">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+          <SidebarMenuItem className="p-0">
+            <SidebarMenuButton asChild className="h-11 justify-start">
                 <Link href="/login">
                     <LogOut />
                     <span>Wyloguj</span>

@@ -219,7 +219,7 @@ export default function ActiveEmployeesPage() {
                         <Edit className="mr-2 h-4 w-4" />
                         Edytuj
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <DropdownMenuItem>
                         <Bot className="mr-2 h-4 w-4" />
                         Generuj podsumowanie
                       </DropdownMenuItem>
@@ -292,7 +292,7 @@ export default function ActiveEmployeesPage() {
                                 <Copy className="mr-2 h-4 w-4" />
                                 Kopiuj dane
                               </DropdownMenuItem>
-                               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                               <DropdownMenuItem>
                                   <Bot className="mr-2 h-4 w-4" />
                                    Generuj podsumowanie
                                </DropdownMenuItem>
