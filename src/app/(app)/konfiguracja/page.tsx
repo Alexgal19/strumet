@@ -65,7 +65,7 @@ export default function ConfigurationPage() {
   };
 
   const renderConfigList = (configType: ConfigType, items: ConfigItem[]) => (
-    <div className="mt-16 space-y-4">
+    <div className="mt-6 space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>{configLabels[configType as ConfigView]}</CardTitle>
@@ -100,7 +100,7 @@ export default function ConfigurationPage() {
       />
       
       <Tabs defaultValue="departments" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+        <TabsList>
           <TabsTrigger value="departments">Działy</TabsTrigger>
           <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
           <TabsTrigger value="managers">Kierownicy</TabsTrigger>
