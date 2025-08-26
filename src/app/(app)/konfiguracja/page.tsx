@@ -93,13 +93,13 @@ export default function ConfigurationPage() {
   );
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <PageHeader 
         title="Konfiguracja"
         description="Zarządzaj opcjami dostępnymi w systemie."
       />
       
-      <Tabs defaultValue="departments" className="w-full">
+      <Tabs defaultValue="departments" className="flex h-full w-full flex-col">
         <TabsList>
           <TabsTrigger value="departments">Działy</TabsTrigger>
           <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
@@ -107,19 +107,19 @@ export default function ConfigurationPage() {
           <TabsTrigger value="nationalities">Narodowości</TabsTrigger>
           <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
         </TabsList>
-        <TabsContent value="departments">
+        <TabsContent value="departments" className="flex-grow">
           {renderConfigList('departments', config.departments)}
         </TabsContent>
-        <TabsContent value="jobTitles">
+        <TabsContent value="jobTitles" className="flex-grow">
           {renderConfigList('jobTitles', config.jobTitles)}
         </TabsContent>
-        <TabsContent value="managers">
+        <TabsContent value="managers" className="flex-grow">
           {renderConfigList('managers', config.managers)}
         </TabsContent>
-        <TabsContent value="nationalities">
+        <TabsContent value="nationalities" className="flex-grow">
           {renderConfigList('nationalities', config.nationalities)}
         </TabsContent>
-         <TabsContent value="clothingItems">
+         <TabsContent value="clothingItems" className="flex-grow">
           {renderConfigList('clothingItems', config.clothingItems)}
         </TabsContent>
       </Tabs>

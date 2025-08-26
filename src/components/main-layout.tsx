@@ -52,7 +52,7 @@ export default function MainLayout() {
       <div className="flex h-full flex-col md:flex-row bg-transparent">
         <AppSidebar activeView={activeView} setActiveView={setActiveView} />
         <main className="flex flex-1 flex-col overflow-y-auto">
-          <div className="flex flex-col p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 backdrop-blur-3xl bg-background/50 m-2 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
+          <div className="h-full w-full p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 backdrop-blur-3xl bg-background/50 m-2 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
             {renderContent()}
           </div>
         </main>
