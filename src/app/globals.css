@@ -8,8 +8,8 @@ html, body, #__next__ {
 
 @layer base {
   :root {
-    --background: 250 60% 96%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 220 10% 15%;
+    --foreground: 210 40% 98%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
@@ -46,8 +46,8 @@ html, body, #__next__ {
   }
 
   .dark {
-    --background: 250 20% 12%;
-    --foreground: 250 40% 98%;
+    --background: 220 10% 15%;
+    --foreground: 210 40% 98%;
     --card: 257 22% 20%;
     --card-foreground: 250 40% 98%;
     --popover: 262 84% 14.9%;
