@@ -1,17 +1,114 @@
 'use client';
 
+import React, { useMemo } from 'react';
+import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
+import { useFirebaseData } from '@/context/config-context';
+import { Loader2 } from 'lucide-react';
+import { activeEmployees } from '@/lib/mock-data';
+
+const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
 export default function StatisticsPage() {
+  const { employees, isLoading } = useFirebaseData();
+  
+  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+
+  const departmentData = useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    activeEmployees.forEach(employee => {
+      counts[employee.department] = (counts[employee.department] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value, fill: CHART_COLORS[Object.keys(counts).indexOf(name) % CHART_COLORS.length] }));
+  }, [activeEmployees]);
+
+  const nationalityData = useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    activeEmployees.forEach(employee => {
+      counts[employee.nationality] = (counts[employee.nationality] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value, fill: CHART_COLORS[Object.keys(counts).indexOf(name) % CHART_COLORS.length] }));
+  }, [activeEmployees]);
+  
+  const departmentConfig = useMemo(() => {
+    return departmentData.reduce((acc, { name, fill }) => {
+        acc[name] = { label: name, color: fill };
+        return acc;
+    }, {} as any);
+  }, [departmentData]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageHeader 
+      <PageHeader
         title="Statystyki"
         description="Analizuj dane dotyczące pracowników."
       />
-      <div className="text-center text-muted-foreground py-10">
-        Funkcjonalność w trakcie budowy.
-      </div>
+      {activeEmployees.length === 0 ? (
+         <div className="text-center text-muted-foreground py-10">
+            Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Rozkład pracowników wg działów</CardTitle>
+                    <CardDescription>Liczba pracowników w poszczególnych działach.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={departmentConfig} className="mx-auto aspect-square max-h-[300px]">
+                        <PieChart>
+                            <ChartTooltip content={<ChartTooltipContent nameKey="value" hideLabel />} />
+                            <Pie data={departmentData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
+                                const RADIAN = Math.PI / 180;
+                                const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                const x  = cx + radius * Math.cos(-midAngle * RADIAN);
+                                const y = cy  + radius * Math.sin(-midAngle * RADIAN);
+                                return (
+                                    <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+                                    {`${(percent * 100).toFixed(0)}%`}
+                                    </text>
+                                );
+                            }}>
+                            </Pie>
+                             <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                        </PieChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Pracownicy wg narodowości</CardTitle>
+                    <CardDescription>Liczba pracowników z podziałem na narodowości.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={{}} className="h-[300px] w-full">
+                        <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 20, top: 20, bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} />
+                            <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent hideLabel />} />
+                            <Bar dataKey="value" radius={5}>
+                                {nationalityData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </div>
+      )}
     </div>
   );
 }
