@@ -123,6 +123,9 @@ export default function StatisticsPage() {
                                     offset={8} 
                                     className="fill-foreground"
                                     fontSize={12}
+                                    formatter={(value: number, {payload}: any) => {
+                                      return `${value} (${payload.percentage.toFixed(1)}%)`
+                                    }}
                                 />
                                 {nationalityData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
