@@ -44,7 +44,7 @@ export default function TerminatedEmployeesPage() {
     return terminatedEmployees.filter(employee => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        (employee.fullName.toLowerCase().includes(searchLower) ||
+        ((employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
           (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
         (filters.department ? employee.department === filters.department : true) &&
         (filters.manager ? employee.manager === filters.manager : true) &&
@@ -191,3 +191,5 @@ export default function TerminatedEmployeesPage() {
     </div>
   );
 }
+
+    

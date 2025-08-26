@@ -69,7 +69,7 @@ export default function ActiveEmployeesPage() {
     return activeEmployees.filter(employee => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        (employee.fullName.toLowerCase().includes(searchLower) ||
+        ((employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
           (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
         (filters.department ? employee.department === filters.department : true) &&
         (filters.manager ? employee.manager === filters.manager : true) &&
@@ -87,7 +87,7 @@ export default function ActiveEmployeesPage() {
     try {
         if (editingEmployee) {
             const employeeRef = ref(db, `employees/${editingEmployee.id}`);
-            await set(employeeRef, employeeData);
+            await update(employeeRef, employeeData);
         } else {
             const newEmployeeRef = push(ref(db, 'employees'));
             await set(newEmployeeRef, { ...employeeData, id: newEmployeeRef.key });
@@ -320,3 +320,5 @@ export default function ActiveEmployeesPage() {
     </div>
   );
 }
+
+    
