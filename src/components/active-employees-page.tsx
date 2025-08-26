@@ -97,14 +97,15 @@ export default function ActiveEmployeesPage() {
     setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
   };
 
-  const handleSaveEmployee = async (employeeData: Omit<Employee, 'id'>) => {
+  const handleSaveEmployee = async (employeeData: Employee) => {
     try {
-        if (editingEmployee) {
-            const employeeRef = ref(db, `employees/${editingEmployee.id}`);
-            await update(employeeRef, employeeData);
+        const { id, ...dataToSave } = employeeData;
+        if (id) {
+            const employeeRef = ref(db, `employees/${id}`);
+            await update(employeeRef, dataToSave);
         } else {
             const newEmployeeRef = push(ref(db, 'employees'));
-            await set(newEmployeeRef, { ...employeeData, id: newEmployeeRef.key });
+            await set(newEmployeeRef, { ...dataToSave, id: newEmployeeRef.key });
         }
         setEditingEmployee(null);
         setIsFormOpen(false);
@@ -196,10 +197,7 @@ export default function ActiveEmployeesPage() {
           <div className="flex-grow overflow-y-auto pr-2">
             <EmployeeForm
               employee={editingEmployee}
-              onSave={(employeeData) => {
-                  const { id, ...dataToSave } = employeeData;
-                  handleSaveEmployee(dataToSave);
-              }}
+              onSave={handleSaveEmployee}
               onCancel={() => setIsFormOpen(false)}
               config={{ departments, jobTitles, managers, nationalities }}
             />
@@ -364,5 +362,3 @@ export default function ActiveEmployeesPage() {
     </div>
   );
 }
-
-    

@@ -85,11 +85,12 @@ export default function TerminatedEmployeesPage() {
     setIsFormOpen(true);
   };
   
-  const handleSaveEmployee = async (employeeData: Omit<Employee, 'id'>) => {
+  const handleSaveEmployee = async (employeeData: Employee) => {
     if (!editingEmployee) return;
     try {
-        const employeeRef = ref(db, `employees/${editingEmployee.id}`);
-        await update(employeeRef, employeeData);
+        const { id, ...dataToSave } = employeeData;
+        const employeeRef = ref(db, `employees/${id}`);
+        await update(employeeRef, dataToSave);
         setEditingEmployee(null);
         setIsFormOpen(false);
     } catch (error) {
@@ -114,10 +115,7 @@ export default function TerminatedEmployeesPage() {
           <div className="flex-grow overflow-y-auto pr-2">
             <EmployeeForm
               employee={editingEmployee}
-              onSave={(employeeData) => {
-                  const { id, ...dataToSave } = employeeData;
-                  handleSaveEmployee(dataToSave);
-              }}
+              onSave={handleSaveEmployee}
               onCancel={() => setIsFormOpen(false)}
               config={{ departments, jobTitles, managers, nationalities }}
             />

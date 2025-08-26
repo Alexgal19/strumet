@@ -13,6 +13,23 @@ import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Employee, ConfigItem } from '@/lib/types';
 
+const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
+  if (employee) {
+    return { ...employee };
+  }
+  return {
+    fullName: '',
+    hireDate: new Date().toISOString().split('T')[0],
+    jobTitle: '',
+    department: '',
+    manager: '',
+    cardNumber: '',
+    nationality: '',
+    lockerNumber: '',
+    departmentLockerNumber: '',
+    sealNumber: '',
+  };
+};
 
 interface EmployeeFormProps {
   employee: Employee | null;
@@ -29,36 +46,10 @@ interface EmployeeFormProps {
 export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
   const { departments, jobTitles, managers, nationalities } = config;
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>({
-    fullName: '',
-    hireDate: new Date().toISOString().split('T')[0],
-    jobTitle: '',
-    department: '',
-    manager: '',
-    cardNumber: '',
-    nationality: '',
-    lockerNumber: '',
-    departmentLockerNumber: '',
-    sealNumber: '',
-  });
+  const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
 
   useEffect(() => {
-    if (employee) {
-      setFormData(employee);
-    } else {
-      setFormData({
-        fullName: '',
-        hireDate: new Date().toISOString().split('T')[0],
-        jobTitle: '',
-        department: '',
-        manager: '',
-        cardNumber: '',
-        nationality: '',
-        lockerNumber: '',
-        departmentLockerNumber: '',
-        sealNumber: '',
-      });
-    }
+    setFormData(getInitialFormData(employee));
   }, [employee]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +73,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
     onSave({
       ...formData,
       id: employee?.id || '',
-      status: 'aktywny',
+      status: employee?.status || 'aktywny',
     });
   };
 
@@ -111,7 +102,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
             <PopoverContent className="w-auto p-0">
               <Calendar
                 mode="single"
-                selected={new Date(formData.hireDate)}
+                selected={formData.hireDate ? new Date(formData.hireDate) : undefined}
                 onSelect={handleDateChange}
                 initialFocus
                 locale={pl}
