@@ -94,6 +94,8 @@ html {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: hsl(var(--background));
+    background-image: radial-gradient(circle at top left, hsl(var(--secondary)), hsl(var(--background)));
   }
 }
