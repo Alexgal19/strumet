@@ -11,10 +11,6 @@ html {
   font-size: clamp(16px, 1.5vw, 18px);
 }
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
