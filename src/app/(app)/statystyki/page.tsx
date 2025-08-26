@@ -169,7 +169,7 @@ export default function StatisticsPage() {
                         <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 30, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={120} interval={0}/>
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, textAnchor: 'start'}} width={120} interval={0} dx={-10} />
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
@@ -218,7 +218,7 @@ export default function StatisticsPage() {
                         <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 30, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={120} interval={0} />
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, textAnchor: 'start'}} width={200} interval={0} dx={-10} scale="auto"/>
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
@@ -247,6 +247,7 @@ export default function StatisticsPage() {
                                         }
                                         return value;
                                     }}
+                                    style={{ textAnchor: 'start' }}
                                 />
                                 {jobTitleData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
