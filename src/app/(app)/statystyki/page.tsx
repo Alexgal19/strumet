@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
@@ -15,13 +16,18 @@ export default function StatisticsPage() {
   const { employees, isLoading } = useFirebaseData();
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+  const totalActiveEmployees = activeEmployees.length;
 
   const departmentData = useMemo(() => {
     const counts: { [key: string]: number } = {};
     activeEmployees.forEach(employee => {
       counts[employee.department] = (counts[employee.department] || 0) + 1;
     });
-    return Object.entries(counts).map(([name, value]) => ({ name, value, fill: CHART_COLORS[Object.keys(counts).indexOf(name) % CHART_COLORS.length] }));
+    return Object.entries(counts).map(([name, value], index) => ({ 
+      name, 
+      value, 
+      fill: CHART_COLORS[index % CHART_COLORS.length] 
+    }));
   }, [activeEmployees]);
 
   const nationalityData = useMemo(() => {
@@ -29,8 +35,13 @@ export default function StatisticsPage() {
     activeEmployees.forEach(employee => {
       counts[employee.nationality] = (counts[employee.nationality] || 0) + 1;
     });
-    return Object.entries(counts).map(([name, value]) => ({ name, value, fill: CHART_COLORS[Object.keys(counts).indexOf(name) % CHART_COLORS.length] }));
-  }, [activeEmployees]);
+    return Object.entries(counts).map(([name, value], index) => ({ 
+      name, 
+      value,
+      percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
+      fill: CHART_COLORS[index % CHART_COLORS.length] 
+    }));
+  }, [activeEmployees, totalActiveEmployees]);
   
   const departmentConfig = useMemo(() => {
     return departmentData.reduce((acc, { name, fill }) => {
@@ -62,23 +73,43 @@ export default function StatisticsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Rozkład pracowników wg działów</CardTitle>
-                    <CardDescription>Liczba pracowników w poszczególnych działach.</CardDescription>
+                    <CardDescription>Liczba i odsetek pracowników w poszczególnych działach.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={departmentConfig} className="mx-auto aspect-square max-h-[300px]">
                         <PieChart>
-                            <ChartTooltip content={<ChartTooltipContent nameKey="value" hideLabel />} />
-                            <Pie data={departmentData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
-                                const RADIAN = Math.PI / 180;
-                                const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                                const x  = cx + radius * Math.cos(-midAngle * RADIAN);
-                                const y = cy  + radius * Math.sin(-midAngle * RADIAN);
-                                return (
-                                    <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
-                                    {`${(percent * 100).toFixed(0)}%`}
-                                    </text>
-                                );
-                            }}>
+                            <ChartTooltip 
+                                content={<ChartTooltipContent 
+                                    formatter={(value, name, props) => {
+                                        const percentage = totalActiveEmployees > 0 ? (Number(value) / totalActiveEmployees * 100).toFixed(1) : 0;
+                                        return `${value} (${percentage}%)`;
+                                    }}
+                                />} 
+                            />
+                            <Pie 
+                                data={departmentData} 
+                                dataKey="value" 
+                                nameKey="name" 
+                                cx="50%" 
+                                cy="50%" 
+                                innerRadius={60} 
+                                outerRadius={100} 
+                                labelLine={false} 
+                                label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                                    const RADIAN = Math.PI / 180;
+                                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                    const x  = cx + radius * Math.cos(-midAngle * RADIAN);
+                                    const y = cy  + radius * Math.sin(-midAngle * RADIAN);
+                                    return (
+                                        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold">
+                                            {`${(percent * 100).toFixed(0)}%`}
+                                        </text>
+                                    );
+                                }}
+                            >
+                                 {departmentData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                 ))}
                             </Pie>
                              <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                         </PieChart>
@@ -89,16 +120,33 @@ export default function StatisticsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Pracownicy wg narodowości</CardTitle>
-                    <CardDescription>Liczba pracowników z podziałem na narodowości.</CardDescription>
+                    <CardDescription>Liczba i odsetek pracowników z podziałem na narodowości.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{}} className="h-[300px] w-full">
-                        <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 20, top: 20, bottom: 20 }}>
+                        <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 30, top: 20, bottom: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} />
-                            <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent hideLabel />} />
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={80} />
+                             <Tooltip 
+                                cursor={{ fill: 'hsl(var(--muted))' }} 
+                                content={<ChartTooltipContent 
+                                    formatter={(value, name, props) => {
+                                        const { payload } = props;
+                                        return `${value} (${payload.percentage.toFixed(1)}%)`;
+                                    }}
+                                    labelKey="name"
+                                    hideIndicator
+                                />} 
+                            />
                             <Bar dataKey="value" radius={5}>
+                                <LabelList 
+                                    dataKey="value" 
+                                    position="right" 
+                                    offset={8} 
+                                    className="fill-foreground"
+                                    fontSize={12}
+                                />
                                 {nationalityData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
                                 ))}
@@ -112,3 +160,4 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
