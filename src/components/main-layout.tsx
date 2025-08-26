@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
 
@@ -51,13 +51,9 @@ export default function MainLayout() {
     <SidebarProvider>
       <div className="flex h-full flex-col md:flex-row bg-transparent">
         <AppSidebar activeView={activeView} setActiveView={setActiveView} />
-        <main className="flex flex-1 flex-col overflow-y-auto">
-          <div className="flex flex-1 flex-col m-2">
-            <div className="h-full w-full flex flex-col p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 backdrop-blur-3xl bg-background/50 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
-                {renderContent()}
-            </div>
-          </div>
-        </main>
+        <SidebarInset className="m-2 flex flex-col p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 backdrop-blur-3xl bg-background/50 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
+          {renderContent()}
+        </SidebarInset>
         <AppBottomNav activeView={activeView} setActiveView={setActiveView} />
       </div>
     </SidebarProvider>
