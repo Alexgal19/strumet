@@ -54,7 +54,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Building className="h-7 w-7" />
             </div>
-            <span className="font-bold text-lg text-sidebar-accent-foreground">Kadry Online</span>
+            <span className="font-bold text-lg text-sidebar-accent-foreground">HOL manager</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="flex-grow p-4">

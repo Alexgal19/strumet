@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ConfigProvider } from '@/context/config-context';
 
 export const metadata: Metadata = {
-  title: 'Kadry Online',
+  title: 'HOL manager',
   description: 'System do zarządzania pracownikami',
 };
 
