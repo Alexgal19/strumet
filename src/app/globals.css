@@ -95,3 +95,9 @@ html, body, #__next__ {
                       radial-gradient(circle at bottom right, hsl(var(--accent) / 0.1), transparent 40%);
   }
 }
+
+@layer utilities {
+  .shadow-primary {
+    box-shadow: 0 10px 15px -3px hsla(var(--primary), 0.3), 0 4px 6px -4px hsla(var(--primary), 0.3);
+  }
+}
