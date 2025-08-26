@@ -166,7 +166,7 @@ export default function StatisticsPage() {
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{}} className="h-[450px] w-full">
-                        <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 30, top: 5, bottom: 5 }} barGap={4}>
+                        <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, textAnchor: 'start'}} width={120} interval={0} dx={-10} />
@@ -174,9 +174,8 @@ export default function StatisticsPage() {
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
                                     formatter={(value, name, props) => {
-                                        const { payload } = props;
-                                        if (payload) {
-                                          return `${value} (${payload.percentage.toFixed(1)}%)`;
+                                        if (props.payload) {
+                                          return `${value} (${props.payload.percentage.toFixed(1)}%)`;
                                         }
                                         return value;
                                     }}
@@ -215,7 +214,7 @@ export default function StatisticsPage() {
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{}} className="h-[450px] w-full">
-                        <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 30, top: 5, bottom: 5 }} barGap={4}>
+                        <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, textAnchor: 'start'}} width={200} interval={0} dx={-10} scale="auto"/>
@@ -223,9 +222,8 @@ export default function StatisticsPage() {
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
                                     formatter={(value, name, props) => {
-                                        const { payload } = props;
-                                        if (payload) {
-                                          return `${value} (${payload.percentage.toFixed(1)}%)`;
+                                        if (props.payload) {
+                                          return `${value} (${props.payload.percentage.toFixed(1)}%)`;
                                         }
                                         return value;
                                     }}
@@ -247,7 +245,6 @@ export default function StatisticsPage() {
                                         }
                                         return value;
                                     }}
-                                    style={{ textAnchor: 'start' }}
                                 />
                                 {jobTitleData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
