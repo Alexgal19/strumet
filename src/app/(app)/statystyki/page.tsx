@@ -169,7 +169,7 @@ export default function StatisticsPage() {
                         <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={120} interval={0} />
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={120} />
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
@@ -190,12 +190,15 @@ export default function StatisticsPage() {
                                     offset={8} 
                                     className="fill-foreground"
                                     fontSize={12}
-                                    formatter={(value: number) => {
-                                        const item = nationalityData.find(d => d.value === value);
-                                        if (item) {
-                                          return `${value} (${item.percentage.toFixed(1)}%)`;
+                                    formatter={(value: number, _index: number, props: any) => {
+                                      const entry = props[0];
+                                      if (entry && entry.payload) {
+                                        const percentage = entry.payload.percentage;
+                                        if (typeof percentage === 'number') {
+                                          return `${value} (${percentage.toFixed(1)}%)`;
                                         }
-                                        return value;
+                                      }
+                                      return value;
                                     }}
                                 />
                                 {nationalityData.map((entry, index) => (
@@ -217,7 +220,7 @@ export default function StatisticsPage() {
                         <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={200} interval={0} scale="auto"/>
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={200} interval={0} />
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
@@ -238,12 +241,15 @@ export default function StatisticsPage() {
                                     offset={8} 
                                     className="fill-foreground"
                                     fontSize={12}
-                                    formatter={(value: number) => {
-                                        const item = jobTitleData.find(d => d.value === value);
-                                        if (item) {
-                                          return `${value} (${item.percentage.toFixed(1)}%)`;
+                                    formatter={(value: number, _index: number, props: any) => {
+                                      const entry = props[0];
+                                      if (entry && entry.payload) {
+                                        const percentage = entry.payload.percentage;
+                                        if (typeof percentage === 'number') {
+                                          return `${value} (${percentage.toFixed(1)}%)`;
                                         }
-                                        return value;
+                                      }
+                                      return value;
                                     }}
                                 />
                                 {jobTitleData.map((entry, index) => (
