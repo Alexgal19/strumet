@@ -10,9 +10,10 @@ import {
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
-import { Loader2, ArrowLeft, ArrowRight, User, TrendingDown, CalendarDays } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, User, TrendingDown, CalendarDays, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import {
   startOfMonth,
   endOfMonth,
@@ -23,25 +24,34 @@ import {
   addMonths,
   subMonths,
   isToday,
-  getDay,
   setYear,
   setMonth,
-  getDaysInMonth,
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getPolishHolidays } from '@/lib/holidays';
 import { cn } from '@/lib/utils';
-import { Employee, Absence } from '@/lib/types';
+import { Absence } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { ref, set, remove, push } from "firebase/database";
 import { useToast } from '@/hooks/use-toast';
 
+const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+
 export default function AttendancePage() {
-  const { employees, absences, isLoading } = useFirebaseData();
+  const { employees, absences, config, isLoading } = useFirebaseData();
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+
+  const filteredEmployees = useMemo(() => {
+    if (selectedDepartment === 'all') {
+      return activeEmployees;
+    }
+    return activeEmployees.filter(e => e.department === selectedDepartment);
+  }, [activeEmployees, selectedDepartment]);
+
 
   const holidays = useMemo(() => getPolishHolidays(currentDate.getFullYear()), [currentDate]);
 
@@ -120,7 +130,44 @@ export default function AttendancePage() {
       new Date(a.date) <= end
     ).length;
   };
+
+  const overallAbsenceDays = useMemo(() => {
+    return absences.filter(a => {
+        const date = new Date(a.date);
+        return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
+    }).length;
+  }, [absences, currentDate]);
   
+  const overallAbsencePercentage = workingDaysInMonth > 0 && activeEmployees.length > 0
+    ? (overallAbsenceDays / (workingDaysInMonth * activeEmployees.length)) * 100
+    : 0;
+
+  const departmentAbsenceData = useMemo(() => {
+    if (workingDaysInMonth === 0) return [];
+    
+    return config.departments.map((dept, index) => {
+      const deptEmployees = activeEmployees.filter(e => e.department === dept.name);
+      if (deptEmployees.length === 0) return null;
+
+      const deptAbsences = absences.filter(a => {
+        const date = new Date(a.date);
+        const employee = deptEmployees.find(e => e.id === a.employeeId);
+        return employee && date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
+      }).length;
+
+      const totalPossibleDays = deptEmployees.length * workingDaysInMonth;
+      const percentage = totalPossibleDays > 0 ? (deptAbsences / totalPossibleDays) * 100 : 0;
+      
+      return {
+        name: dept.name,
+        absences: deptAbsences,
+        percentage: percentage,
+        fill: CHART_COLORS[index % CHART_COLORS.length]
+      };
+    }).filter(Boolean).sort((a, b) => (b?.absences || 0) - (a?.absences || 0));
+  }, [activeEmployees, absences, config.departments, currentDate, workingDaysInMonth]);
+
+
   if (isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -128,15 +175,6 @@ export default function AttendancePage() {
       </div>
     );
   }
-
-  const overallAbsenceDays = absences.filter(a => {
-      const date = new Date(a.date);
-      return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
-  }).length;
-  
-  const overallAbsencePercentage = workingDaysInMonth > 0 && activeEmployees.length > 0
-    ? (overallAbsenceDays / (workingDaysInMonth * activeEmployees.length)) * 100
-    : 0;
 
   const years = Array.from({length: 10}, (_, i) => new Date().getFullYear() - 5 + i);
   const months = Array.from({length: 12}, (_, i) => ({
@@ -192,6 +230,27 @@ export default function AttendancePage() {
             </Card>
         </div>
 
+        {departmentAbsenceData.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center"><Building className="mr-2 h-5 w-5" /> Nieobecności wg działów</CardTitle>
+              <CardDescription>Statystyka nieobecności dla poszczególnych działów w wybranym miesiącu.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {departmentAbsenceData.map((dept) => dept && (
+                    <div key={dept.name} className="space-y-1">
+                        <div className="flex justify-between items-center text-sm font-medium">
+                            <span style={{ color: dept.fill }}>{dept.name}</span>
+                            <span>{dept.absences} dni ({dept.percentage.toFixed(1)}%)</span>
+                        </div>
+                        <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
+                    </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       <Card className="flex-grow flex flex-col">
         <CardHeader>
@@ -199,9 +258,9 @@ export default function AttendancePage() {
                 <CardTitle className="text-2xl capitalize">
                     {format(currentDate, 'LLLL yyyy', { locale: pl })}
                 </CardTitle>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-wrap gap-2">
                     <Select value={currentDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="w-full sm:w-[140px]">
                             <SelectValue placeholder="Miesiąc" />
                         </SelectTrigger>
                         <SelectContent>
@@ -211,7 +270,7 @@ export default function AttendancePage() {
                         </SelectContent>
                     </Select>
                     <Select value={currentDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                        <SelectTrigger className="w-[100px]">
+                        <SelectTrigger className="w-full sm:w-[100px]">
                             <SelectValue placeholder="Rok" />
                         </SelectTrigger>
                         <SelectContent>
@@ -220,12 +279,25 @@ export default function AttendancePage() {
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button variant="outline" size="icon" onClick={handlePrevMonth}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={handleNextMonth}>
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
+                    <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Wybierz dział" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Wszystkie działy</SelectItem>
+                            {config.departments.map(dept => (
+                                <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+                          <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={handleNextMonth}>
+                          <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                 </div>
             </div>
         </CardHeader>
@@ -238,7 +310,8 @@ export default function AttendancePage() {
                         key={day.toString()}
                         className={cn(
                             "sticky top-0 z-10 bg-muted/50 p-2 text-center text-sm font-semibold flex flex-col items-center justify-center min-w-[40px]",
-                            (isWeekend(day) || isHoliday(day)) && 'bg-muted/30 text-muted-foreground',
+                            isHoliday(day) && 'bg-yellow-500/20 text-yellow-700',
+                            isWeekend(day) && !isHoliday(day) && 'bg-red-500/10 text-red-600',
                             isToday(day) && 'bg-primary/20 text-primary-foreground'
                         )}
                     >
@@ -248,8 +321,8 @@ export default function AttendancePage() {
                 ))}
                 
                 {/* Employee Rows */}
-                {activeEmployees.length > 0 ? (
-                    activeEmployees.map(employee => {
+                {filteredEmployees.length > 0 ? (
+                    filteredEmployees.map(employee => {
                         const absencesCount = getEmployeeAbsencesForMonth(employee.id);
                         const absencePercentage = workingDaysInMonth > 0 ? (absencesCount / workingDaysInMonth) * 100 : 0;
 
@@ -275,9 +348,9 @@ export default function AttendancePage() {
                                             onClick={() => toggleAbsence(employee.id, day)}
                                             className={cn(
                                                 "min-h-[60px] border-b bg-card flex items-center justify-center transition-colors",
-                                                (isWeekend(day) || isHoliday(day)) 
-                                                    ? 'bg-muted/30 cursor-not-allowed'
-                                                    : 'cursor-pointer hover:bg-muted',
+                                                isHoliday(day) && 'bg-yellow-500/20 cursor-not-allowed',
+                                                isWeekend(day) && !isHoliday(day) && 'bg-red-500/10 cursor-not-allowed',
+                                                !(isWeekend(day) || isHoliday(day)) && 'cursor-pointer hover:bg-muted',
                                                 isAbsent && 'bg-destructive/20'
                                             )}
                                         >
@@ -290,7 +363,7 @@ export default function AttendancePage() {
                     })
                 ) : (
                     <div className={`col-span-${daysInMonth.length + 1} text-center p-8 text-muted-foreground`}>
-                        Brak aktywnych pracowników.
+                        Brak aktywnych pracowników do wyświetlenia.
                     </div>
                 )}
             </div>
