@@ -35,7 +35,7 @@ import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
 import { ref, set, push, update } from "firebase/database";
-import { format, parse, isWithinInterval } from 'date-fns';
+import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,11 +81,13 @@ export default function ActiveEmployeesPage() {
         if (!employee.hireDate || typeof employee.hireDate !== 'string') return false;
         
         try {
+          // The date from firebase is a string 'YYYY-MM-DD'. We need to parse it.
+          // The calendar gives us a Date object.
           const hireDate = parse(employee.hireDate, 'yyyy-MM-dd', new Date());
           if (isNaN(hireDate.getTime())) return false; // Invalid date parsed
 
-          const from = dateRange.from ? new Date(dateRange.from.setHours(0, 0, 0, 0)) : undefined;
-          const to = dateRange.to ? new Date(dateRange.to.setHours(23, 59, 59, 999)) : undefined;
+          const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
+          const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
 
           if (from && to) return isWithinInterval(hireDate, { start: from, end: to });
           if (from) return hireDate >= from;

@@ -28,7 +28,7 @@ import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
 import { ref, update } from "firebase/database";
-import { format, parse, isWithinInterval } from 'date-fns';
+import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,8 +68,8 @@ export default function TerminatedEmployeesPage() {
           const terminationDate = parse(employee.terminationDate, 'yyyy-MM-dd', new Date());
           if (isNaN(terminationDate.getTime())) return false; // Invalid date parsed
 
-          const from = dateRange.from ? new Date(dateRange.from.setHours(0, 0, 0, 0)) : undefined;
-          const to = dateRange.to ? new Date(dateRange.to.setHours(23, 59, 59, 999)) : undefined;
+          const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
+          const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
           
           if (from && to) return isWithinInterval(terminationDate, { start: from, end: to });
           if (from) return terminationDate >= from;
