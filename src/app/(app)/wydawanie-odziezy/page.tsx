@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Loader2, Printer, CheckIcon, ChevronsUpDown } from 'lucide-react';
@@ -30,7 +30,7 @@ export default function ClothingIssuancePage() {
   const [selectedClothing, setSelectedClothing] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const printComponentRef = useRef<HTMLDivElement>(null);
+  const printComponentRef = useRef(null);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
   const selectedEmployee = useMemo(() => {
@@ -194,6 +194,7 @@ export default function ClothingIssuancePage() {
                         <>
                             <div className="border rounded-lg p-4 mb-6">
                                 <ClothingIssuancePrintForm
+                                    ref={printComponentRef}
                                     employee={selectedEmployee}
                                     clothingItems={selectedItemsList}
                                     issuanceDate={new Date()}
@@ -233,13 +234,13 @@ export default function ClothingIssuancePage() {
         </div>
       </div>
        <div className="hidden">
-        <div ref={printComponentRef}>
-            <ClothingIssuancePrintForm
+           <div ref={printComponentRef}>
+              <ClothingIssuancePrintForm
                 employee={selectedEmployee}
                 clothingItems={selectedItemsList}
                 issuanceDate={new Date()}
-            />
-        </div>
+              />
+           </div>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

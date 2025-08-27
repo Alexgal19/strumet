@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -15,11 +16,8 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
   ({ employee, clothingItems, issuanceDate }, ref) => {
     
     if (!employee) {
-        return (
-            <div ref={ref} className="p-8 text-center text-muted-foreground">
-                Wybierz pracownika i odzież, aby wygenerować wniosek.
-            </div>
-        )
+        // This part is not intended for printing, just for visual feedback in the UI
+        return <div ref={ref} />;
     }
 
     return (
