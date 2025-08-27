@@ -20,12 +20,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, Search, Loader2, RotateCcw, Edit } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
-import { ref, update, get } from "firebase/database";
+import { ref, update } from "firebase/database";
+import { format, parseISO, isWithinInterval } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
@@ -45,6 +50,7 @@ export default function TerminatedEmployeesPage() {
     manager: '',
     jobTitle: '',
   });
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
@@ -53,18 +59,40 @@ export default function TerminatedEmployeesPage() {
   const filteredEmployees = useMemo(() => {
     return terminatedEmployees.filter(employee => {
       const searchLower = searchTerm.toLowerCase();
+
+      const isInDateRange = () => {
+        if (!dateRange.from && !dateRange.to) return true;
+        if (!employee.terminationDate) return false;
+        try {
+          const terminationDate = parseISO(employee.terminationDate);
+          const from = dateRange.from ? new Date(dateRange.from.setHours(0, 0, 0, 0)) : undefined;
+          const to = dateRange.to ? new Date(dateRange.to.setHours(23, 59, 59, 999)) : undefined;
+          if (from && to) return isWithinInterval(terminationDate, { start: from, end: to });
+          if (from) return terminationDate >= from;
+          if (to) return terminationDate <= to;
+          return true;
+        } catch (e) {
+          return true; // Ignore invalid dates
+        }
+      };
+
       return (
         ((employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
           (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
         (filters.department ? employee.department === filters.department : true) &&
         (filters.manager ? employee.manager === filters.manager : true) &&
-        (filters.jobTitle ? employee.jobTitle === filters.jobTitle : true)
+        (filters.jobTitle ? employee.jobTitle === filters.jobTitle : true) &&
+        isInDateRange()
       );
     });
-  }, [terminatedEmployees, searchTerm, filters]);
+  }, [terminatedEmployees, searchTerm, filters, dateRange]);
 
   const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
+  };
+  
+  const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
+    setDateRange(prev => ({ ...prev, [type]: date }));
   };
 
   const handleRestoreEmployee = async (employeeId: string) => {
@@ -126,7 +154,7 @@ export default function TerminatedEmployeesPage() {
         </DialogContent>
       </Dialog>
       
-      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         <div className="relative lg:col-span-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -145,6 +173,28 @@ export default function TerminatedEmployeesPage() {
             {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zwolniony od</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("justify-start text-left font-normal", !dateRange.to && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zwolniony do</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
+          </PopoverContent>
+        </Popover>
       </div>
 
        {/* Mobile View - Cards */}
@@ -182,7 +232,7 @@ export default function TerminatedEmployeesPage() {
           </Card>
         ))}
         {filteredEmployees.length === 0 && !isLoading && (
-          <div className="text-center text-muted-foreground py-10">Brak zwolnionych pracowników.</div>
+          <div className="text-center text-muted-foreground py-10">Brak zwolnionych pracowników pasujących do kryteriów.</div>
         )}
       </div>
 
@@ -238,7 +288,7 @@ export default function TerminatedEmployeesPage() {
             )) : !isLoading && (
               <TableRow>
                 <TableCell colSpan={9} className="h-24 text-center">
-                  Brak zwolnionych pracowników.
+                  Brak zwolnionych pracowników pasujących do kryteriów.
                 </TableCell>
               </TableRow>
             )}

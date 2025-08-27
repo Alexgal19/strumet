@@ -21,19 +21,23 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
 import { ref, set, push, update } from "firebase/database";
-import { format } from 'date-fns';
+import { format, parseISO, isWithinInterval } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from './excel-import-button';
@@ -61,6 +65,7 @@ export default function ActiveEmployeesPage() {
     jobTitle: '',
     nationality: '',
   });
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,16 +75,34 @@ export default function ActiveEmployeesPage() {
   const filteredEmployees = useMemo(() => {
     return activeEmployees.filter(employee => {
       const searchLower = searchTerm.toLowerCase();
+      
+      const isInDateRange = () => {
+        if (!dateRange.from && !dateRange.to) return true;
+        if (!employee.hireDate) return false;
+        try {
+          const hireDate = parseISO(employee.hireDate);
+          const from = dateRange.from ? new Date(dateRange.from.setHours(0, 0, 0, 0)) : undefined;
+          const to = dateRange.to ? new Date(dateRange.to.setHours(23, 59, 59, 999)) : undefined;
+          if (from && to) return isWithinInterval(hireDate, { start: from, end: to });
+          if (from) return hireDate >= from;
+          if (to) return hireDate <= to;
+          return true;
+        } catch (e) {
+          return true; // Ignore invalid dates
+        }
+      };
+
       return (
         ((employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
           (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
         (filters.department ? employee.department === filters.department : true) &&
         (filters.manager ? employee.manager === filters.manager : true) &&
         (filters.jobTitle ? employee.jobTitle === filters.jobTitle : true) &&
-        (filters.nationality ? employee.nationality === filters.nationality : true)
+        (filters.nationality ? employee.nationality === filters.nationality : true) &&
+        isInDateRange()
       );
     });
-  }, [activeEmployees, searchTerm, filters]);
+  }, [activeEmployees, searchTerm, filters, dateRange]);
   
   const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
 
@@ -91,10 +114,14 @@ export default function ActiveEmployeesPage() {
   
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filters]);
+  }, [searchTerm, filters, dateRange]);
 
   const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
+  };
+  
+  const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
+    setDateRange(prev => ({ ...prev, [type]: date }));
   };
 
   const handleSaveEmployee = async (employeeData: Employee) => {
@@ -208,8 +235,8 @@ export default function ActiveEmployeesPage() {
         </DialogContent>
       </Dialog>
       
-      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-2">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
+        <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-5 xl:col-span-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
@@ -234,6 +261,28 @@ export default function ActiveEmployeesPage() {
             {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zatrudniony od</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("justify-start text-left font-normal", !dateRange.to && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zatrudniony do</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
+          </PopoverContent>
+        </Popover>
       </div>
 
        {/* Mobile View - Cards */}
