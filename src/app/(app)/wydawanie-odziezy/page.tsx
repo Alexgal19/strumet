@@ -6,23 +6,26 @@ import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Loader2, Printer } from 'lucide-react';
+import { Loader2, Printer, CheckIcon, ChevronsUpDown } from 'lucide-react';
 import { Employee, ClothingIssuanceHistoryItem } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { ref, set, push } from 'firebase/database';
 import { format } from 'date-fns';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 
 export default function ClothingIssuancePage() {
   const { employees, config, clothingIssuances, isLoading } = useFirebaseData();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   const [selectedClothing, setSelectedClothing] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -103,19 +106,52 @@ export default function ClothingIssuancePage() {
             <Card>
                 <CardHeader>
                     <CardTitle>1. Wybierz pracownika</CardTitle>
-                    <CardDescription>Wybierz pracownika, któremu wydajesz odzież.</CardDescription>
+                    <CardDescription>Wyszukaj i wybierz pracownika z listy.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Select onValueChange={setSelectedEmployeeId} value={selectedEmployeeId ?? ''}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Wybierz pracownika z listy..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {activeEmployees.map(emp => (
-                                <SelectItem key={emp.id} value={emp.id}>{emp.fullName}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={isComboboxOpen}
+                                className="w-full justify-between"
+                            >
+                                {selectedEmployee
+                                    ? selectedEmployee.fullName
+                                    : "Wybierz pracownika..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Szukaj pracownika..." />
+                                <CommandList>
+                                    <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
+                                    <CommandGroup>
+                                        {activeEmployees.map((employee) => (
+                                            <CommandItem
+                                                key={employee.id}
+                                                value={employee.fullName}
+                                                onSelect={() => {
+                                                    setSelectedEmployeeId(employee.id);
+                                                    setIsComboboxOpen(false);
+                                                }}
+                                            >
+                                                <CheckIcon
+                                                    className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {employee.fullName}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                 </CardContent>
             </Card>
             
