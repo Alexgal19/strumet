@@ -9,10 +9,11 @@ import {
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
-import { Loader2, ArrowLeft, ArrowRight, User, TrendingDown, CalendarDays, Building } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, User, TrendingDown, CalendarDays, Building, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
 import {
   startOfMonth,
   endOfMonth,
@@ -49,6 +50,7 @@ export default function AttendancePage() {
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Pre-calculated data states
   const [absencesByEmployeeForMonth, setAbsencesByEmployeeForMonth] = useState<Map<string, AbsencesByEmployee>>(new Map());
@@ -58,11 +60,13 @@ export default function AttendancePage() {
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const filteredEmployees = useMemo(() => {
-    if (selectedDepartment === 'all') {
-      return activeEmployees;
-    }
-    return activeEmployees.filter(e => e.department === selectedDepartment);
-  }, [activeEmployees, selectedDepartment]);
+    const searchLower = searchTerm.toLowerCase();
+    return activeEmployees.filter(e => {
+        const departmentMatch = selectedDepartment === 'all' || e.department === selectedDepartment;
+        const searchMatch = !searchLower || e.fullName.toLowerCase().includes(searchLower);
+        return departmentMatch && searchMatch;
+    });
+  }, [activeEmployees, selectedDepartment, searchTerm]);
 
 
   const holidays = useMemo(() => getPolishHolidays(currentDate.getFullYear()), [currentDate]);
@@ -342,6 +346,15 @@ export default function AttendancePage() {
             </div>
         </CardHeader>
         <CardContent className="flex-grow overflow-auto">
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Szukaj po nazwisku..." 
+                className="pl-9" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+              />
+            </div>
             <div className="grid gap-px bg-border -ml-6 -mr-6" style={{ gridTemplateColumns }}>
                 {/* Header Row */}
                 <div className="sticky top-0 z-10 bg-muted/50 p-2 text-sm font-semibold flex items-center justify-start">Pracownik</div>
@@ -404,7 +417,7 @@ export default function AttendancePage() {
                     })
                 ) : (
                     <div className={`col-span-${daysInMonth.length + 1} text-center p-8 text-muted-foreground`}>
-                        Brak aktywnych pracowników do wyświetlenia.
+                        Brak aktywnych pracowników pasujących do kryteriów.
                     </div>
                 )}
             </div>
