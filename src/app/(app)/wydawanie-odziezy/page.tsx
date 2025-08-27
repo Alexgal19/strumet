@@ -174,12 +174,10 @@ export default function ClothingIssuancePage() {
                         <CardDescription>Wygeneruj i wydrukuj dokument wydania.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div onClick={handlePrint} className="cursor-pointer">
-                            <Button disabled={isSaving} className="w-full pointer-events-none">
-                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                                Drukuj wniosek
-                            </Button>
-                        </div>
+                        <Button onClick={handlePrint} disabled={isSaving} className="w-full">
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                            Drukuj wniosek
+                        </Button>
                     </CardContent>
                 </Card>
             )}
