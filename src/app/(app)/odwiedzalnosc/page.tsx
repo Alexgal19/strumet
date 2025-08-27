@@ -34,6 +34,8 @@ import { Absence } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { ref, set, remove, push } from "firebase/database";
 import { useToast } from '@/hooks/use-toast';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
@@ -232,23 +234,32 @@ export default function AttendancePage() {
 
         {departmentAbsenceData.length > 0 && (
           <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center"><Building className="mr-2 h-5 w-5" /> Nieobecności wg działów</CardTitle>
-              <CardDescription>Statystyka nieobecności dla poszczególnych działów w wybranym miesiącu.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {departmentAbsenceData.map((dept) => dept && (
-                    <div key={dept.name} className="space-y-1">
-                        <div className="flex justify-between items-center text-sm font-medium">
-                            <span style={{ color: dept.fill }}>{dept.name}</span>
-                            <span>{dept.absences} dni ({dept.percentage.toFixed(1)}%)</span>
-                        </div>
-                        <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
+             <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger className="px-6">
+                    <div className="flex items-center">
+                      <Building className="mr-2 h-5 w-5" />
+                      <span className="font-semibold">Nieobecności wg działów</span>
                     </div>
-                ))}
-              </div>
-            </CardContent>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="px-6 pb-4 pt-0">
+                    <p className="text-sm text-muted-foreground mb-4">Statystyka nieobecności dla poszczególnych działów w wybranym miesiącu.</p>
+                    <div className="space-y-4">
+                      {departmentAbsenceData.map((dept) => dept && (
+                          <div key={dept.name} className="space-y-1">
+                              <div className="flex justify-between items-center text-sm font-medium">
+                                  <span style={{ color: dept.fill }}>{dept.name}</span>
+                                  <span>{dept.absences} dni ({dept.percentage.toFixed(1)}%)</span>
+                              </div>
+                              <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
+                          </div>
+                      ))}
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </Card>
         )}
 
