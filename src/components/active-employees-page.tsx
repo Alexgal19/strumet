@@ -18,6 +18,17 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,7 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, ChevronLeft, ChevronRight, CalendarIcon, Trash2 } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
@@ -78,22 +89,25 @@ export default function ActiveEmployeesPage() {
       
       const isInDateRange = () => {
         if (!dateRange.from && !dateRange.to) return true;
-        if (!employee.hireDate || typeof employee.hireDate !== 'string') return false;
+        if (!employee.hireDate || typeof employee.hireDate !== 'string') return true;
         
         try {
+          // Ensure hireDate is a valid date string before parsing
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.hireDate)) return true;
+
           const hireDate = parse(employee.hireDate, 'yyyy-MM-dd', new Date());
-          if (isNaN(hireDate.getTime())) return false; 
+          if (isNaN(hireDate.getTime())) return true; 
 
           const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
           const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
-
+          
           if (from && to) return isWithinInterval(hireDate, { start: from, end: to });
           if (from) return hireDate >= from;
           if (to) return hireDate <= to;
           return true;
         } catch (e) {
           console.error("Error parsing hire date:", e);
-          return false;
+          return true;
         }
       };
 
@@ -160,6 +174,27 @@ export default function ActiveEmployeesPage() {
     }
   };
 
+  const handleDeleteAllHireDates = async () => {
+    try {
+      const updates: Record<string, any> = {};
+      employees.forEach(employee => {
+        updates[`/employees/${employee.id}/hireDate`] = null;
+      });
+      await update(ref(db), updates);
+      toast({
+        title: 'Sukces',
+        description: 'Wszystkie daty zatrudnienia zostały usunięte.',
+      });
+    } catch (error) {
+      console.error("Error deleting all hire dates: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Nie udało się usunąć dat zatrudnienia.',
+      });
+    }
+  };
+
   const handleEditEmployee = (employee: Employee) => {
     setEditingEmployee(employee);
     setIsFormOpen(true);
@@ -215,6 +250,27 @@ export default function ActiveEmployeesPage() {
         description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
       >
         <ExcelImportButton />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Usuń daty
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                dat zatrudnienia dla wszystkich pracowników (aktywnych i zwolnionych).
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anuluj</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <Button onClick={handleAddNew}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Dodaj pracownika

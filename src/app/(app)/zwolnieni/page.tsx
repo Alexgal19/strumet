@@ -17,12 +17,23 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon } from 'lucide-react';
+import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2 } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
@@ -34,6 +45,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
+import { useToast } from '@/hooks/use-toast';
 
 const EmployeeForm = dynamic(() => import('@/components/employee-form').then(mod => mod.EmployeeForm), {
   loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
@@ -43,6 +55,7 @@ const EmployeeForm = dynamic(() => import('@/components/employee-form').then(mod
 export default function TerminatedEmployeesPage() {
   const { employees, config, isLoading } = useFirebaseData();
   const { departments, jobTitles, managers, nationalities } = config;
+  const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -62,11 +75,13 @@ export default function TerminatedEmployeesPage() {
 
       const isInDateRange = () => {
         if (!dateRange.from && !dateRange.to) return true;
-        if (!employee.terminationDate || typeof employee.terminationDate !== 'string') return false;
-
+        if (!employee.terminationDate || typeof employee.terminationDate !== 'string') return true;
+        
         try {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.terminationDate)) return true;
+
           const terminationDate = parse(employee.terminationDate, 'yyyy-MM-dd', new Date());
-          if (isNaN(terminationDate.getTime())) return false; // Invalid date parsed
+          if (isNaN(terminationDate.getTime())) return true;
 
           const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
           const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
@@ -77,7 +92,7 @@ export default function TerminatedEmployeesPage() {
           return true;
         } catch (e) {
           console.error("Error parsing termination date:", e);
-          return false;
+          return true;
         }
       };
 
@@ -114,6 +129,27 @@ export default function TerminatedEmployeesPage() {
     }
   };
 
+  const handleDeleteAllHireDates = async () => {
+    try {
+      const updates: Record<string, any> = {};
+      employees.forEach(employee => {
+        updates[`/employees/${employee.id}/hireDate`] = null;
+      });
+      await update(ref(db), updates);
+      toast({
+        title: 'Sukces',
+        description: 'Wszystkie daty zatrudnienia zostały usunięte.',
+      });
+    } catch (error) {
+      console.error("Error deleting all hire dates: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Nie udało się usunąć dat zatrudnienia.',
+      });
+    }
+  };
+
   const handleEditEmployee = (employee: Employee) => {
     setEditingEmployee(employee);
     setIsFormOpen(true);
@@ -141,6 +177,27 @@ export default function TerminatedEmployeesPage() {
         description="Przeglądaj historię zwolnionych pracowników."
       >
         <TerminatedExcelImportButton />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Usuń daty
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                dat zatrudnienia dla wszystkich pracowników (aktywnych i zwolnionych).
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anuluj</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </PageHeader>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
