@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -43,17 +44,17 @@ export default function ClothingIssuancePage() {
         .filter(issuance => issuance.employeeId === selectedEmployeeId)
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [clothingIssuances, selectedEmployeeId]);
+  
+  const selectedItemsList = Object.entries(selectedClothing)
+    .filter(([, isSelected]) => isSelected)
+    .map(([itemName]) => itemName);
 
   const handlePrint = useReactToPrint({
     content: () => printComponentRef.current,
     onAfterPrint: async () => {
         if (!selectedEmployeeId || !selectedEmployee) return;
 
-        const itemsToSave = Object.entries(selectedClothing)
-            .filter(([, isSelected]) => isSelected)
-            .map(([itemName]) => itemName);
-
-        if (itemsToSave.length === 0) return;
+        if (selectedItemsList.length === 0) return;
 
         setIsSaving(true);
         try {
@@ -62,7 +63,7 @@ export default function ClothingIssuancePage() {
                 employeeId: selectedEmployeeId,
                 employeeFullName: selectedEmployee.fullName,
                 date: format(new Date(), 'yyyy-MM-dd'),
-                items: itemsToSave,
+                items: selectedItemsList,
             };
             await set(newIssuanceRef, newIssuance);
             // Reset state after saving
@@ -82,9 +83,6 @@ export default function ClothingIssuancePage() {
     }));
   };
 
-  const selectedItemsList = Object.entries(selectedClothing)
-    .filter(([, isSelected]) => isSelected)
-    .map(([itemName]) => itemName);
     
   if (isLoading) {
     return (
@@ -196,7 +194,6 @@ export default function ClothingIssuancePage() {
                         <>
                             <div className="border rounded-lg p-4 mb-6">
                                 <ClothingIssuancePrintForm
-                                    ref={printComponentRef}
                                     employee={selectedEmployee}
                                     clothingItems={selectedItemsList}
                                     issuanceDate={new Date()}
@@ -233,6 +230,15 @@ export default function ClothingIssuancePage() {
                    )}
                 </CardContent>
             </Card>
+        </div>
+      </div>
+       <div className="hidden">
+        <div ref={printComponentRef}>
+            <ClothingIssuancePrintForm
+                employee={selectedEmployee}
+                clothingItems={selectedItemsList}
+                issuanceDate={new Date()}
+            />
         </div>
       </div>
 
