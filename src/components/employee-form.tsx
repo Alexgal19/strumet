@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Employee, ConfigItem } from '@/lib/types';
+import { Separator } from './ui/separator';
 
 const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
   if (employee) {
@@ -28,6 +29,9 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
     lockerNumber: '',
     departmentLockerNumber: '',
     sealNumber: '',
+    plannedTerminationDate: undefined,
+    vacationStartDate: undefined,
+    vacationEndDate: undefined,
   };
 };
 
@@ -45,7 +49,6 @@ interface EmployeeFormProps {
 
 export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
   const { departments, jobTitles, managers, nationalities } = config;
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
 
   useEffect(() => {
@@ -61,12 +64,14 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDateChange = (date: Date | undefined) => {
-    if (date) {
-      setFormData(prev => ({ ...prev, hireDate: format(date, 'yyyy-MM-dd') }));
-      setIsCalendarOpen(false);
-    }
+  const handleDateChange = (name: keyof Omit<Employee, 'id' | 'status'>) => (date: Date | undefined) => {
+    setFormData(prev => ({ ...prev, [name]: date ? format(date, 'yyyy-MM-dd') : undefined }));
   };
+  
+  const handleClearDate = (name: keyof Omit<Employee, 'id' | 'status'>) => {
+    setFormData(prev => ({ ...prev, [name]: undefined }));
+  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +82,32 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
     });
   };
 
+  const DatePickerInput = ({ value, onSelect, onClear, placeholder }: { value?: string, onSelect: (date?: Date) => void, onClear: () => void, placeholder: string }) => {
+    const dateValue = value ? parseISO(value) : undefined;
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant={"outline"}
+                    className={cn("w-full justify-start text-left font-normal", !value && "text-muted-foreground")}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {value ? format(dateValue!, "PPP", { locale: pl }) : <span>{placeholder}</span>}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 flex flex-col">
+                 <Calendar mode="single" selected={dateValue} onSelect={onSelect} locale={pl} />
+                 {value && (
+                    <Button variant="ghost" size="sm" className="m-2 mt-0" onClick={onClear}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Wyczyść datę
+                    </Button>
+                 )}
+            </PopoverContent>
+        </Popover>
+    );
+};
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -86,28 +117,12 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         </div>
         <div className="space-y-2">
           <Label htmlFor="hireDate">Data zatrudnienia</Label>
-          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !formData.hireDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formData.hireDate ? format(new Date(formData.hireDate), "PPP", { locale: pl }) : <span>Wybierz datę</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={formData.hireDate ? new Date(formData.hireDate) : undefined}
-                onSelect={handleDateChange}
-                locale={pl}
-              />
-            </PopoverContent>
-          </Popover>
+           <DatePickerInput 
+              value={formData.hireDate}
+              onSelect={handleDateChange('hireDate')}
+              onClear={() => handleClearDate('hireDate')}
+              placeholder="Wybierz datę"
+           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="jobTitle">Stanowisko</Label>
@@ -161,6 +176,42 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
           <Label htmlFor="sealNumber">Numer pieczęci</Label>
           <Input id="sealNumber" name="sealNumber" value={formData.sealNumber || ''} onChange={handleChange} />
         </div>
+        
+        <div className="sm:col-span-2 space-y-4">
+            <Separator />
+            <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
+            
+            <div className="space-y-2">
+                <Label htmlFor="plannedTerminationDate">Planowana data zwolnienia</Label>
+                <DatePickerInput
+                    value={formData.plannedTerminationDate}
+                    onSelect={handleDateChange('plannedTerminationDate')}
+                    onClear={() => handleClearDate('plannedTerminationDate')}
+                    placeholder="Wybierz datę zwolnienia"
+                />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="vacationStartDate">Urlop od</Label>
+                    <DatePickerInput
+                        value={formData.vacationStartDate}
+                        onSelect={handleDateChange('vacationStartDate')}
+                        onClear={() => handleClearDate('vacationStartDate')}
+                        placeholder="Początek urlopu"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="vacationEndDate">Urlop do</Label>
+                    <DatePickerInput
+                        value={formData.vacationEndDate}
+                        onSelect={handleDateChange('vacationEndDate')}
+                        onClear={() => handleClearDate('vacationEndDate')}
+                        placeholder="Koniec urlopu"
+                    />
+                </div>
+            </div>
+        </div>
+
       </div>
       <div className="flex justify-end gap-2 sm:col-span-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>

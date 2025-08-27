@@ -12,6 +12,9 @@ export interface Employee {
   sealNumber: string;
   status: 'aktywny' | 'zwolniony';
   terminationDate?: string; // ISO string format will be present for 'zwolniony'
+  plannedTerminationDate?: string; // ISO string format
+  vacationStartDate?: string; // ISO string format
+  vacationEndDate?: string; // ISO string format
 }
 
 export interface ConfigItem {

@@ -12,6 +12,7 @@ import ClothingIssuancePage from '../app/(app)/wydawanie-odziezy/page';
 import FingerprintAppointmentsPage from '../app/(app)/odciski-palcow/page';
 import NoLoginPage from '../app/(app)/brak-logowania/page';
 import ConfigurationPage from '../app/(app)/konfiguracja/page';
+import PlanningPage from '../app/(app)/planowanie/page';
 
 export type ActiveView = 
   | 'aktywni' 
@@ -20,7 +21,8 @@ export type ActiveView =
   | 'wydawanie-odziezy' 
   | 'odciski-palcow' 
   | 'brak-logowania' 
-  | 'konfiguracja';
+  | 'konfiguracja'
+  | 'planowanie';
 
 
 export default function MainLayout() {
@@ -32,6 +34,8 @@ export default function MainLayout() {
         return <ActiveEmployeesPage />;
       case 'zwolnieni':
         return <TerminatedEmployeesPage />;
+      case 'planowanie':
+        return <PlanningPage />;
       case 'statystyki':
         return <StatisticsPage />;
       case 'wydawanie-odziezy':

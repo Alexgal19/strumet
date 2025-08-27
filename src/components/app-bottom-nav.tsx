@@ -7,6 +7,7 @@ import {
   Settings,
   BarChart3,
   Shirt,
+  CalendarClock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -23,8 +24,8 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const menuItems = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
     { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
+    { view: 'planowanie', icon: CalendarClock, label: 'Plan' },
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
-    { view: 'wydawanie-odziezy', icon: Shirt, label: 'Odzież' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];
   
