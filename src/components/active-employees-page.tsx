@@ -52,6 +52,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from './excel-import-button';
+import { ExcelExportButton } from './excel-export-button';
 
 const EmployeeForm = dynamic(() => import('./employee-form').then(mod => mod.EmployeeForm), {
   loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
@@ -92,7 +93,6 @@ export default function ActiveEmployeesPage() {
         if (!employee.hireDate || typeof employee.hireDate !== 'string') return true;
         
         try {
-          // Ensure hireDate is a valid date string before parsing
           if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.hireDate)) return true;
 
           const hireDate = parse(employee.hireDate, 'yyyy-MM-dd', new Date());
@@ -249,6 +249,7 @@ export default function ActiveEmployeesPage() {
         title="Pracownicy aktywni"
         description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
       >
+        <ExcelExportButton employees={filteredEmployees} fileName="aktywni_pracownicy" />
         <ExcelImportButton />
         <AlertDialog>
           <AlertDialogTrigger asChild>
