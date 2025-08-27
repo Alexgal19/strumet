@@ -24,11 +24,21 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
       <div ref={ref} className="p-4 bg-white text-black font-serif print:p-0 print:shadow-none">
         <style type="text/css" media="print">
           {`
-            @page { size: A4; margin: 2.5cm; }
-            body { -webkit-print-color-adjust: exact; }
+            @page { 
+              size: A4; 
+              margin: 2.5cm; 
+            }
+            body { 
+              -webkit-print-color-adjust: exact; 
+              background-color: #fff;
+            }
+            .print-container {
+              width: 100%;
+              height: 100%;
+            }
           `}
         </style>
-        <div className="space-y-6 text-sm">
+        <div className="print-container space-y-6 text-sm">
             <header className="text-center">
                 <h1 className="text-base font-bold">Wniosek o wydanie odzieży ochronnej, obuwia roboczego oraz środków ochrony indywidualnej</h1>
             </header>

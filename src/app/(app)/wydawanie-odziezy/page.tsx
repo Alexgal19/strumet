@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
-import { useReactToPrint } from 'react-to-print';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { Button } from '@/components/ui/button';
@@ -49,32 +48,29 @@ export default function ClothingIssuancePage() {
     .filter(([, isSelected]) => isSelected)
     .map(([itemName]) => itemName);
 
-  const handlePrint = useReactToPrint({
-    content: () => printComponentRef.current,
-    onAfterPrint: async () => {
-        if (!selectedEmployeeId || !selectedEmployee) return;
+  const handlePrint = () => {
+    window.print();
+    if (!selectedEmployeeId || !selectedEmployee) return;
+    if (selectedItemsList.length === 0) return;
 
-        if (selectedItemsList.length === 0) return;
-
-        setIsSaving(true);
-        try {
-            const newIssuanceRef = push(ref(db, 'clothingIssuances'));
-            const newIssuance: Omit<ClothingIssuanceHistoryItem, 'id'> = {
-                employeeId: selectedEmployeeId,
-                employeeFullName: selectedEmployee.fullName,
-                date: format(new Date(), 'yyyy-MM-dd'),
-                items: selectedItemsList,
-            };
-            await set(newIssuanceRef, newIssuance);
-            // Reset state after saving
-            setSelectedClothing({});
-        } catch (error) {
-            console.error("Error saving issuance:", error);
-        } finally {
-            setIsSaving(false);
-        }
+    setIsSaving(true);
+    try {
+        const newIssuanceRef = push(ref(db, 'clothingIssuances'));
+        const newIssuance: Omit<ClothingIssuanceHistoryItem, 'id'> = {
+            employeeId: selectedEmployeeId,
+            employeeFullName: selectedEmployee.fullName,
+            date: format(new Date(), 'yyyy-MM-dd'),
+            items: selectedItemsList,
+        };
+        set(newIssuanceRef, newIssuance);
+        // Reset state after saving
+        setSelectedClothing({});
+    } catch (error) {
+        console.error("Error saving issuance:", error);
+    } finally {
+        setIsSaving(false);
     }
-  });
+  };
   
   const handleToggleClothingItem = (itemName: string) => {
     setSelectedClothing(prev => ({
@@ -93,182 +89,181 @@ export default function ClothingIssuancePage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader
-        title="Wydawanie odzieży"
-        description="Zarządzaj wydawaniem odzieży pracownikom i drukuj wnioski."
-      />
+    <>
+      <div className="flex h-full flex-col print:hidden">
+        <PageHeader
+          title="Wydawanie odzieży"
+          description="Zarządzaj wydawaniem odzieży pracownikom i drukuj wnioski."
+        />
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-1 space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>1. Wybierz pracownika</CardTitle>
-                    <CardDescription>Wyszukaj i wybierz pracownika z listy.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={isComboboxOpen}
-                                className="w-full justify-between"
-                            >
-                                {selectedEmployee
-                                    ? selectedEmployee.fullName
-                                    : "Wybierz pracownika..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                                <CommandInput placeholder="Szukaj pracownika..." />
-                                <CommandList>
-                                    <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
-                                    <CommandGroup>
-                                        {activeEmployees.map((employee) => (
-                                            <CommandItem
-                                                key={employee.id}
-                                                value={employee.fullName}
-                                                onSelect={() => {
-                                                    setSelectedEmployeeId(employee.id);
-                                                    setIsComboboxOpen(false);
-                                                }}
-                                            >
-                                                <CheckIcon
-                                                    className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                />
-                                                {employee.fullName}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                </CardContent>
-            </Card>
-            
-            {selectedEmployee && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>2. Wybierz odzież</CardTitle>
-                        <CardDescription>Wybierz elementy odzieży do wydania.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button onClick={() => setIsModalOpen(true)} className="w-full">
-                            Wybierz z listy ({selectedItemsList.length})
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-1 space-y-6">
+              <Card>
+                  <CardHeader>
+                      <CardTitle>1. Wybierz pracownika</CardTitle>
+                      <CardDescription>Wyszukaj i wybierz pracownika z listy.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                          <PopoverTrigger asChild>
+                              <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={isComboboxOpen}
+                                  className="w-full justify-between"
+                              >
+                                  {selectedEmployee
+                                      ? selectedEmployee.fullName
+                                      : "Wybierz pracownika..."}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                              <Command>
+                                  <CommandInput placeholder="Szukaj pracownika..." />
+                                  <CommandList>
+                                      <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
+                                      <CommandGroup>
+                                          {activeEmployees.map((employee) => (
+                                              <CommandItem
+                                                  key={employee.id}
+                                                  value={employee.fullName}
+                                                  onSelect={() => {
+                                                      setSelectedEmployeeId(employee.id);
+                                                      setIsComboboxOpen(false);
+                                                  }}
+                                              >
+                                                  <CheckIcon
+                                                      className={cn(
+                                                          "mr-2 h-4 w-4",
+                                                          selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
+                                                      )}
+                                                  />
+                                                  {employee.fullName}
+                                              </CommandItem>
+                                          ))}
+                                      </CommandGroup>
+                                  </CommandList>
+                              </Command>
+                          </PopoverContent>
+                      </Popover>
+                  </CardContent>
+              </Card>
+              
+              {selectedEmployee && (
+                  <Card>
+                      <CardHeader>
+                          <CardTitle>2. Wybierz odzież</CardTitle>
+                          <CardDescription>Wybierz elementy odzieży do wydania.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <Button onClick={() => setIsModalOpen(true)} className="w-full">
+                              Wybierz z listy ({selectedItemsList.length})
+                          </Button>
+                      </CardContent>
+                  </Card>
+              )}
 
-            {selectedEmployee && selectedItemsList.length > 0 && (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>3. Drukuj wniosek</CardTitle>
-                        <CardDescription>Wygeneruj i wydrukuj dokument wydania.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button onClick={handlePrint} disabled={isSaving} className="w-full">
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                            Drukuj wniosek
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
+              {selectedEmployee && selectedItemsList.length > 0 && (
+                   <Card>
+                      <CardHeader>
+                          <CardTitle>3. Drukuj wniosek</CardTitle>
+                          <CardDescription>Wygeneruj i wydrukuj dokument wydania.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <Button onClick={handlePrint} disabled={isSaving} className="w-full">
+                              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                              Drukuj wniosek
+                          </Button>
+                      </CardContent>
+                  </Card>
+              )}
+          </div>
+          
+          <div className="lg:col-span-2">
+              <Card className="h-full">
+                  <CardHeader>
+                      <CardTitle>Podgląd wniosku i historia</CardTitle>
+                      <CardDescription>Tutaj zobaczysz podgląd dokumentu oraz historię wydań dla pracownika.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                     {selectedEmployee ? (
+                          <>
+                              <div className="border rounded-lg p-4 mb-6">
+                                  <ClothingIssuancePrintForm
+                                      employee={selectedEmployee}
+                                      clothingItems={selectedItemsList}
+                                      issuanceDate={new Date()}
+                                  />
+                              </div>
+                              <h3 className="text-lg font-semibold mb-4">Historia wydań</h3>
+                               {employeeIssuanceHistory.length > 0 ? (
+                                  <div className="max-h-96 overflow-y-auto border rounded-lg">
+                                      <Table>
+                                          <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
+                                              <TableRow>
+                                                  <TableHead>Data</TableHead>
+                                                  <TableHead>Wydane elementy</TableHead>
+                                              </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                              {employeeIssuanceHistory.map(issuance => (
+                                                  <TableRow key={issuance.id}>
+                                                      <TableCell className="font-medium">{issuance.date}</TableCell>
+                                                      <TableCell>{issuance.items.join(', ')}</TableCell>
+                                                  </TableRow>
+                                              ))}
+                                          </TableBody>
+                                      </Table>
+                                  </div>
+                              ) : (
+                                  <p className="text-sm text-muted-foreground text-center py-4">Brak historii wydań dla tego pracownika.</p>
+                              )}
+                          </>
+                     ) : (
+                          <div className="flex items-center justify-center h-full text-muted-foreground">
+                              Wybierz pracownika, aby zobaczyć podgląd i historię.
+                          </div>
+                     )}
+                  </CardContent>
+              </Card>
+          </div>
         </div>
-        
-        <div className="lg:col-span-2">
-            <Card className="h-full">
-                <CardHeader>
-                    <CardTitle>Podgląd wniosku i historia</CardTitle>
-                    <CardDescription>Tutaj zobaczysz podgląd dokumentu oraz historię wydań dla pracownika.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                   {selectedEmployee ? (
-                        <>
-                            <div className="border rounded-lg p-4 mb-6">
-                                <ClothingIssuancePrintForm
-                                    ref={printComponentRef}
-                                    employee={selectedEmployee}
-                                    clothingItems={selectedItemsList}
-                                    issuanceDate={new Date()}
-                                />
-                            </div>
-                            <h3 className="text-lg font-semibold mb-4">Historia wydań</h3>
-                             {employeeIssuanceHistory.length > 0 ? (
-                                <div className="max-h-96 overflow-y-auto border rounded-lg">
-                                    <Table>
-                                        <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
-                                            <TableRow>
-                                                <TableHead>Data</TableHead>
-                                                <TableHead>Wydane elementy</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {employeeIssuanceHistory.map(issuance => (
-                                                <TableRow key={issuance.id}>
-                                                    <TableCell className="font-medium">{issuance.date}</TableCell>
-                                                    <TableCell>{issuance.items.join(', ')}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">Brak historii wydań dla tego pracownika.</p>
-                            )}
-                        </>
-                   ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                            Wybierz pracownika, aby zobaczyć podgląd i historię.
-                        </div>
-                   )}
-                </CardContent>
-            </Card>
-        </div>
-      </div>
-       <div className="hidden">
-           <div ref={printComponentRef}>
-              <ClothingIssuancePrintForm
-                employee={selectedEmployee}
-                clothingItems={selectedItemsList}
-                issuanceDate={new Date()}
-              />
-           </div>
-      </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Wybierz odzież do wydania</DialogTitle>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto p-1">
-                <div className="grid gap-4 py-4">
-                    {config.clothingItems.map(item => (
-                        <div key={item.id} className="flex items-center space-x-3">
-                            <Checkbox 
-                                id={`clothing-${item.id}`} 
-                                checked={!!selectedClothing[item.name]}
-                                onCheckedChange={() => handleToggleClothingItem(item.name)}
-                            />
-                            <Label htmlFor={`clothing-${item.id}`} className="font-medium cursor-pointer">
-                                {item.name}
-                            </Label>
-                        </div>
-                    ))}
-                </div>
-            </div>
-            <DialogFooter>
-                <Button type="button" onClick={() => setIsModalOpen(false)}>Zatwierdź</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Wybierz odzież do wydania</DialogTitle>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto p-1">
+                  <div className="grid gap-4 py-4">
+                      {config.clothingItems.map(item => (
+                          <div key={item.id} className="flex items-center space-x-3">
+                              <Checkbox 
+                                  id={`clothing-${item.id}`} 
+                                  checked={!!selectedClothing[item.name]}
+                                  onCheckedChange={() => handleToggleClothingItem(item.name)}
+                              />
+                              <Label htmlFor={`clothing-${item.id}`} className="font-medium cursor-pointer">
+                                  {item.name}
+                              </Label>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+              <DialogFooter>
+                  <Button type="button" onClick={() => setIsModalOpen(false)}>Zatwierdź</Button>
+              </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="hidden print:block">
+        <ClothingIssuancePrintForm
+            employee={selectedEmployee}
+            clothingItems={selectedItemsList}
+            issuanceDate={new Date()}
+        />
+      </div>
+    </>
   );
 }
