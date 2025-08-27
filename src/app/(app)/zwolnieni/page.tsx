@@ -28,7 +28,7 @@ import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
 import { ref, update } from "firebase/database";
-import { format, parseISO, isWithinInterval } from 'date-fns';
+import { format, parse, isWithinInterval } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,17 +62,22 @@ export default function TerminatedEmployeesPage() {
 
       const isInDateRange = () => {
         if (!dateRange.from && !dateRange.to) return true;
-        if (!employee.terminationDate) return false;
+        if (!employee.terminationDate || typeof employee.terminationDate !== 'string') return false;
+
         try {
-          const terminationDate = parseISO(employee.terminationDate);
+          const terminationDate = parse(employee.terminationDate, 'yyyy-MM-dd', new Date());
+          if (isNaN(terminationDate.getTime())) return false; // Invalid date parsed
+
           const from = dateRange.from ? new Date(dateRange.from.setHours(0, 0, 0, 0)) : undefined;
           const to = dateRange.to ? new Date(dateRange.to.setHours(23, 59, 59, 999)) : undefined;
+          
           if (from && to) return isWithinInterval(terminationDate, { start: from, end: to });
           if (from) return terminationDate >= from;
           if (to) return terminationDate <= to;
           return true;
         } catch (e) {
-          return true; // Ignore invalid dates
+          console.error("Error parsing termination date:", e);
+          return false;
         }
       };
 

@@ -35,7 +35,7 @@ import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
 import { ref, set, push, update } from "firebase/database";
-import { format, parseISO, isWithinInterval } from 'date-fns';
+import { format, parse, isWithinInterval } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,17 +78,22 @@ export default function ActiveEmployeesPage() {
       
       const isInDateRange = () => {
         if (!dateRange.from && !dateRange.to) return true;
-        if (!employee.hireDate) return false;
+        if (!employee.hireDate || typeof employee.hireDate !== 'string') return false;
+        
         try {
-          const hireDate = parseISO(employee.hireDate);
+          const hireDate = parse(employee.hireDate, 'yyyy-MM-dd', new Date());
+          if (isNaN(hireDate.getTime())) return false; // Invalid date parsed
+
           const from = dateRange.from ? new Date(dateRange.from.setHours(0, 0, 0, 0)) : undefined;
           const to = dateRange.to ? new Date(dateRange.to.setHours(23, 59, 59, 999)) : undefined;
+
           if (from && to) return isWithinInterval(hireDate, { start: from, end: to });
           if (from) return hireDate >= from;
           if (to) return hireDate <= to;
           return true;
         } catch (e) {
-          return true; // Ignore invalid dates
+          console.error("Error parsing hire date:", e);
+          return false;
         }
       };
 
