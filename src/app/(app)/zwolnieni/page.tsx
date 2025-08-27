@@ -38,7 +38,7 @@ import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
-import { ref, update } from "firebase/database";
+import { ref, update, remove } from "firebase/database";
 import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -166,6 +166,23 @@ export default function TerminatedEmployeesPage() {
     }
   };
 
+  const handleDeleteAllEmployees = async () => {
+    try {
+      await remove(ref(db, 'employees'));
+      toast({
+        title: 'Sukces',
+        description: 'Wszyscy pracownicy zostali usunięci.',
+      });
+    } catch (error) {
+      console.error("Error deleting all employees: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Nie udało się usunąć pracowników.',
+      });
+    }
+  };
+
   const handleEditEmployee = (employee: Employee) => {
     setEditingEmployee(employee);
     setIsFormOpen(true);
@@ -237,6 +254,27 @@ export default function TerminatedEmployeesPage() {
             <AlertDialogFooter>
               <AlertDialogCancel>Anuluj</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Usuń wszystkich
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                pracowników (aktywnych i zwolnionych) z bazy danych.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anuluj</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
