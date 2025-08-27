@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import dynamic from 'next/dynamic';
 import {
   Table,
   TableBody,
@@ -46,11 +45,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
 import { useToast } from '@/hooks/use-toast';
-
-const EmployeeForm = dynamic(() => import('@/components/employee-form').then(mod => mod.EmployeeForm), {
-  loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
-  ssr: false
-});
+import { EmployeeForm } from '@/components/employee-form';
 
 const ITEMS_PER_PAGE = 50;
 
