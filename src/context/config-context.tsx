@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import type { ConfigItem, Employee, FingerprintAppointment } from '@/lib/types';
+import type { ConfigItem, Employee, FingerprintAppointment, Absence } from '@/lib/types';
 
 export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
@@ -18,6 +19,7 @@ interface AllConfig {
 interface FirebaseDataContextType {
   employees: Employee[];
   fingerprintAppointments: FingerprintAppointment[];
+  absences: Absence[];
   config: AllConfig;
   isLoading: boolean;
   updateConfig: (configType: ConfigType, newItems: ConfigItem[]) => Promise<void>;
@@ -40,6 +42,7 @@ const initialConfig: AllConfig = {
 export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
+    const [absences, setAbsences] = useState<Absence[]>([]);
     const [config, setConfig] = useState<AllConfig>(initialConfig);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -48,7 +51,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         const refs = [
             ref(db, 'employees'),
             ref(db, 'config'),
-            ref(db, 'fingerprintAppointments')
+            ref(db, 'fingerprintAppointments'),
+            ref(db, 'absences'),
         ];
 
         const unsubscribers = refs.map((r, index) => {
@@ -70,9 +74,10 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                     case 2:
                         setFingerprintAppointments(objectToArray(data));
                         break;
+                    case 3:
+                        setAbsences(objectToArray(data));
+                        break;
                 }
-                // This will be set to false once all initial data is likely loaded.
-                // A more robust solution might wait for all listeners to fire at least once.
                 setIsLoading(false);
             }, (error) => {
                 console.error(error);
@@ -80,19 +85,15 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
             });
         });
 
-        // Cleanup listeners on component unmount
         return () => unsubscribers.forEach(unsub => unsub());
     }, []);
     
 
-  // This function is not used anymore, but we keep it for compatibility
-  // with the configuration page that might still use it. A refactor
-  // of that page is recommended.
   const updateConfig = async (configType: ConfigType, newItems: ConfigItem[]) => {};
 
 
   return (
-    <FirebaseDataContext.Provider value={{ employees, fingerprintAppointments, config, isLoading, updateConfig }}>
+    <FirebaseDataContext.Provider value={{ employees, fingerprintAppointments, absences, config, isLoading, updateConfig }}>
       {children}
     </FirebaseDataContext.Provider>
   );

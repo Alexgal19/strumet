@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -22,6 +23,7 @@ import {
   Component,
   LogOut,
   CalendarClock,
+  CalendarCheck,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { ActiveView } from './main-layout';
@@ -38,6 +40,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
     { view: 'aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
     { view: 'zwolnieni', icon: <UserX />, label: 'Pracownicy zwolnieni' },
     { view: 'planowanie', icon: <CalendarClock />, label: 'Planowanie' },
+    { view: 'odwiedzalnosc', icon: <CalendarCheck />, label: 'Odliczanie obecności' },
     { view: 'statystyki', icon: <BarChart3 />, label: 'Statystyki' },
     { view: 'wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
     { view: 'odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },

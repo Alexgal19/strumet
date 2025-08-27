@@ -1,3 +1,4 @@
+
 export interface Employee {
   id: string;
   fullName: string;
@@ -40,6 +41,12 @@ export interface FingerprintAppointment {
   id: string;
   employeeId: string;
   appointmentDate: string; // ISO string format
+}
+
+export interface Absence {
+  id: string;
+  employeeId: string;
+  date: string; // YYYY-MM-DD
 }
 
 export interface AbsenceRecord {

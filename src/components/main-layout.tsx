@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -13,6 +14,7 @@ import FingerprintAppointmentsPage from '../app/(app)/odciski-palcow/page';
 import NoLoginPage from '../app/(app)/brak-logowania/page';
 import ConfigurationPage from '../app/(app)/konfiguracja/page';
 import PlanningPage from '../app/(app)/planowanie/page';
+import AttendancePage from '../app/(app)/odwiedzalnosc/page';
 
 export type ActiveView = 
   | 'aktywni' 
@@ -22,7 +24,8 @@ export type ActiveView =
   | 'odciski-palcow' 
   | 'brak-logowania' 
   | 'konfiguracja'
-  | 'planowanie';
+  | 'planowanie'
+  | 'odwiedzalnosc';
 
 
 export default function MainLayout() {
@@ -36,6 +39,8 @@ export default function MainLayout() {
         return <TerminatedEmployeesPage />;
       case 'planowanie':
         return <PlanningPage />;
+      case 'odwiedzalnosc':
+        return <AttendancePage />;
       case 'statystyki':
         return <StatisticsPage />;
       case 'wydawanie-odziezy':
