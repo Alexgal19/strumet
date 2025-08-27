@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
@@ -40,11 +39,21 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
+interface AbsencesByEmployee {
+  count: number;
+  dates: Set<string>;
+}
+
 export default function AttendancePage() {
   const { employees, absences, config, isLoading } = useFirebaseData();
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
+
+  // Pre-calculated data states
+  const [absencesByEmployeeForMonth, setAbsencesByEmployeeForMonth] = useState<Map<string, AbsencesByEmployee>>(new Map());
+  const [departmentAbsenceData, setDepartmentAbsenceData] = useState<any[]>([]);
+  const [overallAbsenceDays, setOverallAbsenceDays] = useState(0);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
@@ -73,11 +82,14 @@ export default function AttendancePage() {
     return daysInMonth.filter(day => !isWeekend(day) && !isHoliday(day)).length;
   }, [daysInMonth, holidays]);
   
-  const absencesByEmployeeForMonth = useMemo(() => {
+  useEffect(() => {
+    if (isLoading) return;
+
     const start = startOfMonth(currentDate);
     const end = endOfMonth(currentDate);
     const absencesMap = new Map<string, Set<string>>();
 
+    // 1. Create a map of absences for the current month
     absences.forEach(absence => {
         try {
             const absenceDate = parse(absence.date, 'yyyy-MM-dd', new Date());
@@ -92,15 +104,50 @@ export default function AttendancePage() {
         }
     });
 
-    const result = new Map<string, { count: number, dates: Set<string> }>();
+    // 2. Calculate absences per employee
+    const newAbsencesByEmployee = new Map<string, AbsencesByEmployee>();
+    let totalAbsences = 0;
     activeEmployees.forEach(emp => {
       const empAbsences = absencesMap.get(emp.id) || new Set();
-      result.set(emp.id, { count: empAbsences.size, dates: empAbsences });
+      newAbsencesByEmployee.set(emp.id, { count: empAbsences.size, dates: empAbsences });
+      totalAbsences += empAbsences.size;
     });
+    setAbsencesByEmployeeForMonth(newAbsencesByEmployee);
+    setOverallAbsenceDays(totalAbsences);
+    
+    // 3. Calculate department statistics
+    if (workingDaysInMonth > 0) {
+      const newDepartmentData = config.departments.map((dept, index) => {
+        const deptEmployees = activeEmployees.filter(e => e.department === dept.name);
+        if (deptEmployees.length === 0) return null;
 
-    return result;
-  }, [absences, currentDate, activeEmployees]);
-  
+        let deptAbsences = 0;
+        deptEmployees.forEach(emp => {
+          deptAbsences += newAbsencesByEmployee.get(emp.id)?.count || 0;
+        });
+
+        const totalPossibleDays = deptEmployees.length * workingDaysInMonth;
+        const percentage = totalPossibleDays > 0 ? (deptAbsences / totalPossibleDays) * 100 : 0;
+        
+        return {
+          name: dept.name,
+          absences: deptAbsences,
+          percentage: percentage,
+          fill: CHART_COLORS[index % CHART_COLORS.length]
+        };
+      }).filter(Boolean).sort((a, b) => (b?.absences || 0) - (a?.absences || 0));
+      
+      setDepartmentAbsenceData(newDepartmentData as any[]);
+    } else {
+      setDepartmentAbsenceData([]);
+    }
+
+  }, [currentDate, absences, activeEmployees, config.departments, isLoading, workingDaysInMonth]);
+
+
+  const overallAbsencePercentage = workingDaysInMonth > 0 && activeEmployees.length > 0
+    ? (overallAbsenceDays / (workingDaysInMonth * activeEmployees.length)) * 100
+    : 0;
 
   const handlePrevMonth = () => {
     setCurrentDate(subMonths(currentDate, 1));
@@ -151,42 +198,6 @@ export default function AttendancePage() {
     }
   };
   
-  const overallAbsenceDays = useMemo(() => {
-    let total = 0;
-    absencesByEmployeeForMonth.forEach(value => {
-        total += value.count;
-    });
-    return total;
-  }, [absencesByEmployeeForMonth]);
-  
-  const overallAbsencePercentage = workingDaysInMonth > 0 && activeEmployees.length > 0
-    ? (overallAbsenceDays / (workingDaysInMonth * activeEmployees.length)) * 100
-    : 0;
-
-  const departmentAbsenceData = useMemo(() => {
-    if (workingDaysInMonth === 0) return [];
-    
-    return config.departments.map((dept, index) => {
-      const deptEmployees = activeEmployees.filter(e => e.department === dept.name);
-      if (deptEmployees.length === 0) return null;
-
-      let deptAbsences = 0;
-      deptEmployees.forEach(emp => {
-        deptAbsences += absencesByEmployeeForMonth.get(emp.id)?.count || 0;
-      });
-
-      const totalPossibleDays = deptEmployees.length * workingDaysInMonth;
-      const percentage = totalPossibleDays > 0 ? (deptAbsences / totalPossibleDays) * 100 : 0;
-      
-      return {
-        name: dept.name,
-        absences: deptAbsences,
-        percentage: percentage,
-        fill: CHART_COLORS[index % CHART_COLORS.length]
-      };
-    }).filter(Boolean).sort((a, b) => (b?.absences || 0) - (a?.absences || 0));
-  }, [activeEmployees, absencesByEmployeeForMonth, config.departments, workingDaysInMonth]);
-
 
   if (isLoading) {
     return (
