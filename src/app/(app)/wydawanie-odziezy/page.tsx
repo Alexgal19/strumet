@@ -50,6 +50,7 @@ export default function ClothingIssuancePage() {
 
   const handlePrint = () => {
     window.print();
+    
     if (!selectedEmployeeId || !selectedEmployee) return;
     if (selectedItemsList.length === 0) return;
 
@@ -259,6 +260,7 @@ export default function ClothingIssuancePage() {
       </div>
       <div className="hidden print:block">
         <ClothingIssuancePrintForm
+            ref={printComponentRef}
             employee={selectedEmployee}
             clothingItems={selectedItemsList}
             issuanceDate={new Date()}

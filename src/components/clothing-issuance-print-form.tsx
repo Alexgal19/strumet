@@ -25,53 +25,63 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
         <style type="text/css" media="print">
           {`
             @page { 
-              size: A4; 
-              margin: 2.5cm; 
+              size: A4;
+              margin: 1.5cm;
             }
-            body { 
-              -webkit-print-color-adjust: exact; 
-              background-color: #fff;
+            html, body {
+              height: 100%;
+              margin: 0;
+              padding: 0;
+              font-family: 'Times New Roman', Times, serif;
+              font-size: 11pt;
             }
             .print-container {
-              width: 100%;
+              display: flex;
+              flex-direction: column;
               height: 100%;
+              width: 100%;
+              border: 1px solid black;
+              padding: 1.5cm;
+              box-sizing: border-box;
             }
           `}
         </style>
-        <div className="print-container space-y-6 text-sm">
-            <header className="text-center">
-                <h1 className="text-base font-bold">Wniosek o wydanie odzieży ochronnej, obuwia roboczego oraz środków ochrony indywidualnej</h1>
+        <div className="print-container">
+            <header className="text-center mb-6">
+                <h1 className="text-base font-bold underline">Wniosek o wydanie odzieży ochronnej, obuwia roboczego oraz środków ochrony indywidualnej</h1>
             </header>
 
-            <div className="text-right">
-                <p>Data: {format(issuanceDate, 'PPP', { locale: pl })}</p>
+            <div className="text-right mb-8">
+                <p>Data: {format(issuanceDate, 'dd.MM.yyyy', { locale: pl })}</p>
             </div>
             
-            <section className="space-y-2">
-                <h2 className="font-bold">Dane Pracownika:</h2>
-                <p>Imię i nazwisko: <span className="font-semibold">{employee.fullName}</span></p>
-                <p>Stanowisko: <span className="font-semibold">{employee.jobTitle}</span></p>
-                <p>Dział: <span className="font-semibold">{employee.department}</span></p>
+            <section className="space-y-2 mb-6">
+                <p><strong>Dane Pracownika:</strong></p>
+                <div className="grid grid-cols-[120px_1fr] gap-x-2">
+                    <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
+                    <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
+                    <p>Dział:</p>          <p className="font-semibold">{employee.department}</p>
+                </div>
             </section>
 
-            <section className="space-y-2">
-                <h2 className="font-bold">Wnioskowane artykuły:</h2>
+            <section className="space-y-2 flex-grow">
+                <p><strong>Wnioskowane artykuły:</strong></p>
                 {clothingItems.length > 0 ? (
-                    <ul className="list-disc list-inside pl-4">
+                    <ul className="list-decimal list-inside pl-4 space-y-1">
                         {clothingItems.map((item, index) => (
                             <li key={index}>{item}</li>
                         ))}
                     </ul>
                 ) : (
-                    <p className="text-muted-foreground">(Brak wybranych artykułów)</p>
+                    <p className="text-gray-500">(Brak wybranych artykułów)</p>
                 )}
             </section>
             
-            <footer className="pt-20">
-                <div className="grid grid-cols-1">
-                    <div className="text-center w-1/2 mx-auto">
-                        <div className="border-t border-dashed border-black pt-1">
-                             <p className="text-xs">Podpis opiekuna</p>
+            <footer className="pt-20 mt-auto">
+                <div className="flex justify-end">
+                    <div className="text-center w-1/3">
+                        <div className="border-t border-black pt-1">
+                             <p className="text-xs">(podpis pracownika)</p>
                         </div>
                     </div>
                 </div>
