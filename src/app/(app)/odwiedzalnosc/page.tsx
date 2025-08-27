@@ -26,6 +26,7 @@ import {
   isToday,
   setYear,
   setMonth,
+  parse,
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getPolishHolidays } from '@/lib/holidays';
@@ -71,7 +72,35 @@ export default function AttendancePage() {
   const workingDaysInMonth = useMemo(() => {
     return daysInMonth.filter(day => !isWeekend(day) && !isHoliday(day)).length;
   }, [daysInMonth, holidays]);
+  
+  const absencesByEmployeeForMonth = useMemo(() => {
+    const start = startOfMonth(currentDate);
+    const end = endOfMonth(currentDate);
+    const absencesMap = new Map<string, Set<string>>();
 
+    absences.forEach(absence => {
+        try {
+            const absenceDate = parse(absence.date, 'yyyy-MM-dd', new Date());
+            if (absenceDate >= start && absenceDate <= end) {
+                if (!absencesMap.has(absence.employeeId)) {
+                    absencesMap.set(absence.employeeId, new Set());
+                }
+                absencesMap.get(absence.employeeId)?.add(absence.date);
+            }
+        } catch (e) {
+             console.error("Could not parse absence date:", absence.date);
+        }
+    });
+
+    const result = new Map<string, { count: number, dates: Set<string> }>();
+    activeEmployees.forEach(emp => {
+      const empAbsences = absencesMap.get(emp.id) || new Set();
+      result.set(emp.id, { count: empAbsences.size, dates: empAbsences });
+    });
+
+    return result;
+  }, [absences, currentDate, activeEmployees]);
+  
 
   const handlePrevMonth = () => {
     setCurrentDate(subMonths(currentDate, 1));
@@ -88,7 +117,6 @@ export default function AttendancePage() {
   const handleMonthChange = (monthIndex: string) => {
     setCurrentDate(newDate => setMonth(newDate, parseInt(monthIndex, 10)));
   };
-
 
   const toggleAbsence = async (employeeId: string, date: Date) => {
     if (isWeekend(date) || isHoliday(date)) {
@@ -122,23 +150,14 @@ export default function AttendancePage() {
         });
     }
   };
-
-  const getEmployeeAbsencesForMonth = (employeeId: string) => {
-    const start = startOfMonth(currentDate);
-    const end = endOfMonth(currentDate);
-    return absences.filter(a =>
-      a.employeeId === employeeId &&
-      new Date(a.date) >= start &&
-      new Date(a.date) <= end
-    ).length;
-  };
-
+  
   const overallAbsenceDays = useMemo(() => {
-    return absences.filter(a => {
-        const date = new Date(a.date);
-        return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
-    }).length;
-  }, [absences, currentDate]);
+    let total = 0;
+    absencesByEmployeeForMonth.forEach(value => {
+        total += value.count;
+    });
+    return total;
+  }, [absencesByEmployeeForMonth]);
   
   const overallAbsencePercentage = workingDaysInMonth > 0 && activeEmployees.length > 0
     ? (overallAbsenceDays / (workingDaysInMonth * activeEmployees.length)) * 100
@@ -151,11 +170,10 @@ export default function AttendancePage() {
       const deptEmployees = activeEmployees.filter(e => e.department === dept.name);
       if (deptEmployees.length === 0) return null;
 
-      const deptAbsences = absences.filter(a => {
-        const date = new Date(a.date);
-        const employee = deptEmployees.find(e => e.id === a.employeeId);
-        return employee && date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
-      }).length;
+      let deptAbsences = 0;
+      deptEmployees.forEach(emp => {
+        deptAbsences += absencesByEmployeeForMonth.get(emp.id)?.count || 0;
+      });
 
       const totalPossibleDays = deptEmployees.length * workingDaysInMonth;
       const percentage = totalPossibleDays > 0 ? (deptAbsences / totalPossibleDays) * 100 : 0;
@@ -167,7 +185,7 @@ export default function AttendancePage() {
         fill: CHART_COLORS[index % CHART_COLORS.length]
       };
     }).filter(Boolean).sort((a, b) => (b?.absences || 0) - (a?.absences || 0));
-  }, [activeEmployees, absences, config.departments, currentDate, workingDaysInMonth]);
+  }, [activeEmployees, absencesByEmployeeForMonth, config.departments, workingDaysInMonth]);
 
 
   if (isLoading) {
@@ -334,7 +352,8 @@ export default function AttendancePage() {
                 {/* Employee Rows */}
                 {filteredEmployees.length > 0 ? (
                     filteredEmployees.map(employee => {
-                        const absencesCount = getEmployeeAbsencesForMonth(employee.id);
+                        const employeeAbsenceInfo = absencesByEmployeeForMonth.get(employee.id);
+                        const absencesCount = employeeAbsenceInfo?.count || 0;
                         const absencePercentage = workingDaysInMonth > 0 ? (absencesCount / workingDaysInMonth) * 100 : 0;
 
                         return (
@@ -351,7 +370,7 @@ export default function AttendancePage() {
                                 </div>
                                 {daysInMonth.map(day => {
                                     const dateString = format(day, 'yyyy-MM-dd');
-                                    const isAbsent = absences.some(a => a.employeeId === employee.id && a.date === dateString);
+                                    const isAbsent = employeeAbsenceInfo?.dates.has(dateString);
                                     
                                     return (
                                         <div
