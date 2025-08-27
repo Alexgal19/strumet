@@ -33,7 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
@@ -52,6 +52,8 @@ const EmployeeForm = dynamic(() => import('@/components/employee-form').then(mod
   ssr: false
 });
 
+const ITEMS_PER_PAGE = 50;
+
 export default function TerminatedEmployeesPage() {
   const { employees, config, isLoading } = useFirebaseData();
   const { departments, jobTitles, managers, nationalities } = config;
@@ -66,6 +68,7 @@ export default function TerminatedEmployeesPage() {
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
@@ -75,13 +78,13 @@ export default function TerminatedEmployeesPage() {
 
       const isInDateRange = () => {
         if (!dateRange.from && !dateRange.to) return true;
-        if (!employee.terminationDate || typeof employee.terminationDate !== 'string') return true;
+        if (!employee.terminationDate || typeof employee.terminationDate !== 'string') return false;
         
         try {
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.terminationDate)) return true;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.terminationDate)) return false;
 
           const terminationDate = parse(employee.terminationDate, 'yyyy-MM-dd', new Date());
-          if (isNaN(terminationDate.getTime())) return true;
+          if (isNaN(terminationDate.getTime())) return false;
 
           const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
           const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
@@ -92,7 +95,7 @@ export default function TerminatedEmployeesPage() {
           return true;
         } catch (e) {
           console.error("Error parsing termination date:", e);
-          return true;
+          return false;
         }
       };
 
@@ -106,6 +109,19 @@ export default function TerminatedEmployeesPage() {
       );
     });
   }, [terminatedEmployees, searchTerm, filters, dateRange]);
+
+  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+
+  const paginatedEmployees = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredEmployees.slice(startIndex, endIndex);
+  }, [filteredEmployees, currentPage]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filters, dateRange]);
+
 
   const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
@@ -167,6 +183,32 @@ export default function TerminatedEmployeesPage() {
         console.error("Error saving employee: ", error);
     }
   };
+
+  const PaginationControls = () => (
+    <div className="flex items-center justify-center space-x-4 pt-4">
+        <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+        >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Poprzednia
+        </Button>
+        <span className="text-sm font-medium">
+            Strona {currentPage} z {totalPages}
+        </span>
+        <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage >= totalPages}
+        >
+            Następna
+            <ChevronRight className="h-4 w-4 ml-1" />
+        </Button>
+    </div>
+  );
   
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
@@ -261,7 +303,7 @@ export default function TerminatedEmployeesPage() {
 
        {/* Mobile View - Cards */}
        <div className="flex-grow space-y-4 lg:hidden">
-        {filteredEmployees.map(employee => (
+        {paginatedEmployees.map(employee => (
           <Card key={employee.id} className="w-full" onClick={() => handleEditEmployee(employee)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg">{employee.fullName}</CardTitle>
@@ -293,69 +335,73 @@ export default function TerminatedEmployeesPage() {
             </CardContent>
           </Card>
         ))}
+        {totalPages > 1 && <PaginationControls />}
         {filteredEmployees.length === 0 && !isLoading && (
           <div className="text-center text-muted-foreground py-10">Brak zwolnionych pracowników pasujących do kryteriów.</div>
         )}
       </div>
 
       {/* Desktop View - Table */}
-      <div className="hidden flex-grow overflow-auto rounded-lg border lg:block">
-        <Table>
-          <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
-            <TableRow>
-              <TableHead>Nazwisko i imię</TableHead>
-              <TableHead>Data zatrudnienia</TableHead>
-              <TableHead>Data zwolnienia</TableHead>
-              <TableHead>Stanowisko</TableHead>
-              <TableHead>Dział</TableHead>
-              <TableHead>Kierownik</TableHead>
-              <TableHead>Nr karty</TableHead>
-              <TableHead>Narodowość</TableHead>
-              <TableHead className="text-right">Akcje</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredEmployees.length > 0 ? filteredEmployees.map(employee => (
-              <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
-                <TableCell className="font-medium">{employee.fullName}</TableCell>
-                <TableCell>{employee.hireDate}</TableCell>
-                <TableCell>{employee.terminationDate}</TableCell>
-                <TableCell>{employee.jobTitle}</TableCell>
-                <TableCell>{employee.department}</TableCell>
-                <TableCell>{employee.manager}</TableCell>
-                <TableCell>{employee.cardNumber}</TableCell>
-                <TableCell>{employee.nationality}</TableCell>
-                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Otwórz menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                           <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                             <Edit className="mr-2 h-4 w-4" />
-                              Edytuj
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleRestoreEmployee(employee.id)}>
-                            <RotateCcw className="mr-2 h-4 w-4" />
-                            Przywróć
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            )) : !isLoading && (
+      <div className="hidden flex-col flex-grow lg:flex">
+        <div className="flex-grow overflow-auto rounded-lg border">
+          <Table>
+            <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center">
-                  Brak zwolnionych pracowników pasujących do kryteriów.
-                </TableCell>
+                <TableHead>Nazwisko i imię</TableHead>
+                <TableHead>Data zatrudnienia</TableHead>
+                <TableHead>Data zwolnienia</TableHead>
+                <TableHead>Stanowisko</TableHead>
+                <TableHead>Dział</TableHead>
+                <TableHead>Kierownik</TableHead>
+                <TableHead>Nr karty</TableHead>
+                <TableHead>Narodowość</TableHead>
+                <TableHead className="text-right">Akcje</TableHead>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {paginatedEmployees.length > 0 ? paginatedEmployees.map(employee => (
+                <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
+                  <TableCell className="font-medium">{employee.fullName}</TableCell>
+                  <TableCell>{employee.hireDate}</TableCell>
+                  <TableCell>{employee.terminationDate}</TableCell>
+                  <TableCell>{employee.jobTitle}</TableCell>
+                  <TableCell>{employee.department}</TableCell>
+                  <TableCell>{employee.manager}</TableCell>
+                  <TableCell>{employee.cardNumber}</TableCell>
+                  <TableCell>{employee.nationality}</TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Otwórz menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                             <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                               <Edit className="mr-2 h-4 w-4" />
+                                Edytuj
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleRestoreEmployee(employee.id)}>
+                              <RotateCcw className="mr-2 h-4 w-4" />
+                              Przywróć
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )) : !isLoading && (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-24 text-center">
+                    Brak zwolnionych pracowników pasujących do kryteriów.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {totalPages > 1 && <PaginationControls />}
       </div>
     </div>
   );

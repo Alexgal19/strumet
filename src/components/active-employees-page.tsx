@@ -90,13 +90,14 @@ export default function ActiveEmployeesPage() {
       
       const isInDateRange = () => {
         if (!dateRange.from && !dateRange.to) return true;
-        if (!employee.hireDate || typeof employee.hireDate !== 'string') return true;
+        if (!employee.hireDate || typeof employee.hireDate !== 'string') return false;
         
         try {
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.hireDate)) return true;
+          // Basic check for yyyy-mm-dd format
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.hireDate)) return false;
 
           const hireDate = parse(employee.hireDate, 'yyyy-MM-dd', new Date());
-          if (isNaN(hireDate.getTime())) return true; 
+          if (isNaN(hireDate.getTime())) return false; 
 
           const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
           const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
@@ -107,7 +108,7 @@ export default function ActiveEmployeesPage() {
           return true;
         } catch (e) {
           console.error("Error parsing hire date:", e);
-          return true;
+          return false;
         }
       };
 
@@ -233,7 +234,7 @@ export default function ActiveEmployeesPage() {
             variant="outline" 
             size="sm" 
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
+            disabled={currentPage >= totalPages}
         >
             Następna
             <ChevronRight className="h-4 w-4 ml-1" />
@@ -348,7 +349,7 @@ export default function ActiveEmployeesPage() {
       </div>
 
        {/* Mobile View - Cards */}
-       <div className="flex-grow space-y-4 lg:hidden">
+      <div className="flex-grow space-y-4 lg:hidden">
         {paginatedEmployees.map(employee => (
           <Card key={employee.id} className="w-full" onClick={() => handleEditEmployee(employee)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
