@@ -60,14 +60,9 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
             </section>
             
             <footer className="pt-20">
-                <div className="grid grid-cols-2 gap-20">
-                    <div className="text-center">
-                        <div className="border-t border-dashed border-black w-3/4 mx-auto pt-1">
-                            <p className="text-xs">Podpis pracownika</p>
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <div className="border-t border-dashed border-black w-3/4 mx-auto pt-1">
+                <div className="grid grid-cols-1">
+                    <div className="text-center w-1/2 mx-auto">
+                        <div className="border-t border-dashed border-black pt-1">
                              <p className="text-xs">Podpis opiekuna</p>
                         </div>
                     </div>
