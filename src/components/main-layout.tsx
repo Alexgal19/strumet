@@ -2,19 +2,28 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
+import { Loader2 } from 'lucide-react';
 
-import ActiveEmployeesPage from './active-employees-page';
-import TerminatedEmployeesPage from '../app/(app)/zwolnieni/page';
-import StatisticsPage from '../app/(app)/statystyki/page';
-import ClothingIssuancePage from '../app/(app)/wydawanie-odziezy/page';
-import FingerprintAppointmentsPage from '../app/(app)/odciski-palcow/page';
-import NoLoginPage from '../app/(app)/brak-logowania/page';
-import ConfigurationPage from '../app/(app)/konfiguracja/page';
-import PlanningPage from '../app/(app)/planowanie/page';
-import AttendancePage from '../app/(app)/odwiedzalnosc/page';
+const LoadingComponent = () => (
+  <div className="flex h-full w-full items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin" />
+  </div>
+);
+
+const ActiveEmployeesPage = dynamic(() => import('./active-employees-page'), { loading: LoadingComponent });
+const TerminatedEmployeesPage = dynamic(() => import('../app/(app)/zwolnieni/page'), { loading: LoadingComponent });
+const StatisticsPage = dynamic(() => import('../app/(app)/statystyki/page'), { loading: LoadingComponent });
+const ClothingIssuancePage = dynamic(() => import('../app/(app)/wydawanie-odziezy/page'), { loading: LoadingComponent });
+const FingerprintAppointmentsPage = dynamic(() => import('../app/(app)/odciski-palcow/page'), { loading: LoadingComponent });
+const NoLoginPage = dynamic(() => import('../app/(app)/brak-logowania/page'), { loading: LoadingComponent });
+const ConfigurationPage = dynamic(() => import('../app/(app)/konfiguracja/page'), { loading: LoadingComponent });
+const PlanningPage = dynamic(() => import('../app/(app)/planowanie/page'), { loading: LoadingComponent });
+const AttendancePage = dynamic(() => import('../app/(app)/odwiedzalnosc/page'), { loading: LoadingComponent });
+
 
 export type ActiveView = 
   | 'aktywni' 
