@@ -264,9 +264,7 @@ export default function ClothingIssuancePage() {
                 </div>
             </div>
             <DialogFooter>
-                <DialogClose asChild>
-                    <Button type="button">Zatwierdź</Button>
-                </DialogClose>
+                <Button type="button" onClick={() => setIsModalOpen(false)}>Zatwierdź</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
