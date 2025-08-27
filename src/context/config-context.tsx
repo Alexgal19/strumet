@@ -4,7 +4,7 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import type { ConfigItem, Employee, FingerprintAppointment, Absence } from '@/lib/types';
+import type { ConfigItem, Employee, FingerprintAppointment, Absence, ClothingIssuanceHistoryItem } from '@/lib/types';
 
 export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
@@ -20,6 +20,7 @@ interface FirebaseDataContextType {
   employees: Employee[];
   fingerprintAppointments: FingerprintAppointment[];
   absences: Absence[];
+  clothingIssuances: ClothingIssuanceHistoryItem[];
   config: AllConfig;
   isLoading: boolean;
   updateConfig: (configType: ConfigType, newItems: ConfigItem[]) => Promise<void>;
@@ -43,6 +44,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
+    const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuanceHistoryItem[]>([]);
     const [config, setConfig] = useState<AllConfig>(initialConfig);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -53,6 +55,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
             ref(db, 'config'),
             ref(db, 'fingerprintAppointments'),
             ref(db, 'absences'),
+            ref(db, 'clothingIssuances'),
         ];
 
         const unsubscribers = refs.map((r, index) => {
@@ -77,15 +80,28 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
                     case 3:
                         setAbsences(objectToArray(data));
                         break;
+                    case 4:
+                        setClothingIssuances(objectToArray(data));
+                        break;
                 }
-                setIsLoading(false);
+                // Only set loading to false after all initial data is loaded
+                // A more robust solution might use Promise.all
+                if (index === refs.length - 1) {
+                  setIsLoading(false);
+                }
             }, (error) => {
                 console.error(error);
                 setIsLoading(false);
             });
         });
 
-        return () => unsubscribers.forEach(unsub => unsub());
+        // Set a timeout to prevent infinite loading state in case of issues
+        const timeoutId = setTimeout(() => setIsLoading(false), 5000);
+
+        return () => {
+          unsubscribers.forEach(unsub => unsub());
+          clearTimeout(timeoutId);
+        }
     }, []);
     
 
@@ -93,7 +109,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-    <FirebaseDataContext.Provider value={{ employees, fingerprintAppointments, absences, config, isLoading, updateConfig }}>
+    <FirebaseDataContext.Provider value={{ employees, fingerprintAppointments, absences, clothingIssuances, config, isLoading, updateConfig }}>
       {children}
     </FirebaseDataContext.Provider>
   );

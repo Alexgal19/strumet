@@ -37,6 +37,14 @@ export interface ClothingIssuance {
   signature: string;
 }
 
+export interface ClothingIssuanceHistoryItem {
+    id: string;
+    employeeId: string;
+    employeeFullName: string;
+    date: string; // YYYY-MM-DD
+    items: string[];
+}
+
 export interface FingerprintAppointment {
   id: string;
   employeeId: string;
