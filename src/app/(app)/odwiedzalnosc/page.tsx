@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -13,6 +12,7 @@ import { PageHeader } from '@/components/page-header';
 import { useFirebaseData } from '@/context/config-context';
 import { Loader2, ArrowLeft, ArrowRight, User, TrendingDown, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   startOfMonth,
   endOfMonth,
@@ -23,7 +23,9 @@ import {
   addMonths,
   subMonths,
   isToday,
-  getDay
+  getDay,
+  setYear,
+  setMonth,
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getPolishHolidays } from '@/lib/holidays';
@@ -68,6 +70,15 @@ export default function AttendancePage() {
   const handleNextMonth = () => {
     setCurrentDate(addMonths(currentDate, 1));
   };
+  
+  const handleYearChange = (year: string) => {
+    setCurrentDate(newDate => setYear(newDate, parseInt(year, 10)));
+  };
+
+  const handleMonthChange = (monthIndex: string) => {
+    setCurrentDate(newDate => setMonth(newDate, parseInt(monthIndex, 10)));
+  };
+
 
   const toggleAbsence = async (employeeId: string, date: Date) => {
     if (isWeekend(date) || isHoliday(date)) {
@@ -129,6 +140,12 @@ export default function AttendancePage() {
     ? (overallAbsenceDays / (workingDaysInMonth * activeEmployees.length)) * 100
     : 0;
 
+  const years = Array.from({length: 10}, (_, i) => new Date().getFullYear() - 5 + i);
+  const months = Array.from({length: 12}, (_, i) => ({
+      value: i.toString(),
+      label: format(new Date(2000, i), 'LLLL', {locale: pl}),
+  }));
+
   return (
     <div className="flex h-full flex-col">
       <PageHeader
@@ -178,11 +195,31 @@ export default function AttendancePage() {
 
       <Card className="flex-grow flex flex-col">
         <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <CardTitle className="text-2xl capitalize">
                     {format(currentDate, 'LLLL yyyy', { locale: pl })}
                 </CardTitle>
                 <div className="flex items-center gap-2">
+                    <Select value={currentDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue placeholder="Miesiąc" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {months.map(month => (
+                                <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={currentDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                        <SelectTrigger className="w-[100px]">
+                            <SelectValue placeholder="Rok" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {years.map(year => (
+                                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <Button variant="outline" size="icon" onClick={handlePrevMonth}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
@@ -205,7 +242,7 @@ export default function AttendancePage() {
                             isToday(day) && 'bg-primary/20 text-primary-foreground'
                         )}
                     >
-                       <span>{format(day, 'E', { locale: pl }).slice(0, 2)}</span>
+                       <span className="capitalize">{format(day, 'E', { locale: pl }).slice(0, 2)}</span>
                        <span className="font-bold">{format(day, 'd')}</span>
                     </div>
                 ))}
@@ -262,4 +299,3 @@ export default function AttendancePage() {
     </div>
   );
 }
-
