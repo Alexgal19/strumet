@@ -60,12 +60,15 @@ export function TerminatedExcelImportButton() {
             }
           }
             
-          const formatDate = (date: any) => {
+           const formatDate = (date: any): string | undefined => {
+            if (!date) return undefined;
             if (date instanceof Date) {
               return date.toISOString().split('T')[0];
             }
             if (typeof date === 'string') {
-              return date;
+               if (/\d{4}-\d{2}-\d{2}/.test(date) || /\d{1,2}\/\d{1,2}\/\d{4}/.test(date)) {
+                return new Date(date).toISOString().split('T')[0];
+              }
             }
             return undefined;
           };
@@ -75,7 +78,7 @@ export function TerminatedExcelImportButton() {
 
           const employee: Omit<Employee, 'id'> = {
             fullName: String(englishItem.fullName || ''),
-            hireDate: hireDate || new Date().toISOString().split('T')[0],
+            hireDate: hireDate || '',
             terminationDate: terminationDate,
             jobTitle: String(englishItem.jobTitle || ''),
             department: String(englishItem.department || ''),

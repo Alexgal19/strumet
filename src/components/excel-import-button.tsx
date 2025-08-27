@@ -59,13 +59,26 @@ export function ExcelImportButton() {
             }
           }
             
-          const hireDate = englishItem.hireDate instanceof Date 
-            ? englishItem.hireDate.toISOString().split('T')[0]
-            : (typeof englishItem.hireDate === 'string' ? englishItem.hireDate : new Date().toISOString().split('T')[0]);
+          const formatDate = (date: any): string | undefined => {
+            if (!date) return undefined;
+            if (date instanceof Date) {
+              return date.toISOString().split('T')[0];
+            }
+            if (typeof date === 'string') {
+              // Basic check if it resembles a date, can be improved
+              if (/\d{4}-\d{2}-\d{2}/.test(date) || /\d{1,2}\/\d{1,2}\/\d{4}/.test(date)) {
+                return new Date(date).toISOString().split('T')[0];
+              }
+            }
+            return undefined;
+          };
+
+          const hireDate = formatDate(englishItem.hireDate);
+
 
           const employee: Omit<Employee, 'id'> = {
             fullName: String(englishItem.fullName || ''),
-            hireDate: hireDate,
+            hireDate: hireDate || '',
             jobTitle: String(englishItem.jobTitle || ''),
             department: String(englishItem.department || ''),
             manager: String(englishItem.manager || ''),
