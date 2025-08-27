@@ -26,6 +26,7 @@ import {
   getDay,
   setYear,
   setMonth,
+  getDaysInMonth,
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getPolishHolidays } from '@/lib/holidays';
@@ -48,20 +49,17 @@ export default function AttendancePage() {
     return holidays.some(holiday => isSameDay(holiday, date));
   };
   
-  const workingDaysInMonth = useMemo(() => {
-    const days = eachDayOfInterval({
-      start: startOfMonth(currentDate),
-      end: endOfMonth(currentDate),
-    });
-    return days.filter(day => !isWeekend(day) && !isHoliday(day)).length;
-  }, [currentDate, holidays]);
-
   const daysInMonth = useMemo(() => {
     return eachDayOfInterval({
       start: startOfMonth(currentDate),
       end: endOfMonth(currentDate),
     });
   }, [currentDate]);
+
+  const workingDaysInMonth = useMemo(() => {
+    return daysInMonth.filter(day => !isWeekend(day) && !isHoliday(day)).length;
+  }, [daysInMonth, holidays]);
+
 
   const handlePrevMonth = () => {
     setCurrentDate(subMonths(currentDate, 1));
@@ -145,6 +143,8 @@ export default function AttendancePage() {
       value: i.toString(),
       label: format(new Date(2000, i), 'LLLL', {locale: pl}),
   }));
+
+  const gridTemplateColumns = `200px repeat(${daysInMonth.length}, minmax(0, 1fr))`;
 
   return (
     <div className="flex h-full flex-col">
@@ -230,14 +230,14 @@ export default function AttendancePage() {
             </div>
         </CardHeader>
         <CardContent className="flex-grow overflow-auto">
-            <div className="grid grid-cols-[200px_repeat(31,minmax(0,1fr))] gap-px bg-border -ml-6 -mr-6">
+            <div className="grid gap-px bg-border -ml-6 -mr-6" style={{ gridTemplateColumns }}>
                 {/* Header Row */}
                 <div className="sticky top-0 z-10 bg-muted/50 p-2 text-sm font-semibold flex items-center justify-start">Pracownik</div>
                 {daysInMonth.map(day => (
                     <div 
                         key={day.toString()}
                         className={cn(
-                            "sticky top-0 z-10 bg-muted/50 p-2 text-center text-sm font-semibold flex flex-col items-center justify-center",
+                            "sticky top-0 z-10 bg-muted/50 p-2 text-center text-sm font-semibold flex flex-col items-center justify-center min-w-[40px]",
                             (isWeekend(day) || isHoliday(day)) && 'bg-muted/30 text-muted-foreground',
                             isToday(day) && 'bg-primary/20 text-primary-foreground'
                         )}
@@ -289,7 +289,7 @@ export default function AttendancePage() {
                         );
                     })
                 ) : (
-                    <div className="col-span-32 text-center p-8 text-muted-foreground">
+                    <div className={`col-span-${daysInMonth.length + 1} text-center p-8 text-muted-foreground`}>
                         Brak aktywnych pracowników.
                     </div>
                 )}
