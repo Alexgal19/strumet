@@ -40,7 +40,7 @@ export default function PlanningPage() {
   }, [activeEmployees]);
 
   const approachingVacations = useMemo(() => {
-    const today = new Date();
+    const today = startOfDay(new Date());
     return activeEmployees
       .filter(e => {
         if (!e.vacationStartDate) return false;
@@ -60,31 +60,32 @@ export default function PlanningPage() {
   }
 
   const EmployeeCard = ({ employee, type }: { employee: Employee, type: 'termination' | 'vacation' | 'vacation-approaching' }) => {
-    const today = new Date();
+    const today = startOfDay(new Date());
     let date, diff, isUrgent, isWarning, isInfo, dateLabel, dateString;
 
     if (type === 'termination' && employee.plannedTerminationDate) {
         date = parseISO(employee.plannedTerminationDate);
-        diff = differenceInDays(date, today);
+        diff = differenceInDays(startOfDay(date), today);
         dateLabel = "Data zwolnienia";
     } else if (type === 'vacation' && employee.vacationEndDate) {
         date = parseISO(employee.vacationEndDate);
-        diff = differenceInDays(date, today);
+        diff = differenceInDays(startOfDay(date), today);
         dateLabel = "Koniec urlopu";
     } else if (type === 'vacation-approaching' && employee.vacationStartDate) {
         date = parseISO(employee.vacationStartDate);
-        diff = differenceInDays(date, today);
+        diff = differenceInDays(startOfDay(date), today);
         dateLabel = "Początek urlopu";
     }
     
     if (date) {
-        isUrgent = diff !== undefined && diff <= 3;
+        isUrgent = diff !== undefined && diff >= 0 && diff <= 3;
         isWarning = diff !== undefined && diff > 3 && diff <= 7;
         isInfo = !isUrgent && !isWarning;
         dateString = format(date, "PPP", { locale: pl });
     }
 
     const getDaysLabel = (days: number) => {
+        if (days < 0) return '';
         if (days === 0) return 'dzisiaj';
         if (days === 1) return `za 1 dzień`;
         if (days > 1 && days < 5) return `za ${days} dni`;
