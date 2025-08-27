@@ -139,7 +139,7 @@ export default function AttendancePage() {
           percentage: percentage,
           fill: CHART_COLORS[index % CHART_COLORS.length]
         };
-      }).filter(Boolean).sort((a, b) => (b?.absences || 0) - (a?.absences || 0));
+      }).filter(Boolean).sort((a, b) => (b?.percentage || 0) - (a?.percentage || 0));
       
       setDepartmentAbsenceData(newDepartmentData as any[]);
     } else {
@@ -217,7 +217,7 @@ export default function AttendancePage() {
       label: format(new Date(2000, i), 'LLLL', {locale: pl}),
   }));
 
-  const gridTemplateColumns = `200px repeat(${daysInMonth.length}, minmax(0, 1fr))`;
+  const gridTemplateColumns = `minmax(200px, 1.5fr) repeat(${daysInMonth.length}, minmax(40px, 1fr))`;
 
   return (
     <div className="flex h-full flex-col">
@@ -362,7 +362,7 @@ export default function AttendancePage() {
                     <div 
                         key={day.toString()}
                         className={cn(
-                            "sticky top-0 z-10 bg-muted/50 p-2 text-center text-sm font-semibold flex flex-col items-center justify-center min-w-[40px]",
+                            "sticky top-0 z-10 bg-muted/50 p-2 text-center text-sm font-semibold flex flex-col items-center justify-center",
                             isHoliday(day) && 'bg-yellow-500/20 text-yellow-700',
                             isWeekend(day) && !isHoliday(day) && 'bg-red-500/10 text-red-600',
                             isToday(day) && 'bg-primary/20 text-primary-foreground'
