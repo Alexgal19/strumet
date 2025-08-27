@@ -30,7 +30,7 @@ export default function ClothingIssuancePage() {
   const [selectedClothing, setSelectedClothing] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const printComponentRef = useRef(null);
+  const printComponentRef = useRef<HTMLDivElement>(null);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
   const selectedEmployee = useMemo(() => {
@@ -174,10 +174,12 @@ export default function ClothingIssuancePage() {
                         <CardDescription>Wygeneruj i wydrukuj dokument wydania.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button onClick={handlePrint} disabled={isSaving} className="w-full">
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                            Drukuj wniosek
-                        </Button>
+                        <div onClick={handlePrint} className="cursor-pointer">
+                            <Button disabled={isSaving} className="w-full pointer-events-none">
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                                Drukuj wniosek
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             )}
