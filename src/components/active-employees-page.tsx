@@ -81,10 +81,8 @@ export default function ActiveEmployeesPage() {
         if (!employee.hireDate || typeof employee.hireDate !== 'string') return false;
         
         try {
-          // The date from firebase is a string 'YYYY-MM-DD'. We need to parse it.
-          // The calendar gives us a Date object.
           const hireDate = parse(employee.hireDate, 'yyyy-MM-dd', new Date());
-          if (isNaN(hireDate.getTime())) return false; // Invalid date parsed
+          if (isNaN(hireDate.getTime())) return false; 
 
           const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
           const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
