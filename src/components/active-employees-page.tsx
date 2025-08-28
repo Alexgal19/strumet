@@ -52,6 +52,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from './excel-import-button';
 import { ExcelExportButton } from './excel-export-button';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 
 const EmployeeForm = dynamic(() => import('./employee-form').then(mod => mod.EmployeeForm), {
   loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
@@ -70,6 +72,7 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 
 export default function ActiveEmployeesPage() {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: []});
   const [isLoading, setIsLoading] = useState(true);
@@ -289,6 +292,128 @@ export default function ActiveEmployeesPage() {
     </div>
   );
 
+  const renderMobileView = () => (
+    <div className="space-y-4">
+        {paginatedEmployees.map(employee => (
+            <Card key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
+                <CardHeader>
+                    <CardTitle>{employee.fullName}</CardTitle>
+                    <CardDescription>{employee.jobTitle}</CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                    <p>Dział: {employee.department}</p>
+                    <p>Kierownik: {employee.manager}</p>
+                    <p>Nr karty: {employee.cardNumber}</p>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                     <EmployeeSummary employee={employee}>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                                <span className="sr-only">Otwórz menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                              <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edytuj
+                              </DropdownMenuItem>
+                               <DropdownMenuItem onSelect={() => handleCopy(employee)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Kopiuj dane
+                              </DropdownMenuItem>
+                               <DropdownMenuItem>
+                                  <Bot className="mr-2 h-4 w-4" />
+                                   Generuj podsumowanie
+                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
+                                <UserX className="mr-2 h-4 w-4" />
+                                Zwolnij
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </EmployeeSummary>
+                </CardFooter>
+            </Card>
+        ))}
+    </div>
+  );
+
+  const renderDesktopView = () => (
+    <div className="flex-grow overflow-auto rounded-lg border">
+        <Table>
+          <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
+            <TableRow>
+              <TableHead>Nazwisko i imię</TableHead>
+              <TableHead>Data zatrudnienia</TableHead>
+              <TableHead>Stanowisko</TableHead>
+              <TableHead>Dział</TableHead>
+              <TableHead>Kierownik</TableHead>
+              <TableHead>Nr karty</TableHead>
+              <TableHead>Narodowość</TableHead>
+              <TableHead>Nr szafki</TableHead>
+              <TableHead className="text-right">Akcje</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedEmployees.length > 0 ? paginatedEmployees.map(employee => (
+              <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
+                <TableCell className="font-medium">{employee.fullName}</TableCell>
+                <TableCell>{employee.hireDate}</TableCell>
+                <TableCell>{employee.jobTitle}</TableCell>
+                <TableCell>{employee.department}</TableCell>
+                <TableCell>{employee.manager}</TableCell>
+                <TableCell>{employee.cardNumber}</TableCell>
+                <TableCell>{employee.nationality}</TableCell>
+                <TableCell>{employee.lockerNumber}</TableCell>
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <EmployeeSummary employee={employee}>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Otwórz menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                              <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edytuj
+                              </DropdownMenuItem>
+                               <DropdownMenuItem onSelect={() => handleCopy(employee)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Kopiuj dane
+                              </DropdownMenuItem>
+                               <DropdownMenuItem>
+                                  <Bot className="mr-2 h-4 w-4" />
+                                   Generuj podsumowanie
+                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
+                                <UserX className="mr-2 h-4 w-4" />
+                                Zwolnij
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </EmployeeSummary>
+                </TableCell>
+              </TableRow>
+            )) : !isLoading && (
+              <TableRow>
+                <TableCell colSpan={9} className="h-24 text-center">
+                  Brak aktywnych pracowników pasujących do kryteriów.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+    </div>
+  );
+
   if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
@@ -297,54 +422,62 @@ export default function ActiveEmployeesPage() {
         title="Pracownicy aktywni"
         description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
       >
-        <ExcelExportButton employees={filteredEmployees} fileName="aktywni_pracownicy" />
-        <ExcelImportButton />
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Usuń daty
+        <div className="hidden md:flex shrink-0 items-center space-x-2">
+            <ExcelExportButton employees={filteredEmployees} fileName="aktywni_pracownicy" />
+            <ExcelImportButton />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Usuń daty
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                    dat zatrudnienia dla wszystkich pracowników (aktywnych i zwolnionych).
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Usuń wszystkich
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                    pracowników (aktywnych i zwolnionych) z bazy danych.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button onClick={handleAddNew}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Dodaj pracownika
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                dat zatrudnienia dla wszystkich pracowników (aktywnych i zwolnionych).
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Anuluj</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Usuń wszystkich
+        </div>
+        <div className="md:hidden">
+             <Button onClick={handleAddNew} size="sm">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Dodaj
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                pracowników (aktywnych i zwolnionych) z bazy danych.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Anuluj</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <Button onClick={handleAddNew}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Dodaj pracownika
-        </Button>
+        </div>
       </PageHeader>
       
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -366,123 +499,64 @@ export default function ActiveEmployeesPage() {
         </DialogContent>
       </Dialog>
       
-      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
-        <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-5 xl:col-span-2">
+      <div className="mb-4 space-y-4">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <MultiSelect
-          options={departmentOptions}
-          selected={selectedDepartments}
-          onChange={setSelectedDepartments}
-          placeholder="Filtruj po dziale"
-        />
-        <MultiSelect
-          options={jobTitleOptions}
-          selected={selectedJobTitles}
-          onChange={setSelectedJobTitles}
-          placeholder="Filtruj po stanowisku"
-        />
-        <MultiSelect
-          options={managerOptions}
-          selected={selectedManagers}
-          onChange={setSelectedManagers}
-          placeholder="Filtruj po kierowniku"
-        />
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zatrudniony od</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
-          </PopoverContent>
-        </Popover>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("justify-start text-left font-normal", !dateRange.to && "text-muted-foreground")}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zatrudniony do</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
-          </PopoverContent>
-        </Popover>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+            <MultiSelect
+              options={departmentOptions}
+              selected={selectedDepartments}
+              onChange={setSelectedDepartments}
+              placeholder="Filtruj po dziale"
+            />
+            <MultiSelect
+              options={jobTitleOptions}
+              selected={selectedJobTitles}
+              onChange={setSelectedJobTitles}
+              placeholder="Filtruj po stanowisku"
+            />
+            <MultiSelect
+              options={managerOptions}
+              selected={selectedManagers}
+              onChange={setSelectedManagers}
+              placeholder="Filtruj po kierowniku"
+            />
+             <MultiSelect
+              options={nationalityOptions}
+              selected={selectedNationalities}
+              onChange={setSelectedNationalities}
+              placeholder="Filtruj po narodowości"
+            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zatrudniony od</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.to && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zatrudniony do</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
+              </PopoverContent>
+            </Popover>
+        </div>
       </div>
 
+
       <div className="flex flex-col flex-grow">
-        <div className="flex-grow overflow-auto rounded-lg border">
-            <Table>
-              <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
-                <TableRow>
-                  <TableHead>Nazwisko i imię</TableHead>
-                  <TableHead>Data zatrudnienia</TableHead>
-                  <TableHead>Stanowisko</TableHead>
-                  <TableHead>Dział</TableHead>
-                  <TableHead>Kierownik</TableHead>
-                  <TableHead>Nr karty</TableHead>
-                  <TableHead>Narodowość</TableHead>
-                  <TableHead>Nr szafki</TableHead>
-                  <TableHead className="text-right">Akcje</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedEmployees.length > 0 ? paginatedEmployees.map(employee => (
-                  <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
-                    <TableCell className="font-medium">{employee.fullName}</TableCell>
-                    <TableCell>{employee.hireDate}</TableCell>
-                    <TableCell>{employee.jobTitle}</TableCell>
-                    <TableCell>{employee.department}</TableCell>
-                    <TableCell>{employee.manager}</TableCell>
-                    <TableCell>{employee.cardNumber}</TableCell>
-                    <TableCell>{employee.nationality}</TableCell>
-                    <TableCell>{employee.lockerNumber}</TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <EmployeeSummary employee={employee}>
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Otwórz menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                                  <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edytuj
-                                  </DropdownMenuItem>
-                                   <DropdownMenuItem onSelect={() => handleCopy(employee)}>
-                                    <Copy className="mr-2 h-4 w-4" />
-                                    Kopiuj dane
-                                  </DropdownMenuItem>
-                                   <DropdownMenuItem>
-                                      <Bot className="mr-2 h-4 w-4" />
-                                       Generuj podsumowanie
-                                   </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
-                                    <UserX className="mr-2 h-4 w-4" />
-                                    Zwolnij
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </EmployeeSummary>
-                    </TableCell>
-                  </TableRow>
-                )) : !isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center">
-                      Brak aktywnych pracowników pasujących do kryteriów.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-        </div>
+        {isMobile ? renderMobileView() : renderDesktopView()}
         {totalPages > 1 && <PaginationControls />}
       </div>
     </div>
