@@ -200,7 +200,7 @@ export default function AttendancePage() {
 
         {attendanceData && attendanceData.stats.departmentAbsenceData.length > 0 && (
           <Card className="mb-6">
-             <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
+             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
                 <AccordionTrigger className="px-6">
                     <div className="flex items-center">
