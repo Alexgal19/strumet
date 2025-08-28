@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, startTransition } from 'react';
 import {
   Card,
   CardContent,
@@ -15,165 +16,91 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import {
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
   format,
-  isWeekend,
-  isSameDay,
   addMonths,
   subMonths,
-  isToday,
   setYear,
   setMonth,
-  parse,
+  startOfMonth,
+  endOfMonth
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { getPolishHolidays } from '@/lib/holidays';
-import { cn } from '@/lib/utils';
-import { Absence } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { ref, set, remove, push } from "firebase/database";
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
+import { getAttendanceDataForMonth, AttendanceData } from '@/lib/attendance-actions';
+import { cn } from '@/lib/utils';
+import { Employee } from '@/lib/types';
 
-
-const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
-
-interface AbsencesByEmployee {
-  count: number;
-  dates: Set<string>;
-}
 
 export default function AttendancePage() {
-  const { employees, absences, config, isLoading } = useFirebaseData();
+  const { config, isLoading: isConfigLoading } = useFirebaseData();
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Pre-calculated data states
-  const [absencesByEmployeeForMonth, setAbsencesByEmployeeForMonth] = useState<Map<string, AbsencesByEmployee>>(new Map());
-  const [departmentAbsenceData, setDepartmentAbsenceData] = useState<any[]>([]);
-  const [overallAbsenceDays, setOverallAbsenceDays] = useState(0);
-
-  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+  
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [attendanceData, setAttendanceData] = useState<AttendanceData | null>(null);
   
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
 
+  const fetchAttendanceData = useCallback(async (date: Date) => {
+    setIsDataLoading(true);
+    try {
+      const data = await getAttendanceDataForMonth(startOfMonth(date), endOfMonth(date));
+      setAttendanceData(data);
+    } catch (error) {
+      console.error("Failed to fetch attendance data:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Nie udało się załadować danych o obecności.',
+      });
+      setAttendanceData(null);
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, [toast]);
+  
+  useEffect(() => {
+    if (!isConfigLoading) {
+        startTransition(() => {
+            fetchAttendanceData(currentDate);
+        });
+    }
+  }, [currentDate, isConfigLoading, fetchAttendanceData]);
+
+
   const filteredEmployees = useMemo(() => {
+    if (!attendanceData) return [];
     const searchLower = searchTerm.toLowerCase();
-    return activeEmployees.filter(e => {
+    return attendanceData.employees.filter(e => {
         const departmentMatch = selectedDepartments.length === 0 || selectedDepartments.includes(e.department);
         const searchMatch = !searchLower || e.fullName.toLowerCase().includes(searchLower);
         return departmentMatch && searchMatch;
     });
-  }, [activeEmployees, selectedDepartments, searchTerm]);
+  }, [attendanceData, selectedDepartments, searchTerm]);
 
 
-  const holidays = useMemo(() => getPolishHolidays(currentDate.getFullYear()), [currentDate]);
-
-  const isHoliday = (date: Date) => {
-    return holidays.some(holiday => isSameDay(holiday, date));
-  };
-  
-  const daysInMonth = useMemo(() => {
-    return eachDayOfInterval({
-      start: startOfMonth(currentDate),
-      end: endOfMonth(currentDate),
+  const handleDateChange = (newDate: Date) => {
+    startTransition(() => {
+      setCurrentDate(newDate);
     });
-  }, [currentDate]);
-
-  const workingDaysInMonth = useMemo(() => {
-    return daysInMonth.filter(day => !isWeekend(day) && !isHoliday(day)).length;
-  }, [daysInMonth, holidays]);
-  
-  useEffect(() => {
-    if (isLoading) return;
-
-    const start = startOfMonth(currentDate);
-    const end = endOfMonth(currentDate);
-    const absencesMap = new Map<string, Set<string>>();
-
-    // 1. Create a map of absences for the current month
-    absences.forEach(absence => {
-        try {
-            const absenceDate = parse(absence.date, 'yyyy-MM-dd', new Date());
-            if (absenceDate >= start && absenceDate <= end) {
-                if (!absencesMap.has(absence.employeeId)) {
-                    absencesMap.set(absence.employeeId, new Set());
-                }
-                absencesMap.get(absence.employeeId)?.add(absence.date);
-            }
-        } catch (e) {
-             console.error("Could not parse absence date:", absence.date);
-        }
-    });
-
-    // 2. Calculate absences per employee
-    const newAbsencesByEmployee = new Map<string, AbsencesByEmployee>();
-    let totalAbsences = 0;
-    activeEmployees.forEach(emp => {
-      const empAbsences = absencesMap.get(emp.id) || new Set();
-      newAbsencesByEmployee.set(emp.id, { count: empAbsences.size, dates: empAbsences });
-      totalAbsences += empAbsences.size;
-    });
-    setAbsencesByEmployeeForMonth(newAbsencesByEmployee);
-    setOverallAbsenceDays(totalAbsences);
-    
-    // 3. Calculate department statistics
-    if (workingDaysInMonth > 0) {
-      const newDepartmentData = config.departments.map((dept, index) => {
-        const deptEmployees = activeEmployees.filter(e => e.department === dept.name);
-        if (deptEmployees.length === 0) return null;
-
-        let deptAbsences = 0;
-        deptEmployees.forEach(emp => {
-          deptAbsences += newAbsencesByEmployee.get(emp.id)?.count || 0;
-        });
-
-        const totalPossibleDays = deptEmployees.length * workingDaysInMonth;
-        const percentage = totalPossibleDays > 0 ? (deptAbsences / totalPossibleDays) * 100 : 0;
-        
-        return {
-          name: dept.name,
-          absences: deptAbsences,
-          percentage: percentage,
-          fill: CHART_COLORS[index % CHART_COLORS.length]
-        };
-      }).filter(Boolean).sort((a, b) => (b?.percentage || 0) - (a?.percentage || 0));
-      
-      setDepartmentAbsenceData(newDepartmentData as any[]);
-    } else {
-      setDepartmentAbsenceData([]);
-    }
-
-  }, [currentDate, absences, activeEmployees, config.departments, isLoading, workingDaysInMonth]);
-
-
-  const overallAbsencePercentage = workingDaysInMonth > 0 && activeEmployees.length > 0
-    ? (overallAbsenceDays / (workingDaysInMonth * activeEmployees.length)) * 100
-    : 0;
-
-  const handlePrevMonth = () => {
-    setCurrentDate(subMonths(currentDate, 1));
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(addMonths(currentDate, 1));
-  };
-  
-  const handleYearChange = (year: string) => {
-    setCurrentDate(newDate => setYear(newDate, parseInt(year, 10)));
-  };
-
-  const handleMonthChange = (monthIndex: string) => {
-    setCurrentDate(newDate => setMonth(newDate, parseInt(monthIndex, 10)));
-  };
+  const handlePrevMonth = () => handleDateChange(subMonths(currentDate, 1));
+  const handleNextMonth = () => handleDateChange(addMonths(currentDate, 1));
+  const handleYearChange = (year: string) => handleDateChange(setYear(currentDate, parseInt(year, 10)));
+  const handleMonthChange = (monthIndex: string) => handleDateChange(setMonth(currentDate, parseInt(monthIndex, 10)));
 
   const toggleAbsence = async (employeeId: string, date: Date) => {
-    if (isWeekend(date) || isHoliday(date)) {
+    if (!attendanceData) return;
+
+    const dayInfo = attendanceData.calendarDays.find(d => d.dateString === format(date, 'yyyy-MM-dd'));
+    if (dayInfo?.isWeekend || dayInfo?.isHoliday) {
       toast({
         variant: 'destructive',
         title: 'Błąd',
@@ -183,7 +110,7 @@ export default function AttendancePage() {
     }
     
     const dateString = format(date, 'yyyy-MM-dd');
-    const existingAbsence = absences.find(a => a.employeeId === employeeId && a.date === dateString);
+    const existingAbsence = attendanceData.absences.find(a => a.employeeId === employeeId && a.date === dateString);
 
     try {
         if (existingAbsence) {
@@ -195,6 +122,8 @@ export default function AttendancePage() {
                 date: dateString,
             });
         }
+        // Refetch data to show updated state
+        fetchAttendanceData(currentDate);
     } catch (error) {
         console.error("Error toggling absence:", error);
         toast({
@@ -205,22 +134,21 @@ export default function AttendancePage() {
     }
   };
   
-
-  if (isLoading) {
+  if (isConfigLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
-
+  
   const years = Array.from({length: 10}, (_, i) => new Date().getFullYear() - 5 + i);
   const months = Array.from({length: 12}, (_, i) => ({
       value: i.toString(),
       label: format(new Date(2000, i), 'LLLL', {locale: pl}),
   }));
 
-  const gridTemplateColumns = `minmax(200px, 1.5fr) repeat(${daysInMonth.length}, minmax(40px, 1fr))`;
+  const gridTemplateColumns = `minmax(200px, 1.5fr) repeat(${attendanceData?.calendarDays.length || 0}, minmax(40px, 1fr))`;
 
   return (
     <div className="flex h-full flex-col">
@@ -236,7 +164,7 @@ export default function AttendancePage() {
                     <User className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{activeEmployees.length}</div>
+                    <div className="text-2xl font-bold">{attendanceData?.stats.totalActiveEmployees ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
                 </CardContent>
             </Card>
             <Card>
@@ -245,7 +173,7 @@ export default function AttendancePage() {
                     <CalendarDays className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{workingDaysInMonth}</div>
+                    <div className="text-2xl font-bold">{attendanceData?.stats.workingDaysInMonth ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
                 </CardContent>
             </Card>
             <Card>
@@ -254,7 +182,7 @@ export default function AttendancePage() {
                     <TrendingDown className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{overallAbsenceDays}</div>
+                    <div className="text-2xl font-bold">{attendanceData?.stats.totalAbsences ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
                 </CardContent>
             </Card>
              <Card>
@@ -263,14 +191,16 @@ export default function AttendancePage() {
                     <div className="h-4 w-4 text-muted-foreground font-bold text-lg">%</div>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{overallAbsencePercentage.toFixed(1)}%</div>
+                    <div className="text-2xl font-bold">
+                      {attendanceData ? `${attendanceData.stats.overallAbsencePercentage.toFixed(1)}%` : <Loader2 className="h-6 w-6 animate-spin" />}
+                    </div>
                 </CardContent>
             </Card>
         </div>
 
-        {departmentAbsenceData.length > 0 && (
+        {attendanceData && attendanceData.stats.departmentAbsenceData.length > 0 && (
           <Card className="mb-6">
-             <Accordion type="single" collapsible className="w-full">
+             <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
               <AccordionItem value="item-1">
                 <AccordionTrigger className="px-6">
                     <div className="flex items-center">
@@ -282,7 +212,7 @@ export default function AttendancePage() {
                   <div className="px-6 pb-4 pt-0">
                     <p className="text-sm text-muted-foreground mb-4">Statystyka nieobecności dla poszczególnych działów w wybranym miesiącu.</p>
                     <div className="space-y-4">
-                      {departmentAbsenceData.map((dept) => dept && (
+                      {attendanceData.stats.departmentAbsenceData.map((dept) => dept && (
                           <div key={dept.name} className="space-y-1">
                               <div className="flex justify-between items-center text-sm font-medium">
                                   <span style={{ color: dept.fill }}>{dept.name}</span>
@@ -335,17 +265,22 @@ export default function AttendancePage() {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+                      <Button variant="outline" size="icon" onClick={handlePrevMonth} disabled={isDataLoading}>
                           <ArrowLeft className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" onClick={handleNextMonth}>
+                      <Button variant="outline" size="icon" onClick={handleNextMonth} disabled={isDataLoading}>
                           <ArrowRight className="h-4 w-4" />
                       </Button>
                     </div>
                 </div>
             </div>
         </CardHeader>
-        <CardContent className="flex-grow overflow-auto">
+        <CardContent className="flex-grow overflow-auto relative">
+            {isDataLoading && (
+                <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-20">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            )}
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
@@ -355,74 +290,78 @@ export default function AttendancePage() {
                 onChange={(e) => setSearchTerm(e.target.value)} 
               />
             </div>
-            <div className="grid gap-px bg-border -ml-6 -mr-6" style={{ gridTemplateColumns }}>
-                {/* Header Row */}
-                <div className="sticky top-0 z-10 bg-muted/50 p-2 text-sm font-semibold flex items-center justify-start">Pracownik</div>
-                {daysInMonth.map(day => (
-                    <div 
-                        key={day.toString()}
-                        className={cn(
-                            "sticky top-0 z-10 bg-muted/50 p-2 text-center text-sm font-semibold flex flex-col items-center justify-center",
-                            isHoliday(day) && 'bg-yellow-500/20 text-yellow-700',
-                            isWeekend(day) && !isHoliday(day) && 'bg-red-500/10 text-red-600',
-                            isToday(day) && 'bg-primary/20 text-primary-foreground'
-                        )}
-                    >
-                       <span className="capitalize">{format(day, 'E', { locale: pl }).slice(0, 2)}</span>
-                       <span className="font-bold">{format(day, 'd')}</span>
-                    </div>
-                ))}
-                
-                {/* Employee Rows */}
-                {filteredEmployees.length > 0 ? (
-                    filteredEmployees.map(employee => {
-                        const employeeAbsenceInfo = absencesByEmployeeForMonth.get(employee.id);
-                        const absencesCount = employeeAbsenceInfo?.count || 0;
-                        const absencePercentage = workingDaysInMonth > 0 ? (absencesCount / workingDaysInMonth) * 100 : 0;
+            {attendanceData ? (
+                <div className="grid gap-px bg-border -ml-6 -mr-6" style={{ gridTemplateColumns }}>
+                    {/* Header Row */}
+                    <div className="sticky top-0 z-10 bg-muted/50 p-2 text-sm font-semibold flex items-center justify-start">Pracownik</div>
+                    {attendanceData.calendarDays.map(day => (
+                        <div 
+                            key={day.dateString}
+                            className={cn(
+                                "sticky top-0 z-10 bg-muted/50 p-2 text-center text-sm font-semibold flex flex-col items-center justify-center",
+                                day.isHoliday && 'bg-yellow-500/20 text-yellow-700',
+                                day.isWeekend && !day.isHoliday && 'bg-red-500/10 text-red-600',
+                                day.isToday && 'bg-primary/20 text-primary-foreground'
+                            )}
+                        >
+                          <span className="capitalize">{day.dayOfWeek}</span>
+                          <span className="font-bold">{day.dayOfMonth}</span>
+                        </div>
+                    ))}
+                    
+                    {/* Employee Rows */}
+                    {filteredEmployees.length > 0 ? (
+                        filteredEmployees.map(employee => {
+                            const empStats = attendanceData.employeeStats[employee.id];
+                            if (!empStats) return null;
 
-                        return (
-                            <React.Fragment key={employee.id}>
-                                <div className="grid grid-cols-[1fr_auto] items-center bg-card p-2 border-b border-t">
-                                  <div className="flex-grow overflow-hidden pr-2">
-                                      <p className="font-medium truncate text-sm">{employee.fullName}</p>
-                                      <p className="text-xs text-muted-foreground truncate">{employee.jobTitle}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="font-bold text-xs">{absencesCount}d</div>
-                                    <div className="text-muted-foreground text-xs">{absencePercentage.toFixed(0)}%</div>
-                                  </div>
-                                </div>
-                                {daysInMonth.map(day => {
-                                    const dateString = format(day, 'yyyy-MM-dd');
-                                    const isAbsent = employeeAbsenceInfo?.dates.has(dateString);
-                                    
-                                    return (
-                                        <div
-                                            key={`${employee.id}-${dateString}`}
-                                            onClick={() => toggleAbsence(employee.id, day)}
-                                            className={cn(
-                                                "min-h-[60px] border-b bg-card flex items-center justify-center transition-colors",
-                                                isHoliday(day) && 'bg-yellow-500/20 cursor-not-allowed',
-                                                isWeekend(day) && !isHoliday(day) && 'bg-red-500/10 cursor-not-allowed',
-                                                !(isWeekend(day) || isHoliday(day)) && 'cursor-pointer hover:bg-muted',
-                                                isAbsent && 'bg-destructive/20'
-                                            )}
-                                        >
-                                            {isAbsent && <User className="h-4 w-4 text-destructive" />}
-                                        </div>
-                                    )
-                                })}
-                            </React.Fragment>
-                        );
-                    })
-                ) : (
-                    <div className={`col-span-${daysInMonth.length + 1} text-center p-8 text-muted-foreground`}>
-                        Brak aktywnych pracowników pasujących do kryteriów.
-                    </div>
-                )}
-            </div>
+                            return (
+                                <React.Fragment key={employee.id}>
+                                    <div className="grid grid-cols-[1fr_auto] items-center bg-card p-2 border-b border-t">
+                                      <div className="flex-grow overflow-hidden pr-2">
+                                          <p className="font-medium truncate text-sm">{employee.fullName}</p>
+                                          <p className="text-xs text-muted-foreground truncate">{employee.jobTitle}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="font-bold text-xs">{empStats.absencesCount}d</div>
+                                        <div className="text-muted-foreground text-xs">{empStats.absencePercentage.toFixed(0)}%</div>
+                                      </div>
+                                    </div>
+                                    {attendanceData.calendarDays.map(day => {
+                                        const isAbsent = empStats.absenceDates.includes(day.dateString);
+                                        
+                                        return (
+                                            <div
+                                                key={`${employee.id}-${day.dateString}`}
+                                                onClick={() => toggleAbsence(employee.id, new Date(day.dateString))}
+                                                className={cn(
+                                                    "min-h-[60px] border-b bg-card flex items-center justify-center transition-colors",
+                                                    day.isHoliday && 'bg-yellow-500/20 cursor-not-allowed',
+                                                    day.isWeekend && !day.isHoliday && 'bg-red-500/10 cursor-not-allowed',
+                                                    !(day.isWeekend || day.isHoliday) && 'cursor-pointer hover:bg-muted',
+                                                    isAbsent && 'bg-destructive/20'
+                                                )}
+                                            >
+                                                {isAbsent && <User className="h-4 w-4 text-destructive" />}
+                                            </div>
+                                        )
+                                    })}
+                                </React.Fragment>
+                            );
+                        })
+                    ) : (
+                        <div className={`col-span-${attendanceData.calendarDays.length + 1} text-center p-8 text-muted-foreground`}>
+                            Brak pracowników pasujących do kryteriów.
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="text-center text-muted-foreground py-10">Brak danych o obecności.</div>
+            )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
