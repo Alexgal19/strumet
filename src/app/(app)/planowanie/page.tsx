@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -22,8 +23,17 @@ export default function PlanningPage() {
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const plannedTerminations = useMemo(() => {
+    const today = startOfDay(new Date());
     return activeEmployees
-      .filter(e => e.plannedTerminationDate)
+      .filter(e => {
+        if (!e.plannedTerminationDate) return false;
+        try {
+          const terminationDate = startOfDay(parseISO(e.plannedTerminationDate));
+          return terminationDate >= today;
+        } catch (error) {
+          return false;
+        }
+      })
       .sort((a, b) => new Date(a.plannedTerminationDate!).getTime() - new Date(b.plannedTerminationDate!).getTime());
   }, [activeEmployees]);
 
