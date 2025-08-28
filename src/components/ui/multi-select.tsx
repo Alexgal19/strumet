@@ -49,11 +49,10 @@ function MultiSelect({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
+        <div
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between", selected.length > 0 ? 'h-full' : 'h-10')}
+          className={cn("flex items-center justify-between w-full rounded-md border border-input bg-transparent px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50", selected.length > 0 ? 'h-full py-2' : 'h-10 py-2')}
           onClick={() => setOpen(!open)}
         >
           <div className="flex gap-1 flex-wrap">
@@ -64,36 +63,36 @@ function MultiSelect({
                     <Badge
                         variant="secondary"
                         key={item}
-                        className="mr-1 mb-1"
-                        onClick={() => handleUnselect(item)}
+                        className="mr-1"
+                        onClick={(e) => { e.stopPropagation(); handleUnselect(item); }}
                     >
                         {option ? option.label : item}
                         <button
-                        className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                            handleUnselect(item);
-                            }
-                        }}
-                        onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }}
-                        onClick={() => handleUnselect(item)}
+                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleUnselect(item);
+                              }
+                          }}
+                          onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                          }}
+                          onClick={() => handleUnselect(item)}
                         >
-                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                         </button>
                     </Badge>
                  );
               })
             ) : (
-              <span>{props.placeholder ?? "Select..."}</span>
+              <span className="text-muted-foreground">{props.placeholder ?? "Select..."}</span>
             )}
           </div>
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+        </div>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command className={className}>
           <CommandInput placeholder="Search ..." />
           <CommandList>
