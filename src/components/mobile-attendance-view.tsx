@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React,  { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { AttendanceData } from '@/lib/attendance-actions';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { Progress } from '@/components/ui/progress';
 
 interface MobileAttendanceViewProps {
     attendanceData: AttendanceData | null;
