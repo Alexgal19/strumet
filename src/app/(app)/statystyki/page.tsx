@@ -1,20 +1,38 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList, Bar } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { useFirebaseData } from '@/context/config-context';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
+import { Employee } from '@/lib/types';
+
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
+
 export default function StatisticsPage() {
-  const { employees, isLoading } = useFirebaseData();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+
+  useEffect(() => {
+    const employeesRef = ref(db, 'employees');
+    const unsubscribe = onValue(employeesRef, (snapshot) => {
+        const data = snapshot.val();
+        setEmployees(objectToArray(data));
+        setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
   const totalActiveEmployees = activeEmployees.length;

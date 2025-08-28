@@ -1,9 +1,8 @@
 
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
-import { useFirebaseData } from '@/context/config-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -12,17 +11,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Loader2, Printer, CheckIcon, ChevronsUpDown } from 'lucide-react';
-import { Employee, ClothingIssuanceHistoryItem } from '@/lib/types';
+import { Employee, ClothingIssuanceHistoryItem, AllConfig } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { ref, set, push } from 'firebase/database';
+import { ref, set, push, onValue } from 'firebase/database';
 import { format } from 'date-fns';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 export default function ClothingIssuancePage() {
-  const { employees, config, clothingIssuances, isLoading } = useFirebaseData();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [] });
+  const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuanceHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
@@ -30,6 +36,40 @@ export default function ClothingIssuancePage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const printComponentRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const employeesRef = ref(db, 'employees');
+    const configRef = ref(db, 'config');
+    const issuancesRef = ref(db, 'clothingIssuances');
+
+    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
+      setEmployees(objectToArray(snapshot.val()));
+      if(isLoading) setIsLoading(false);
+    });
+
+    const unsubscribeConfig = onValue(configRef, (snapshot) => {
+      const data = snapshot.val();
+      setConfig({
+        departments: objectToArray(data?.departments),
+        jobTitles: objectToArray(data?.jobTitles),
+        managers: objectToArray(data?.managers),
+        nationalities: objectToArray(data?.nationalities),
+        clothingItems: objectToArray(data?.clothingItems),
+      });
+      if(isLoading) setIsLoading(false);
+    });
+
+    const unsubscribeIssuances = onValue(issuancesRef, (snapshot) => {
+      setClothingIssuances(objectToArray(snapshot.val()));
+      if(isLoading) setIsLoading(false);
+    });
+
+    return () => {
+      unsubscribeEmployees();
+      unsubscribeConfig();
+      unsubscribeIssuances();
+    };
+  }, [isLoading]);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
   const selectedEmployee = useMemo(() => {

@@ -29,6 +29,15 @@ export type Manager = ConfigItem;
 export type Nationality = ConfigItem;
 export type ClothingItem = ConfigItem;
 
+export interface AllConfig {
+  departments: Department[];
+  jobTitles: JobTitle[];
+  managers: Manager[];
+  nationalities: Nationality[];
+  clothingItems: ClothingItem[];
+}
+
+
 export interface ClothingIssuance {
   id: string;
   employeeId: string;

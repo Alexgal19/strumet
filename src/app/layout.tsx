@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { ConfigProvider } from '@/context/config-context';
 
 export const metadata: Metadata = {
   title: 'HOL manager',
@@ -19,9 +18,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-geist/latest/geist.css" />
       </head>
       <body className="font-body antialiased">
-        <ConfigProvider>
-          {children}
-        </ConfigProvider>
+        {children}
         <Toaster />
       </body>
     </html>

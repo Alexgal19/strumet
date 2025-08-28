@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Table,
@@ -27,7 +28,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,11 +40,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, ChevronLeft, ChevronRight, CalendarIcon, Trash2 } from 'lucide-react';
-import type { Employee } from '@/lib/types';
+import type { Employee, AllConfig } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-import { useFirebaseData } from '@/context/config-context';
 import { db } from '@/lib/firebase';
-import { ref, set, push, update, remove } from "firebase/database";
+import { ref, set, push, update, remove, onValue } from "firebase/database";
 import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -65,10 +64,15 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
 
 const ITEMS_PER_PAGE = 50;
 
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
+
 export default function ActiveEmployeesPage() {
-  const { employees, config, isLoading } = useFirebaseData();
-  const { departments, jobTitles, managers, nationalities } = config;
   const { toast } = useToast();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: []});
+  const [isLoading, setIsLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
@@ -80,13 +84,40 @@ export default function ActiveEmployeesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  useEffect(() => {
+    const employeesRef = ref(db, 'employees');
+    const configRef = ref(db, 'config');
+    
+    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
+        const data = snapshot.val();
+        setEmployees(objectToArray(data));
+        setIsLoading(false);
+    });
+    
+    const unsubscribeConfig = onValue(configRef, (snapshot) => {
+        const data = snapshot.val();
+        setConfig({
+            departments: objectToArray(data?.departments),
+            jobTitles: objectToArray(data?.jobTitles),
+            managers: objectToArray(data?.managers),
+            nationalities: objectToArray(data?.nationalities),
+            clothingItems: objectToArray(data?.clothingItems),
+        });
+    });
+
+    return () => {
+        unsubscribeEmployees();
+        unsubscribeConfig();
+    }
+  }, []);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
-  const departmentOptions: OptionType[] = useMemo(() => departments.map(d => ({ value: d.name, label: d.name })), [departments]);
-  const jobTitleOptions: OptionType[] = useMemo(() => jobTitles.map(j => ({ value: j.name, label: j.name })), [jobTitles]);
-  const managerOptions: OptionType[] = useMemo(() => managers.map(m => ({ value: m.name, label: m.name })), [managers]);
-  const nationalityOptions: OptionType[] = useMemo(() => nationalities.map(n => ({ value: n.name, label: n.name })), [nationalities]);
+  const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
+  const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
+  const managerOptions: OptionType[] = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
+  const nationalityOptions: OptionType[] = useMemo(() => config.nationalities.map(n => ({ value: n.name, label: n.name })), [config.nationalities]);
 
   const filteredEmployees = useMemo(() => {
     return activeEmployees.filter(employee => {
@@ -329,7 +360,7 @@ export default function ActiveEmployeesPage() {
               employee={editingEmployee}
               onSave={handleSaveEmployee}
               onCancel={() => setIsFormOpen(false)}
-              config={{ departments, jobTitles, managers, nationalities }}
+              config={config}
             />
           </div>
         </DialogContent>

@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/page-header';
-import { useFirebaseData } from '@/context/config-context';
 import { Loader2, ArrowLeft, ArrowRight, User, TrendingDown, CalendarDays, Building, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,17 +25,23 @@ import {
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { db } from '@/lib/firebase';
-import { ref, set, remove, push } from "firebase/database";
+import { ref, set, remove, push, onValue } from "firebase/database";
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { getAttendanceDataForMonth, AttendanceData } from '@/lib/attendance-actions';
 import { cn } from '@/lib/utils';
-import { Employee } from '@/lib/types';
+import { Employee, AllConfig, ConfigItem } from '@/lib/types';
 
+
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 export default function AttendancePage() {
-  const { config, isLoading: isConfigLoading } = useFirebaseData();
+  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [] });
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
+  
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
@@ -44,6 +49,25 @@ export default function AttendancePage() {
   
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [attendanceData, setAttendanceData] = useState<AttendanceData | null>(null);
+
+  useEffect(() => {
+    const configRef = ref(db, 'config');
+    const unsubscribeConfig = onValue(configRef, (snapshot) => {
+        const data = snapshot.val();
+        setConfig({
+            departments: objectToArray(data?.departments),
+            jobTitles: objectToArray(data?.jobTitles),
+            managers: objectToArray(data?.managers),
+            nationalities: objectToArray(data?.nationalities),
+            clothingItems: objectToArray(data?.clothingItems),
+        });
+        setIsConfigLoading(false);
+    });
+
+    return () => {
+        unsubscribeConfig();
+    }
+  }, []);
   
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
 

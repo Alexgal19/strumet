@@ -6,6 +6,8 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
+import { AllConfig } from '@/lib/types';
+
 
 export type ActiveView = 
   | 'aktywni' 
@@ -18,7 +20,7 @@ export type ActiveView =
   | 'planowanie'
   | 'odwiedzalnosc';
 
-const viewComponents: Record<ActiveView, React.ComponentType<{}>> = {
+const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   aktywni: dynamic(() => import('./active-employees-page'), { loading: () => <LoadingComponent /> }),
   zwolnieni: dynamic(() => import('../app/(app)/zwolnieni/page'), { loading: () => <LoadingComponent /> }),
   planowanie: dynamic(() => import('../app/(app)/planowanie/page'), { loading: () => <LoadingComponent /> }),
@@ -47,7 +49,9 @@ export default function MainLayout() {
       <div className="flex h-full flex-col md:flex-row bg-transparent">
         <AppSidebar activeView={activeView} setActiveView={setActiveView} />
         <SidebarInset className="m-2 flex flex-col p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 backdrop-blur-3xl bg-background/50 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
-          <ActiveViewComponent />
+          <React.Suspense fallback={<LoadingComponent />}>
+            <ActiveViewComponent />
+          </React.Suspense>
         </SidebarInset>
         <AppBottomNav activeView={activeView} setActiveView={setActiveView} />
       </div>

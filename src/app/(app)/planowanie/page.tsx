@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -10,15 +10,31 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/page-header';
-import { useFirebaseData } from '@/context/config-context';
 import { Loader2, User, CalendarClock, AlertTriangle } from 'lucide-react';
 import { Employee } from '@/lib/types';
 import { format, differenceInDays, parseISO, isWithinInterval, startOfDay, endOfDay, isToday } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
+
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 export default function PlanningPage() {
-  const { employees, isLoading } = useFirebaseData();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const employeesRef = ref(db, 'employees');
+    const unsubscribe = onValue(employeesRef, (snapshot) => {
+        const data = snapshot.val();
+        setEmployees(objectToArray(data));
+        setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 

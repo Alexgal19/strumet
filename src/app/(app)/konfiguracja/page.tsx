@@ -1,15 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Trash2 } from 'lucide-react';
-import { useFirebaseData } from '@/context/config-context';
-import type { ConfigItem, ConfigType } from '@/lib/types';
+import { PlusCircle, Trash2, Loader2 } from 'lucide-react';
+import type { ConfigItem, ConfigType, AllConfig } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { ref, set, push, remove } from 'firebase/database';
+import { ref, set, push, remove, onValue } from 'firebase/database';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -24,11 +23,32 @@ const configLabels: Record<ConfigView, string> = {
   clothingItems: 'Odzież',
 };
 
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
+
 export default function ConfigurationPage() {
-  const { config } = useFirebaseData();
+  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [] });
+  const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [currentConfigType, setCurrentConfigType] = useState<ConfigType | null>(null);
   const [newItemsText, setNewItemsText] = useState('');
+
+  useEffect(() => {
+    const configRef = ref(db, 'config');
+    const unsubscribe = onValue(configRef, (snapshot) => {
+        const data = snapshot.val();
+        setConfig({
+            departments: objectToArray(data?.departments),
+            jobTitles: objectToArray(data?.jobTitles),
+            managers: objectToArray(data?.managers),
+            nationalities: objectToArray(data?.nationalities),
+            clothingItems: objectToArray(data?.clothingItems),
+        });
+        setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const openAddDialog = (configType: ConfigType) => {
     setCurrentConfigType(configType);
@@ -91,6 +111,8 @@ export default function ConfigurationPage() {
       </Card>
     </div>
   );
+  
+  if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
     <div className="flex h-full flex-col">

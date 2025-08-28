@@ -11,7 +11,7 @@ import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { Employee, ConfigItem } from '@/lib/types';
+import type { Employee, ConfigItem, AllConfig } from '@/lib/types';
 import { Separator } from './ui/separator';
 
 const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
@@ -39,12 +39,7 @@ interface EmployeeFormProps {
   employee: Employee | null;
   onSave: (employee: Employee) => void;
   onCancel: () => void;
-  config: {
-    departments: ConfigItem[];
-    jobTitles: ConfigItem[];
-    managers: ConfigItem[];
-    nationalities: ConfigItem[];
-  };
+  config: AllConfig;
 }
 
 export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
