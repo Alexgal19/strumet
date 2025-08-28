@@ -36,6 +36,7 @@ import { db } from '@/lib/firebase';
 import { ref, set, remove, push } from "firebase/database";
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -49,7 +50,7 @@ export default function AttendancePage() {
   const { employees, absences, config, isLoading } = useFirebaseData();
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Pre-calculated data states
@@ -58,15 +59,17 @@ export default function AttendancePage() {
   const [overallAbsenceDays, setOverallAbsenceDays] = useState(0);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+  
+  const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
 
   const filteredEmployees = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
     return activeEmployees.filter(e => {
-        const departmentMatch = selectedDepartment === 'all' || e.department === selectedDepartment;
+        const departmentMatch = selectedDepartments.length === 0 || selectedDepartments.includes(e.department);
         const searchMatch = !searchLower || e.fullName.toLowerCase().includes(searchLower);
         return departmentMatch && searchMatch;
     });
-  }, [activeEmployees, selectedDepartment, searchTerm]);
+  }, [activeEmployees, selectedDepartments, searchTerm]);
 
 
   const holidays = useMemo(() => getPolishHolidays(currentDate.getFullYear()), [currentDate]);
@@ -323,17 +326,14 @@ export default function AttendancePage() {
                             ))}
                         </SelectContent>
                     </Select>
-                    <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Wybierz dział" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Wszystkie działy</SelectItem>
-                            {config.departments.map(dept => (
-                                <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="w-full sm:w-[220px]">
+                      <MultiSelect
+                        options={departmentOptions}
+                        selected={selectedDepartments}
+                        onChange={setSelectedDepartments}
+                        placeholder="Wybierz dział"
+                      />
+                    </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={handlePrevMonth}>
                           <ArrowLeft className="h-4 w-4" />

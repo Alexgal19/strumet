@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -53,6 +52,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from './excel-import-button';
 import { ExcelExportButton } from './excel-export-button';
+import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 
 const EmployeeForm = dynamic(() => import('./employee-form').then(mod => mod.EmployeeForm), {
   loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
@@ -71,18 +71,22 @@ export default function ActiveEmployeesPage() {
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    department: '',
-    manager: '',
-    jobTitle: '',
-    nationality: '',
-  });
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([]);
+  const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
+  const [selectedNationalities, setSelectedNationalities] = useState<string[]>([]);
+  
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+
+  const departmentOptions: OptionType[] = useMemo(() => departments.map(d => ({ value: d.name, label: d.name })), [departments]);
+  const jobTitleOptions: OptionType[] = useMemo(() => jobTitles.map(j => ({ value: j.name, label: j.name })), [jobTitles]);
+  const managerOptions: OptionType[] = useMemo(() => managers.map(m => ({ value: m.name, label: m.name })), [managers]);
+  const nationalityOptions: OptionType[] = useMemo(() => nationalities.map(n => ({ value: n.name, label: n.name })), [nationalities]);
 
   const filteredEmployees = useMemo(() => {
     return activeEmployees.filter(employee => {
@@ -114,14 +118,14 @@ export default function ActiveEmployeesPage() {
       return (
         ((employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
           (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
-        (filters.department ? employee.department === filters.department : true) &&
-        (filters.manager ? employee.manager === filters.manager : true) &&
-        (filters.jobTitle ? employee.jobTitle === filters.jobTitle : true) &&
-        (filters.nationality ? employee.nationality === filters.nationality : true) &&
+        (selectedDepartments.length === 0 || selectedDepartments.includes(employee.department)) &&
+        (selectedManagers.length === 0 || selectedManagers.includes(employee.manager)) &&
+        (selectedJobTitles.length === 0 || selectedJobTitles.includes(employee.jobTitle)) &&
+        (selectedNationalities.length === 0 || selectedNationalities.includes(employee.nationality)) &&
         isInDateRange()
       );
     });
-  }, [activeEmployees, searchTerm, filters, dateRange]);
+  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange]);
   
   const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
 
@@ -133,11 +137,7 @@ export default function ActiveEmployeesPage() {
   
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filters, dateRange]);
-
-  const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
-    setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
-  };
+  }, [searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange]);
   
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
     setDateRange(prev => ({ ...prev, [type]: date }));
@@ -340,27 +340,24 @@ export default function ActiveEmployeesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <Select onValueChange={handleFilterChange('department')} value={filters.department}>
-          <SelectTrigger><SelectValue placeholder="Filtruj po dziale" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Wszystkie działy</SelectItem>
-            {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select onValueChange={handleFilterChange('jobTitle')} value={filters.jobTitle}>
-          <SelectTrigger><SelectValue placeholder="Filtruj po stanowisku" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Wszystkie stanowiska</SelectItem>
-            {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select onValueChange={handleFilterChange('manager')} value={filters.manager}>
-          <SelectTrigger><SelectValue placeholder="Filtruj po kierowniku" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Wszyscy kierownicy</SelectItem>
-            {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={departmentOptions}
+          selected={selectedDepartments}
+          onChange={setSelectedDepartments}
+          placeholder="Filtruj po dziale"
+        />
+        <MultiSelect
+          options={jobTitleOptions}
+          selected={selectedJobTitles}
+          onChange={setSelectedJobTitles}
+          placeholder="Filtruj po stanowisku"
+        />
+        <MultiSelect
+          options={managerOptions}
+          selected={selectedManagers}
+          onChange={setSelectedManagers}
+          placeholder="Filtruj po kierowniku"
+        />
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className={cn("justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>

@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -46,6 +45,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
 import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
+import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -55,15 +55,18 @@ export default function TerminatedEmployeesPage() {
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    department: '',
-    manager: '',
-    jobTitle: '',
-  });
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([]);
+  const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
+  
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const departmentOptions: OptionType[] = useMemo(() => departments.map(d => ({ value: d.name, label: d.name })), [departments]);
+  const jobTitleOptions: OptionType[] = useMemo(() => jobTitles.map(j => ({ value: j.name, label: j.name })), [jobTitles]);
+  const managerOptions: OptionType[] = useMemo(() => managers.map(m => ({ value: m.name, label: m.name })), [managers]);
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
@@ -97,13 +100,13 @@ export default function TerminatedEmployeesPage() {
       return (
         ((employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
           (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
-        (filters.department ? employee.department === filters.department : true) &&
-        (filters.manager ? employee.manager === filters.manager : true) &&
-        (filters.jobTitle ? employee.jobTitle === filters.jobTitle : true) &&
+        (selectedDepartments.length === 0 || selectedDepartments.includes(employee.department)) &&
+        (selectedManagers.length === 0 || selectedManagers.includes(employee.manager)) &&
+        (selectedJobTitles.length === 0 || selectedJobTitles.includes(employee.jobTitle)) &&
         isInDateRange()
       );
     });
-  }, [terminatedEmployees, searchTerm, filters, dateRange]);
+  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, dateRange]);
 
   const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
 
@@ -115,13 +118,8 @@ export default function TerminatedEmployeesPage() {
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filters, dateRange]);
+  }, [searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, dateRange]);
 
-
-  const handleFilterChange = (filterName: keyof typeof filters) => (value: string) => {
-    setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
-  };
-  
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
     setDateRange(prev => ({ ...prev, [type]: date }));
   };
@@ -296,20 +294,18 @@ export default function TerminatedEmployeesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <Select onValueChange={handleFilterChange('department')} value={filters.department}>
-          <SelectTrigger><SelectValue placeholder="Filtruj po dziale" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Wszystkie działy</SelectItem>
-            {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select onValueChange={handleFilterChange('jobTitle')} value={filters.jobTitle}>
-          <SelectTrigger><SelectValue placeholder="Filtruj po stanowisku" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Wszystkie stanowiska</SelectItem>
-            {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={departmentOptions}
+          selected={selectedDepartments}
+          onChange={setSelectedDepartments}
+          placeholder="Filtruj po dziale"
+        />
+        <MultiSelect
+          options={jobTitleOptions}
+          selected={selectedJobTitles}
+          onChange={setSelectedJobTitles}
+          placeholder="Filtruj po stanowisku"
+        />
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className={cn("justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
