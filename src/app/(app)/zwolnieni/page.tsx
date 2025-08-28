@@ -40,7 +40,6 @@ import { ref, update, remove, onValue } from "firebase/database";
 import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
 import { useToast } from '@/hooks/use-toast';
@@ -364,48 +363,7 @@ export default function TerminatedEmployeesPage() {
         </Popover>
       </div>
 
-       {/* Mobile View - Cards */}
-       <div className="flex-grow space-y-4 lg:hidden">
-        {paginatedEmployees.map(employee => (
-          <Card key={employee.id} className="w-full" onClick={() => handleEditEmployee(employee)}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg">{employee.fullName}</CardTitle>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                    <span className="sr-only">Otwórz menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                   <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edytuj
-                    </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleRestoreEmployee(employee.id)}>
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Przywróć
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p><strong className="text-muted-foreground">Stanowisko:</strong> {employee.jobTitle}</p>
-              <p><strong className="text-muted-foreground">Dział:</strong> {employee.department}</p>
-              <p><strong className="text-muted-foreground">Narodowość:</strong> {employee.nationality}</p>
-              <p><strong className="text-muted-foreground">Data zwolnienia:</strong> {employee.terminationDate}</p>
-            </CardContent>
-          </Card>
-        ))}
-        {totalPages > 1 && <PaginationControls />}
-        {filteredEmployees.length === 0 && !isLoading && (
-          <div className="text-center text-muted-foreground py-10">Brak zwolnionych pracowników pasujących do kryteriów.</div>
-        )}
-      </div>
-
-      {/* Desktop View - Table */}
-      <div className="hidden flex-col flex-grow lg:flex">
+      <div className="flex flex-col flex-grow">
         <div className="flex-grow overflow-auto rounded-lg border">
           <Table>
             <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
