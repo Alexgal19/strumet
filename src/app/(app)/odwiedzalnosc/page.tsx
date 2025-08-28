@@ -32,6 +32,8 @@ import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { getAttendanceDataForMonth, AttendanceData } from '@/lib/attendance-actions';
 import { cn } from '@/lib/utils';
 import { Employee, AllConfig, ConfigItem } from '@/lib/types';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileAttendanceView } from '@/components/mobile-attendance-view';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -39,6 +41,7 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 };
 
 export default function AttendancePage() {
+  const isMobile = useIsMobile();
   const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [] });
   const [isConfigLoading, setIsConfigLoading] = useState(true);
   
@@ -174,86 +177,8 @@ export default function AttendancePage() {
 
   const gridTemplateColumns = `minmax(200px, 1.5fr) repeat(${attendanceData?.calendarDays.length || 0}, minmax(40px, 1fr))`;
 
-  return (
-    <div className="flex h-full flex-col">
-      <PageHeader
-        title="Odliczanie obecności"
-        description="Zarządzaj kalendarzem obecności pracowników."
-      />
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Aktywni pracownicy</CardTitle>
-                    <User className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{attendanceData?.stats.totalActiveEmployees ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Dni robocze w miesiącu</CardTitle>
-                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{attendanceData?.stats.workingDaysInMonth ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Suma nieobecności</CardTitle>
-                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{attendanceData?.stats.totalAbsences ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Procent nieobecności</CardTitle>
-                    <div className="h-4 w-4 text-muted-foreground font-bold text-lg">%</div>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">
-                      {attendanceData ? `${attendanceData.stats.overallAbsencePercentage.toFixed(1)}%` : <Loader2 className="h-6 w-6 animate-spin" />}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-
-        {attendanceData && attendanceData.stats.departmentAbsenceData.length > 0 && (
-          <Card className="mb-6">
-             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="item-1">
-                <AccordionTrigger className="px-6">
-                    <div className="flex items-center">
-                      <Building className="mr-2 h-5 w-5" />
-                      <span className="font-semibold">Nieobecności wg działów</span>
-                    </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="px-6 pb-4 pt-0">
-                    <p className="text-sm text-muted-foreground mb-4">Statystyka nieobecności dla poszczególnych działów w wybranym miesiącu.</p>
-                    <div className="space-y-4">
-                      {attendanceData.stats.departmentAbsenceData.map((dept) => dept && (
-                          <div key={dept.name} className="space-y-1">
-                              <div className="flex justify-between items-center text-sm font-medium">
-                                  <span style={{ color: dept.fill }}>{dept.name}</span>
-                                  <span>{dept.absences} dni ({dept.percentage.toFixed(1)}%)</span>
-                              </div>
-                              <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
-                          </div>
-                      ))}
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </Card>
-        )}
-
-      <Card className="flex-grow flex flex-col">
+  const renderDesktopView = () => (
+     <Card className="flex-grow flex flex-col">
         <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <CardTitle className="text-2xl capitalize">
@@ -384,8 +309,104 @@ export default function AttendancePage() {
             )}
         </CardContent>
       </Card>
+  );
+
+  return (
+    <div className="flex h-full flex-col">
+      <PageHeader
+        title="Odliczanie obecności"
+        description="Zarządzaj kalendarzem obecności pracowników."
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Aktywni pracownicy</CardTitle>
+                  <User className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{attendanceData?.stats.totalActiveEmployees ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Dni robocze w miesiącu</CardTitle>
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{attendanceData?.stats.workingDaysInMonth ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Suma nieobecności</CardTitle>
+                  <TrendingDown className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{attendanceData?.stats.totalAbsences ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
+              </CardContent>
+          </Card>
+           <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Procent nieobecności</CardTitle>
+                  <div className="h-4 w-4 text-muted-foreground font-bold text-lg">%</div>
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">
+                    {attendanceData ? `${attendanceData.stats.overallAbsencePercentage.toFixed(1)}%` : <Loader2 className="h-6 w-6 animate-spin" />}
+                  </div>
+              </CardContent>
+          </Card>
+      </div>
+
+      {attendanceData && attendanceData.stats.departmentAbsenceData.length > 0 && (
+        <Card className="mb-6">
+           <Accordion type="single" collapsible>
+            <AccordionItem value="item-1">
+              <AccordionTrigger className="px-6">
+                  <div className="flex items-center">
+                    <Building className="mr-2 h-5 w-5" />
+                    <span className="font-semibold">Nieobecności wg działów</span>
+                  </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="px-6 pb-4 pt-0">
+                  <p className="text-sm text-muted-foreground mb-4">Statystyka nieobecności dla poszczególnych działów w wybranym miesiącu.</p>
+                  <div className="space-y-4">
+                    {attendanceData.stats.departmentAbsenceData.map((dept) => dept && (
+                        <div key={dept.name} className="space-y-1">
+                            <div className="flex justify-between items-center text-sm font-medium">
+                                <span style={{ color: dept.fill }}>{dept.name}</span>
+                                <span>{dept.absences} dni ({dept.percentage.toFixed(1)}%)</span>
+                            </div>
+                            <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
+                        </div>
+                    ))}
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </Card>
+      )}
+
+      {isMobile ? (
+         <MobileAttendanceView
+            attendanceData={attendanceData}
+            filteredEmployees={filteredEmployees}
+            isDataLoading={isDataLoading}
+            currentDate={currentDate}
+            departmentOptions={departmentOptions}
+            selectedDepartments={selectedDepartments}
+            setSelectedDepartments={setSelectedDepartments}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            handlePrevMonth={handlePrevMonth}
+            handleNextMonth={handleNextMonth}
+            toggleAbsence={toggleAbsence}
+         />
+      ) : renderDesktopView()}
+
     </div>
   );
 }
-
-    
