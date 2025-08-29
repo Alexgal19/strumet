@@ -151,7 +151,7 @@ export default function StatisticsPage() {
                   {!selectedDepartment ? (
                     <div className="space-y-4">
                       {departmentData.map((dept) => (
-                          <div key={dept.name} className="space-y-1 cursor-pointer hover:bg-muted/50 p-2 rounded-md" onClick={() => handleDepartmentClick(dept.name)}>
+                          <div key={dept.name} className="space-y-1 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors" onClick={() => handleDepartmentClick(dept.name)}>
                               <div className="flex justify-between items-center text-sm font-medium">
                                   <span style={{ color: dept.fill }}>{dept.name}</span>
                                   <span>{dept.value} ({dept.percentage.toFixed(1)}%)</span>
@@ -185,17 +185,17 @@ export default function StatisticsPage() {
                     <ChartContainer config={{}} className="h-[450px] w-full">
                         <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={120} />
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))'}} width={120} />
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
                                     formatter={(value, name, props) => {
-                                        if (props.payload) {
+                                        if (props.payload && typeof props.payload.percentage === 'number') {
                                           return `${value} (${props.payload.percentage.toFixed(1)}%)`;
                                         }
                                         return value;
                                     }}
-                                    labelKey="name"
+                                    nameKey="name"
                                     hideIndicator
                                 />} 
                             />
@@ -231,17 +231,17 @@ export default function StatisticsPage() {
                     <ChartContainer config={{}} className="h-[450px] w-full">
                         <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12}} width={200} interval={0} />
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))'}} width={200} interval={0} />
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
                                     formatter={(value, name, props) => {
-                                        if (props.payload) {
+                                        if (props.payload && typeof props.payload.percentage === 'number') {
                                           return `${value} (${props.payload.percentage.toFixed(1)}%)`;
                                         }
                                         return value;
                                     }}
-                                    labelKey="name"
+                                    nameKey="name"
                                     hideIndicator
                                 />} 
                             />
