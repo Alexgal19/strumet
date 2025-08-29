@@ -63,9 +63,13 @@ const EmployeeAttendanceCard = ({ employee, attendanceData, onToggleAbsence }: {
                    {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'].map(day => <div key={day}>{day}</div>)}
                 </div>
                 <div className="grid grid-cols-7 gap-1.5">
-                    {attendanceData.calendarDays.map(day => {
-                        const isAbsent = empStats.absenceDates.includes(day.dateString);
-                        const dayDate = parseISO(day.dateString);
+                    {attendanceData.calendarDays.map((day, index) => {
+                        if (day.isPlaceholder) {
+                            return <div key={`placeholder-${index}`} />;
+                        }
+                        
+                        const isAbsent = empStats.absenceDates.includes(day.dateString!);
+                        const dayDate = parseISO(day.dateString!);
                         
                         return (
                             <Button

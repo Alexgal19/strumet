@@ -10,7 +10,8 @@ import {
     isSameDay,
     isToday,
     startOfDay,
-    parse
+    parse,
+    getDay
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getPolishHolidays } from '@/lib/holidays';
@@ -22,17 +23,21 @@ const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { i
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
+type CalendarDay = {
+    isPlaceholder?: boolean;
+    dateString?: string;
+    dayOfMonth?: string;
+    dayOfWeek?: string;
+    isWeekend?: boolean;
+    isHoliday?: boolean;
+    isToday?: boolean;
+};
+
+
 export interface AttendanceData {
     employees: Employee[];
     absences: Absence[];
-    calendarDays: {
-        dateString: string;
-        dayOfMonth: string;
-        dayOfWeek: string;
-        isWeekend: boolean;
-        isHoliday: boolean;
-        isToday: boolean;
-    }[];
+    calendarDays: CalendarDay[];
     stats: {
         totalActiveEmployees: number;
         workingDaysInMonth: number;
@@ -77,7 +82,7 @@ export async function getAttendanceDataForMonth(
   const daysInMonth = eachDayOfInterval({ start: startDate, end: endDate });
   
   // 2. Pre-calculate calendar days info
-  const calendarDays = daysInMonth.map(day => ({
+  const calendarDaysWithData: CalendarDay[] = daysInMonth.map(day => ({
     dateString: format(day, 'yyyy-MM-dd'),
     dayOfMonth: format(day, 'd'),
     dayOfWeek: format(day, 'E', { locale: pl }).slice(0, 2),
@@ -86,8 +91,16 @@ export async function getAttendanceDataForMonth(
     isToday: isToday(day),
   }));
 
-  const workingDaysInMonth = calendarDays.filter(d => !d.isWeekend && !d.isHoliday).length;
+  const workingDaysInMonth = calendarDaysWithData.filter(d => !d.isWeekend && !d.isHoliday).length;
   
+  // Add placeholders for the start of the month
+  const firstDayOfWeek = getDay(startDate); // Sunday is 0, Monday is 1
+  const dayOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // Adjust to Monday-first week
+  
+  const placeholders: CalendarDay[] = Array.from({ length: dayOffset }, () => ({ isPlaceholder: true }));
+  const calendarDays = [...placeholders, ...calendarDaysWithData];
+
+
   // 3. Filter absences for the current month and create a lookup map
   const monthAbsences = allAbsences.filter(absence => {
     try {
