@@ -40,7 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, ChevronLeft, ChevronRight, CalendarIcon, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, ChevronLeft, ChevronRight, CalendarIcon, Trash2, XCircle } from 'lucide-react';
 import type { Employee, AllConfig } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { db } from '@/lib/firebase';
@@ -121,6 +121,15 @@ export default function ActiveEmployeesPage() {
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
   const managerOptions: OptionType[] = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
   const nationalityOptions: OptionType[] = useMemo(() => config.nationalities.map(n => ({ value: n.name, label: n.name })), [config.nationalities]);
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedDepartments([]);
+    setSelectedJobTitles([]);
+    setSelectedManagers([]);
+    setSelectedNationalities([]);
+    setDateRange({ from: undefined, to: undefined });
+  };
 
   const filteredEmployees = useMemo(() => {
     return activeEmployees.filter(employee => {
@@ -500,11 +509,17 @@ export default function ActiveEmployeesPage() {
       </Dialog>
       
       <div className="mb-4 space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        <div className="flex items-center gap-4">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          </div>
+           <Button variant="outline" onClick={handleClearFilters}>
+              <XCircle className="mr-2 h-4 w-4" />
+              Wyczyść filtry
+            </Button>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             <MultiSelect
               options={departmentOptions}
               selected={selectedDepartments}
