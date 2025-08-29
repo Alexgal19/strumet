@@ -175,7 +175,7 @@ export default function AttendancePage() {
       label: format(new Date(2000, i), 'LLLL', {locale: pl}),
   }));
 
-  const gridTemplateColumns = `minmax(200px, 1.5fr) repeat(${attendanceData?.calendarDays.length || 0}, minmax(40px, 1fr))`;
+  const gridTemplateColumns = `minmax(250px, 1.5fr) repeat(${attendanceData?.calendarDays.length || 0}, minmax(40px, 1fr))`;
 
   const renderDesktopView = () => (
      <Card className="flex-grow flex flex-col">
