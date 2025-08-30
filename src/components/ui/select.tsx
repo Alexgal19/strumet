@@ -70,25 +70,20 @@ SelectScrollDownButton.displayName =
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => {
-  const containerRef = React.useRef<HTMLElement | null>(null);
-  
+>(({ className, children, position: positionProp = "popper", ...props }, ref) => {
+  const [isMobileNavVisible, setIsMobileNavVisible] = React.useState(false);
+
   React.useEffect(() => {
-    if (ref && 'current' in ref && ref.current) {
-      let parent = ref.current.parentElement;
-      while (parent) {
-        const style = window.getComputedStyle(parent);
-        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-          containerRef.current = parent;
-          break;
-        }
-        parent = parent.parentElement;
-      }
+    const mobileNav = document.querySelector('.fixed.bottom-0.left-0.right-0');
+    if (mobileNav && window.getComputedStyle(mobileNav).display !== 'none') {
+      setIsMobileNavVisible(true);
     }
-  }, [ref]);
+  }, []);
+  
+  const position = isMobileNavVisible ? "item-aligned" : positionProp;
 
   return (
-    <SelectPrimitive.Portal container={containerRef.current}>
+    <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         ref={ref}
         className={cn(
@@ -98,6 +93,7 @@ const SelectContent = React.forwardRef<
           className
         )}
         position={position}
+        sideOffset={5}
         collisionPadding={10}
         {...props}
       >
