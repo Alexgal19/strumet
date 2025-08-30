@@ -138,11 +138,11 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-2">
+            <div className="space-y-2">
                 <h3 className="text-lg font-medium text-foreground">Dane podstawowe</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="md:col-span-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="sm:col-span-2">
                         <Label htmlFor="fullName">Imię i nazwisko</Label>
                         <Input id="fullName" value={formData.fullName} onChange={e => handleChange('fullName', e.target.value)} />
                         {renderError('fullName')}
@@ -215,10 +215,10 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                 </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-2">
                  <Separator />
                 <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   <div>
                     <Label>Planowana data zwolnienia</Label>
                     <DatePickerInput 
@@ -247,7 +247,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                 </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
                 <Button type="submit">Zapisz</Button>
             </div>
