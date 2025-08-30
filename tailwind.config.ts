@@ -92,8 +92,8 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "animate-in": "animate-in 0.2s ease-out",
-        "animate-out": "animate-out 0.2s ease-in",
+        "animate-in": "animate-in 0.05s ease-out",
+        "animate-out": "animate-out 0.05s ease-in",
       },
     },
   },
