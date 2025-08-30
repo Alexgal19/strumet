@@ -54,11 +54,7 @@ import { ExcelExportButton } from './excel-export-button';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-
-const EmployeeForm = dynamic(() => import('./employee-form').then(mod => mod.EmployeeForm), {
-  loading: () => <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>,
-  ssr: false
-});
+import { EmployeeForm } from '@/components/employee-form';
 
 const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => mod.EmployeeSummary), {
   ssr: false
@@ -186,7 +182,7 @@ export default function ActiveEmployeesPage() {
     setDateRange(prev => ({ ...prev, [type]: date }));
   };
 
-  const handleSaveEmployee = async (employeeData: Omit<Employee, 'status'>) => {
+  const handleSaveEmployee = async (employeeData: Employee) => {
     try {
         const { id, ...dataToSave } = employeeData;
         if (id) {

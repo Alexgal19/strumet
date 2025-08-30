@@ -218,7 +218,7 @@ export default function TerminatedEmployeesPage() {
     setIsFormOpen(true);
   };
   
-  const handleSaveEmployee = async (employeeData: Omit<Employee, 'status'>) => {
+  const handleSaveEmployee = async (employeeData: Employee) => {
     if (!editingEmployee) return;
     try {
         const { id, ...dataToSave } = employeeData;
@@ -483,7 +483,3 @@ export default function TerminatedEmployeesPage() {
     </div>
   );
 }
-
-    
-
-    

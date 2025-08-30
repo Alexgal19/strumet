@@ -1,10 +1,7 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,38 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parse, isValid, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Employee, AllConfig } from '@/lib/types';
 import { Separator } from './ui/separator';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
-
-const employeeSchema = z.object({
-  fullName: z.string().min(3, "Imię i nazwisko jest wymagane."),
-  hireDate: z.string().optional(),
-  jobTitle: z.string().min(1, "Stanowisko jest wymagane."),
-  department: z.string().min(1, "Dział jest wymagany."),
-  manager: z.string().min(1, "Kierownik jest wymagany."),
-  cardNumber: z.string().min(1, "Numer karty jest wymagany."),
-  nationality: z.string().min(1, "Narodowość jest wymagana."),
-  lockerNumber: z.string().optional(),
-  departmentLockerNumber: z.string().optional(),
-  sealNumber: z.string().optional(),
-  plannedTerminationDate: z.string().optional(),
-  vacationStartDate: z.string().optional(),
-  vacationEndDate: z.string().optional(),
-}).refine(data => {
-    if (data.vacationStartDate && data.vacationEndDate) {
-        return parseISO(data.vacationEndDate) >= parseISO(data.vacationStartDate);
-    }
-    return true;
-}, {
-    message: "Data końcowa urlopu nie może być wcześniejsza niż początkowa.",
-    path: ["vacationEndDate"],
-});
-
-type EmployeeFormData = z.infer<typeof employeeSchema>;
 
 interface EmployeeFormProps {
   employee: Employee | null;
@@ -53,38 +23,8 @@ interface EmployeeFormProps {
 }
 
 export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
-  const { departments, jobTitles, managers, nationalities } = config;
-
-  const form = useForm<EmployeeFormData>({
-    resolver: zodResolver(employeeSchema),
-    defaultValues: {
-      fullName: '',
-      hireDate: undefined,
-      jobTitle: '',
-      department: '',
-      manager: '',
-      cardNumber: '',
-      nationality: '',
-      lockerNumber: '',
-      departmentLockerNumber: '',
-      sealNumber: '',
-      plannedTerminationDate: undefined,
-      vacationStartDate: undefined,
-      vacationEndDate: undefined,
-    }
-  });
-  
-  useEffect(() => {
-    if (employee) {
-      form.reset({
-        ...employee,
-        hireDate: employee.hireDate || undefined,
-        plannedTerminationDate: employee.plannedTerminationDate || undefined,
-        vacationStartDate: employee.vacationStartDate || undefined,
-        vacationEndDate: employee.vacationEndDate || undefined,
-      });
-    } else {
-      form.reset({
+    const { departments, jobTitles, managers, nationalities } = config;
+    const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>({
         fullName: '',
         hireDate: new Date().toISOString().split('T')[0],
         jobTitle: '',
@@ -98,235 +38,228 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         plannedTerminationDate: undefined,
         vacationStartDate: undefined,
         vacationEndDate: undefined,
-      });
-    }
-  }, [employee, form]);
-
-  const handleSubmit = (data: EmployeeFormData) => {
-    onSave({
-      ...data,
-      id: employee?.id || '',
-      status: employee?.status || 'aktywny',
     });
-  };
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const DatePickerInput = ({ field, placeholder }: { field: any, placeholder: string }) => {
-    const dateValue = field.value && isValid(parseISO(field.value)) ? parseISO(field.value) : undefined;
+    useEffect(() => {
+        if (employee) {
+            setFormData({
+                fullName: employee.fullName || '',
+                hireDate: employee.hireDate || '',
+                jobTitle: employee.jobTitle || '',
+                department: employee.department || '',
+                manager: employee.manager || '',
+                cardNumber: employee.cardNumber || '',
+                nationality: employee.nationality || '',
+                lockerNumber: employee.lockerNumber || '',
+                departmentLockerNumber: employee.departmentLockerNumber || '',
+                sealNumber: employee.sealNumber || '',
+                plannedTerminationDate: employee.plannedTerminationDate,
+                vacationStartDate: employee.vacationStartDate,
+                vacationEndDate: employee.vacationEndDate,
+            });
+        } else {
+            setFormData({
+                fullName: '',
+                hireDate: format(new Date(), 'yyyy-MM-dd'),
+                jobTitle: '',
+                department: '',
+                manager: '',
+                cardNumber: '',
+                nationality: '',
+                lockerNumber: '',
+                departmentLockerNumber: '',
+                sealNumber: '',
+                plannedTerminationDate: undefined,
+                vacationStartDate: undefined,
+                vacationEndDate: undefined,
+            });
+        }
+        setErrors({});
+    }, [employee]);
+
+    const validate = () => {
+        const newErrors: Record<string, string> = {};
+        if (!formData.fullName.trim()) newErrors.fullName = "Imię i nazwisko jest wymagane.";
+        if (!formData.jobTitle) newErrors.jobTitle = "Stanowisko jest wymagane.";
+        if (!formData.department) newErrors.department = "Dział jest wymagany.";
+        if (!formData.manager) newErrors.manager = "Kierownik jest wymagany.";
+        if (!formData.cardNumber.trim()) newErrors.cardNumber = "Numer karty jest wymagany.";
+        if (!formData.nationality) newErrors.nationality = "Narodowość jest wymagana.";
+
+        if (formData.vacationStartDate && formData.vacationEndDate) {
+            if (parseISO(formData.vacationEndDate) < parseISO(formData.vacationStartDate)) {
+                newErrors.vacationEndDate = "Data końcowa nie może być wcześniejsza niż początkowa.";
+            }
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (validate()) {
+            onSave({
+                ...formData,
+                id: employee?.id || '',
+                status: employee?.status || 'aktywny',
+            });
+        }
+    };
+
+    const handleChange = (field: keyof typeof formData, value: string | undefined) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
+        const dateValue = value && isValid(parseISO(value)) ? parseISO(value) : undefined;
+        return (
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant={"outline"}
+                        className={cn("w-full justify-start text-left font-normal", !dateValue && "text-muted-foreground")}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateValue ? format(dateValue, "PPP", { locale: pl }) : <span>{placeholder}</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 flex flex-col">
+                    <Calendar
+                        mode="single"
+                        selected={dateValue}
+                        onSelect={(date) => onChange(date ? format(date, 'yyyy-MM-dd') : undefined)}
+                        locale={pl}
+                    />
+                    {value && (
+                       <Button variant="ghost" size="sm" className="m-2 mt-0" onClick={() => onChange(undefined)}>
+                         <Trash2 className="mr-2 h-4 w-4" />
+                         Wyczyść datę
+                       </Button>
+                    )}
+                </PopoverContent>
+            </Popover>
+        );
+    };
+
+    const renderError = (field: keyof typeof formData) => {
+        return errors[field] && <p className="text-sm font-medium text-destructive">{errors[field]}</p>;
+    };
+
     return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <FormControl>
-            <Button
-              variant={"outline"}
-              className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateValue ? format(dateValue, "PPP", { locale: pl }) : <span>{placeholder}</span>}
-            </Button>
-          </FormControl>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 flex flex-col">
-          <Calendar
-            mode="single"
-            selected={dateValue}
-            onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : undefined)}
-            locale={pl}
-          />
-          {field.value && (
-            <Button variant="ghost" size="sm" className="m-2 mt-0" onClick={() => field.onChange(undefined)}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Wyczyść datę
-            </Button>
-          )}
-        </PopoverContent>
-      </Popover>
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+                <div>
+                    <Label htmlFor="fullName">Imię i nazwisko</Label>
+                    <Input id="fullName" value={formData.fullName} onChange={e => handleChange('fullName', e.target.value)} />
+                    {renderError('fullName')}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <Label>Data zatrudnienia</Label>
+                        <DatePickerInput 
+                            value={formData.hireDate} 
+                            onChange={(date) => handleChange('hireDate', date)}
+                            placeholder="Wybierz datę"
+                        />
+                    </div>
+                    <div>
+                        <Label>Stanowisko</Label>
+                        <Select value={formData.jobTitle} onValueChange={value => handleChange('jobTitle', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                            <SelectContent>
+                                {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('jobTitle')}
+                    </div>
+                    <div>
+                        <Label>Dział</Label>
+                        <Select value={formData.department} onValueChange={value => handleChange('department', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                            <SelectContent>
+                                {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('department')}
+                    </div>
+                    <div>
+                        <Label>Kierownik</Label>
+                        <Select value={formData.manager} onValueChange={value => handleChange('manager', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
+                            <SelectContent>
+                                {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('manager')}
+                    </div>
+                    <div>
+                        <Label>Narodowość</Label>
+                        <Select value={formData.nationality} onValueChange={value => handleChange('nationality', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
+                            <SelectContent>
+                                {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('nationality')}
+                    </div>
+                    <div>
+                        <Label htmlFor="cardNumber">Numer karty</Label>
+                        <Input id="cardNumber" value={formData.cardNumber} onChange={e => handleChange('cardNumber', e.target.value)} />
+                        {renderError('cardNumber')}
+                    </div>
+                    <div>
+                        <Label htmlFor="lockerNumber">Numer szafki</Label>
+                        <Input id="lockerNumber" value={formData.lockerNumber} onChange={e => handleChange('lockerNumber', e.target.value)} />
+                    </div>
+                    <div>
+                        <Label htmlFor="departmentLockerNumber">Numer szafki w dziale</Label>
+                        <Input id="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={e => handleChange('departmentLockerNumber', e.target.value)} />
+                    </div>
+                    <div className="sm:col-span-2">
+                        <Label htmlFor="sealNumber">Numer pieczęci</Label>
+                        <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <Separator />
+                <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
+                <div>
+                  <Label>Planowana data zwolnienia</Label>
+                  <DatePickerInput 
+                      value={formData.plannedTerminationDate} 
+                      onChange={(date) => handleChange('plannedTerminationDate', date)}
+                      placeholder="Wybierz datę zwolnienia"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Urlop od</Label>
+                      <DatePickerInput 
+                          value={formData.vacationStartDate} 
+                          onChange={(date) => handleChange('vacationStartDate', date)}
+                          placeholder="Początek urlopu"
+                      />
+                    </div>
+                    <div>
+                      <Label>Urlop do</Label>
+                      <DatePickerInput 
+                          value={formData.vacationEndDate} 
+                          onChange={(date) => handleChange('vacationEndDate', date)}
+                          placeholder="Koniec urlopu"
+                      />
+                      {renderError('vacationEndDate')}
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
+                <Button type="submit">Zapisz</Button>
+            </div>
+        </form>
     );
-  };
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="fullName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Imię i nazwisko</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="hireDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data zatrudnienia</FormLabel>
-                    <DatePickerInput field={field} placeholder="Wybierz datę" />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="jobTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Stanowisko</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="department"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dział</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="manager"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kierownik</FormLabel>
-                     <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="nationality"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Narodowość</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="cardNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Numer karty</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="lockerNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Numer szafki</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="departmentLockerNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Numer szafki w dziale</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="sealNumber"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Numer pieczęci</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-        </div>
-
-        <div className="space-y-4">
-            <Separator />
-            <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
-            
-            <FormField
-              control={form.control}
-              name="plannedTerminationDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Planowana data zwolnienia</FormLabel>
-                  <DatePickerInput field={field} placeholder="Wybierz datę zwolnienia" />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="vacationStartDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Urlop od</FormLabel>
-                      <DatePickerInput field={field} placeholder="Początek urlopu" />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="vacationEndDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Urlop do</FormLabel>
-                      <DatePickerInput field={field} placeholder="Koniec urlopu" />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-            </div>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>Zapisz</Button>
-        </div>
-      </form>
-    </Form>
-  );
 }
