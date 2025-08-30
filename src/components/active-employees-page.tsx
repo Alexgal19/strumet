@@ -186,20 +186,23 @@ export default function ActiveEmployeesPage() {
     setDateRange(prev => ({ ...prev, [type]: date }));
   };
 
-  const handleSaveEmployee = async (employeeData: Employee) => {
+  const handleSaveEmployee = async (employeeData: Omit<Employee, 'status'>) => {
     try {
         const { id, ...dataToSave } = employeeData;
         if (id) {
             const employeeRef = ref(db, `employees/${id}`);
             await update(employeeRef, dataToSave);
+             toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
         } else {
             const newEmployeeRef = push(ref(db, 'employees'));
-            await set(newEmployeeRef, { ...dataToSave, id: newEmployeeRef.key });
+            await set(newEmployeeRef, { ...dataToSave, status: 'aktywny', id: newEmployeeRef.key });
+            toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
         }
         setEditingEmployee(null);
         setIsFormOpen(false);
     } catch (error) {
         console.error("Error saving employee: ", error);
+        toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
     }
   };
   
@@ -211,8 +214,10 @@ export default function ActiveEmployeesPage() {
                 status: 'zwolniony',
                 terminationDate: format(new Date(), 'yyyy-MM-dd')
             });
+            toast({ title: 'Pracownik zwolniony', description: 'Status pracownika został zmieniony na "zwolniony".' });
         } catch (error) {
             console.error("Error terminating employee: ", error);
+             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
         }
     }
   };
@@ -492,12 +497,12 @@ export default function ActiveEmployeesPage() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent 
             onOpenAutoFocus={(e) => e.preventDefault()}
-            className="sm:max-w-[625px] max-h-[90vh] flex flex-col"
+            className="sm:max-w-3xl max-h-[90vh] flex flex-col"
         >
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>{editingEmployee ? 'Edytuj pracownika' : 'Dodaj nowego pracownika'}</DialogTitle>
           </DialogHeader>
-          <div className="flex-grow overflow-y-auto pr-2">
+          <div className="flex-grow overflow-y-auto -mr-6 pr-6">
             <EmployeeForm
               employee={editingEmployee}
               onSave={handleSaveEmployee}
@@ -551,7 +556,7 @@ export default function ActiveEmployeesPage() {
                   {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zatrudniony od</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
               </PopoverContent>
             </Popover>
@@ -562,7 +567,7 @@ export default function ActiveEmployeesPage() {
                   {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zatrudniony do</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
               </PopoverContent>
             </Popover>

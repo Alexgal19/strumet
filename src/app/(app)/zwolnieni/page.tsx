@@ -167,8 +167,10 @@ export default function TerminatedEmployeesPage() {
                 status: 'aktywny',
                 terminationDate: null 
             });
+            toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
         } catch (error) {
             console.error("Error restoring employee: ", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
         }
     }
   };
@@ -216,7 +218,7 @@ export default function TerminatedEmployeesPage() {
     setIsFormOpen(true);
   };
   
-  const handleSaveEmployee = async (employeeData: Employee) => {
+  const handleSaveEmployee = async (employeeData: Omit<Employee, 'status'>) => {
     if (!editingEmployee) return;
     try {
         const { id, ...dataToSave } = employeeData;
@@ -224,8 +226,10 @@ export default function TerminatedEmployeesPage() {
         await update(employeeRef, dataToSave);
         setEditingEmployee(null);
         setIsFormOpen(false);
+        toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
     } catch (error) {
         console.error("Error saving employee: ", error);
+        toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych.' });
     }
   };
 
@@ -410,11 +414,14 @@ export default function TerminatedEmployeesPage() {
       </PageHeader>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[625px] max-h-[90vh] flex flex-col">
+        <DialogContent 
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="sm:max-w-3xl max-h-[90vh] flex flex-col"
+        >
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Edytuj pracownika</DialogTitle>
           </DialogHeader>
-          <div className="flex-grow overflow-y-auto pr-2">
+          <div className="flex-grow overflow-y-auto -mr-6 pr-6">
             <EmployeeForm
               employee={editingEmployee}
               onSave={handleSaveEmployee}
@@ -450,7 +457,7 @@ export default function TerminatedEmployeesPage() {
                   {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zwolniony od</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
               </PopoverContent>
             </Popover>
@@ -461,7 +468,7 @@ export default function TerminatedEmployeesPage() {
                   {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zwolniony do</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
               </PopoverContent>
             </Popover>
