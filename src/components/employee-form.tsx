@@ -22,11 +22,27 @@ interface EmployeeFormProps {
   config: AllConfig;
 }
 
-export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
-    const { departments, jobTitles, managers, nationalities } = config;
-    const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>({
+const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
+    if (employee) {
+        return {
+            fullName: employee.fullName || '',
+            hireDate: employee.hireDate || '',
+            jobTitle: employee.jobTitle || '',
+            department: employee.department || '',
+            manager: employee.manager || '',
+            cardNumber: employee.cardNumber || '',
+            nationality: employee.nationality || '',
+            lockerNumber: employee.lockerNumber || '',
+            departmentLockerNumber: employee.departmentLockerNumber || '',
+            sealNumber: employee.sealNumber || '',
+            plannedTerminationDate: employee.plannedTerminationDate,
+            vacationStartDate: employee.vacationStartDate,
+            vacationEndDate: employee.vacationEndDate,
+        };
+    }
+    return {
         fullName: '',
-        hireDate: new Date().toISOString().split('T')[0],
+        hireDate: format(new Date(), 'yyyy-MM-dd'),
         jobTitle: '',
         department: '',
         manager: '',
@@ -38,43 +54,16 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         plannedTerminationDate: undefined,
         vacationStartDate: undefined,
         vacationEndDate: undefined,
-    });
+    };
+};
+
+export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
+    const { departments, jobTitles, managers, nationalities } = config;
+    const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
-        if (employee) {
-            setFormData({
-                fullName: employee.fullName || '',
-                hireDate: employee.hireDate || '',
-                jobTitle: employee.jobTitle || '',
-                department: employee.department || '',
-                manager: employee.manager || '',
-                cardNumber: employee.cardNumber || '',
-                nationality: employee.nationality || '',
-                lockerNumber: employee.lockerNumber || '',
-                departmentLockerNumber: employee.departmentLockerNumber || '',
-                sealNumber: employee.sealNumber || '',
-                plannedTerminationDate: employee.plannedTerminationDate,
-                vacationStartDate: employee.vacationStartDate,
-                vacationEndDate: employee.vacationEndDate,
-            });
-        } else {
-            setFormData({
-                fullName: '',
-                hireDate: format(new Date(), 'yyyy-MM-dd'),
-                jobTitle: '',
-                department: '',
-                manager: '',
-                cardNumber: '',
-                nationality: '',
-                lockerNumber: '',
-                departmentLockerNumber: '',
-                sealNumber: '',
-                plannedTerminationDate: undefined,
-                vacationStartDate: undefined,
-                vacationEndDate: undefined,
-            });
-        }
+        setFormData(getInitialFormData(employee));
         setErrors({});
     }, [employee]);
 
