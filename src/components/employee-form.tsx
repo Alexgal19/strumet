@@ -120,6 +120,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                         selected={dateValue}
                         onSelect={(date) => onChange(date ? format(date, 'yyyy-MM-dd') : undefined)}
                         locale={pl}
+                        initialFocus
                     />
                     {value && (
                        <Button variant="ghost" size="sm" className="m-2 mt-0" onClick={() => onChange(undefined)}>
@@ -139,12 +140,13 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-                <div>
-                    <Label htmlFor="fullName">Imię i nazwisko</Label>
-                    <Input id="fullName" value={formData.fullName} onChange={e => handleChange('fullName', e.target.value)} />
-                    {renderError('fullName')}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <h3 className="text-lg font-medium text-foreground">Dane podstawowe</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-3">
+                        <Label htmlFor="fullName">Imię i nazwisko</Label>
+                        <Input id="fullName" value={formData.fullName} onChange={e => handleChange('fullName', e.target.value)} />
+                        {renderError('fullName')}
+                    </div>
                     <div>
                         <Label>Data zatrudnienia</Label>
                         <DatePickerInput 
@@ -206,7 +208,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                         <Label htmlFor="departmentLockerNumber">Numer szafki w dziale</Label>
                         <Input id="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={e => handleChange('departmentLockerNumber', e.target.value)} />
                     </div>
-                    <div className="sm:col-span-2">
+                    <div>
                         <Label htmlFor="sealNumber">Numer pieczęci</Label>
                         <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} />
                     </div>
@@ -214,34 +216,34 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
             </div>
 
             <div className="space-y-4">
-                <Separator />
+                 <Separator />
                 <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
-                <div>
-                  <Label>Planowana data zwolnienia</Label>
-                  <DatePickerInput 
-                      value={formData.plannedTerminationDate} 
-                      onChange={(date) => handleChange('plannedTerminationDate', date)}
-                      placeholder="Wybierz datę zwolnienia"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Urlop od</Label>
-                      <DatePickerInput 
-                          value={formData.vacationStartDate} 
-                          onChange={(date) => handleChange('vacationStartDate', date)}
-                          placeholder="Początek urlopu"
-                      />
-                    </div>
-                    <div>
-                      <Label>Urlop do</Label>
-                      <DatePickerInput 
-                          value={formData.vacationEndDate} 
-                          onChange={(date) => handleChange('vacationEndDate', date)}
-                          placeholder="Koniec urlopu"
-                      />
-                      {renderError('vacationEndDate')}
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Planowana data zwolnienia</Label>
+                    <DatePickerInput 
+                        value={formData.plannedTerminationDate} 
+                        onChange={(date) => handleChange('plannedTerminationDate', date)}
+                        placeholder="Wybierz datę zwolnienia"
+                    />
+                  </div>
+                  <div>
+                    <Label>Urlop od</Label>
+                    <DatePickerInput 
+                        value={formData.vacationStartDate} 
+                        onChange={(date) => handleChange('vacationStartDate', date)}
+                        placeholder="Początek urlopu"
+                    />
+                  </div>
+                  <div>
+                    <Label>Urlop do</Label>
+                    <DatePickerInput 
+                        value={formData.vacationEndDate} 
+                        onChange={(date) => handleChange('vacationEndDate', date)}
+                        placeholder="Koniec urlopu"
+                    />
+                    {renderError('vacationEndDate')}
+                  </div>
                 </div>
             </div>
 
