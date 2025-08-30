@@ -222,6 +222,14 @@ export default function TerminatedEmployeesPage() {
     if (!editingEmployee) return;
     try {
         const { id, ...dataToSave } = employeeData;
+        
+        // Convert undefined to null for Firebase compatibility
+        Object.keys(dataToSave).forEach(key => {
+            if ((dataToSave as any)[key] === undefined) {
+                (dataToSave as any)[key] = null;
+            }
+        });
+
         const employeeRef = ref(db, `employees/${id}`);
         await update(employeeRef, dataToSave);
         setEditingEmployee(null);
@@ -483,3 +491,5 @@ export default function TerminatedEmployeesPage() {
     </div>
   );
 }
+
+    

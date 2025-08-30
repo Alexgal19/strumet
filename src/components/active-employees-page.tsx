@@ -185,6 +185,14 @@ export default function ActiveEmployeesPage() {
   const handleSaveEmployee = async (employeeData: Employee) => {
     try {
         const { id, ...dataToSave } = employeeData;
+        
+        // Convert undefined to null for Firebase compatibility
+        Object.keys(dataToSave).forEach(key => {
+            if ((dataToSave as any)[key] === undefined) {
+                (dataToSave as any)[key] = null;
+            }
+        });
+
         if (id) {
             const employeeRef = ref(db, `employees/${id}`);
             await update(employeeRef, dataToSave);
@@ -578,3 +586,5 @@ export default function ActiveEmployeesPage() {
     </div>
   );
 }
+
+    
