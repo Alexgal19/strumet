@@ -50,6 +50,7 @@ const DropdownMenuSubContent = React.forwardRef<
       "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-slide-up-fade data-[state=closed]:animate-slide-down-fade",
       className
     )}
+    collisionPadding={10}
     {...props}
   />
 ))
@@ -68,6 +69,7 @@ const DropdownMenuContent = React.forwardRef<
         "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-slide-up-fade data-[state=closed]:animate-slide-down-fade",
         className
       )}
+      collisionPadding={10}
       {...props}
     />
   </DropdownMenuPrimitive.Portal>
