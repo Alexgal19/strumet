@@ -13,6 +13,7 @@ import { ref, onValue } from 'firebase/database';
 import { Employee } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -53,23 +54,35 @@ export default function StatisticsPage() {
 
     return Object.entries(departments)
       .map(([name, data], index) => {
-        const managers = [...new Set(data.employees.map(e => e.manager))];
-        const jobTitles: { [key: string]: number } = {};
+        
+        const managersMap = new Map<string, Employee[]>();
         data.employees.forEach(e => {
-          jobTitles[e.jobTitle] = (jobTitles[e.jobTitle] || 0) + 1;
+            if(!managersMap.has(e.manager)) {
+                managersMap.set(e.manager, []);
+            }
+            managersMap.get(e.manager)!.push(e);
         });
 
-        const jobTitlesArray = Object.entries(jobTitles)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value);
+        const managersArray = Array.from(managersMap.entries()).map(([managerName, managerEmployees]) => {
+            const jobTitles: { [key: string]: number } = {};
+            managerEmployees.forEach(e => {
+                jobTitles[e.jobTitle] = (jobTitles[e.jobTitle] || 0) + 1;
+            });
+            return {
+                name: managerName,
+                employeesCount: managerEmployees.length,
+                jobTitles: Object.entries(jobTitles)
+                    .map(([name, value]) => ({ name, value }))
+                    .sort((a, b) => b.value - a.value)
+            };
+        }).sort((a,b) => b.employeesCount - a.employeesCount);
 
         return { 
           name, 
           value: data.employees.length,
           percentage: (data.employees.length / totalActiveEmployees) * 100,
           fill: CHART_COLORS[index % CHART_COLORS.length],
-          managers,
-          jobTitles: jobTitlesArray
+          managers: managersArray
         }
       })
       .sort((a, b) => b.value - a.value);
@@ -143,27 +156,27 @@ export default function StatisticsPage() {
                                   </div>
                               </AccordionTrigger>
                               <AccordionContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pl-6">
-                                    <div>
-                                        <h4 className="font-semibold mb-2 text-sm">Kierownicy:</h4>
-                                        <ul className="space-y-1 list-disc list-inside text-muted-foreground text-sm">
-                                            {dept.managers.map(manager => <li key={manager}>{manager}</li>)}
-                                        </ul>
-                                    </div>
-                                    <div>
-                                         <h4 className="font-semibold mb-2 text-sm">Stanowiska:</h4>
-                                          <div className="space-y-2">
-                                              {dept.jobTitles.map((job) => (
-                                                <div key={job.name} className="space-y-1">
-                                                    <div className="flex justify-between items-center text-sm font-medium">
-                                                        <span>{job.name}</span>
-                                                        <span className="text-muted-foreground">{job.value}</span>
+                                <div className="pl-6 space-y-6">
+                                    {dept.managers.map((manager, managerIndex) => (
+                                        <div key={manager.name}>
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <h4 className="font-semibold text-base">{manager.name}</h4>
+                                                <Badge variant="outline">{manager.employeesCount} prac.</Badge>
+                                            </div>
+                                            <div className="space-y-3 pl-4">
+                                                {manager.jobTitles.map((job) => (
+                                                    <div key={job.name} className="space-y-1.5">
+                                                        <div className="flex justify-between items-center text-sm font-medium">
+                                                            <span>{job.name}</span>
+                                                            <span className="text-muted-foreground">{job.value}</span>
+                                                        </div>
+                                                        <Progress value={(job.value / manager.employeesCount) * 100} className="h-1.5" />
                                                     </div>
-                                                    <Progress value={(job.value / dept.value) * 100} className="h-1.5" />
-                                                </div>
-                                              ))}
-                                          </div>
-                                    </div>
+                                                ))}
+                                            </div>
+                                            {managerIndex < dept.managers.length - 1 && <Separator className="mt-6" />}
+                                        </div>
+                                    ))}
                                 </div>
                               </AccordionContent>
                           </AccordionItem>
@@ -268,3 +281,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
