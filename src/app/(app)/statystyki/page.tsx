@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList, Bar } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList, PieChart, Pie, Legend, Sector } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
@@ -19,10 +20,55 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
+const renderActiveShape = (props: any) => {
+  const RADIAN = Math.PI / 180;
+  const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
+  const sin = Math.sin(-RADIAN * midAngle);
+  const cos = Math.cos(-RADIAN * midAngle);
+  const sx = cx + (outerRadius + 10) * cos;
+  const sy = cy + (outerRadius + 10) * sin;
+  const mx = cx + (outerRadius + 30) * cos;
+  const my = cy + (outerRadius + 30) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+  const ey = my;
+  const textAnchor = cos >= 0 ? 'start' : 'end';
+
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+      <Sector
+        cx={cx}
+        cy={cy}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        innerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 10}
+        fill={fill}
+      />
+      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="hsl(var(--foreground))" className="text-sm">{`${payload.name}`}</text>
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="hsl(var(--muted-foreground))" className="text-xs">
+        {`Pracownicy: ${value}`}
+      </text>
+    </g>
+  );
+};
+
+
 export default function StatisticsPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const employeesRef = ref(db, 'employees');
@@ -104,6 +150,15 @@ export default function StatisticsPage() {
       setSelectedDepartment(departmentName);
     }
   };
+  
+  const onPieEnter = (_: any, index: number) => {
+    setActiveIndex(index);
+  };
+
+  const handlePieClick = (data: any) => {
+    handleDepartmentClick(data.name);
+  };
+
 
   if (isLoading) {
     return (
@@ -147,21 +202,37 @@ export default function StatisticsPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="h-[400px]">
                   {!selectedDepartment ? (
-                    <div className="space-y-4">
-                      {departmentData.map((dept) => (
-                          <div key={dept.name} className="space-y-1 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors" onClick={() => handleDepartmentClick(dept.name)}>
-                              <div className="flex justify-between items-center text-sm font-medium">
-                                  <span style={{ color: dept.fill }}>{dept.name}</span>
-                                  <span>{dept.value} ({dept.percentage.toFixed(1)}%)</span>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            activeIndex={activeIndex}
+                            activeShape={renderActiveShape}
+                            data={departmentData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={100}
+                            outerRadius={140}
+                            dataKey="value"
+                            onMouseEnter={onPieEnter}
+                            onClick={(data, index) => handlePieClick((departmentData as any)[index])}
+                            paddingAngle={2}
+                          >
+                            {departmentData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} className="cursor-pointer" />
+                            ))}
+                          </Pie>
+                           <foreignObject x="50%" y="50%" width="200" height="100" style={{transform: 'translate(-100px, -50px)'}}>
+                              <div className="flex flex-col items-center justify-center h-full text-center">
+                                <span className="text-4xl font-bold text-foreground">{totalActiveEmployees}</span>
+                                <span className="text-sm text-muted-foreground">Pracowników</span>
                               </div>
-                              <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
-                          </div>
-                      ))}
-                    </div>
+                            </foreignObject>
+                        </PieChart>
+                    </ResponsiveContainer>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-4 pt-4">
                       {jobTitlesByDepartmentData.map((job) => (
                         <div key={job.name} className="space-y-1 p-2">
                             <div className="flex justify-between items-center text-sm font-medium">
