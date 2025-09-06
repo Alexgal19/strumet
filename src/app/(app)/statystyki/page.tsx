@@ -168,9 +168,9 @@ export default function StatisticsPage() {
                                                     <div key={job.name} className="space-y-1.5">
                                                         <div className="flex justify-between items-center text-sm font-medium">
                                                             <span>{job.name}</span>
-                                                            <span className="text-muted-foreground">{job.value} ({((job.value / manager.employeesCount) * 100).toFixed(1)}%)</span>
+                                                            <span className="text-muted-foreground">{job.value} ({ (manager.employeesCount > 0 ? (job.value / manager.employeesCount) * 100 : 0).toFixed(1)}%)</span>
                                                         </div>
-                                                        <Progress value={(job.value / manager.employeesCount) * 100} className="h-1.5" />
+                                                        <Progress value={manager.employeesCount > 0 ? (job.value / manager.employeesCount) * 100 : 0} className="h-1.5" />
                                                     </div>
                                                 ))}
                                             </div>
