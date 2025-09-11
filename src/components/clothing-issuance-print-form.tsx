@@ -28,7 +28,6 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
               margin: 1.5cm;
             }
             html, body {
-              height: 100%;
               margin: 0;
               padding: 0;
               font-family: 'Times New Roman', Times, serif;
@@ -37,15 +36,17 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
             .print-container {
               display: flex;
               flex-direction: column;
-              height: 100%;
+              justify-content: space-between;
+              min-height: 24cm; /* Approximate height for A4 with margins */
               width: 100%;
               border: 1px solid black;
-              padding: 1.5cm;
+              padding: 1cm;
               box-sizing: border-box;
             }
           `}
         </style>
         <div className="print-container">
+          <div>
             <header className="text-center mb-6">
                 <h1 className="text-base font-bold underline">Wniosek o wydanie odzieży ochronnej, obuwia roboczego oraz środków ochrony indywidualnej</h1>
             </header>
@@ -63,7 +64,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                 </div>
             </section>
 
-            <section className="space-y-2 flex-grow">
+            <section className="space-y-2">
                 <p><strong>Wnioskowane artykuły:</strong></p>
                 {clothingItems.length > 0 ? (
                     <ul className="list-decimal list-inside pl-4 space-y-1">
@@ -75,21 +76,22 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                     <p className="text-gray-500">(Brak wybranych artykułów)</p>
                 )}
             </section>
+          </div>
             
-            <footer className="pt-20 mt-auto">
-                <div className="flex justify-between">
-                    <div className="text-center w-1/3">
-                        <div className="border-t border-black pt-1">
-                             <p className="text-xs">(podpis pracownika)</p>
-                        </div>
-                    </div>
-                    <div className="text-center w-1/3">
-                        <div className="border-t border-black pt-1">
-                             <p className="text-xs">(podpis opiekuna)</p>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+          <footer className="pt-16">
+              <div className="flex justify-between">
+                  <div className="text-center w-2/5">
+                      <div className="border-t border-black pt-1">
+                           <p className="text-xs">(podpis pracownika)</p>
+                      </div>
+                  </div>
+                  <div className="text-center w-2/5">
+                      <div className="border-t border-black pt-1">
+                           <p className="text-xs">(podpis opiekuna)</p>
+                      </div>
+                  </div>
+              </div>
+          </footer>
         </div>
       </div>
     );
