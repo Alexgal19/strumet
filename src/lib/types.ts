@@ -72,6 +72,9 @@ export interface AbsenceRecord {
   employeeId: string;
   employeeFullName: string;
   incidentDate: string; // ISO string format
+  department: string;
+  jobTitle: string;
+  hours: number;
 }
 
 export interface AppNotification {
@@ -81,3 +84,5 @@ export interface AppNotification {
   createdAt: string; // ISO string
   read: boolean;
 }
+
+    

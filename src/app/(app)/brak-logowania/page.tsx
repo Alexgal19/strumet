@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, FilePlus2, Trash2 } from 'lucide-react';
+import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, FilePlus2, Trash2, Briefcase, Building } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Employee, AbsenceRecord } from '@/lib/types';
 import { db } from '@/lib/firebase';
@@ -52,6 +52,8 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -64,6 +66,7 @@ export default function NoLoginPage() {
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [incidentDate, setIncidentDate] = useState<Date | undefined>();
+  const [hours, setHours] = useState<number | string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
@@ -94,7 +97,7 @@ export default function NoLoginPage() {
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const sortedRecords = useMemo(() => {
-    return [...records].sort((a, b) => new Date(a.incidentDate).getTime() - new Date(b.incidentDate).getTime());
+    return [...records].sort((a, b) => new Date(b.incidentDate).getTime() - new Date(a.incidentDate).getTime());
   }, [records]);
 
   const selectedEmployee = useMemo(() => {
@@ -102,11 +105,11 @@ export default function NoLoginPage() {
   }, [selectedEmployeeId, activeEmployees]);
 
   const handleSaveRecord = async () => {
-    if (!selectedEmployee || !incidentDate) {
+    if (!selectedEmployee || !incidentDate || !hours || (typeof hours === 'number' && hours <= 0)) {
       toast({
         variant: 'destructive',
         title: 'Błąd walidacji',
-        description: 'Proszę wybrać pracownika i datę.',
+        description: 'Proszę wybrać pracownika, datę i podać prawidłową liczbę godzin.',
       });
       return;
     }
@@ -118,6 +121,9 @@ export default function NoLoginPage() {
         employeeId: selectedEmployee.id,
         employeeFullName: selectedEmployee.fullName,
         incidentDate: incidentDate.toISOString(),
+        department: selectedEmployee.department,
+        jobTitle: selectedEmployee.jobTitle,
+        hours: Number(hours),
       };
       await set(newRecordRef, newRecord);
       toast({
@@ -126,6 +132,7 @@ export default function NoLoginPage() {
       });
       setSelectedEmployeeId('');
       setIncidentDate(undefined);
+      setHours('');
     } catch (error) {
       console.error('Error saving record:', error);
       toast({
@@ -181,7 +188,7 @@ export default function NoLoginPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Pracownik</label>
+                <Label>Pracownik</Label>
                 <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -225,8 +232,21 @@ export default function NoLoginPage() {
                 </Popover>
               </div>
 
+              {selectedEmployee && (
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center text-muted-foreground">
+                    <Building className="mr-2 h-4 w-4" />
+                    <span>{selectedEmployee.department}</span>
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <Briefcase className="mr-2 h-4 w-4" />
+                    <span>{selectedEmployee.jobTitle}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
-                <label className="text-sm font-medium">Data incydentu</label>
+                <Label>Data incydentu</Label>
                  <Popover>
                     <PopoverTrigger asChild>
                         <Button
@@ -251,6 +271,18 @@ export default function NoLoginPage() {
                     </PopoverContent>
                 </Popover>
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="hours">Liczba godzin</Label>
+                <Input 
+                  id="hours"
+                  type="number"
+                  placeholder="np. 8"
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                  min="0"
+                />
+              </div>
 
               <Button onClick={handleSaveRecord} disabled={isSaving} className="w-full">
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FilePlus2 className="mr-2 h-4 w-4" />}
@@ -272,7 +304,10 @@ export default function NoLoginPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Pracownik</TableHead>
+                      <TableHead>Dział</TableHead>
+                      <TableHead>Stanowisko</TableHead>
                       <TableHead>Data</TableHead>
+                      <TableHead>Godziny</TableHead>
                       <TableHead className="text-right">Akcje</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -281,7 +316,10 @@ export default function NoLoginPage() {
                       sortedRecords.map((rec) => (
                         <TableRow key={rec.id}>
                           <TableCell className="font-medium">{rec.employeeFullName}</TableCell>
+                          <TableCell>{rec.department}</TableCell>
+                          <TableCell>{rec.jobTitle}</TableCell>
                           <TableCell>{format(parseISO(rec.incidentDate), "dd.MM.yyyy", { locale: pl })}</TableCell>
+                          <TableCell>{rec.hours}</TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => setDeletingId(rec.id)}>
                                <Trash2 className="h-4 w-4 text-destructive" />
@@ -291,7 +329,7 @@ export default function NoLoginPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={3} className="h-24 text-center">
+                        <TableCell colSpan={6} className="h-24 text-center">
                           Brak zarejestrowanych incydentów.
                         </TableCell>
                       </TableRow>
@@ -308,7 +346,7 @@ export default function NoLoginPage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Czy jesteś pewien?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Tej akcji не można cofnąć. Spowoduje to trwałe usunięcie tego zapisu.
+                        Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie tego zapisu.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -322,3 +360,5 @@ export default function NoLoginPage() {
     </div>
   );
 }
+
+    
