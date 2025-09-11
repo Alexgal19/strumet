@@ -20,12 +20,10 @@ export const sendEmail = ai.defineTool(
         }),
     },
     async ({ subject, body }) => {
-        // Initialize Resend inside the tool to ensure env var is available
         const resend = new Resend(process.env.RESEND_API_KEY);
         try {
-            // This now sends a real email using Resend
             const { data, error } = await resend.emails.send({
-                from: 'HOL Manager <onboarding@resend.dev>', // IMPORTANT: Replace with your verified domain in Resend
+                from: 'HOL Manager <powiadomienia@smartwork.pl>', // IMPORTANT: Replace with your verified domain in Resend
                 to: [NOTIFICATION_EMAIL],
                 subject: subject,
                 html: body,
