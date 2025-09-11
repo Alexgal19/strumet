@@ -289,7 +289,8 @@ export default function FingerprintAppointmentsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Pracownik</TableHead>
-                      <TableHead>Data i godzina</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Godzina</TableHead>
                       <TableHead className="text-right">Akcje</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -298,7 +299,8 @@ export default function FingerprintAppointmentsPage() {
                       sortedAppointments.map((apt) => (
                         <TableRow key={apt.id}>
                           <TableCell className="font-medium">{apt.employeeFullName}</TableCell>
-                          <TableCell>{format(parseISO(apt.appointmentDate), "dd.MM.yyyy HH:mm", { locale: pl })}</TableCell>
+                          <TableCell>{format(parseISO(apt.appointmentDate), "dd.MM.yyyy", { locale: pl })}</TableCell>
+                          <TableCell>{format(parseISO(apt.appointmentDate), "HH:mm", { locale: pl })}</TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => setDeletingId(apt.id)}>
                                <Trash2 className="h-4 w-4 text-destructive" />
@@ -308,7 +310,7 @@ export default function FingerprintAppointmentsPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={3} className="h-24 text-center">
+                        <TableCell colSpan={4} className="h-24 text-center">
                           Brak zaplanowanych terminów.
                         </TableCell>
                       </TableRow>
