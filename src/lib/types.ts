@@ -57,6 +57,7 @@ export interface ClothingIssuanceHistoryItem {
 export interface FingerprintAppointment {
   id: string;
   employeeId: string;
+  employeeFullName: string;
   appointmentDate: string; // ISO string format
 }
 
