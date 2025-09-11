@@ -9,14 +9,16 @@ import { PageHeader } from '@/components/page-header';
 import { Loader2, Users } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { db } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
-import { Employee } from '@/lib/types';
+import { ref, onValue, update } from 'firebase/database';
+import { Employee, AllConfig } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+import { EmployeeForm } from '@/components/employee-form';
 
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -28,22 +30,43 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 
 export default function StatisticsPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [] });
   const [isLoading, setIsLoading] = useState(true);
   
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState('');
   const [dialogEmployees, setDialogEmployees] = useState<Employee[]>([]);
 
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+  const { toast } = useToast();
 
   useEffect(() => {
     const employeesRef = ref(db, 'employees');
-    const unsubscribe = onValue(employeesRef, (snapshot) => {
-        const data = snapshot.val();
-        setEmployees(objectToArray(data));
-        setIsLoading(false);
+    const configRef = ref(db, 'config');
+
+    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
+        setEmployees(objectToArray(snapshot.val()));
+        if (isLoading) setIsLoading(false);
     });
-    return () => unsubscribe();
-  }, []);
+
+    const unsubscribeConfig = onValue(configRef, (snapshot) => {
+        const data = snapshot.val();
+        setConfig({
+            departments: objectToArray(data?.departments),
+            jobTitles: objectToArray(data?.jobTitles),
+            managers: objectToArray(data?.managers),
+            nationalities: objectToArray(data?.nationalities),
+            clothingItems: objectToArray(data?.clothingItems),
+        });
+    });
+
+    return () => {
+        unsubscribeEmployees();
+        unsubscribeConfig();
+    };
+  }, [isLoading]);
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
   const totalActiveEmployees = activeEmployees.length;
@@ -126,7 +149,7 @@ export default function StatisticsPage() {
     const filtered = activeEmployees.filter(e => e.department === departmentName && e.manager === managerName);
     setDialogTitle(`Pracownicy kierownika: ${managerName}`);
     setDialogEmployees(filtered);
-    setIsDialogOpen(true);
+    setIsStatDialogOpen(true);
   };
   
   const handleJobTitleClick = (departmentName: string, managerName: string, jobTitleName: string) => {
@@ -137,7 +160,38 @@ export default function StatisticsPage() {
       );
       setDialogTitle(`${jobTitleName} (Kier. ${managerName})`);
       setDialogEmployees(filtered);
-      setIsDialogOpen(true);
+      setIsStatDialogOpen(true);
+  };
+  
+  const handleEmployeeClick = (employee: Employee) => {
+      setEditingEmployee(employee);
+      setIsStatDialogOpen(false);
+      setIsFormOpen(true);
+  };
+
+  const handleSaveEmployee = async (employeeData: Employee) => {
+    if (!editingEmployee) return;
+    try {
+        const { id, ...dataToSave } = employeeData;
+        
+        const finalData: any = {};
+        for (const key in dataToSave) {
+            if ((dataToSave as any)[key] === undefined) {
+                finalData[key] = null;
+            } else {
+                finalData[key] = (dataToSave as any)[key];
+            }
+        }
+
+        const employeeRef = ref(db, `employees/${id}`);
+        await update(employeeRef, finalData);
+        setEditingEmployee(null);
+        setIsFormOpen(false);
+        toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
+    } catch (error) {
+        console.error("Error saving employee: ", error);
+        toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych.' });
+    }
   };
 
 
@@ -317,7 +371,7 @@ export default function StatisticsPage() {
         </div>
       )}
       
-       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+       <Dialog open={isStatDialogOpen} onOpenChange={setIsStatDialogOpen}>
           <DialogContent className="sm:max-w-md">
               <DialogHeader>
                   <DialogTitle>{dialogTitle}</DialogTitle>
@@ -328,7 +382,7 @@ export default function StatisticsPage() {
               <ScrollArea className="max-h-96 my-4">
                   <div className="space-y-3 pr-6">
                       {dialogEmployees.map(employee => (
-                          <div key={employee.id} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
+                          <div key={employee.id} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
                               <span className="font-medium">{employee.fullName}</span>
                               <span className="text-muted-foreground">{employee.cardNumber}</span>
                           </div>
@@ -337,7 +391,25 @@ export default function StatisticsPage() {
               </ScrollArea>
           </DialogContent>
       </Dialog>
+      
+       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent 
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            className="sm:max-w-3xl max-h-[90vh] flex flex-col"
+        >
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Edytuj pracownika</DialogTitle>
+          </DialogHeader>
+          <div className="flex-grow overflow-y-auto -mr-6 pr-6">
+            <EmployeeForm
+              employee={editingEmployee}
+              onSave={handleSaveEmployee}
+              onCancel={() => setIsFormOpen(false)}
+              config={config}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-
-    
+}
