@@ -234,8 +234,8 @@ export default function StatisticsPage() {
                       {departmentData.map((dept, index) => (
                           <AccordionItem value={`item-${index}`} key={dept.name} className="border-b-0">
                              <Card className="overflow-hidden">
-                              <AccordionTrigger className="p-4 hover:no-underline hover:bg-muted/50">
-                                  <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center p-4 hover:bg-muted/50">
+                                  <AccordionTrigger className="flex-grow hover:no-underline p-0">
                                       <div className="flex items-center gap-4 text-left">
                                           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.fill }}></div>
                                           <div className="flex-grow">
@@ -243,19 +243,19 @@ export default function StatisticsPage() {
                                             <p className="text-xs text-muted-foreground">{dept.value} pracowników ({dept.percentage.toFixed(1)}%)</p>
                                           </div>
                                       </div>
-                                      <div className='flex items-center gap-2'>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            onClick={(e) => { e.stopPropagation(); handleDepartmentClick(dept.name); }}
-                                            className="h-8 w-8 shrink-0"
-                                        >
-                                            <Users className="h-4 w-4" />
-                                        </Button>
-                                        <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
-                                      </div>
+                                  </AccordionTrigger>
+                                  <div className='flex items-center gap-2 pl-4'>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => handleDepartmentClick(dept.name)}
+                                        className="h-8 w-8 shrink-0"
+                                    >
+                                        <Users className="h-4 w-4" />
+                                    </Button>
+                                    <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
                                   </div>
-                              </AccordionTrigger>
+                                </div>
                               <AccordionContent>
                                 <div className="px-6 pb-6 space-y-6">
                                     {dept.managers.map((manager, managerIndex) => (
