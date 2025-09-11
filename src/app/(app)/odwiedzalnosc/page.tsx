@@ -46,23 +46,23 @@ const EmployeeAttendanceCard = ({ employee, attendanceData, onToggleAbsence }: {
 
     return (
         <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
                 <div className='flex justify-between items-start'>
                     <div>
                         <CardTitle className="text-lg">{employee.fullName}</CardTitle>
                         <p className="text-sm text-muted-foreground">{employee.jobTitle}</p>
                     </div>
-                    <div className='text-right'>
+                    <div className='text-right shrink-0 ml-2'>
                        <div className="font-bold text-lg">{empStats.absencesCount}d</div>
                        <div className="text-muted-foreground text-xs">{empStats.absencePercentage.toFixed(0)}% nieob.</div>
                     </div>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4">
                 <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted-foreground mb-2">
                    {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'].map(day => <div key={day}>{day}</div>)}
                 </div>
-                <div className="grid grid-cols-7 gap-1.5">
+                <div className="grid grid-cols-7 gap-1">
                     {attendanceData.calendarDays.map((day, index) => {
                         if (day.isPlaceholder) {
                             return <div key={`placeholder-${index}`} />;
@@ -77,7 +77,7 @@ const EmployeeAttendanceCard = ({ employee, attendanceData, onToggleAbsence }: {
                                 variant={isAbsent ? 'destructive' : 'ghost'}
                                 size="icon"
                                 className={cn(
-                                    "h-8 w-8 rounded-full text-sm font-medium transition-colors",
+                                    "h-7 w-7 sm:h-8 sm:w-8 rounded-full text-xs sm:text-sm font-medium transition-colors",
                                     day.isHoliday && 'bg-yellow-500/20 text-yellow-700 hover:bg-yellow-500/30',
                                     day.isWeekend && !day.isHoliday && 'bg-red-500/10 text-red-600 hover:bg-red-500/20',
                                     day.isToday && 'ring-2 ring-primary',
