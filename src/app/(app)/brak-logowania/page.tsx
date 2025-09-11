@@ -68,7 +68,7 @@ export default function NoLoginPage() {
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [incidentDate, setIncidentDate] = useState<Date | undefined>();
-  const [hours, setHours] = useState<number | string>('');
+  const [hours, setHours] = useState<string>('');
   const [reason, setReason] = useState<'no_card' | 'forgot_to_scan' | ''>('');
 
   const [isSaving, setIsSaving] = useState(false);
@@ -122,7 +122,7 @@ export default function NoLoginPage() {
   }, [selectedEmployeeId, activeEmployees]);
 
   const handleSaveRecord = async () => {
-    if (!selectedEmployee || !incidentDate || !hours || (typeof hours === 'number' && hours <= 0) || !reason) {
+    if (!selectedEmployee || !incidentDate || !hours || !reason) {
       toast({
         variant: 'destructive',
         title: 'Błąd walidacji',
@@ -140,7 +140,7 @@ export default function NoLoginPage() {
         incidentDate: incidentDate.toISOString(),
         department: selectedEmployee.department,
         jobTitle: selectedEmployee.jobTitle,
-        hours: Number(hours),
+        hours: hours,
         reason: reason as 'no_card' | 'forgot_to_scan',
       };
       await set(newRecordRef, newRecord);
@@ -408,5 +408,7 @@ export default function NoLoginPage() {
     </>
   );
 }
+
+    
 
     

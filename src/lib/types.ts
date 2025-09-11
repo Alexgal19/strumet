@@ -74,7 +74,7 @@ export interface AbsenceRecord {
   incidentDate: string; // ISO string format
   department: string;
   jobTitle: string;
-  hours: number;
+  hours: string;
   reason: 'no_card' | 'forgot_to_scan';
 }
 
@@ -85,5 +85,7 @@ export interface AppNotification {
   createdAt: string; // ISO string
   read: boolean;
 }
+
+    
 
     
