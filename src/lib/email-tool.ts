@@ -2,8 +2,14 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { Resend } from 'resend';
 
 const NOTIFICATION_EMAIL = 'o.holiadynets@smartwork.pl';
+
+// Initialize Resend with the API key from environment variables
+// Make sure to add RESEND_API_KEY to your .env file
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 export const sendEmail = ai.defineTool(
     {
@@ -19,31 +25,35 @@ export const sendEmail = ai.defineTool(
         }),
     },
     async ({ subject, body }) => {
-        console.log('***********************************');
-        console.log('--- SIMULATING EMAIL SENDING ---');
-        console.log(`Recipient: ${NOTIFICATION_EMAIL}`);
-        console.log(`Subject: ${subject}`);
-        console.log('--- Body ---');
-        console.log(body);
-        console.log('-----------------------------------');
-        console.log('***********************************');
-        
-        // In a real application, you would integrate with an email service like
-        // SendGrid, Resend, or Nodemailer here.
-        // For example:
-        //
-        // import { Resend } from 'resend';
-        // const resend = new Resend(process.env.RESEND_API_KEY);
-        // await resend.emails.send({
-        //   from: 'onboarding@resend.dev',
-        //   to: NOTIFICATION_EMAIL,
-        //   subject: subject,
-        //   html: body,
-        // });
+        try {
+            // This now sends a real email using Resend
+            const { data, error } = await resend.emails.send({
+                from: 'HOL Manager <onboarding@resend.dev>', // IMPORTANT: Replace with your verified domain in Resend
+                to: [NOTIFICATION_EMAIL],
+                subject: subject,
+                html: body,
+            });
 
-        return {
-            success: true,
-            message: `Email simulation successful. In a real app, an email would be sent to ${NOTIFICATION_EMAIL}.`,
-        };
+            if (error) {
+                console.error('Resend error:', error);
+                return {
+                    success: false,
+                    message: `Failed to send email: ${error.message}`,
+                };
+            }
+
+            console.log('Email sent successfully:', data);
+            return {
+                success: true,
+                message: `Email sent successfully to ${NOTIFICATION_EMAIL}.`,
+            };
+
+        } catch (error) {
+            console.error('Error sending email:', error);
+            return {
+                success: false,
+                message: 'An unexpected error occurred while sending the email.',
+            };
+        }
     }
 );
