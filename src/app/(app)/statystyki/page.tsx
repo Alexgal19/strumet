@@ -144,6 +144,13 @@ export default function StatisticsPage() {
       fill: CHART_COLORS[index % CHART_COLORS.length]
     })).sort((a, b) => b.value - a.value);
   }, [activeEmployees, totalActiveEmployees]);
+
+  const handleDepartmentClick = (departmentName: string) => {
+    const filtered = activeEmployees.filter(e => e.department === departmentName);
+    setDialogTitle(`Pracownicy w dziale: ${departmentName}`);
+    setDialogEmployees(filtered);
+    setIsStatDialogOpen(true);
+  };
   
   const handleManagerClick = (departmentName: string, managerName: string) => {
     const filtered = activeEmployees.filter(e => e.department === departmentName && e.manager === managerName);
@@ -236,7 +243,17 @@ export default function StatisticsPage() {
                                             <p className="text-xs text-muted-foreground">{dept.value} pracowników ({dept.percentage.toFixed(1)}%)</p>
                                           </div>
                                       </div>
-                                      <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
+                                      <div className='flex items-center gap-2'>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={(e) => { e.stopPropagation(); handleDepartmentClick(dept.name); }}
+                                            className="h-8 w-8 shrink-0"
+                                        >
+                                            <Users className="h-4 w-4" />
+                                        </Button>
+                                        <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
+                                      </div>
                                   </div>
                               </AccordionTrigger>
                               <AccordionContent>
@@ -418,5 +435,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
