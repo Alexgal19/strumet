@@ -44,7 +44,7 @@ export function TerminatedExcelImportButton() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        const updates: Record<string, Omit<Employee, 'id'>> = {};
+        const updates: Record<string, any> = {};
 
         for (const item of jsonData) {
           const employeeId = push(ref(db, 'employees')).key;
@@ -60,8 +60,8 @@ export function TerminatedExcelImportButton() {
             }
           }
             
-           const formatDate = (date: any): string | undefined => {
-            if (!date) return undefined;
+           const formatDate = (date: any): string | null => {
+            if (!date) return null;
             if (date instanceof Date) {
               return date.toISOString().split('T')[0];
             }
@@ -70,11 +70,11 @@ export function TerminatedExcelImportButton() {
                 try {
                   return new Date(date).toISOString().split('T')[0];
                 } catch(e) {
-                  return undefined;
+                  return null;
                 }
               }
             }
-            return undefined;
+            return null;
           };
 
           const hireDate = formatDate(englishItem.hireDate);
@@ -83,7 +83,7 @@ export function TerminatedExcelImportButton() {
           const employee: Omit<Employee, 'id'> = {
             fullName: String(englishItem.fullName || ''),
             hireDate: hireDate || '',
-            terminationDate: terminationDate,
+            terminationDate: terminationDate || undefined,
             jobTitle: String(englishItem.jobTitle || ''),
             department: String(englishItem.department || ''),
             manager: String(englishItem.manager || ''),
@@ -100,7 +100,18 @@ export function TerminatedExcelImportButton() {
             continue;
           }
 
-          updates[`/employees/${employeeId}`] = employee;
+          // Convert undefined to null for Firebase compatibility
+          const finalEmployee: any = {};
+          for (const key in employee) {
+              const typedKey = key as keyof typeof employee;
+              if (employee[typedKey] !== undefined) {
+                  finalEmployee[typedKey] = employee[typedKey];
+              } else {
+                  finalEmployee[typedKey] = null;
+              }
+          }
+
+          updates[`/employees/${employeeId}`] = finalEmployee;
         }
         
         if (Object.keys(updates).length === 0) {

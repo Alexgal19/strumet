@@ -46,7 +46,7 @@ export function ExcelImportButton() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        const updates: Record<string, Omit<Employee, 'id'>> = {};
+        const updates: Record<string, any> = {};
 
         for (const item of jsonData) {
           const employeeId = push(ref(db, 'employees')).key;
@@ -62,20 +62,19 @@ export function ExcelImportButton() {
             }
           }
             
-          const formatDate = (date: any): string | undefined => {
-            if (!date) return undefined;
+          const formatDate = (date: any): string | null => {
+            if (!date) return null;
             if (date instanceof Date) {
               return date.toISOString().split('T')[0];
             }
             if (typeof date === 'string') {
-              // Basic check if it resembles a date, can be improved
-              if (/\d{4}-\d{2}-\d{2}/.test(date) || /\d{1,2}\/\d{1,2}\/\d{4}/.test(date)) {
+              if (/\d{4}-\d{2}-\d{2}/.test(date) || /\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{4}/.test(date)) {
                 try {
                   return new Date(date).toISOString().split('T')[0];
-                } catch (e) { return undefined; }
+                } catch (e) { return null; }
               }
             }
-            return undefined;
+            return null;
           };
 
           const employee: Omit<Employee, 'id'> = {
@@ -90,9 +89,9 @@ export function ExcelImportButton() {
             departmentLockerNumber: String(englishItem.departmentLockerNumber || ''),
             sealNumber: String(englishItem.sealNumber || ''),
             status: 'aktywny',
-            plannedTerminationDate: formatDate(englishItem.plannedTerminationDate),
-            vacationStartDate: formatDate(englishItem.vacationStartDate),
-            vacationEndDate: formatDate(englishItem.vacationEndDate),
+            plannedTerminationDate: formatDate(englishItem.plannedTerminationDate) || undefined,
+            vacationStartDate: formatDate(englishItem.vacationStartDate) || undefined,
+            vacationEndDate: formatDate(englishItem.vacationEndDate) || undefined,
           };
           
           if(!employee.fullName) {
@@ -100,7 +99,18 @@ export function ExcelImportButton() {
             continue;
           }
 
-          updates[`/employees/${employeeId}`] = employee;
+          // Convert undefined to null for Firebase compatibility
+          const finalEmployee: any = {};
+          for (const key in employee) {
+              const typedKey = key as keyof typeof employee;
+              if (employee[typedKey] !== undefined) {
+                  finalEmployee[typedKey] = employee[typedKey];
+              } else {
+                  finalEmployee[typedKey] = null;
+              }
+          }
+
+          updates[`/employees/${employeeId}`] = finalEmployee;
         }
         
         if (Object.keys(updates).length === 0) {
