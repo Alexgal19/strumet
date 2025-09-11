@@ -12,17 +12,17 @@ interface ExcelExportButtonProps {
   fileName?: string;
 }
 
-const englishToPolishMapping: Record<keyof Omit<Employee, 'id' | 'status' | 'terminationDate'>, string> = {
-  fullName: 'imięNazwisko',
-  hireDate: 'dataZatrudnienia',
-  jobTitle: 'stanowisko',
-  department: 'dział',
-  manager: 'kierownik',
-  cardNumber: 'numerKarty',
-  nationality: 'narodowość',
-  lockerNumber: 'numerSzafki',
-  departmentLockerNumber: 'numerSzafkiDział',
-  sealNumber: 'numerPlomby',
+const englishToPolishMapping: Record<keyof Omit<Employee, 'id' | 'status' | 'terminationDate' | 'plannedTerminationDate' | 'vacationStartDate' | 'vacationEndDate'>, string> = {
+  fullName: 'Nazwisko i imię',
+  hireDate: 'Data zatrudnienia',
+  jobTitle: 'Stanowisko',
+  department: 'Dział',
+  manager: 'Kierownik',
+  cardNumber: 'Nr karty',
+  nationality: 'Narodowość',
+  lockerNumber: 'Nr szafki',
+  departmentLockerNumber: 'Nr szafki w dziale',
+  sealNumber: 'Nr plomby',
 };
 
 export function ExcelExportButton({ employees, fileName = 'pracownicy' }: ExcelExportButtonProps) {

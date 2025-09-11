@@ -11,17 +11,17 @@ import type { Employee } from '@/lib/types';
 import { push } from 'firebase/database';
 
 const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status'>> = {
-  'imięNazwisko': 'fullName',
-  'dataZatrudnienia': 'hireDate',
-  'dataZwolnienia': 'terminationDate',
-  'stanowisko': 'jobTitle',
-  'dział': 'department',
-  'kierownik': 'manager',
-  'numerKarty': 'cardNumber',
-  'narodowość': 'nationality',
-  'numerSzafki': 'lockerNumber',
-  'numerSzafkiDział': 'departmentLockerNumber',
-  'numerPlomby': 'sealNumber',
+  'Nazwisko i imię': 'fullName',
+  'Data zatrudnienia': 'hireDate',
+  'Stanowisko': 'jobTitle',
+  'Dział': 'department',
+  'Kierownik': 'manager',
+  'Nr karty': 'cardNumber',
+  'Narodowość': 'nationality',
+  'Nr szafki': 'lockerNumber',
+  'Nr szafki w dziale': 'departmentLockerNumber',
+  'Nr plomby': 'sealNumber',
+  'dataZwolnienia': 'terminationDate'
 };
 
 export function TerminatedExcelImportButton() {

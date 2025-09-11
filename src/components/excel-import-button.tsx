@@ -10,17 +10,17 @@ import { ref, update } from "firebase/database";
 import type { Employee } from '@/lib/types';
 import { push } from 'firebase/database';
 
-const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status' | 'terminationDate'>> = {
-  'imięNazwisko': 'fullName',
-  'dataZatrudnienia': 'hireDate',
-  'stanowisko': 'jobTitle',
-  'dział': 'department',
-  'kierownik': 'manager',
-  'numerKarty': 'cardNumber',
-  'narodowość': 'nationality',
-  'numerSzafki': 'lockerNumber',
-  'numerSzafkiDział': 'departmentLockerNumber',
-  'numerPlomby': 'sealNumber',
+const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status'>> = {
+  'Nazwisko i imię': 'fullName',
+  'Data zatrudnienia': 'hireDate',
+  'Stanowisko': 'jobTitle',
+  'Dział': 'department',
+  'Kierownik': 'manager',
+  'Nr karty': 'cardNumber',
+  'Narodowość': 'nationality',
+  'Nr szafki': 'lockerNumber',
+  'Nr szafki w dziale': 'departmentLockerNumber',
+  'Nr plomby': 'sealNumber',
   'planowanaDataZwolnienia': 'plannedTerminationDate',
   'urlopPoczątek': 'vacationStartDate',
   'urlopKoniec': 'vacationEndDate',
