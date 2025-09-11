@@ -70,6 +70,6 @@ export interface Absence {
 export interface AbsenceRecord {
   id: string;
   employeeId: string;
+  employeeFullName: string;
   incidentDate: string; // ISO string format
-  managerSignature: string;
 }
