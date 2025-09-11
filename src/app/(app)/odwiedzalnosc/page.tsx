@@ -228,7 +228,7 @@ export default function AttendancePage() {
         description="Zarządzaj kalendarzem obecności pracowników."
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Aktywni pracownicy</CardTitle>
@@ -302,16 +302,16 @@ export default function AttendancePage() {
 
     <Card className="flex-grow flex flex-col">
         <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <CardTitle className="text-2xl capitalize">
                     {format(currentDate, 'LLLL yyyy', { locale: pl })}
                 </CardTitle>
-                 <div className="flex items-center gap-2">
+                 <div className="flex items-center gap-2 flex-wrap">
                     <Button variant="outline" size="icon" onClick={handlePrevMonth} disabled={isDataLoading}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <Select value={currentDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="w-full sm:w-[140px]">
                             <SelectValue placeholder="Miesiąc" />
                         </SelectTrigger>
                         <SelectContent>
@@ -321,7 +321,7 @@ export default function AttendancePage() {
                         </SelectContent>
                     </Select>
                     <Select value={currentDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                        <SelectTrigger className="w-[100px]">
+                        <SelectTrigger className="w-full sm:w-[100px]">
                             <SelectValue placeholder="Rok" />
                         </SelectTrigger>
                         <SelectContent>
@@ -345,7 +345,7 @@ export default function AttendancePage() {
                   onChange={(e) => setSearchTerm(e.target.value)} 
                 />
               </div>
-              <div className="md:w-[220px]">
+              <div className="w-full md:w-[220px]">
                   <MultiSelect
                     options={departmentOptions}
                     selected={selectedDepartments}
