@@ -2,15 +2,15 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyCryPpPDejThvmchHlCT2_JTFPAP2_9Soc",
-    authDomain: "system-wr.firebaseapp.com",
-    databaseURL: "https://system-wr-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "system-wr",
-    storageBucket: "system-wr.firebasestorage.app",
-    messagingSenderId: "661979285001",
-    appId: "1:661979285001:web:aceef9e7da910d81a49ad8",
-    measurementId: "G-E3BFN367SJ"
+  apiKey: "AIzaSyC5Kryaewq6NcXjpF-ciABQ4Z7RSdm2GwA",
+  authDomain: "kadry-online-4h3x9.firebaseapp.com",
+  databaseURL: "https://kadry-online-4h3x9-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kadry-online-4h3x9",
+  storageBucket: "kadry-online-4h3x9.firebasestorage.app",
+  messagingSenderId: "358071580509",
+  appId: "1:358071580509:web:c6deaffc2548f8fdde5ab4"
 };
 
 // Initialize Firebase
