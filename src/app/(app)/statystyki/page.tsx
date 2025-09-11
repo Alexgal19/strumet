@@ -6,7 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelL
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
@@ -14,6 +14,9 @@ import { Employee } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -26,6 +29,11 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 export default function StatisticsPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogEmployees, setDialogEmployees] = useState<Employee[]>([]);
+
 
   useEffect(() => {
     const employeesRef = ref(db, 'employees');
@@ -113,6 +121,24 @@ export default function StatisticsPage() {
       fill: CHART_COLORS[index % CHART_COLORS.length]
     })).sort((a, b) => b.value - a.value);
   }, [activeEmployees, totalActiveEmployees]);
+  
+  const handleManagerClick = (departmentName: string, managerName: string) => {
+    const filtered = activeEmployees.filter(e => e.department === departmentName && e.manager === managerName);
+    setDialogTitle(`Pracownicy kierownika: ${managerName}`);
+    setDialogEmployees(filtered);
+    setIsDialogOpen(true);
+  };
+  
+  const handleJobTitleClick = (departmentName: string, managerName: string, jobTitleName: string) => {
+      const filtered = activeEmployees.filter(e => 
+          e.department === departmentName && 
+          e.manager === managerName && 
+          e.jobTitle === jobTitleName
+      );
+      setDialogTitle(`${jobTitleName} (Kier. ${managerName})`);
+      setDialogEmployees(filtered);
+      setIsDialogOpen(true);
+  };
 
 
   if (isLoading) {
@@ -160,14 +186,26 @@ export default function StatisticsPage() {
                                     {dept.managers.map((manager, managerIndex) => (
                                         <div key={manager.name}>
                                             <div className="flex items-center gap-3 mb-3">
-                                                <h4 className="font-semibold text-base">{manager.name}</h4>
+                                                <Button 
+                                                    variant="link" 
+                                                    className="p-0 h-auto text-base font-semibold"
+                                                    onClick={() => handleManagerClick(dept.name, manager.name)}
+                                                >
+                                                    {manager.name}
+                                                </Button>
                                                 <Badge variant="outline">{manager.employeesCount} prac.</Badge>
                                             </div>
                                             <div className="space-y-3 pl-4">
                                                 {manager.jobTitles.map((job) => (
                                                     <div key={job.name} className="space-y-1.5">
                                                         <div className="flex justify-between items-center text-sm font-medium">
-                                                            <span>{job.name}</span>
+                                                            <Button 
+                                                                variant="link" 
+                                                                className="p-0 h-auto text-sm"
+                                                                onClick={() => handleJobTitleClick(dept.name, manager.name, job.name)}
+                                                            >
+                                                                {job.name}
+                                                            </Button>
                                                             <span className="text-muted-foreground">{job.value} ({ (manager.employeesCount > 0 ? (job.value / manager.employeesCount) * 100 : 0).toFixed(1)}%)</span>
                                                         </div>
                                                         <Progress value={manager.employeesCount > 0 ? (job.value / manager.employeesCount) * 100 : 0} className="h-1.5" />
@@ -278,8 +316,28 @@ export default function StatisticsPage() {
             </Card>
         </div>
       )}
+      
+       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                  <DialogTitle>{dialogTitle}</DialogTitle>
+                   <DialogDescription>
+                        Znaleziono {dialogEmployees.length} pracowników.
+                    </DialogDescription>
+              </DialogHeader>
+              <ScrollArea className="max-h-96 my-4">
+                  <div className="space-y-3 pr-6">
+                      {dialogEmployees.map(employee => (
+                          <div key={employee.id} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
+                              <span className="font-medium">{employee.fullName}</span>
+                              <span className="text-muted-foreground">{employee.cardNumber}</span>
+                          </div>
+                      ))}
+                  </div>
+              </ScrollArea>
+          </DialogContent>
+      </Dialog>
     </div>
   );
-}
 
     
