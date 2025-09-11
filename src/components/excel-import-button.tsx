@@ -21,6 +21,9 @@ const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status
   'numerSzafki': 'lockerNumber',
   'numerSzafkiDział': 'departmentLockerNumber',
   'numerPlomby': 'sealNumber',
+  'planowanaDataZwolnienia': 'plannedTerminationDate',
+  'urlopPoczątek': 'vacationStartDate',
+  'urlopKoniec': 'vacationEndDate',
 };
 
 export function ExcelImportButton() {
@@ -67,18 +70,17 @@ export function ExcelImportButton() {
             if (typeof date === 'string') {
               // Basic check if it resembles a date, can be improved
               if (/\d{4}-\d{2}-\d{2}/.test(date) || /\d{1,2}\/\d{1,2}\/\d{4}/.test(date)) {
-                return new Date(date).toISOString().split('T')[0];
+                try {
+                  return new Date(date).toISOString().split('T')[0];
+                } catch (e) { return undefined; }
               }
             }
             return undefined;
           };
 
-          const hireDate = formatDate(englishItem.hireDate);
-
-
           const employee: Omit<Employee, 'id'> = {
             fullName: String(englishItem.fullName || ''),
-            hireDate: hireDate || '',
+            hireDate: formatDate(englishItem.hireDate) || '',
             jobTitle: String(englishItem.jobTitle || ''),
             department: String(englishItem.department || ''),
             manager: String(englishItem.manager || ''),
@@ -88,6 +90,9 @@ export function ExcelImportButton() {
             departmentLockerNumber: String(englishItem.departmentLockerNumber || ''),
             sealNumber: String(englishItem.sealNumber || ''),
             status: 'aktywny',
+            plannedTerminationDate: formatDate(englishItem.plannedTerminationDate),
+            vacationStartDate: formatDate(englishItem.vacationStartDate),
+            vacationEndDate: formatDate(englishItem.vacationEndDate),
           };
           
           if(!employee.fullName) {
@@ -102,7 +107,7 @@ export function ExcelImportButton() {
             toast({
                 variant: 'destructive',
                 title: 'Błąd importu',
-                description: 'Nie znaleziono prawidłowych danych do importu. Sprawdź strukturę pliku i nazwy kolumn.',
+                description: 'Nie znaleziono prawidłowych даних до importu. Sprawdź strukturę pliku i nazwy kolumn.',
             });
             setIsImporting(false);
             return;
