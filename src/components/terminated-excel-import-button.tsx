@@ -13,6 +13,7 @@ import { push } from 'firebase/database';
 const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status'>> = {
   'Nazwisko i imię': 'fullName',
   'Data zatrudnienia': 'hireDate',
+  'Data zwolnienia': 'terminationDate',
   'Stanowisko': 'jobTitle',
   'Dział': 'department',
   'Kierownik': 'manager',
@@ -21,7 +22,6 @@ const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status
   'Nr szafki': 'lockerNumber',
   'Nr szafki w dziale': 'departmentLockerNumber',
   'Nr plomby': 'sealNumber',
-  'dataZwolnienia': 'terminationDate'
 };
 
 export function TerminatedExcelImportButton() {
@@ -66,8 +66,12 @@ export function TerminatedExcelImportButton() {
               return date.toISOString().split('T')[0];
             }
             if (typeof date === 'string') {
-               if (/\d{4}-\d{2}-\d{2}/.test(date) || /\d{1,2}\/\d{1,2}\/\d{4}/.test(date)) {
-                return new Date(date).toISOString().split('T')[0];
+               if (/\d{4}-\d{2}-\d{2}/.test(date) || /\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{4}/.test(date)) {
+                try {
+                  return new Date(date).toISOString().split('T')[0];
+                } catch(e) {
+                  return undefined;
+                }
               }
             }
             return undefined;

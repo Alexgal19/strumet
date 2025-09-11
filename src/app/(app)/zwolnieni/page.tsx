@@ -42,6 +42,7 @@ import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
+import { TerminatedExcelExportButton } from '@/components/terminated-excel-export-button';
 import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
@@ -375,6 +376,7 @@ export default function TerminatedEmployeesPage() {
         description="Przeglądaj historię zwolnionych pracowników."
       >
         <div className="hidden md:flex shrink-0 items-center space-x-2">
+            <TerminatedExcelExportButton employees={filteredEmployees} fileName="zwolnieni_pracownicy" />
             <TerminatedExcelImportButton />
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -491,5 +493,3 @@ export default function TerminatedEmployeesPage() {
     </div>
   );
 }
-
-    
