@@ -373,6 +373,8 @@ export default function ActiveEmployeesPage() {
               <TableHead>Nr karty</TableHead>
               <TableHead>Narodowość</TableHead>
               <TableHead>Nr szafki</TableHead>
+              <TableHead>Nr szafki w dziale</TableHead>
+              <TableHead>Nr pieczęci</TableHead>
               <TableHead className="text-right">Akcje</TableHead>
             </TableRow>
           </TableHeader>
@@ -387,6 +389,8 @@ export default function ActiveEmployeesPage() {
                 <TableCell>{employee.cardNumber}</TableCell>
                 <TableCell>{employee.nationality}</TableCell>
                 <TableCell>{employee.lockerNumber}</TableCell>
+                <TableCell>{employee.departmentLockerNumber}</TableCell>
+                <TableCell>{employee.sealNumber}</TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <EmployeeSummary employee={employee}>
                          <DropdownMenu>
@@ -422,7 +426,7 @@ export default function ActiveEmployeesPage() {
               </TableRow>
             )) : !isLoading && (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center">
+                <TableCell colSpan={11} className="h-24 text-center">
                   Brak aktywnych pracowników pasujących do kryteriów.
                 </TableCell>
               </TableRow>
@@ -586,5 +590,3 @@ export default function ActiveEmployeesPage() {
     </div>
   );
 }
-
-    
