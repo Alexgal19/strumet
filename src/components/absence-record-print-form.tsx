@@ -66,9 +66,9 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                    <span className="mr-4">w dniu / в день</span>
                    <span className="font-bold">{format(parseISO(record.incidentDate), 'dd.MM.yyyy')}</span>
                 </div>
-                <div className="p-2 border-l-2 border-black flex items-center">
+                <div className="p-2 border-l-2 border-black flex items-center h-12">
                    <span className="mr-4">świadczył usługi w godzinach / працював:</span>
-                   <span className="font-bold">{record.hours}</span>
+                   <span className="font-bold"></span>
                 </div>
             </div>
 
