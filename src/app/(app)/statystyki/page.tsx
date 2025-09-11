@@ -234,28 +234,26 @@ export default function StatisticsPage() {
                       {departmentData.map((dept, index) => (
                           <AccordionItem value={`item-${index}`} key={dept.name} className="border-b-0">
                              <Card className="overflow-hidden">
-                                <div className="flex items-center p-4 hover:bg-muted/50">
-                                  <AccordionTrigger className="flex-grow hover:no-underline p-0">
-                                      <div className="flex items-center gap-4 text-left">
-                                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.fill }}></div>
-                                          <div className="flex-grow">
-                                            <p className="font-semibold">{dept.name}</p>
-                                            <p className="text-xs text-muted-foreground">{dept.value} pracowników ({dept.percentage.toFixed(1)}%)</p>
+                                <AccordionTrigger className="p-4 hover:bg-muted/50 hover:no-underline">
+                                    <div className="flex flex-1 items-center gap-4 text-left">
+                                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.fill }}></div>
+                                        <div className="flex-grow">
+                                          <p className="font-semibold">{dept.name}</p>
+                                          <p className="text-xs text-muted-foreground">{dept.value} pracowników ({dept.percentage.toFixed(1)}%)</p>
+                                        </div>
+                                         <div className='flex items-center gap-2 pl-4'>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                onClick={(e) => {e.stopPropagation(); handleDepartmentClick(dept.name)}}
+                                                className="h-8 w-8 shrink-0"
+                                            >
+                                                <Users className="h-4 w-4" />
+                                            </Button>
+                                            <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
                                           </div>
-                                      </div>
-                                  </AccordionTrigger>
-                                  <div className='flex items-center gap-2 pl-4'>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        onClick={() => handleDepartmentClick(dept.name)}
-                                        className="h-8 w-8 shrink-0"
-                                    >
-                                        <Users className="h-4 w-4" />
-                                    </Button>
-                                    <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
-                                  </div>
-                                </div>
+                                    </div>
+                                </AccordionTrigger>
                               <AccordionContent>
                                 <div className="px-6 pb-6 space-y-6">
                                     {dept.managers.map((manager, managerIndex) => (
@@ -308,7 +306,14 @@ export default function StatisticsPage() {
                     <ChartContainer config={{}} className="h-[450px] w-full">
                         <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))'}} width={120} />
+                            <YAxis 
+                                dataKey="name" 
+                                type="category" 
+                                tickLine={false} 
+                                axisLine={false} 
+                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))'}} 
+                                width={80}
+                            />
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
@@ -354,7 +359,15 @@ export default function StatisticsPage() {
                     <ChartContainer config={{}} className="h-[450px] w-full">
                         <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
                             <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))'}} width={200} interval={0} />
+                            <YAxis 
+                                dataKey="name" 
+                                type="category" 
+                                tickLine={false} 
+                                axisLine={false} 
+                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))', width: 180}} 
+                                width={150} 
+                                interval={0} 
+                            />
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
                                 content={<ChartTooltipContent 
