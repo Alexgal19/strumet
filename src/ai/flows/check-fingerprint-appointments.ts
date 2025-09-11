@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to check for upcoming fingerprint appointments and send notifications.
@@ -7,24 +8,17 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { ref, get } from 'firebase/database';
+import { ref, get, push, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { isAfter, isSameDay, addDays, startOfDay } from 'date-fns';
-import type { FingerprintAppointment } from '@/lib/types';
-import { sendEmail } from '@/lib/email-tool';
+import { isSameDay, addDays, startOfDay } from 'date-fns';
+import type { FingerprintAppointment, AppNotification } from '@/lib/types';
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
-const NOTIFICATION_EMAIL = 'o.holiadynets@smartwork.pl';
-
 const CheckAppointmentsOutputSchema = z.object({
-  sentNotifications: z.array(z.object({
-    employeeName: z.string(),
-    appointmentDate: z.string(),
-  })),
-  notificationCount: z.number(),
+  notificationsCreated: z.number(),
 });
 
 export async function checkAppointmentsAndNotify(): Promise<z.infer<typeof CheckAppointmentsOutputSchema>> {
@@ -35,7 +29,6 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
   {
     name: 'checkAppointmentsAndNotifyFlow',
     outputSchema: CheckAppointmentsOutputSchema,
-    tools: [sendEmail]
   },
   async () => {
     console.log('Starting to check for fingerprint appointments...');
@@ -46,7 +39,7 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
 
     if (!appointments || appointments.length === 0) {
       console.log('No fingerprint appointments found.');
-      return { sentNotifications: [], notificationCount: 0 };
+      return { notificationsCreated: 0 };
     }
     
     const today = startOfDay(new Date());
@@ -64,39 +57,27 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     console.log(`Found ${upcomingAppointments.length} appointments for ${notificationDate.toDateString()}.`);
 
     if (upcomingAppointments.length === 0) {
-        return { sentNotifications: [], notificationCount: 0 };
+        return { notificationsCreated: 0 };
     }
     
     const employeeNames = upcomingAppointments.map(apt => apt.employeeFullName).join(', ');
-    const subject = `Nadchodzące terminy na odciski palców (${upcomingAppointments.length})`;
-    const body = `
-        Witaj,
-        
-        To jest automatyczne przypomnienie o nadchodzących terminach na pobranie odcisków palców za 2 dni.
-        
-        Pracownicy:
-        - ${upcomingAppointments.map(apt => `${apt.employeeFullName} (data: ${new Date(apt.appointmentDate).toLocaleString('pl-PL')})`).join('\n- ')}
-        
-        Pozdrawiamy,
-        HOL Manager System
-    `;
+    const title = `Przypomnienie: Odciski palców za 2 dni (${upcomingAppointments.length})`;
+    const message = `Pamiętaj o nadchodzących terminach na pobranie odcisków palców dla następujących pracowników: ${employeeNames}.`;
+    
+    const newNotificationRef = push(ref(db, 'notifications'));
+    const newNotification: Omit<AppNotification, 'id'> = {
+        title,
+        message,
+        createdAt: new Date().toISOString(),
+        read: false,
+    };
 
-    await ai.generate({
-        prompt: `Wyślij email z przypomnieniem o terminach na odciski palców. Treść emaila: ${body}`,
-        tools: [sendEmail],
-        toolChoice: 'required'
-    });
+    await set(newNotificationRef, newNotification);
     
-    const sentNotifications = upcomingAppointments.map(apt => ({
-        employeeName: apt.employeeFullName,
-        appointmentDate: apt.appointmentDate,
-    }));
-    
-    console.log(`Sent notification for ${upcomingAppointments.length} appointments.`);
+    console.log(`Created notification for ${upcomingAppointments.length} appointments.`);
 
     return {
-      sentNotifications,
-      notificationCount: sentNotifications.length
+      notificationsCreated: 1
     };
   }
 );

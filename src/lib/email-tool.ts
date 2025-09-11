@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -20,10 +21,18 @@ export const sendEmail = ai.defineTool(
         }),
     },
     async ({ subject, body }) => {
+        if (!process.env.RESEND_API_KEY) {
+            console.warn("RESEND_API_KEY is not set. Skipping email sending.");
+            return {
+                success: false,
+                message: 'Email sending is not configured on the server.',
+            };
+        }
+        
         const resend = new Resend(process.env.RESEND_API_KEY);
         try {
             const { data, error } = await resend.emails.send({
-                from: 'HOL Manager <powiadomienia@smartwork.pl>', // IMPORTANT: Replace with your verified domain in Resend
+                from: 'HOL Manager <powiadomienia@smartwork.pl>',
                 to: [NOTIFICATION_EMAIL],
                 subject: subject,
                 html: body,
