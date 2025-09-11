@@ -75,6 +75,7 @@ export interface AbsenceRecord {
   department: string;
   jobTitle: string;
   hours: number;
+  reason: 'no_card' | 'forgot_to_scan';
 }
 
 export interface AppNotification {

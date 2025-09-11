@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, FilePlus2, Trash2, Briefcase, Building } from 'lucide-react';
+import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, FilePlus2, Trash2, Briefcase, Building, Printer } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Employee, AbsenceRecord } from '@/lib/types';
 import { db } from '@/lib/firebase';
@@ -54,6 +54,8 @@ import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { AbsenceRecordPrintForm } from '@/components/absence-record-print-form';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -67,10 +69,15 @@ export default function NoLoginPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [incidentDate, setIncidentDate] = useState<Date | undefined>();
   const [hours, setHours] = useState<number | string>('');
+  const [reason, setReason] = useState<'no_card' | 'forgot_to_scan' | ''>('');
+
   const [isSaving, setIsSaving] = useState(false);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [printingRecord, setPrintingRecord] = useState<AbsenceRecord | null>(null);
+  const printComponentRef = useRef<HTMLDivElement>(null);
+
 
   const { toast } = useToast();
 
@@ -93,6 +100,16 @@ export default function NoLoginPage() {
       unsubscribeRecords();
     };
   }, [isLoading]);
+  
+  useEffect(() => {
+    if (printingRecord) {
+        const timer = setTimeout(() => {
+            window.print();
+            setPrintingRecord(null);
+        }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [printingRecord]);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
@@ -105,11 +122,11 @@ export default function NoLoginPage() {
   }, [selectedEmployeeId, activeEmployees]);
 
   const handleSaveRecord = async () => {
-    if (!selectedEmployee || !incidentDate || !hours || (typeof hours === 'number' && hours <= 0)) {
+    if (!selectedEmployee || !incidentDate || !hours || (typeof hours === 'number' && hours <= 0) || !reason) {
       toast({
         variant: 'destructive',
         title: 'Błąd walidacji',
-        description: 'Proszę wybrać pracownika, datę i podać prawidłową liczbę godzin.',
+        description: 'Proszę wypełnić wszystkie pola: pracownik, data, godziny i przyczyna.',
       });
       return;
     }
@@ -124,15 +141,18 @@ export default function NoLoginPage() {
         department: selectedEmployee.department,
         jobTitle: selectedEmployee.jobTitle,
         hours: Number(hours),
+        reason: reason as 'no_card' | 'forgot_to_scan',
       };
       await set(newRecordRef, newRecord);
       toast({
         title: 'Sukces',
         description: 'Zapis został pomyślnie dodany.',
       });
+      // Reset form
       setSelectedEmployeeId('');
       setIncidentDate(undefined);
       setHours('');
+      setReason('');
     } catch (error) {
       console.error('Error saving record:', error);
       toast({
@@ -163,6 +183,10 @@ export default function NoLoginPage() {
         setDeletingId(null);
       }
   };
+  
+  const handlePrint = (record: AbsenceRecord) => {
+    setPrintingRecord(record);
+  };
 
   if (isLoading) {
     return (
@@ -173,7 +197,8 @@ export default function NoLoginPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <>
+    <div className="flex h-full flex-col print:hidden">
       <PageHeader
         title="Brak logowania"
         description="Generuj raporty dotyczące braku logowania przez pracowników."
@@ -276,13 +301,26 @@ export default function NoLoginPage() {
                 <Label htmlFor="hours">Liczba godzin</Label>
                 <Input 
                   id="hours"
-                  type="number"
-                  placeholder="np. 8"
+                  type="text"
+                  placeholder="np. 8 lub 08:00-16:00"
                   value={hours}
                   onChange={(e) => setHours(e.target.value)}
-                  min="0"
                 />
               </div>
+
+               <div className="space-y-3">
+                    <Label>Przyczyna</Label>
+                    <RadioGroup value={reason} onValueChange={(value) => setReason(value as any)} className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="no_card" id="r1" />
+                            <Label htmlFor="r1">Nieodbicie dyskietki spowodowane było jej brakiem</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="forgot_to_scan" id="r2" />
+                            <Label htmlFor="r2">Nieodbicie dyskietki na wejściu/wyjściu wynikło z zapomnienia</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
 
               <Button onClick={handleSaveRecord} disabled={isSaving} className="w-full">
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FilePlus2 className="mr-2 h-4 w-4" />}
@@ -304,10 +342,9 @@ export default function NoLoginPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Pracownik</TableHead>
-                      <TableHead>Dział</TableHead>
-                      <TableHead>Stanowisko</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Godziny</TableHead>
+                      <TableHead>Przyczyna</TableHead>
                       <TableHead className="text-right">Akcje</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -316,11 +353,13 @@ export default function NoLoginPage() {
                       sortedRecords.map((rec) => (
                         <TableRow key={rec.id}>
                           <TableCell className="font-medium">{rec.employeeFullName}</TableCell>
-                          <TableCell>{rec.department}</TableCell>
-                          <TableCell>{rec.jobTitle}</TableCell>
                           <TableCell>{format(parseISO(rec.incidentDate), "dd.MM.yyyy", { locale: pl })}</TableCell>
                           <TableCell>{rec.hours}</TableCell>
-                          <TableCell className="text-right">
+                           <TableCell>{rec.reason === 'no_card' ? 'Brak karty' : 'Zapomnienie'}</TableCell>
+                          <TableCell className="text-right space-x-2">
+                             <Button variant="ghost" size="icon" onClick={() => handlePrint(rec)}>
+                               <Printer className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" onClick={() => setDeletingId(rec.id)}>
                                <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -329,7 +368,7 @@ export default function NoLoginPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
+                        <TableCell colSpan={5} className="h-24 text-center">
                           Brak zarejestrowanych incydentów.
                         </TableCell>
                       </TableRow>
@@ -358,6 +397,15 @@ export default function NoLoginPage() {
             </AlertDialogContent>
        </AlertDialog>
     </div>
+     <div className="hidden print:block">
+        {printingRecord && (
+             <AbsenceRecordPrintForm 
+                ref={printComponentRef}
+                record={printingRecord}
+            />
+        )}
+      </div>
+    </>
   );
 }
 
