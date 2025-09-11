@@ -6,11 +6,6 @@ import { Resend } from 'resend';
 
 const NOTIFICATION_EMAIL = 'o.holiadynets@smartwork.pl';
 
-// Initialize Resend with the API key from environment variables
-// Make sure to add RESEND_API_KEY to your .env file
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-
 export const sendEmail = ai.defineTool(
     {
         name: 'sendEmail',
@@ -25,6 +20,8 @@ export const sendEmail = ai.defineTool(
         }),
     },
     async ({ subject, body }) => {
+        // Initialize Resend inside the tool to ensure env var is available
+        const resend = new Resend(process.env.RESEND_API_KEY);
         try {
             // This now sends a real email using Resend
             const { data, error } = await resend.emails.send({
@@ -50,6 +47,12 @@ export const sendEmail = ai.defineTool(
 
         } catch (error) {
             console.error('Error sending email:', error);
+            if (error instanceof Error) {
+                 return {
+                    success: false,
+                    message: `An unexpected error occurred: ${error.message}`,
+                };
+            }
             return {
                 success: false,
                 message: 'An unexpected error occurred while sending the email.',
