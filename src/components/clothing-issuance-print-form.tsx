@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -82,11 +81,6 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                     <div className="text-center w-1/3">
                         <div className="border-t border-black pt-1">
                              <p className="text-xs">(podpis opiekuna)</p>
-                        </div>
-                    </div>
-                    <div className="text-center w-1/3">
-                        <div className="border-t border-black pt-1">
-                             <p className="text-xs">(podpis pracownika)</p>
                         </div>
                     </div>
                 </div>
