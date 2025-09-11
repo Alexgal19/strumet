@@ -223,20 +223,24 @@ export default function StatisticsPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Accordion type="multiple" className="w-full">
+                    <Accordion type="multiple" className="w-full space-y-4">
                       {departmentData.map((dept, index) => (
-                          <AccordionItem value={`item-${index}`} key={dept.name}>
-                              <AccordionTrigger>
-                                  <div className="flex items-center justify-between w-full pr-4">
-                                      <div className="flex items-center gap-3">
-                                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: dept.fill }}></div>
-                                          <span className="font-semibold">{dept.name}</span>
+                          <AccordionItem value={`item-${index}`} key={dept.name} className="border-b-0">
+                             <Card className="overflow-hidden">
+                              <AccordionTrigger className="p-4 hover:no-underline hover:bg-muted/50">
+                                  <div className="flex items-center justify-between w-full">
+                                      <div className="flex items-center gap-4 text-left">
+                                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.fill }}></div>
+                                          <div className="flex-grow">
+                                            <p className="font-semibold">{dept.name}</p>
+                                            <p className="text-xs text-muted-foreground">{dept.value} pracowników ({dept.percentage.toFixed(1)}%)</p>
+                                          </div>
                                       </div>
-                                      <Badge variant="secondary">{dept.value} prac.</Badge>
+                                      <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
                                   </div>
                               </AccordionTrigger>
                               <AccordionContent>
-                                <div className="pl-6 space-y-6">
+                                <div className="px-6 pb-6 space-y-6">
                                     {dept.managers.map((manager, managerIndex) => (
                                         <div key={manager.name}>
                                             <div className="flex items-center gap-3 mb-3">
@@ -271,6 +275,7 @@ export default function StatisticsPage() {
                                     ))}
                                 </div>
                               </AccordionContent>
+                            </Card>
                           </AccordionItem>
                       ))}
                     </Accordion>
@@ -413,3 +418,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
