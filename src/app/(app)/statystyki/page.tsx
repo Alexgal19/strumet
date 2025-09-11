@@ -234,26 +234,28 @@ export default function StatisticsPage() {
                       {departmentData.map((dept, index) => (
                           <AccordionItem value={`item-${index}`} key={dept.name} className="border-b-0">
                              <Card className="overflow-hidden">
-                                <AccordionTrigger className="p-4 hover:bg-muted/50 hover:no-underline">
-                                    <div className="flex flex-1 items-center gap-4 text-left">
-                                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.fill }}></div>
-                                        <div className="flex-grow">
-                                          <p className="font-semibold">{dept.name}</p>
-                                          <p className="text-xs text-muted-foreground">{dept.value} pracowników ({dept.percentage.toFixed(1)}%)</p>
+                                <div className="flex items-center p-4 hover:bg-muted/50">
+                                    <AccordionTrigger className="flex-1 text-left p-0 hover:no-underline">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.fill }}></div>
+                                            <div className="flex-grow">
+                                                <p className="font-semibold">{dept.name}</p>
+                                                <p className="text-xs text-muted-foreground">{dept.value} pracowników ({dept.percentage.toFixed(1)}%)</p>
+                                            </div>
                                         </div>
-                                         <div className='flex items-center gap-2 pl-4'>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                onClick={(e) => {e.stopPropagation(); handleDepartmentClick(dept.name)}}
-                                                className="h-8 w-8 shrink-0"
-                                            >
-                                                <Users className="h-4 w-4" />
-                                            </Button>
-                                            <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
-                                          </div>
+                                    </AccordionTrigger>
+                                    <div className='flex items-center gap-2 pl-4'>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleDepartmentClick(dept.name)}
+                                            className="h-8 w-8 shrink-0"
+                                        >
+                                            <Users className="h-4 w-4" />
+                                        </Button>
+                                        <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
                                     </div>
-                                </AccordionTrigger>
+                                </div>
                               <AccordionContent>
                                 <div className="px-6 pb-6 space-y-6">
                                     {dept.managers.map((manager, managerIndex) => (
@@ -311,8 +313,9 @@ export default function StatisticsPage() {
                                 type="category" 
                                 tickLine={false} 
                                 axisLine={false} 
-                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))'}} 
-                                width={80}
+                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))', width: 100}} 
+                                width={100}
+                                interval={0}
                             />
                              <Tooltip 
                                 cursor={{ fill: 'hsl(var(--muted))' }} 
@@ -364,7 +367,7 @@ export default function StatisticsPage() {
                                 type="category" 
                                 tickLine={false} 
                                 axisLine={false} 
-                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))', width: 180}} 
+                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))', width: 180, whiteSpace: 'normal', wordWrap: 'break-word'}} 
                                 width={150} 
                                 interval={0} 
                             />
@@ -448,3 +451,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
