@@ -61,6 +61,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                     <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
                     <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
                     <p>Dział:</p>          <p className="font-semibold">{employee.department}</p>
+                    <p>Numer karty:</p>    <p className="font-semibold">{employee.cardNumber}</p>
                 </div>
             </section>
 
@@ -78,7 +79,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
             </section>
           </div>
             
-          <footer className="pt-16">
+          <footer className="pt-12">
               <div className="flex justify-between">
                   <div className="text-center w-2/5">
                       <div className="border-t border-black pt-1">
