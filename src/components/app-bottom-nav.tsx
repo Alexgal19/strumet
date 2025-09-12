@@ -10,6 +10,8 @@ import {
   CalendarClock,
   CalendarCheck,
   Shirt,
+  Fingerprint,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
