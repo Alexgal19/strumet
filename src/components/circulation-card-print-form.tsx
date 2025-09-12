@@ -17,9 +17,9 @@ const InfoRow = ({ label, value }: { label: string, value: string | undefined })
 );
 
 const ChecklistItem = ({ label }: { label:string }) => (
-    <div className="flex items-center justify-between py-2 border-b border-gray-200">
-        <span className="text-sm flex-grow">{label}</span>
-        <div className="flex items-center space-x-2 text-xs shrink-0 pl-2">
+    <div className="flex items-center justify-between py-1.5 border-b border-gray-200">
+        <span className="text-sm flex-grow pr-4">{label}</span>
+        <div className="flex items-center space-x-2 text-xs shrink-0">
             <span>TAK</span>
             <div className="w-4 h-4 border-2 border-black"></div>
             <span className="ml-2">NIE</span>
@@ -29,7 +29,7 @@ const ChecklistItem = ({ label }: { label:string }) => (
 );
 
 const SignatureSection = ({ label }: { label: string }) => (
-    <div className="mt-6">
+    <div className="mt-4">
         <div className="border-t-2 border-dotted border-black w-64 pt-1 text-xs text-center text-gray-600">
             {label}
         </div>
@@ -60,13 +60,13 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
           `}
         </style>
         <div className="p-[1.5cm] print:p-0">
-            <header className="text-center mb-6">
+            <header className="text-center mb-4">
                 <h1 className="text-xl font-bold tracking-wider">KARTA OBIEGOWA</h1>
                 <p className="text-sm text-gray-500">Potwierdzenie rozliczenia pracownika</p>
             </header>
 
-            <section className="border-t border-b border-black py-3 mb-6">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+            <section className="border-t border-b border-black py-2 mb-4">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                     <InfoRow label="Pracownik" value={employee.fullName} />
                     <InfoRow label="Data zwolnienia" value={employee.terminationDate ? format(new Date(employee.terminationDate), 'd MMMM yyyy', { locale: pl }) : format(new Date(), 'd MMMM yyyy', { locale: pl })} />
                     <InfoRow label="Stanowisko" value={employee.jobTitle} />
@@ -75,9 +75,9 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
             </section>
             
             <div className="space-y-4">
-                <h2 className="text-lg font-bold">Rozliczenie z działami</h2>
+                <h2 className="text-lg font-bold mb-2">Rozliczenie z działami</h2>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                     <div>
                         <h3 className="font-semibold text-base mb-1">Magazyn</h3>
                         <ChecklistItem label="Spodnie, bluza, buty, koszulka" />
