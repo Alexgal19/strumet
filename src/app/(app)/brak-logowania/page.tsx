@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -264,7 +265,7 @@ export default function NoLoginPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label>Data incydentu</Label>
+                  <Label>Data</Label>
                    <Popover>
                       <PopoverTrigger asChild>
                           <Button
