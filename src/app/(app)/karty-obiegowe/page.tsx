@@ -79,6 +79,7 @@ const CirculationCardPreview = ({ employee }: { employee: Employee | null }) => 
                     </div>
                 </div>
                  {warehouseItems.map(item => <ChecklistItemPreview key={item} label={item} />)}
+                 <div className="text-right border-x border-b border-black p-1 text-xs">Podpis...</div>
             </section>
             
             <section className="my-4">
@@ -87,16 +88,21 @@ const CirculationCardPreview = ({ employee }: { employee: Employee | null }) => 
                     <span className="text-sm">Zwrot karty</span>
                     <div className="font-bold text-sm bg-gray-200 px-4 py-0.5">TAK</div>
                 </div>
+                 <div className="flex justify-end border-x border-b border-black p-1 text-xs">
+                    <div className="w-1/2 text-right">Data/Podpis...</div>
+                </div>
             </section>
 
              <section className="my-4">
                 <h2 className="text-center font-bold bg-gray-200 p-1 border border-black mb-px">Opiekun</h2>
                  {supervisorItems.map(item => <ChecklistItemPreview key={item} label={item} />)}
+                 <div className="text-right border-x border-b border-black p-1 text-xs">Podpis...</div>
             </section>
             
              <section className="my-4">
                 <h2 className="text-center font-bold bg-gray-200 p-1 border border-black mb-px">Brygadzista</h2>
                 {foremanItems.map(item => <ChecklistItemPreview key={item} label={item} />)}
+                <div className="text-right border-x border-b border-black p-1 text-xs">Podpis...</div>
             </section>
         </div>
     );
