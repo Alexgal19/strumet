@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -7,7 +8,8 @@ import {
   Settings,
   CalendarClock,
   CalendarCheck,
-  FileText
+  FileText,
+  Shirt,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -26,7 +28,7 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
     { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
     { view: 'planowanie', icon: CalendarClock, label: 'Plan' },
     { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność' },
-    { view: 'karty-obiegowe', icon: FileText, label: 'Obiegowe' },
+    { view: 'wydawanie-odziezy', icon: Shirt, label: 'Odzież' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];
   

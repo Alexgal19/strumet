@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -18,6 +19,7 @@ export type ActiveView =
   | 'brak-logowania' 
   | 'konfiguracja'
   | 'planowanie'
+  | 'wydawanie-odziezy'
   | 'odwiedzalnosc';
 
 const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
@@ -30,6 +32,7 @@ const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   'odciski-palcow': dynamic(() => import('../app/(app)/odciski-palcow/page'), { loading: () => <LoadingComponent /> }),
   'brak-logowania': dynamic(() => import('../app/(app)/brak-logowania/page'), { loading: () => <LoadingComponent /> }),
   konfiguracja: dynamic(() => import('../app/(app)/konfiguracja/page'), { loading: () => <LoadingComponent /> }),
+  'wydawanie-odziezy': dynamic(() => import('../app/(app)/wydawanie-odziezy/page'), { loading: () => <LoadingComponent /> }),
 };
 
 const LoadingComponent = () => (

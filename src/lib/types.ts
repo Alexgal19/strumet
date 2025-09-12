@@ -75,3 +75,15 @@ export interface AppNotification {
   createdAt: string; // ISO string
   read: boolean;
 }
+
+export interface ClothingIssuance {
+    id: string;
+    employeeId: string;
+    employeeFullName: string;
+    date: string; // ISO String
+    items: {
+        id: string;
+        name: string;
+        quantity: number;
+    }[];
+}
