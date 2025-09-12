@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -55,7 +56,8 @@ export default function CirculationCardsPage() {
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
   const [printingCard, setPrintingCard] = useState<CirculationCard | null>(null);
-
+  const printComponentRef = useRef<HTMLDivElement>(null);
+  
   const { toast } = useToast();
 
   useEffect(() => {
@@ -64,31 +66,32 @@ export default function CirculationCardsPage() {
 
     const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
       setEmployees(objectToArray(snapshot.val()));
-      if (isLoading) setIsLoading(false);
+      setIsLoading(false);
     });
 
     const unsubscribeCards = onValue(cardsRef, (snapshot) => {
       setCirculationCards(objectToArray(snapshot.val()));
-      if (isLoading) setIsLoading(false);
+      setIsLoading(false);
     });
 
     return () => {
       unsubscribeEmployees();
       unsubscribeCards();
     };
-  }, [isLoading]);
+  }, []);
   
   useEffect(() => {
     if (printingCard) {
-        document.body.classList.add('printing');
-        const timer = setTimeout(() => {
-            window.print();
-            setPrintingCard(null);
-            document.body.classList.remove('printing');
-        }, 100);
+      document.body.classList.add('printing');
+      const timer = setTimeout(() => {
+        window.print();
+        setPrintingCard(null); // Reset after printing
+        document.body.classList.remove('printing');
+      }, 100);
+
       return () => {
-          clearTimeout(timer);
-          document.body.classList.remove('printing');
+        clearTimeout(timer);
+        document.body.classList.remove('printing');
       };
     }
   }, [printingCard]);
@@ -277,7 +280,7 @@ export default function CirculationCardsPage() {
         </div>
       </div>
       {printingCard && selectedEmployeeForPrint && (
-        <div className="print-container">
+        <div className="print-container" ref={printComponentRef}>
           <CirculationCardPrintForm 
             employee={selectedEmployeeForPrint}
             card={printingCard}
