@@ -24,10 +24,9 @@ export default function CirculationCardPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
-  const [printingEmployee, setPrintingEmployee] = useState<Employee | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const printComponentRef = useRef<HTMLDivElement>(null);
   
-
   useEffect(() => {
     const employeesRef = ref(db, 'employees');
     const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
@@ -39,15 +38,19 @@ export default function CirculationCardPage() {
   }, [isLoading]);
 
   useEffect(() => {
-    if (printingEmployee) {
-        // Delay print to allow component to render
-        const timer = setTimeout(() => {
-            window.print();
-            setPrintingEmployee(null); // Reset state after printing
-        }, 100);
-      return () => clearTimeout(timer);
+    if (isPrinting) {
+      document.body.classList.add('printing');
+      const timer = setTimeout(() => {
+        window.print();
+        setIsPrinting(false);
+        document.body.classList.remove('printing');
+      }, 100);
+      return () => {
+        clearTimeout(timer);
+        document.body.classList.remove('printing');
+      };
     }
-  }, [printingEmployee]);
+  }, [isPrinting]);
   
 
   const allEmployees = useMemo(() => employees, [employees]);
@@ -58,19 +61,9 @@ export default function CirculationCardPage() {
 
   const handlePrint = () => {
     if (!selectedEmployee) return;
-    setPrintingEmployee(selectedEmployee);
+    setIsPrinting(true);
   };
-
-  // If printing, render only the print component. The rest of the UI is hidden.
-  if (printingEmployee) {
-    return (
-      <CirculationCardPrintForm 
-        ref={printComponentRef}
-        employee={printingEmployee}
-      />
-    );
-  }
-
+  
   if (isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -80,89 +73,98 @@ export default function CirculationCardPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader
-        title="Karty obiegowe"
-        description="Generuj i drukuj karty obiegowe для pracowników."
-      />
+    <>
+      <div className="flex h-full flex-col">
+        <PageHeader
+          title="Karty obiegowe"
+          description="Generuj i drukuj karty obiegowe для pracowników."
+        />
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Generator Karty</CardTitle>
-                    <CardDescription>Wybierz pracownika, aby przygotować kartę do druku.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">1. Wybierz pracownika</label>
-                        <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    aria-expanded={isComboboxOpen}
-                                    className="w-full justify-between"
-                                >
-                                    {selectedEmployee
-                                        ? selectedEmployee.fullName
-                                        : "Wybierz z listy..."}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                    <CommandInput placeholder="Szukaj pracownika..." />
-                                    <CommandList>
-                                        <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
-                                        <CommandGroup>
-                                            {allEmployees.map((employee) => (
-                                                <CommandItem
-                                                    key={employee.id}
-                                                    value={employee.fullName}
-                                                    onSelect={() => {
-                                                        setSelectedEmployeeId(employee.id);
-                                                        setIsComboboxOpen(false);
-                                                    }}
-                                                >
-                                                    <CheckIcon
-                                                        className={cn(
-                                                            "mr-2 h-4 w-4",
-                                                            selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                    {employee.fullName}
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
-                    </div>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-1">
+              <Card>
+                  <CardHeader>
+                      <CardTitle>Generator Karty</CardTitle>
+                      <CardDescription>Wybierz pracownika, aby przygotować kartę do druku.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                          <label className="text-sm font-medium">1. Wybierz pracownika</label>
+                          <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                              <PopoverTrigger asChild>
+                                  <Button
+                                      variant="outline"
+                                      role="combobox"
+                                      aria-expanded={isComboboxOpen}
+                                      className="w-full justify-between"
+                                  >
+                                      {selectedEmployee
+                                          ? selectedEmployee.fullName
+                                          : "Wybierz z listy..."}
+                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                  <Command>
+                                      <CommandInput placeholder="Szukaj pracownika..." />
+                                      <CommandList>
+                                          <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
+                                          <CommandGroup>
+                                              {allEmployees.map((employee) => (
+                                                  <CommandItem
+                                                      key={employee.id}
+                                                      value={employee.fullName}
+                                                      onSelect={() => {
+                                                          setSelectedEmployeeId(employee.id);
+                                                          setIsComboboxOpen(false);
+                                                      }}
+                                                  >
+                                                      <CheckIcon
+                                                          className={cn(
+                                                              "mr-2 h-4 w-4",
+                                                              selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
+                                                          )}
+                                                      />
+                                                      {employee.fullName}
+                                                  </CommandItem>
+                                              ))}
+                                          </CommandGroup>
+                                      </CommandList>
+                                  </Command>
+                              </PopoverContent>
+                          </Popover>
+                      </div>
 
-                     {selectedEmployee && (
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">2. Drukuj</label>
-                            <Button onClick={handlePrint} className="w-full">
-                                <Printer className="mr-2 h-4 w-4" />
-                                Drukuj kartę
-                            </Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-        
-        <div className="lg:col-span-2">
-            <div className="bg-muted/30 p-4 sm:p-8 rounded-2xl">
-                <div className="mx-auto bg-white shadow-lg">
-                    {/* This component is now only for preview */}
-                    <CirculationCardPrintForm employee={selectedEmployee} />
-                </div>
-            </div>
+                       {selectedEmployee && (
+                          <div className="space-y-2">
+                              <label className="text-sm font-medium">2. Drukuj</label>
+                              <Button onClick={handlePrint} className="w-full">
+                                  <Printer className="mr-2 h-4 w-4" />
+                                  Drukuj kartę
+                              </Button>
+                          </div>
+                      )}
+                  </CardContent>
+              </Card>
+          </div>
+          
+          <div className="lg:col-span-2">
+              <div className="bg-muted/30 p-4 sm:p-8 rounded-2xl">
+                  <div className="mx-auto bg-white shadow-lg">
+                      <CirculationCardPrintForm employee={selectedEmployee} />
+                  </div>
+              </div>
+          </div>
         </div>
       </div>
-    </div>
+      {isPrinting && (
+        <div className="print-container">
+            <CirculationCardPrintForm 
+                ref={printComponentRef}
+                employee={selectedEmployee} 
+            />
+        </div>
+       )}
+    </>
   );
 }
