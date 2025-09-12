@@ -40,9 +40,10 @@ export default function CirculationCardPage() {
 
   useEffect(() => {
     if (printingEmployee) {
+        // Delay print to allow component to render
         const timer = setTimeout(() => {
             window.print();
-            setPrintingEmployee(null);
+            setPrintingEmployee(null); // Reset state after printing
         }, 100);
       return () => clearTimeout(timer);
     }
@@ -60,6 +61,7 @@ export default function CirculationCardPage() {
     setPrintingEmployee(selectedEmployee);
   };
 
+  // If printing, render only the print component. The rest of the UI is hidden.
   if (printingEmployee) {
     return (
       <CirculationCardPrintForm 
@@ -81,7 +83,7 @@ export default function CirculationCardPage() {
     <div className="flex h-full flex-col">
       <PageHeader
         title="Karty obiegowe"
-        description="Generuj i drukuj karty obiegowe dla pracowników."
+        description="Generuj i drukuj karty obiegowe для pracowników."
       />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -155,6 +157,7 @@ export default function CirculationCardPage() {
         <div className="lg:col-span-2">
             <div className="bg-muted/30 p-4 sm:p-8 rounded-2xl">
                 <div className="mx-auto bg-white shadow-lg">
+                    {/* This component is now only for preview */}
                     <CirculationCardPrintForm employee={selectedEmployee} />
                 </div>
             </div>

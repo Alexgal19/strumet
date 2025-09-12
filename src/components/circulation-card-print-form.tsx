@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Employee } from "@/lib/types";
 import { format } from "date-fns";
 
@@ -11,9 +11,10 @@ interface CirculationCardPrintFormProps {
 export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, CirculationCardPrintFormProps>(
   ({ employee }, ref) => {
     
+    // Preview for the main page
     if (!employee) {
       return (
-           <div ref={ref} className="p-8 border rounded-lg bg-white shadow-md text-black flex items-center justify-center text-center text-gray-500">
+           <div ref={ref} className="p-8 border rounded-lg bg-white shadow-md text-black flex items-center justify-center text-center text-gray-500 min-h-[400px]">
               <div>
                   <h3 className="text-lg font-semibold mb-2">Podgląd Karty Obiegowej</h3>
                   <p>Wybierz pracownika, aby zobaczyć, jak będzie wyglądał dokument.</p>
@@ -53,12 +54,35 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
 
     return (
       <div ref={ref} className="print-root-container bg-white">
+        {/* These styles are applied ONLY during printing */}
         <style jsx global>{`
+            @media print {
+              @page {
+                size: A4;
+                margin: 1.5cm;
+              }
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+              }
+              .print-root-container {
+                padding: 0;
+                margin: 0;
+                width: 100%;
+                box-shadow: none;
+                border: none;
+              }
+            }
+            
             .print-page {
                 background: white;
                 color: black;
                 font-family: Arial, sans-serif;
                 font-size: 11pt;
+                padding: 1rem;
             }
             .page-title {
                 text-align: center;
@@ -91,19 +115,19 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
                 margin-bottom: 1rem;
             }
             .section {
-                margin-bottom: 1rem;
+                margin-bottom: 1.5rem;
             }
             .section-title {
                 font-size: 10pt;
                 font-weight: bold;
                 text-align: center;
                 letter-spacing: 0.05em;
-                margin-bottom: 0.5rem;
+                margin-bottom: 0.75rem;
             }
             .item-row {
                 display: flex;
                 align-items: flex-end;
-                margin-bottom: 0.5rem;
+                margin-bottom: 0.75rem;
             }
             .item-label {
                 font-size: 11pt;
@@ -121,7 +145,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
             .signature-line {
                 display: flex;
                 justify-content: flex-end;
-                padding-top: 2rem;
+                padding-top: 2.5rem;
             }
             .signature-box {
                 width: 45%;
@@ -132,36 +156,6 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
             .signature-caption {
                 font-size: 8pt;
                 color: #555;
-            }
-
-            @media print {
-              @page {
-                size: A4;
-                margin: 1.5cm;
-              }
-              html, body {
-                margin: 0 !important;
-                padding: 0 !important;
-                width: 100% !important;
-                background: white !important;
-                -webkit-print-color-adjust: exact !important;
-              }
-              .print-root-container {
-                padding: 0;
-                margin: 0;
-                width: 100%;
-                box-shadow: none;
-                border: none;
-              }
-              .print-page {
-                width: 100% !important;
-                min-height: 0; 
-                padding: 0;
-                box-sizing: border-box;
-                display: block;
-                transform: scale(0.95);
-                transform-origin: top left;
-              }
             }
         `}</style>
          <div className="print-page">
