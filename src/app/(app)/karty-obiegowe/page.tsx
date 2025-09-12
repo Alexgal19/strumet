@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -139,6 +139,10 @@ export default function CirculationCardsPage() {
       });
     }
   };
+  
+  const handleReprint = (card: CirculationCard) => {
+    setPrintingCard(card);
+  };
 
   if (isLoading) {
     return (
@@ -250,7 +254,7 @@ export default function CirculationCardsPage() {
                             <TableRow key={card.id}>
                               <TableCell className="font-medium">{format(parseISO(card.date), "dd.MM.yyyy HH:mm")}</TableCell>
                               <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => setPrintingCard(card)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleReprint(card)}>
                                   <Printer className="h-4 w-4" />
                                 </Button>
                               </TableCell>

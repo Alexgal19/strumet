@@ -5,11 +5,8 @@ import {
   Users,
   UserX,
   Settings,
-  BarChart3,
   CalendarClock,
   CalendarCheck,
-  Shirt,
-  Fingerprint,
   FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,7 +26,7 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
     { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
     { view: 'planowanie', icon: CalendarClock, label: 'Plan' },
     { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność' },
-    { view: 'karty-obiegowe', icon: FileText, label: 'Karty' },
+    { view: 'karty-obiegowe', icon: FileText, label: 'Obiegowe' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];
   

@@ -16,6 +16,7 @@ import {
   UserX,
   Settings,
   BarChart3,
+  Shirt,
   Fingerprint,
   FileText,
   Component,
