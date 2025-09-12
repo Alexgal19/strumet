@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -37,7 +36,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
               display: flex;
               flex-direction: column;
               justify-content: space-between;
-              min-height: 24cm;
+              height: 25cm; /* Adjusted for single page */
             }
           `}
         </style>
@@ -54,10 +53,15 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                 {record.employeeFullName.toUpperCase()}
               </p>
             </div>
-             <div className="border-y border-black py-3 px-2 mb-6">
+             <div className="border-y border-black py-3 px-2 mb-4">
               <p className="text-center font-bold text-base tracking-wide">
                 {record.department.toUpperCase()}
               </p>
+            </div>
+            <div className="border-y border-black py-3 px-2 mb-6">
+                <p className="text-center font-bold text-base tracking-wide">
+                    {record.jobTitle.toUpperCase()}
+                </p>
             </div>
 
             <div className="flex justify-between items-center mb-8 text-sm">
@@ -108,7 +112,3 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
 );
 
 AbsenceRecordPrintForm.displayName = 'AbsenceRecordPrintForm';
-
-    
-
-    
