@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -39,6 +41,8 @@ export default function StatisticsPage() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  
+  const [includeTerminated, setIncludeTerminated] = useState(false);
 
   const { toast } = useToast();
 
@@ -68,15 +72,21 @@ export default function StatisticsPage() {
     };
   }, [isLoading]);
   
-  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
-  const totalActiveEmployees = activeEmployees.length;
+  const relevantEmployees = useMemo(() => {
+    if (includeTerminated) {
+      return employees;
+    }
+    return employees.filter(e => e.status === 'aktywny');
+  }, [employees, includeTerminated]);
+  
+  const totalRelevantEmployees = relevantEmployees.length;
 
   const departmentData = useMemo(() => {
-    if (totalActiveEmployees === 0) return [];
+    if (totalRelevantEmployees === 0) return [];
     
     const departments: { [key: string]: { employees: Employee[] } } = {};
 
-    activeEmployees.forEach(employee => {
+    relevantEmployees.forEach(employee => {
       if (!departments[employee.department]) {
         departments[employee.department] = { employees: [] };
       }
@@ -111,56 +121,56 @@ export default function StatisticsPage() {
         return { 
           name, 
           value: data.employees.length,
-          percentage: (data.employees.length / totalActiveEmployees) * 100,
+          percentage: (data.employees.length / totalRelevantEmployees) * 100,
           fill: CHART_COLORS[index % CHART_COLORS.length],
           managers: managersArray
         }
       })
       .sort((a, b) => b.value - a.value);
-  }, [activeEmployees, totalActiveEmployees]);
+  }, [relevantEmployees, totalRelevantEmployees]);
 
   const nationalityData = useMemo(() => {
     const counts: { [key: string]: number } = {};
-    activeEmployees.forEach(employee => {
+    relevantEmployees.forEach(employee => {
       counts[employee.nationality] = (counts[employee.nationality] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value], index) => ({ 
       name, 
       value,
-      percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
+      percentage: totalRelevantEmployees > 0 ? (value / totalRelevantEmployees) * 100 : 0,
       fill: CHART_COLORS[index % CHART_COLORS.length] 
     }));
-  }, [activeEmployees, totalActiveEmployees]);
+  }, [relevantEmployees, totalRelevantEmployees]);
 
   const jobTitleData = useMemo(() => {
     const counts: { [key: string]: number } = {};
-    activeEmployees.forEach(employee => {
+    relevantEmployees.forEach(employee => {
       counts[employee.jobTitle] = (counts[employee.jobTitle] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value], index) => ({
       name,
       value,
-      percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
+      percentage: totalRelevantEmployees > 0 ? (value / totalRelevantEmployees) * 100 : 0,
       fill: CHART_COLORS[index % CHART_COLORS.length]
     })).sort((a, b) => b.value - a.value);
-  }, [activeEmployees, totalActiveEmployees]);
+  }, [relevantEmployees, totalRelevantEmployees]);
 
   const handleDepartmentClick = (departmentName: string) => {
-    const filtered = activeEmployees.filter(e => e.department === departmentName);
+    const filtered = relevantEmployees.filter(e => e.department === departmentName);
     setDialogTitle(`Pracownicy w dziale: ${departmentName}`);
     setDialogEmployees(filtered);
     setIsStatDialogOpen(true);
   };
   
   const handleManagerClick = (departmentName: string, managerName: string) => {
-    const filtered = activeEmployees.filter(e => e.department === departmentName && e.manager === managerName);
+    const filtered = relevantEmployees.filter(e => e.department === departmentName && e.manager === managerName);
     setDialogTitle(`Pracownicy kierownika: ${managerName}`);
     setDialogEmployees(filtered);
     setIsStatDialogOpen(true);
   };
   
   const handleJobTitleClick = (departmentName: string, managerName: string, jobTitleName: string) => {
-      const filtered = activeEmployees.filter(e => 
+      const filtered = relevantEmployees.filter(e => 
           e.department === departmentName && 
           e.manager === managerName && 
           e.jobTitle === jobTitleName
@@ -216,18 +226,30 @@ export default function StatisticsPage() {
         title="Statystyki"
         description="Analizuj dane dotyczące pracowników."
       />
-      {activeEmployees.length === 0 ? (
+      {employees.length === 0 ? (
          <div className="text-center text-muted-foreground py-10">
             Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card className="lg:col-span-2">
-                <CardHeader>
-                    <CardTitle>Rozkład pracowników wg działów</CardTitle>
-                    <CardDescription>
-                        Liczba pracowników, kierownicy i stanowiska w poszczególnych działach.
-                    </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Rozkład pracowników wg działów</CardTitle>
+                        <CardDescription>
+                            Liczba pracowników, kierownicy i stanowiska w poszczególnych działach.
+                        </CardDescription>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                            id="include-terminated"
+                            checked={includeTerminated}
+                            onCheckedChange={setIncludeTerminated}
+                        />
+                        <Label htmlFor="include-terminated" className="text-sm">
+                            Pokaż zwolnionych
+                        </Label>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <Accordion type="multiple" className="w-full space-y-4">
@@ -451,5 +473,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
 
     
