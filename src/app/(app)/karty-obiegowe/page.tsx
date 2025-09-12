@@ -84,9 +84,9 @@ export default function CirculationCardPage() {
         description="Generuj i drukuj karty obiegowe dla pracowników."
       />
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 flex-grow">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-1">
-            <Card className="sticky top-6">
+            <Card>
                 <CardHeader>
                     <CardTitle>Generator Karty</CardTitle>
                     <CardDescription>Wybierz pracownika, aby przygotować kartę do druku.</CardDescription>
