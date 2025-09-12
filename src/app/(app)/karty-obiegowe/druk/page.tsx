@@ -4,24 +4,27 @@ import { db } from "@/lib/firebase";
 import { Employee } from "@/lib/types";
 import { get, ref } from "firebase/database";
 import { format } from "date-fns";
-import { pl } from "date-fns/locale";
 import React, { Suspense, useEffect } from "react";
 
-const ChecklistItem = ({ label }: { label: string }) => (
-    <div className="flex justify-between items-center py-2 border-b">
-        <span>{label}</span>
-        <div className="flex items-center space-x-6">
-            <span>TAK</span> <div className="w-4 h-4 border-2 border-black inline-block"></div>
-            <span className="ml-4">NIE</span> <div className="w-4 h-4 border-2 border-black inline-block"></div>
-        </div>
+const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
+    <section className="mb-2">
+        <h2 className="text-center font-bold bg-gray-200 p-1 border-t border-x border-black text-sm">{title}</h2>
+        {children}
+    </section>
+);
+
+const ChecklistRow = ({ label }: { label: string }) => (
+    <div className="grid grid-cols-[1fr_50px_50px_50px] items-center border-b border-x border-black">
+        <span className="px-2 py-1.5 text-sm">{label}</span>
+        <div className="h-full flex items-center justify-center border-l"><div className="w-4 h-4 border border-black"></div></div>
+        <div className="h-full flex items-center justify-center border-l"><div className="w-4 h-4 border border-black"></div></div>
+        <div className="h-full flex items-center justify-center border-l"><div className="w-4 h-4 border border-black"></div></div>
     </div>
 );
 
-const SignatureSection = ({ label }: { label: string }) => (
-    <div className="pt-12 inline-block">
-        <div className="border-t-2 border-dotted border-black w-64 pt-1 text-xs text-center text-gray-500">
-            {label}
-        </div>
+const SignatureRow = ({ label }: { label: string }) => (
+    <div className="border-t border-x border-b border-black text-right pr-4 py-1">
+        <span className="text-sm">{label}</span>
     </div>
 );
 
@@ -30,16 +33,28 @@ const PrintLayout = ({ employee }: { employee: Employee | null }) => {
     
     useEffect(() => {
         // Automatically trigger print when the component mounts
-        window.print();
+        setTimeout(() => window.print(), 100);
     }, []);
 
     if (!employee) {
         return <div>Pracownik o podanym ID nie został znaleziony.</div>;
     }
 
-    const terminationDate = employee.terminationDate 
-        ? format(new Date(employee.terminationDate), 'd MMMM yyyy', { locale: pl })
-        : ' ';
+    const printDate = employee.terminationDate 
+        ? format(new Date(employee.terminationDate), 'dd.MM.yyyy')
+        : format(new Date(), 'dd.MM.yyyy');
+        
+    const dataSectionItems = [
+        { label: "Nazwisko Imię", value: employee.fullName },
+        { label: "Stanowisko", value: employee.jobTitle },
+        { label: "Dział", value: employee.department },
+        { label: "Nr karty RCP", value: employee.cardNumber },
+        { label: "Data", value: printDate },
+    ];
+    
+    const warehouseItems = ["spodnie", "bluza", "buty", "koszulka", "koszula", "pas", "zarękawnik P-L", "przyłbica", "fartuch"];
+    const supervisorItems = ["Zwrot kluczy do szafki na ubraniowej", "Zwrot kluczy do szafki na wydziale", "Szlifierka"];
+    const foremanItems = ["Miarka", "Kabel spawalniczy", "Masa"];
 
     return (
         <div>
@@ -48,75 +63,79 @@ const PrintLayout = ({ employee }: { employee: Employee | null }) => {
                     @import url('https://cdn.jsdelivr.net/font-geist/latest/geist.css');
                     body { 
                         font-family: 'Geist', sans-serif;
-                        font-size: 11pt;
-                        color: #111;
+                        font-size: 10pt;
+                        color: #000;
+                        -webkit-font-smoothing: antialiased;
+                        -moz-osx-font-smoothing: grayscale;
                     }
                     @page {
                        size: A4;
-                       margin: 1.5cm;
+                       margin: 1cm;
                     }
                 `}
             </style>
-             <div style={{ width: '100%' }}>
-                <header style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                    <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', letterSpacing: '0.05em' }}>KARTA OBIEGOWA</h1>
-                    <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Potwierdzenie rozliczenia pracownika</p>
+             <div className="w-full">
+                <header className="text-center mb-4">
+                    <h1 className="text-lg font-bold tracking-wider">KARTA OBIEGOWA</h1>
                 </header>
                 
-                <section style={{ borderTop: '2px solid black', borderBottom: '2px solid black', padding: '1rem 0', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem 2rem' }}>
-                         <div>
-                            <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Pracownik</p>
-                            <p style={{ fontWeight: 'bold' }}>{employee.fullName}</p>
+                <section className="border-t border-black">
+                     {dataSectionItems.map(item => (
+                        <div key={item.label} className="grid grid-cols-3 border-b border-black">
+                            <div className="col-span-1 font-bold p-1.5 border-x border-black">{item.label}</div>
+                            <div className="col-span-2 p-1.5 border-r border-black">{item.value || ''}</div>
                         </div>
-                        <div>
-                            <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Data zwolnienia</p>
-                            <p style={{ fontWeight: 'bold' }}>{terminationDate}</p>
-                        </div>
-                         <div>
-                            <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Stanowisko</p>
-                            <p style={{ fontWeight: 'bold' }}>{employee.jobTitle}</p>
-                        </div>
-                        <div>
-                            <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Dział</p>
-                            <p style={{ fontWeight: 'bold' }}>{employee.department}</p>
-                        </div>
-                    </div>
+                    ))}
                 </section>
+                
+                <div className="h-4"></div>
 
                 <main>
-                    <h2 style={{ fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.125rem' }}>Rozliczenie z działami</h2>
+                    <Section title="Magazyn">
+                        <div className="grid grid-cols-[1fr_50px_50px_50px] items-center border-b border-x border-black bg-gray-100">
+                            <span className="px-2 py-1 font-bold text-sm">Zwrot odzieży</span>
+                            <div className="h-full flex items-center justify-center border-l font-bold text-sm">TAK</div>
+                            <div className="h-full flex items-center justify-center border-l font-bold text-sm">NIE</div>
+                            <div className="h-full flex items-center justify-center border-l font-bold text-sm">ND</div>
+                        </div>
+                        {warehouseItems.map(item => <ChecklistRow key={item} label={item} />)}
+                        <SignatureRow label="Podpis pracownika Magazynu" />
+                    </Section>
+
+                    <Section title="Informatyk">
+                        <div className="grid grid-cols-[1fr_150px_1fr] items-center border-b border-x border-black">
+                            <span className="px-2 py-1.5 text-sm">Zwrot karty</span>
+                            <div className="h-full flex items-center justify-center border-l font-bold text-lg bg-green-200">TAK</div>
+                            <div className="grid grid-rows-2 h-full border-l">
+                               <div className="px-2 py-1.5 text-sm border-b">Data:</div>
+                               <div className="px-2 py-1.5 text-sm">Podpis:</div>
+                            </div>
+                        </div>
+                    </Section>
                     
-                    <div style={{ marginBottom: '2rem' }}>
-                        <h3 style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Magazyn</h3>
-                        <div className="space-y-2">
-                            <ChecklistItem label="Spodnie, bluza, buty, koszulika" />
-                            <ChecklistItem label="Pas, zarękawnik, przyłbica, fartuch" />
+                    <Section title="Opiekun">
+                        <div className="grid grid-cols-[1fr_50px_50px_50px] items-center border-b border-x border-black bg-gray-100">
+                            <span className="px-2 py-1 font-bold text-sm"></span>
+                             <div className="h-full flex items-center justify-center border-l font-bold text-sm">TAK</div>
+                            <div className="h-full flex items-center justify-center border-l font-bold text-sm">NIE</div>
+                            <div className="h-full flex items-center justify-center border-l font-bold text-sm">ND</div>
                         </div>
-                         <div style={{ textAlign: 'right', marginTop: '0.5rem' }}><SignatureSection label="Podpis pracownika Magazynu" /></div>
-                    </div>
+                         {supervisorItems.map(item => <ChecklistRow key={item} label={item} />)}
+                        <SignatureRow label="Podpis" />
+                    </Section>
 
-                    <div style={{ marginBottom: '2rem' }}>
-                        <h3 style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Dział IT</h3>
-                        <ChecklistItem label="Zwrot karty RCP" />
-                        <div style={{ textAlign: 'right', marginTop: '0.5rem' }}><SignatureSection label="Podpis pracownika Działu IT" /></div>
-                    </div>
-
-                     <div style={{ marginBottom: '2rem' }}>
-                        <h3 style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Opiekun / Lider</h3>
-                        <div className="space-y-2">
-                            <ChecklistItem label="Zwrot kluczy do szafek" />
-                            <ChecklistItem label="Szlifierka, miarka, narzędzia" />
+                    <Section title="Brygadzista">
+                         <div className="grid grid-cols-[1fr_50px_50px_50px] items-center border-b border-x border-black bg-gray-100">
+                            <span className="px-2 py-1 font-bold text-sm"></span>
+                            <div className="h-full flex items-center justify-center border-l font-bold text-sm">TAK</div>
+                            <div className="h-full flex items-center justify-center border-l font-bold text-sm">NIE</div>
+                            <div className="h-full flex items-center justify-center border-l font-bold text-sm">ND</div>
                         </div>
-                        <div style={{ textAlign: 'right', marginTop: '0.5rem' }}><SignatureSection label="Podpis Opiekuna / Lidera" /></div>
-                    </div>
+                        {foremanItems.map(item => <ChecklistRow key={item} label={item} />)}
+                        <SignatureRow label="Podpis" />
+                    </Section>
 
                 </main>
-
-                 <footer style={{ textAlign: 'center', paddingTop: '2rem' }}>
-                    <SignatureSection label="Podpis pracownika" />
-                </footer>
-
             </div>
         </div>
     );
@@ -129,16 +148,20 @@ const PrintPageContent = ({ employeeId }: { employeeId: string }) => {
 
     React.useEffect(() => {
         const fetchEmployee = async () => {
+            if (!employeeId) {
+                setLoading(false);
+                return;
+            }
             const employeeRef = ref(db, `employees/${employeeId}`);
             const snapshot = await get(employeeRef);
-            setEmployee(snapshot.val());
+            setEmployee(snapshot.val() ? { id: snapshot.key, ...snapshot.val() } : null);
             setLoading(false);
         };
         fetchEmployee();
     }, [employeeId]);
     
     if (loading) {
-        return <div>Ładowanie danych pracownika...</div>;
+        return <div className="flex h-screen w-screen items-center justify-center">Ładowanie danych pracownika...</div>;
     }
 
     return <PrintLayout employee={employee} />;
@@ -153,7 +176,7 @@ export default function PrintPage({ searchParams }: { searchParams: { employeeId
     }
 
     return (
-        <Suspense fallback={<div>Ładowanie...</div>}>
+        <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center">Ładowanie...</div>}>
             <PrintPageContent employeeId={employeeId} />
         </Suspense>
     );
