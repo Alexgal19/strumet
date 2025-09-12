@@ -135,6 +135,7 @@ export default function ClothingIssuancePage() {
         
         setPrintingIssuance({ ...newIssuance, id: newIssuanceRef.key! });
         setSelectedClothing({});
+        setIsModalOpen(false);
     } catch (error) {
         console.error("Error saving issuance:", error);
         toast({
@@ -234,10 +235,6 @@ export default function ClothingIssuancePage() {
                               <Shirt className="mr-2 h-4 w-4" />
                               Wybierz odzież ({selectedItemsList.length})
                           </Button>
-                          <Button onClick={handleSaveAndPrint} disabled={selectedItemsList.length === 0} className="w-full">
-                              <Printer className="mr-2 h-4 w-4" />
-                              Zapisz i drukuj wniosek
-                          </Button>
                       </CardContent>
                   </Card>
               )}
@@ -320,7 +317,10 @@ export default function ClothingIssuancePage() {
                   </div>
               </ScrollArea>
               <DialogFooter>
-                  <Button type="button" onClick={() => setIsModalOpen(false)}>Zatwierdź</Button>
+                  <Button onClick={handleSaveAndPrint} disabled={selectedItemsList.length === 0}>
+                      <Printer className="mr-2 h-4 w-4" />
+                      Zapisz i drukuj
+                  </Button>
               </DialogFooter>
           </DialogContent>
         </Dialog>

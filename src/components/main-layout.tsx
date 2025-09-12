@@ -18,8 +18,7 @@ export type ActiveView =
   | 'brak-logowania' 
   | 'konfiguracja'
   | 'planowanie'
-  | 'odwiedzalnosc'
-  | 'karty-obiegowe';
+  | 'odwiedzalnosc';
 
 const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   aktywni: dynamic(() => import('./active-employees-page'), { loading: () => <LoadingComponent /> }),
@@ -30,7 +29,6 @@ const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   'wydawanie-odziezy': dynamic(() => import('../app/(app)/wydawanie-odziezy/page'), { loading: () => <LoadingComponent /> }),
   'odciski-palcow': dynamic(() => import('../app/(app)/odciski-palcow/page'), { loading: () => <LoadingComponent /> }),
   'brak-logowania': dynamic(() => import('../app/(app)/brak-logowania/page'), { loading: () => <LoadingComponent /> }),
-  'karty-obiegowe': dynamic(() => import('../app/(app)/karty-obiegowe/page'), { loading: () => <LoadingComponent /> }),
   konfiguracja: dynamic(() => import('../app/(app)/konfiguracja/page'), { loading: () => <LoadingComponent /> }),
 };
 

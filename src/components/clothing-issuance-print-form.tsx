@@ -31,6 +31,11 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
               font-family: 'Times New Roman', Times, serif;
               font-size: 11pt;
             }
+            .print-container {
+              display: flex;
+              flex-direction: column;
+              min-height: calc(100vh - 3cm);
+            }
           `}
         </style>
         <div className="print-container">
