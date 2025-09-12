@@ -298,7 +298,7 @@ export default function NoLoginPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="hours">Liczba godzin</Label>
+                <Label htmlFor="hours">Godziny świadczenia usług</Label>
                 <Input 
                   id="hours"
                   type="text"
@@ -408,7 +408,5 @@ export default function NoLoginPage() {
     </>
   );
 }
-
-    
 
     
