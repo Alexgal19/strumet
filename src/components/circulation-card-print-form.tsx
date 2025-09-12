@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Employee } from "@/lib/types";
 import { format } from "date-fns";
+import { PrintScaleSwitch } from './print-scale-switch';
 
 interface CirculationCardPrintFormProps {
   employee: Employee | null;
@@ -13,7 +14,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
     
     if (!employee) {
       return (
-           <div ref={ref} className="p-8 border rounded-lg bg-white shadow-md text-black aspect-[1/1.414] flex items-center justify-center text-center text-gray-500">
+           <div ref={ref} className="p-8 border rounded-lg bg-white shadow-md text-black flex items-center justify-center text-center text-gray-500">
               <div>
                   <h3 className="text-lg font-semibold mb-2">Podgląd Karty Obiegowej</h3>
                   <p>Wybierz pracownika, aby zobaczyć, jak będzie wyglądał dokument.</p>
@@ -52,7 +53,8 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
     );
 
     return (
-      <div ref={ref} className="print-root-container">
+      <div ref={ref} className="print-root-container bg-white">
+        <PrintScaleSwitch />
         <style jsx global>{`
             .print-page {
                 background: white;
@@ -146,6 +148,9 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
                 background: white !important;
                 -webkit-print-color-adjust: exact !important;
               }
+              .print-switch-container {
+                display: none;
+              }
               .print-root-container {
                 padding: 0;
                 margin: 0;
@@ -155,12 +160,15 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
               }
               .print-page {
                 width: 100% !important;
-                min-height: 26cm; /* Ensure it takes up vertical space */
-                padding: 0; /* Remove padding for print */
+                min-height: 0; 
+                padding: 0;
                 box-sizing: border-box;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
+                display: block;
+              }
+               .scale-to-a4 .print-page {
+                transform: scale(0.95);
+                transform-origin: top left;
+                width: 105.26% !important; /* 100 / 0.95 */
               }
             }
         `}</style>
