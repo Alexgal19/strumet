@@ -36,7 +36,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
               display: flex;
               flex-direction: column;
               justify-content: space-between;
-              height: 25cm; /* Adjusted for single page */
+              min-height: 25cm; /* Use min-height instead of fixed height */
             }
           `}
         </style>
