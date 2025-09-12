@@ -27,26 +27,15 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
               margin: 1.5cm;
             }
             html, body {
-              height: 100%;
+              height: auto;
               margin: 0;
               padding: 0;
               font-family: Arial, sans-serif;
               font-size: 11pt;
             }
-            .print-container {
-              position: relative;
-              min-height: 26cm; /* Approx height of A4 minus margins */
-              display: block;
-            }
-            .print-footer {
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                right: 0;
-            }
           `}
         </style>
-        <div className="print-container">
+        <div>
           <div>
             <header className="text-center mb-10">
                 <h1 className="text-lg font-bold tracking-wider">OŚWIADCZENIE / ЗАЯВА</h1>
@@ -54,7 +43,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
 
             <p className="mb-6">Oświadczam, że podwykonawca / Повідомляю, що виконавець:</p>
             
-            <div className="border-y border-black py-3 px-2 mb-4">
+            <div className="border-b border-black py-3 px-2 mb-4">
               <p className="text-center font-bold text-base tracking-wide">
                 {record.employeeFullName.toUpperCase()}
               </p>
@@ -97,7 +86,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
             </section>
           </div>
             
-          <footer className="print-footer pt-12">
+          <footer className="pt-16 mt-16">
               <div className="flex justify-between">
                   <div className="text-center w-2/5">
                       <div className="border-t border-gray-400 pt-1">
