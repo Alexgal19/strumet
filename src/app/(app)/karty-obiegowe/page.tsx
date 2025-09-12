@@ -46,6 +46,7 @@ export default function CirculationCardPage() {
 
       const afterPrint = () => {
         document.body.classList.remove('printing');
+        window.removeEventListener('afterprint', afterPrint);
       };
 
       window.addEventListener('afterprint', afterPrint);
