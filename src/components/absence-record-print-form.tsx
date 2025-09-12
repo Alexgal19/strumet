@@ -19,7 +19,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
     }
 
     return (
-      <div ref={ref} className="p-4 bg-white text-black font-sans print:p-0 print:shadow-none">
+      <div ref={ref} className="bg-white text-black font-sans print:shadow-none">
         <style type="text/css" media="print">
           {`
             @page { 
@@ -27,16 +27,22 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
               margin: 1.5cm;
             }
             html, body {
+              height: 100%;
               margin: 0;
               padding: 0;
               font-family: Arial, sans-serif;
               font-size: 11pt;
             }
             .print-container {
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-              min-height: 25cm; /* Use min-height instead of fixed height */
+              position: relative;
+              min-height: 26cm; /* Approx height of A4 minus margins */
+              display: block;
+            }
+            .print-footer {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
             }
           `}
         </style>
@@ -53,12 +59,12 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                 {record.employeeFullName.toUpperCase()}
               </p>
             </div>
-             <div className="border-y border-black py-3 px-2 mb-4">
+             <div className="border-b border-black py-3 px-2 mb-4">
               <p className="text-center text-base tracking-wide">
                 {record.department.toUpperCase()}
               </p>
             </div>
-            <div className="border-y border-black py-3 px-2 mb-6">
+            <div className="border-b border-black py-3 px-2 mb-6">
                 <p className="text-center text-base tracking-wide">
                     {record.jobTitle.toUpperCase()}
                 </p>
@@ -71,7 +77,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                 </div>
                 <div className="flex items-baseline">
                    <span className="mr-2">świadczył usługi w godzinach / працював:</span>
-                   <span className="font-bold text-base border-b border-dotted border-black min-w-[150px] inline-block">{record.hours || '\u00A0'}</span>
+                   <span className="font-bold text-base border-b border-dotted border-black min-w-[150px] inline-block text-center">{record.hours || '________________'}</span>
                 </div>
             </div>
 
@@ -91,7 +97,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
             </section>
           </div>
             
-          <footer className="pt-24">
+          <footer className="print-footer pt-12">
               <div className="flex justify-between">
                   <div className="text-center w-2/5">
                       <div className="border-t border-gray-400 pt-1">
