@@ -19,13 +19,17 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
     }
 
     return (
-      <div ref={ref} className="bg-white text-black font-sans p-4 print:p-0 print:shadow-none">
+      <div ref={ref} className="bg-white text-black font-sans">
         <style type="text/css" media="print">
           {`
             @page {
+              size: A4;
               margin: 1.5cm;
             }
-            body {
+            html, body {
+              height: 100%;
+              margin: 0;
+              padding: 0;
               font-family: Arial, sans-serif;
               font-size: 11pt;
             }
@@ -38,17 +42,17 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
 
         <p className="mb-6">Oświadczam, że podwykonawca / Повідомляю, що виконавець:</p>
         
-        <div className="border-b border-black py-3 px-2 mb-4">
+        <div className="border-b-2 border-black py-2 px-2 mb-4">
           <p className="text-center font-bold text-base tracking-wide">
             {record.employeeFullName.toUpperCase()}
           </p>
         </div>
-         <div className="border-b border-black py-3 px-2 mb-4">
+        <div className="border-b border-black py-2 px-2 mb-4">
           <p className="text-center text-base">
             {record.department.toUpperCase()}
           </p>
         </div>
-        <div className="border-b border-black py-3 px-2 mb-6">
+        <div className="border-b border-black py-2 px-2 mb-6">
             <p className="text-center text-base">
                 {record.jobTitle.toUpperCase()}
             </p>
@@ -67,20 +71,20 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
 
         <section className="space-y-8 mb-8">
             <div className="flex items-start space-x-3">
-                <Checkbox id="reason1" checked={record.reason === 'no_card'} readOnly className="mt-1" />
-                <Label htmlFor="reason1" className="text-sm leading-relaxed">
+                <Checkbox id="reason1" checked={record.reason === 'no_card'} readOnly className="mt-1 border-black" />
+                <Label htmlFor="reason1" className="text-sm leading-relaxed cursor-default">
                     Nieodbicie dyskietki spowodowane było jej brakiem / Невідбиття карти сталося з причини її відсутності в цей день.
                 </Label>
             </div>
              <div className="flex items-start space-x-3">
-                <Checkbox id="reason2" checked={record.reason === 'forgot_to_scan'} readOnly className="mt-1" />
-                <Label htmlFor="reason2" className="text-sm leading-relaxed">
+                <Checkbox id="reason2" checked={record.reason === 'forgot_to_scan'} readOnly className="mt-1 border-black" />
+                <Label htmlFor="reason2" className="text-sm leading-relaxed cursor-default">
                     Nieodbicie dyskietki na wejściu/wyjściu wynikło z zapomnienia / Не відбиття карти на вході/виході сталося через те, що виконавець забув карту.
                 </Label>
             </div>
         </section>
         
-        <footer className="mt-24">
+        <footer className="mt-32">
             <div className="flex justify-between">
                 <div className="text-center w-2/5">
                     <div className="border-t border-gray-400 pt-1">

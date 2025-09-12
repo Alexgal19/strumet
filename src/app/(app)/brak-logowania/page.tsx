@@ -196,9 +196,18 @@ export default function NoLoginPage() {
     );
   }
 
+  // Fully isolate the print component when printing
+  if (printingRecord) {
+    return (
+        <AbsenceRecordPrintForm 
+            ref={printComponentRef}
+            record={printingRecord}
+        />
+    );
+  }
+
   return (
-    <>
-    <div className="flex h-full flex-col print:hidden">
+    <div className="flex h-full flex-col">
       <PageHeader
         title="Brak logowania"
         description="Generuj raporty dotyczące braku logowania przez pracowników."
@@ -353,7 +362,7 @@ export default function NoLoginPage() {
                       sortedRecords.map((rec) => (
                         <TableRow key={rec.id}>
                           <TableCell className="font-medium">{rec.employeeFullName}</TableCell>
-                          <TableCell>{format(parseISO(rec.incidentDate), "dd.MM.yyyy", { locale: pl })}</TableCell>
+                          <TableCell>{rec.incidentDate ? format(parseISO(rec.incidentDate), "dd.MM.yyyy", { locale: pl }) : ''}</TableCell>
                           <TableCell>{rec.hours}</TableCell>
                            <TableCell>{rec.reason === 'no_card' ? 'Brak karty' : 'Zapomnienie'}</TableCell>
                           <TableCell className="text-right space-x-2">
@@ -397,18 +406,5 @@ export default function NoLoginPage() {
             </AlertDialogContent>
        </AlertDialog>
     </div>
-     <div className="hidden print:block">
-        {printingRecord && (
-             <AbsenceRecordPrintForm 
-                ref={printComponentRef}
-                record={printingRecord}
-            />
-        )}
-      </div>
-    </>
   );
 }
-
-    
-
-    
