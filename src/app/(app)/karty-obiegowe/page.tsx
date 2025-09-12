@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,21 +11,62 @@ import { Employee } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { cn } from '@/lib/utils';
-import { CirculationCardPrintForm } from '@/components/circulation-card-print-form';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
+// Simplified preview component
+const CirculationCardPreview = ({ employee }: { employee: Employee | null }) => {
+    if (!employee) {
+        return (
+            <div className="flex flex-col items-center justify-center aspect-[1/1.414] text-center text-muted-foreground p-10 bg-gray-50 rounded-lg">
+                <UserSquare className="h-16 w-16 mb-4 text-gray-400" />
+                <h3 className="text-lg font-semibold">Podgląd Karty Obiegowej</h3>
+                <p className="text-sm">Wybierz pracownika, aby zobaczyć, jak będzie wyglądał dokument.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-8 border rounded-lg bg-white shadow-md text-black">
+             <header className="text-center mb-6">
+                <h1 className="text-xl font-bold">KARTA OBIEGOWA</h1>
+                <p className="text-sm text-gray-500">Potwierdzenie rozliczenia pracownika</p>
+            </header>
+            <section className="border-t border-b border-black py-4 mb-6">
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-xs">Pracownik</p>
+                        <p className="font-bold">{employee.fullName}</p>
+                    </div>
+                     <div>
+                        <p className="text-xs">Data zwolnienia</p>
+                        <p className="font-bold">{employee.terminationDate || ' '}</p>
+                    </div>
+                     <div>
+                        <p className="text-xs">Stanowisko</p>
+                        <p className="font-bold">{employee.jobTitle}</p>
+                    </div>
+                     <div>
+                        <p className="text-xs">Dział</p>
+                        <p className="font-bold">{employee.department}</p>
+                    </div>
+                </div>
+            </section>
+            <p className="font-bold mb-4">Rozliczenie z działami</p>
+        </div>
+    );
+};
+
+
 export default function CirculationCardPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPrinting, setIsPrinting] = useState(false);
-
+  
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
-  const printComponentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const employeesRef = ref(db, 'employees');
@@ -37,15 +78,6 @@ export default function CirculationCardPage() {
     return () => unsubscribeEmployees();
   }, [isLoading]);
   
-  useEffect(() => {
-      if (isPrinting) {
-          const timer = setTimeout(() => {
-              window.print();
-              setIsPrinting(false);
-          }, 100);
-        return () => clearTimeout(timer);
-      }
-  }, [isPrinting]);
 
   const allEmployees = useMemo(() => employees, [employees]);
   const selectedEmployee = useMemo(() => {
@@ -55,14 +87,11 @@ export default function CirculationCardPage() {
 
   const handlePrint = () => {
     if (selectedEmployee) {
-      setIsPrinting(true);
+      const url = `/karty-obiegowe/druk?employeeId=${selectedEmployee.id}`;
+      window.open(url, '_blank');
     }
   };
 
-  // This is the key part: when printing, we render ONLY the print component.
-  if (isPrinting && selectedEmployee) {
-      return <CirculationCardPrintForm ref={printComponentRef} employee={selectedEmployee} />;
-  }
 
   if (isLoading) {
     return (
@@ -84,7 +113,7 @@ export default function CirculationCardPage() {
             <Card className="sticky top-6">
                 <CardHeader>
                     <CardTitle>Generator Karty</CardTitle>
-                    <CardDescription>Wybierz pracownika, aby wypełnić i wydrukować kartę obiegową.</CardDescription>
+                    <CardDescription>Wybierz pracownika, aby przygotować kartę do druku.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -149,21 +178,9 @@ export default function CirculationCardPage() {
         
         <div className="lg:col-span-2">
             <div className="bg-muted/30 p-4 sm:p-8 rounded-2xl">
-                <Card className="max-w-[210mm] mx-auto shadow-2xl">
-                    <CardContent className="p-0">
-                        {selectedEmployee ? (
-                            <div className="p-8">
-                                <CirculationCardPrintForm employee={selectedEmployee} />
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center aspect-[1/1.414] text-center text-muted-foreground p-10">
-                                <UserSquare className="h-16 w-16 mb-4 text-gray-400" />
-                                <h3 className="text-lg font-semibold">Podgląd Karty Obiegowej</h3>
-                                <p className="text-sm">Wybierz pracownika, aby zobaczyć, jak będzie wyglądał dokument.</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <div className="max-w-[210mm] mx-auto">
+                    <CirculationCardPreview employee={selectedEmployee} />
+                </div>
             </div>
         </div>
       </div>
