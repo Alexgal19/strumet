@@ -102,18 +102,20 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
                 <div>
                     <h2 className="text-center font-bold bg-gray-200 p-2 border border-b-0 border-black">Informatyk</h2>
                     <table className="w-full border-collapse border border-black">
-                        <tr className="border-b border-black text-center">
-                            <td className="border-r border-black p-2 w-1/2">Zwrot karty</td>
-                            <td className="border-r border-black p-2 font-bold bg-green-200">TAK</td>
-                            <td className="border-r border-black p-2">Data</td>
-                            <td className="p-2">Podpis</td>
-                        </tr>
-                        <tr className="h-14">
-                            <td className="border-r border-black p-2"></td>
-                            <td className="border-r border-black p-2"></td>
-                            <td className="border-r border-black p-2"></td>
-                            <td className="p-2"></td>
-                        </tr>
+                        <tbody>
+                            <tr className="border-b border-black text-center">
+                                <td className="border-r border-black p-2 w-1/2">Zwrot karty</td>
+                                <td className="border-r border-black p-2 font-bold bg-green-200">TAK</td>
+                                <td className="border-r border-black p-2">Data</td>
+                                <td className="p-2">Podpis</td>
+                            </tr>
+                            <tr className="h-14">
+                                <td className="border-r border-black p-2"></td>
+                                <td className="border-r border-black p-2"></td>
+                                <td className="border-r border-black p-2"></td>
+                                <td className="p-2"></td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
 
