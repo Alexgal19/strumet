@@ -54,36 +54,6 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
     return (
       <div ref={ref} className="print-root-container">
         <style jsx global>{`
-            @media print {
-              body, html {
-                margin: 0 !important;
-                padding: 0 !important;
-                width: 100% !important;
-                background: white !important;
-                -webkit-print-color-adjust: exact !important;
-              }
-              .print-root-container {
-                padding: 0;
-                margin: 0;
-                width: 100%;
-                box-shadow: none;
-                border: none;
-              }
-              .print-page {
-                width: 100% !important;
-                min-height: 26cm; /* Ensure it takes up vertical space */
-                padding: 1.5cm;
-                box-sizing: border-box;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-              }
-            }
-            @page {
-              size: A4;
-              margin: 0; /* Managed by the container padding */
-            }
-
             .print-page {
                 background: white;
                 color: black;
@@ -162,6 +132,36 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
             .signature-caption {
                 font-size: 8pt;
                 color: #555;
+            }
+
+            @media print {
+              @page {
+                size: A4;
+                margin: 1.5cm;
+              }
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+              }
+              .print-root-container {
+                padding: 0;
+                margin: 0;
+                width: 100%;
+                box-shadow: none;
+                border: none;
+              }
+              .print-page {
+                width: 100% !important;
+                min-height: 26cm; /* Ensure it takes up vertical space */
+                padding: 0; /* Remove padding for print */
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+              }
             }
         `}</style>
          <div className="print-page">
