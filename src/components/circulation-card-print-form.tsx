@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Employee } from "@/lib/types";
 import { format } from "date-fns";
-import { PrintScaleSwitch } from './print-scale-switch';
 
 interface CirculationCardPrintFormProps {
   employee: Employee | null;
@@ -54,7 +53,6 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
 
     return (
       <div ref={ref} className="print-root-container bg-white">
-        <PrintScaleSwitch />
         <style jsx global>{`
             .print-page {
                 background: white;
@@ -148,9 +146,6 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
                 background: white !important;
                 -webkit-print-color-adjust: exact !important;
               }
-              .print-switch-container {
-                display: none;
-              }
               .print-root-container {
                 padding: 0;
                 margin: 0;
@@ -164,11 +159,8 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
                 padding: 0;
                 box-sizing: border-box;
                 display: block;
-              }
-               .scale-to-a4 .print-page {
                 transform: scale(0.95);
                 transform-origin: top left;
-                width: 105.26% !important; /* 100 / 0.95 */
               }
             }
         `}</style>
