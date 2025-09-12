@@ -24,7 +24,6 @@ export default function CirculationCardPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
-  const [isPrinting, setIsPrinting] = useState(false);
   const printComponentRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -37,22 +36,6 @@ export default function CirculationCardPage() {
     return () => unsubscribeEmployees();
   }, [isLoading]);
 
-  useEffect(() => {
-    if (isPrinting) {
-      document.body.classList.add('printing');
-      const timer = setTimeout(() => {
-        window.print();
-        setIsPrinting(false);
-        document.body.classList.remove('printing');
-      }, 100);
-      return () => {
-        clearTimeout(timer);
-        document.body.classList.remove('printing');
-      };
-    }
-  }, [isPrinting]);
-  
-
   const allEmployees = useMemo(() => employees, [employees]);
   const selectedEmployee = useMemo(() => {
     if (!selectedEmployeeId) return null;
@@ -61,7 +44,7 @@ export default function CirculationCardPage() {
 
   const handlePrint = () => {
     if (!selectedEmployee) return;
-    setIsPrinting(true);
+    window.print();
   };
   
   if (isLoading) {
@@ -74,10 +57,10 @@ export default function CirculationCardPage() {
 
   return (
     <>
-      <div className="flex h-full flex-col">
+      <div className="flex h-full flex-col print:hidden">
         <PageHeader
           title="Karty obiegowe"
-          description="Generuj i drukuj karty obiegowe для pracowników."
+          description="Generuj i drukuj karty obiegowe dla pracowników."
         />
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -157,14 +140,12 @@ export default function CirculationCardPage() {
           </div>
         </div>
       </div>
-      {isPrinting && (
-        <div className="print-container">
-            <CirculationCardPrintForm 
-                ref={printComponentRef}
-                employee={selectedEmployee} 
-            />
-        </div>
-       )}
+      <div className="hidden print:block">
+        <CirculationCardPrintForm 
+            ref={printComponentRef}
+            employee={selectedEmployee} 
+        />
+      </div>
     </>
   );
 }

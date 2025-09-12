@@ -53,43 +53,67 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
     );
 
     return (
-      <div ref={ref} className="print-content bg-white text-black font-sans p-8">
-        <div style={{textAlign: 'center'}} className="mb-8">
-            <h1 className="page-title inline-block text-lg font-bold tracking-widest border-b-2 border-black pb-1">KARTA OBIEGOWA</h1>
-        </div>
-        
-        <div className="employee-info mb-6 text-sm space-y-1">
-            <div className="info-row flex">
-                <span className="info-label font-bold w-32 shrink-0">Nazwisko Imię:</span>
-                <span className="info-value">{employee.fullName}</span>
-            </div>
-            <div className="info-row flex">
-                <span className="info-label font-bold w-32 shrink-0">Stanowisko:</span>
-                <span className="info-value">{employee.jobTitle}</span>
-            </div>
-            <div className="info-row flex">
-                <span className="info-label font-bold w-32 shrink-0">Dział:</span>
-                <span className="info-value">{employee.department}</span>
-            </div>
-            <div className="info-row flex">
-                <span className="info-label font-bold w-32 shrink-0">Nr karty RCP:</span>
-                <span className="info-value">{employee.cardNumber}</span>
-            </div>
-            <div className="info-row flex">
-                <span className="info-label font-bold w-32 shrink-0">Data zwolnienia:</span>
-                <span className="info-value">{printDate}</span>
-            </div>
-        </div>
-        
-        <div className="divider border-t-2 border-black mb-6"></div>
+      <>
+        <style jsx global>{`
+          @media print {
+            @page {
+              size: A4;
+              margin: 1.5cm;
+            }
+            body, html {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              height: auto !important;
+              background: white !important;
+            }
+            .print-content {
+              width: 100% !important;
+              height: 100% !important;
+              box-shadow: none !important;
+              border: none !important;
+              transform: scale(1);
+            }
+          }
+        `}</style>
+        <div ref={ref} className="print-content bg-white text-black font-sans p-8">
+          <div style={{textAlign: 'center'}} className="mb-8">
+              <h1 className="page-title inline-block text-lg font-bold tracking-widest border-b-2 border-black pb-1">KARTA OBIEGOWA</h1>
+          </div>
+          
+          <div className="employee-info mb-6 text-sm space-y-1">
+              <div className="info-row flex">
+                  <span className="info-label font-bold w-32 shrink-0">Nazwisko Imię:</span>
+                  <span className="info-value">{employee.fullName}</span>
+              </div>
+              <div className="info-row flex">
+                  <span className="info-label font-bold w-32 shrink-0">Stanowisko:</span>
+                  <span className="info-value">{employee.jobTitle}</span>
+              </div>
+              <div className="info-row flex">
+                  <span className="info-label font-bold w-32 shrink-0">Dział:</span>
+                  <span className="info-value">{employee.department}</span>
+              </div>
+              <div className="info-row flex">
+                  <span className="info-label font-bold w-32 shrink-0">Nr karty RCP:</span>
+                  <span className="info-value">{employee.cardNumber}</span>
+              </div>
+              <div className="info-row flex">
+                  <span className="info-label font-bold w-32 shrink-0">Data zwolnienia:</span>
+                  <span className="info-value">{printDate}</span>
+              </div>
+          </div>
+          
+          <div className="divider border-t-2 border-black mb-6"></div>
 
-        <div className="space-y-4">
-            {renderSection("MAGAZYN", warehouseItems)}
-            {renderSection("INFORMATYK", itItems)}
-            {renderSection("OPIEKUN", supervisorItems)}
-            {renderSection("BRYGADZISTA", foremanItems)}
+          <div className="space-y-4">
+              {renderSection("MAGAZYN", warehouseItems)}
+              {renderSection("INFORMATYK", itItems)}
+              {renderSection("OPIEKUN", supervisorItems)}
+              {renderSection("BRYGADZISTA", foremanItems)}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 );

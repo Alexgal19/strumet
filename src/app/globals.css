@@ -97,39 +97,7 @@ html, body, #__next__ {
 }
 
 @media print {
-  @page {
-    size: A4;
-    margin: 1.5cm;
-  }
-
-  body.printing, html.printing {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background: white !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-
   body.printing > *:not(.print-container) {
-    display: none !important;
-  }
-
-  .print-container {
-    display: block !important;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    margin: 0;
-  }
-
-  .print-content {
-    width: 100% !important;
-    height: 100% !important;
-    box-shadow: none !important;
-    border: none !important;
+    display: none;
   }
 }
