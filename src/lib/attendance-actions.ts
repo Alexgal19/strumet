@@ -132,10 +132,13 @@ export async function getAttendanceDataForMonth(
   });
   
   // 5. Calculate overall and department stats
-  const totalAbsences = monthAbsences.length;
-  const overallAbsencePercentage = workingDaysInMonth > 0 && activeEmployees.length > 0 
-    ? (totalAbsences / (workingDaysInMonth * activeEmployees.length)) * 100 
+    const totalAbsences = monthAbsences.length;
+    const employeesWithAbsencesCount = new Set(monthAbsences.map(a => a.employeeId)).size;
+    
+    const overallAbsencePercentage = workingDaysInMonth > 0 && employeesWithAbsencesCount > 0 
+    ? (totalAbsences / (workingDaysInMonth * employeesWithAbsencesCount)) * 100 
     : 0;
+
   
   const departmentAbsenceData = config.departments.map((dept, index) => {
     const deptEmployees = activeEmployees.filter(e => e.department === dept.name);
