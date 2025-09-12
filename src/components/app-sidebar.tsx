@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -33,7 +34,7 @@ import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
 import { db } from '@/lib/firebase';
-import { ref, onValue, update, remove } from 'firebase/database';
+import { ref, onValue, update, remove } from 'database';
 import type { AppNotification } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
