@@ -27,16 +27,26 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
               margin: 1.5cm;
             }
             html, body {
-              height: auto;
+              height: 100%;
               margin: 0;
               padding: 0;
               font-family: Arial, sans-serif;
               font-size: 11pt;
             }
+            .print-wrapper {
+                height: 100%;
+                display: table;
+                width: 100%;
+            }
+            .print-footer {
+                display: table-row;
+                height: 1px;
+            }
           `}
         </style>
-        <div>
-          <div>
+        <div className="print-wrapper">
+          
+          <div style={{ display: 'table-row' }}>
             <header className="text-center mb-10">
                 <h1 className="text-lg font-bold tracking-wider">OŚWIADCZENIE / ЗАЯВА</h1>
             </header>
@@ -86,8 +96,8 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
             </section>
           </div>
             
-          <footer className="pt-16 mt-16">
-              <div className="flex justify-between">
+          <footer className="print-footer">
+              <div className="flex justify-between pt-16">
                   <div className="text-center w-2/5">
                       <div className="border-t border-gray-400 pt-1">
                            <p className="text-xs text-gray-600">(podpis pracownika)</p>
