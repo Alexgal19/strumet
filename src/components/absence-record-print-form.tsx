@@ -39,65 +39,64 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
               justify-content: space-between;
               min-height: 24cm;
             }
-            .grid-cols-form {
-              grid-template-columns: 1fr 1fr;
-            }
           `}
         </style>
         <div className="print-container">
           <div>
-            <header className="text-center mb-6">
-                <h1 className="text-lg font-bold">OŚWIADCZENIE/ЗАЯВА</h1>
+            <header className="text-center mb-10">
+                <h1 className="text-lg font-bold tracking-wider">OŚWIADCZENIE / ЗАЯВА</h1>
             </header>
 
-            <p className="mb-4">Oświadczam, że podwykonawca / Повідомляю, що виконавець:</p>
+            <p className="mb-6">Oświadczam, że podwykonawca / Повідомляю, що виконавець:</p>
             
-            <div className="grid grid-cols-form gap-4 border-2 border-black">
-                <div className="p-2 bg-gray-200 text-center font-bold flex items-center justify-center">
-                    {record.employeeFullName.toUpperCase()}
+            <div className="border-y border-black py-3 px-2 mb-4">
+              <p className="text-center font-bold text-base tracking-wide">
+                {record.employeeFullName.toUpperCase()}
+              </p>
+            </div>
+             <div className="border-y border-black py-3 px-2 mb-6">
+              <p className="text-center font-bold text-base tracking-wide">
+                {record.department.toUpperCase()}
+              </p>
+            </div>
+
+            <div className="flex justify-between items-center mb-8 text-sm">
+                <div className="flex items-baseline">
+                   <span className="mr-2">w dniu / в день:</span>
+                   <span className="font-bold text-base border-b border-dotted border-black px-4">{format(parseISO(record.incidentDate), 'dd.MM.yyyy')}</span>
                 </div>
-                <div className="p-2 border-l-2 border-black text-center font-bold flex items-center justify-center">
-                    {record.department.toUpperCase()}
+                <div className="flex items-baseline">
+                   <span className="mr-2">świadczył usługi w godzinach / працював:</span>
+                   <span className="font-bold text-base border-b border-dotted border-black min-w-[150px] inline-block">&nbsp;</span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-form border-2 border-t-0 border-black mb-6">
-                <div className="p-2 flex items-center">
-                   <span className="mr-4">w dniu / в день</span>
-                   <span className="font-bold">{format(parseISO(record.incidentDate), 'dd.MM.yyyy')}</span>
-                </div>
-                <div className="p-2 border-l-2 border-black flex items-center h-12">
-                   <span className="mr-4">świadczył usługi w godzinach / працював:</span>
-                   <span className="font-bold"></span>
-                </div>
-            </div>
-
-            <section className="space-y-6 mb-6">
-                <div className="flex items-center space-x-3">
-                    <Checkbox id="reason1" checked={record.reason === 'no_card'} readOnly />
-                    <Label htmlFor="reason1" className="text-base">
+            <section className="space-y-8 mb-8">
+                <div className="flex items-start space-x-3">
+                    <Checkbox id="reason1" checked={record.reason === 'no_card'} readOnly className="mt-1" />
+                    <Label htmlFor="reason1" className="text-sm leading-relaxed">
                         Nieodbicie dyskietki spowodowane było jej brakiem / Невідбиття карти сталося з причини її відсутності в цей день.
                     </Label>
                 </div>
-                 <div className="flex items-center space-x-3">
-                    <Checkbox id="reason2" checked={record.reason === 'forgot_to_scan'} readOnly />
-                    <Label htmlFor="reason2" className="text-base">
+                 <div className="flex items-start space-x-3">
+                    <Checkbox id="reason2" checked={record.reason === 'forgot_to_scan'} readOnly className="mt-1" />
+                    <Label htmlFor="reason2" className="text-sm leading-relaxed">
                         Nieodbicie dyskietki na wejściu/wyjściu wynikło z zapomnienia / Не відбиття карти на вході/виході сталося через те, що виконавець забув карту.
                     </Label>
                 </div>
             </section>
           </div>
             
-          <footer className="pt-20">
+          <footer className="pt-24">
               <div className="flex justify-between">
                   <div className="text-center w-2/5">
-                      <div className="border-t border-black pt-1">
-                           <p className="text-xs">(podpis pracownika)</p>
+                      <div className="border-t border-gray-400 pt-1">
+                           <p className="text-xs text-gray-600">(podpis pracownika)</p>
                       </div>
                   </div>
                   <div className="text-center w-2/5">
-                      <div className="border-t border-black pt-1">
-                           <p className="text-xs">(podpis kierownika)</p>
+                      <div className="border-t border-gray-400 pt-1">
+                           <p className="text-xs text-gray-600">(podpis kierownika)</p>
                       </div>
                   </div>
               </div>
@@ -109,5 +108,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
 );
 
 AbsenceRecordPrintForm.displayName = 'AbsenceRecordPrintForm';
+
+    
 
     
