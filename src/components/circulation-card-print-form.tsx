@@ -10,7 +10,31 @@ interface CirculationCardPrintFormProps {
 
 export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, CirculationCardPrintFormProps>(
   ({ employee }, ref) => {
-    
+    const printStyles = `
+      @page {
+        size: A4;
+        margin: 1.5cm;
+      }
+      @media print {
+        html, body {
+          width: 100%;
+          height: auto;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white !important;
+        }
+        .print-content {
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          padding: 0;
+          box-shadow: none !important;
+          border: none !important;
+          transform: scale(1);
+        }
+      }
+    `;
+
     // Preview for the main page
     if (!employee) {
       return (
@@ -33,20 +57,20 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
     const foremanItems = ["Miarka", "Kabel spawalniczy", "Masa"];
 
     const renderSection = (title: string, items: string[]) => (
-      <div className="section mb-6">
-        <h2 className="section-title text-center font-bold text-xs tracking-wider mb-3">{title}</h2>
-        <div className="section-content space-y-3">
+      <div className="mb-6">
+        <h2 className="text-center font-bold text-xs tracking-wider mb-3">{title}</h2>
+        <div className="space-y-3">
           {items.map(item => (
-            <div key={item} className="item-row flex items-end">
-              <span className="item-label text-sm">{item}</span>
-              <span className="item-dots flex-grow border-b border-dotted border-gray-400 mx-2 mb-1"></span>
-              <span className="item-signature-placeholder text-xs text-gray-600">TAK / NIE / ND</span>
+            <div key={item} className="flex items-end">
+              <span className="text-sm">{item}</span>
+              <span className="flex-grow border-b border-dotted border-gray-400 mx-2 mb-1"></span>
+              <span className="text-xs text-gray-600">TAK / NIE / ND</span>
             </div>
           ))}
         </div>
-        <div className="signature-line flex justify-end pt-10">
-          <div className="signature-box w-2/5 border-t border-gray-400 pt-1 text-center">
-            <span className="signature-caption text-[8pt] text-gray-500">(podpis i data)</span>
+        <div className="flex justify-end pt-10">
+          <div className="w-2/5 border-t border-gray-400 pt-1 text-center">
+            <span className="text-[8pt] text-gray-500">(podpis i data)</span>
           </div>
         </div>
       </div>
@@ -54,57 +78,36 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
 
     return (
       <>
-        <style jsx global>{`
-          @media print {
-            @page {
-              size: A4;
-              margin: 1.5cm;
-            }
-            body, html {
-              margin: 0 !important;
-              padding: 0 !important;
-              width: 100% !important;
-              height: auto !important;
-              background: white !important;
-            }
-            .print-content {
-              width: 100% !important;
-              height: 100% !important;
-              box-shadow: none !important;
-              border: none !important;
-              transform: scale(1);
-            }
-          }
-        `}</style>
+        <style>{printStyles}</style>
         <div ref={ref} className="print-content bg-white text-black font-sans p-8">
           <div style={{textAlign: 'center'}} className="mb-8">
-              <h1 className="page-title inline-block text-lg font-bold tracking-widest border-b-2 border-black pb-1">KARTA OBIEGOWA</h1>
+              <h1 className="inline-block text-lg font-bold tracking-widest border-b-2 border-black pb-1">KARTA OBIEGOWA</h1>
           </div>
           
-          <div className="employee-info mb-6 text-sm space-y-1">
-              <div className="info-row flex">
-                  <span className="info-label font-bold w-32 shrink-0">Nazwisko Imię:</span>
-                  <span className="info-value">{employee.fullName}</span>
+          <div className="mb-6 text-sm space-y-1">
+              <div className="flex">
+                  <span className="font-bold w-32 shrink-0">Nazwisko Imię:</span>
+                  <span>{employee.fullName}</span>
               </div>
-              <div className="info-row flex">
-                  <span className="info-label font-bold w-32 shrink-0">Stanowisko:</span>
-                  <span className="info-value">{employee.jobTitle}</span>
+              <div className="flex">
+                  <span className="font-bold w-32 shrink-0">Stanowisko:</span>
+                  <span>{employee.jobTitle}</span>
               </div>
-              <div className="info-row flex">
-                  <span className="info-label font-bold w-32 shrink-0">Dział:</span>
-                  <span className="info-value">{employee.department}</span>
+              <div className="flex">
+                  <span className="font-bold w-32 shrink-0">Dział:</span>
+                  <span>{employee.department}</span>
               </div>
-              <div className="info-row flex">
-                  <span className="info-label font-bold w-32 shrink-0">Nr karty RCP:</span>
-                  <span className="info-value">{employee.cardNumber}</span>
+              <div className="flex">
+                  <span className="font-bold w-32 shrink-0">Nr karty RCP:</span>
+                  <span>{employee.cardNumber}</span>
               </div>
-              <div className="info-row flex">
-                  <span className="info-label font-bold w-32 shrink-0">Data zwolnienia:</span>
-                  <span className="info-value">{printDate}</span>
+              <div className="flex">
+                  <span className="font-bold w-32 shrink-0">Data zwolnienia:</span>
+                  <span>{printDate}</span>
               </div>
           </div>
           
-          <div className="divider border-t-2 border-black mb-6"></div>
+          <div className="border-t-2 border-black mb-6"></div>
 
           <div className="space-y-4">
               {renderSection("MAGAZYN", warehouseItems)}

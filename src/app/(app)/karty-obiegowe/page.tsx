@@ -24,8 +24,6 @@ export default function CirculationCardPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
-  const printComponentRef = useRef<HTMLDivElement>(null);
-  
   useEffect(() => {
     const employeesRef = ref(db, 'employees');
     const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
@@ -133,7 +131,7 @@ export default function CirculationCardPage() {
           
           <div className="lg:col-span-2">
               <div className="bg-muted/30 p-4 sm:p-8 rounded-2xl">
-                  <div className="mx-auto bg-white shadow-lg">
+                  <div className="mx-auto max-w-[210mm] bg-white shadow-lg">
                       <CirculationCardPrintForm employee={selectedEmployee} />
                   </div>
               </div>
@@ -141,10 +139,7 @@ export default function CirculationCardPage() {
         </div>
       </div>
       <div className="hidden print:block">
-        <CirculationCardPrintForm 
-            ref={printComponentRef}
-            employee={selectedEmployee} 
-        />
+        <CirculationCardPrintForm employee={selectedEmployee} />
       </div>
     </>
   );
