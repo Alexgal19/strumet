@@ -19,98 +19,81 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
     }
 
     return (
-      <div ref={ref} className="bg-white text-black font-sans print:shadow-none">
+      <div ref={ref} className="bg-white text-black font-sans p-4 print:p-0 print:shadow-none">
         <style type="text/css" media="print">
           {`
-            @page { 
-              size: A4;
+            @page {
               margin: 1.5cm;
             }
-            html, body {
-              height: 100%;
-              margin: 0;
-              padding: 0;
+            body {
               font-family: Arial, sans-serif;
               font-size: 11pt;
             }
-            .print-wrapper {
-                height: 100%;
-                display: table;
-                width: 100%;
-            }
-            .print-footer {
-                display: table-row;
-                height: 1px;
-            }
           `}
         </style>
-        <div className="print-wrapper">
-          
-          <div style={{ display: 'table-row' }}>
-            <header className="text-center mb-10">
-                <h1 className="text-lg font-bold tracking-wider">OŚWIADCZENIE / ЗАЯВА</h1>
-            </header>
+        
+        <header className="text-center mb-10">
+            <h1 className="text-lg font-bold tracking-wider">OŚWIADCZENIE / ЗАЯВА</h1>
+        </header>
 
-            <p className="mb-6">Oświadczam, że podwykonawca / Повідомляю, що виконавець:</p>
-            
-            <div className="border-b border-black py-3 px-2 mb-4">
-              <p className="text-center font-bold text-base tracking-wide">
-                {record.employeeFullName.toUpperCase()}
-              </p>
-            </div>
-             <div className="border-b border-black py-3 px-2 mb-4">
-              <p className="text-center text-base tracking-wide">
-                {record.department.toUpperCase()}
-              </p>
-            </div>
-            <div className="border-b border-black py-3 px-2 mb-6">
-                <p className="text-center text-base tracking-wide">
-                    {record.jobTitle.toUpperCase()}
-                </p>
-            </div>
-
-            <div className="flex justify-between items-center mb-8 text-sm">
-                <div className="flex items-baseline">
-                   <span className="mr-2">w dniu / в день:</span>
-                   <span className="font-bold text-base border-b border-dotted border-black px-4">{record.incidentDate ? format(parseISO(record.incidentDate), 'dd.MM.yyyy') : ''}</span>
-                </div>
-                <div className="flex items-baseline">
-                   <span className="mr-2">świadczył usługi w godzinach / працював:</span>
-                   <span className="font-bold text-base border-b border-dotted border-black min-w-[150px] inline-block text-center">{record.hours || '________________'}</span>
-                </div>
-            </div>
-
-            <section className="space-y-8 mb-8">
-                <div className="flex items-start space-x-3">
-                    <Checkbox id="reason1" checked={record.reason === 'no_card'} readOnly className="mt-1" />
-                    <Label htmlFor="reason1" className="text-sm leading-relaxed">
-                        Nieodbicie dyskietki spowodowane było jej brakiem / Невідбиття карти сталося з причини її відсутності в цей день.
-                    </Label>
-                </div>
-                 <div className="flex items-start space-x-3">
-                    <Checkbox id="reason2" checked={record.reason === 'forgot_to_scan'} readOnly className="mt-1" />
-                    <Label htmlFor="reason2" className="text-sm leading-relaxed">
-                        Nieodbicie dyskietki na wejściu/wyjściu wynikło z zapomnienia / Не відбиття карти на вході/виході сталося через те, що виконавець забув карту.
-                    </Label>
-                </div>
-            </section>
-          </div>
-            
-          <footer className="print-footer">
-              <div className="flex justify-between pt-16">
-                  <div className="text-center w-2/5">
-                      <div className="border-t border-gray-400 pt-1">
-                           <p className="text-xs text-gray-600">(podpis pracownika)</p>
-                      </div>
-                  </div>
-                  <div className="text-center w-2/5">
-                      <div className="border-t border-gray-400 pt-1">
-                           <p className="text-xs text-gray-600">(podpis kierownika)</p>
-                      </div>
-                  </div>
-              </div>
-          </footer>
+        <p className="mb-6">Oświadczam, że podwykonawca / Повідомляю, що виконавець:</p>
+        
+        <div className="border-b border-black py-3 px-2 mb-4">
+          <p className="text-center font-bold text-base tracking-wide">
+            {record.employeeFullName.toUpperCase()}
+          </p>
         </div>
+         <div className="border-b border-black py-3 px-2 mb-4">
+          <p className="text-center text-base">
+            {record.department.toUpperCase()}
+          </p>
+        </div>
+        <div className="border-b border-black py-3 px-2 mb-6">
+            <p className="text-center text-base">
+                {record.jobTitle.toUpperCase()}
+            </p>
+        </div>
+
+        <div className="flex justify-between items-center mb-8 text-sm">
+            <div className="flex items-baseline">
+               <span className="mr-2">w dniu / в день:</span>
+               <span className="font-bold text-base border-b border-dotted border-black px-4">{record.incidentDate ? format(parseISO(record.incidentDate), 'dd.MM.yyyy') : ''}</span>
+            </div>
+            <div className="flex items-baseline">
+               <span className="mr-2">świadczył usługi w godzinach / працював:</span>
+               <span className="font-bold text-base border-b border-dotted border-black min-w-[150px] inline-block text-center">{record.hours || '________________'}</span>
+            </div>
+        </div>
+
+        <section className="space-y-8 mb-8">
+            <div className="flex items-start space-x-3">
+                <Checkbox id="reason1" checked={record.reason === 'no_card'} readOnly className="mt-1" />
+                <Label htmlFor="reason1" className="text-sm leading-relaxed">
+                    Nieodbicie dyskietki spowodowane było jej brakiem / Невідбиття карти сталося з причини її відсутності в цей день.
+                </Label>
+            </div>
+             <div className="flex items-start space-x-3">
+                <Checkbox id="reason2" checked={record.reason === 'forgot_to_scan'} readOnly className="mt-1" />
+                <Label htmlFor="reason2" className="text-sm leading-relaxed">
+                    Nieodbicie dyskietki na wejściu/wyjściu wynikło z zapomnienia / Не відбиття карти на вході/виході сталося через те, що виконавець забув карту.
+                </Label>
+            </div>
+        </section>
+        
+        <footer className="mt-24">
+            <div className="flex justify-between">
+                <div className="text-center w-2/5">
+                    <div className="border-t border-gray-400 pt-1">
+                         <p className="text-xs text-gray-600">(podpis pracownika)</p>
+                    </div>
+                </div>
+                <div className="text-center w-2/5">
+                    <div className="border-t border-gray-400 pt-1">
+                         <p className="text-xs text-gray-600">(podpis kierownika)</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
       </div>
     );
   }
