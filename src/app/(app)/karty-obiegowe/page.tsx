@@ -154,7 +154,7 @@ export default function CirculationCardPage() {
         
         <div className="lg:col-span-2">
             <div className="bg-muted/30 p-4 sm:p-8 rounded-2xl">
-                <div className="mx-auto bg-white shadow-lg aspect-[1/1.414]">
+                <div className="mx-auto bg-white shadow-lg">
                     <CirculationCardPrintForm employee={selectedEmployee} />
                 </div>
             </div>
