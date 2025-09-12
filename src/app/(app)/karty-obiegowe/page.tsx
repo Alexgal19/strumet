@@ -154,7 +154,7 @@ export default function CirculationCardsPage() {
 
   return (
     <>
-      <div className="flex h-full flex-col print:hidden">
+      <div className="flex h-full flex-col">
         <PageHeader
           title="Karty obiegowe"
           description="Generuj i drukuj karty obiegowe dla pracowników."
