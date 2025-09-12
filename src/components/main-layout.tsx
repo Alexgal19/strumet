@@ -13,7 +13,7 @@ export type ActiveView =
   | 'aktywni' 
   | 'zwolnieni' 
   | 'statystyki' 
-  | 'wydawanie-odziezy' 
+  | 'karty-obiegowe' 
   | 'odciski-palcow' 
   | 'brak-logowania' 
   | 'konfiguracja'
@@ -26,7 +26,7 @@ const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   planowanie: dynamic(() => import('../app/(app)/planowanie/page'), { loading: () => <LoadingComponent /> }),
   odwiedzalnosc: dynamic(() => import('../app/(app)/odwiedzalnosc/page'), { loading: () => <LoadingComponent /> }),
   statystyki: dynamic(() => import('../app/(app)/statystyki/page'), { loading: () => <LoadingComponent /> }),
-  'wydawanie-odziezy': dynamic(() => import('../app/(app)/wydawanie-odziezy/page'), { loading: () => <LoadingComponent /> }),
+  'karty-obiegowe': dynamic(() => import('../app/(app)/karty-obiegowe/page'), { loading: () => <LoadingComponent /> }),
   'odciski-palcow': dynamic(() => import('../app/(app)/odciski-palcow/page'), { loading: () => <LoadingComponent /> }),
   'brak-logowania': dynamic(() => import('../app/(app)/brak-logowania/page'), { loading: () => <LoadingComponent /> }),
   konfiguracja: dynamic(() => import('../app/(app)/konfiguracja/page'), { loading: () => <LoadingComponent /> }),

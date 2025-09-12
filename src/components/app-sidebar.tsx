@@ -135,7 +135,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
     { view: 'planowanie', icon: <CalendarClock />, label: 'Planowanie' },
     { view: 'odwiedzalnosc', icon: <CalendarCheck />, label: 'Odliczanie obecności' },
     { view: 'statystyki', icon: <BarChart3 />, label: 'Statystyki' },
-    { view: 'wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
+    { view: 'karty-obiegowe', icon: <FileText />, label: 'Karty obiegowe' },
     { view: 'odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
     { view: 'brak-logowania', icon: <FileText />, label: 'Brak logowania' },
     { view: 'konfiguracja', icon: <Settings />, label: 'Konfiguracja' },

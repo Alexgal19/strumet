@@ -37,12 +37,11 @@ export interface AllConfig {
   clothingItems: ClothingItem[];
 }
 
-export interface ClothingIssuanceHistoryItem {
+export interface CirculationCard {
     id: string;
     employeeId: string;
     employeeFullName: string;
-    date: string; // YYYY-MM-DD
-    items: string[];
+    date: string; // ISO String
 }
 
 export interface FingerprintAppointment {

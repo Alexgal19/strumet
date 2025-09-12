@@ -30,7 +30,7 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
     { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
     { view: 'planowanie', icon: CalendarClock, label: 'Plan' },
     { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność' },
-    { view: 'wydawanie-odziezy', icon: Shirt, label: 'Odzież' },
+    { view: 'karty-obiegowe', icon: FileText, label: 'Karty' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];
   
