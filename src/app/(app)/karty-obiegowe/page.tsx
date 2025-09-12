@@ -59,6 +59,7 @@ export default function CirculationCardPage() {
     }
   };
 
+  // This is the key part: when printing, we render ONLY the print component.
   if (isPrinting && selectedEmployee) {
       return <CirculationCardPrintForm ref={printComponentRef} employee={selectedEmployee} />;
   }
@@ -151,7 +152,9 @@ export default function CirculationCardPage() {
                 <Card className="max-w-[210mm] mx-auto shadow-2xl">
                     <CardContent className="p-0">
                         {selectedEmployee ? (
-                            <CirculationCardPrintForm employee={selectedEmployee} />
+                            <div className="p-8">
+                                <CirculationCardPrintForm employee={selectedEmployee} />
+                            </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center aspect-[1/1.414] text-center text-muted-foreground p-10">
                                 <UserSquare className="h-16 w-16 mb-4 text-gray-400" />
