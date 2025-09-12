@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -188,15 +187,7 @@ export default function NoLoginPage() {
     setPrintingRecord(record);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  // Fully isolate the print component when printing
+  // This is the key fix: when printing, we render ONLY the print component.
   if (printingRecord) {
     return (
         <AbsenceRecordPrintForm 
@@ -205,6 +196,15 @@ export default function NoLoginPage() {
         />
     );
   }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex h-full flex-col">

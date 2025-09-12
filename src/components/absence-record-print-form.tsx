@@ -49,12 +49,12 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
         </div>
         <div className="border-b border-black py-2 px-2 mb-4">
           <p className="text-center text-base">
-            {record.department.toUpperCase()}
+            {record.department}
           </p>
         </div>
         <div className="border-b border-black py-2 px-2 mb-6">
             <p className="text-center text-base">
-                {record.jobTitle.toUpperCase()}
+                {record.jobTitle}
             </p>
         </div>
 
