@@ -24,6 +24,8 @@ export default function CirculationCardPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
+  const [isPrinting, setIsPrinting] = useState(false);
+
   useEffect(() => {
     const employeesRef = ref(db, 'employees');
     const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
@@ -34,6 +36,28 @@ export default function CirculationCardPage() {
     return () => unsubscribeEmployees();
   }, [isLoading]);
 
+  useEffect(() => {
+    if (isPrinting) {
+      document.body.classList.add('printing');
+      const timer = setTimeout(() => {
+        window.print();
+        setIsPrinting(false);
+      }, 100);
+
+      const afterPrint = () => {
+        document.body.classList.remove('printing');
+      };
+
+      window.addEventListener('afterprint', afterPrint);
+
+      return () => {
+        clearTimeout(timer);
+        document.body.classList.remove('printing');
+        window.removeEventListener('afterprint', afterPrint);
+      };
+    }
+  }, [isPrinting]);
+
   const allEmployees = useMemo(() => employees, [employees]);
   const selectedEmployee = useMemo(() => {
     if (!selectedEmployeeId) return null;
@@ -42,7 +66,7 @@ export default function CirculationCardPage() {
 
   const handlePrint = () => {
     if (!selectedEmployee) return;
-    window.print();
+    setIsPrinting(true);
   };
   
   if (isLoading) {
@@ -55,7 +79,7 @@ export default function CirculationCardPage() {
 
   return (
     <>
-      <div className="flex h-full flex-col print:hidden">
+      <div className="flex h-full flex-col">
         <PageHeader
           title="Karty obiegowe"
           description="Generuj i drukuj karty obiegowe dla pracowników."
@@ -119,7 +143,7 @@ export default function CirculationCardPage() {
                        {selectedEmployee && (
                           <div className="space-y-2">
                               <label className="text-sm font-medium">2. Drukuj</label>
-                              <Button onClick={handlePrint} className="w-full">
+                              <Button onClick={handlePrint} className="w-full" disabled={isPrinting}>
                                   <Printer className="mr-2 h-4 w-4" />
                                   Drukuj kartę
                               </Button>
@@ -138,9 +162,11 @@ export default function CirculationCardPage() {
           </div>
         </div>
       </div>
-      <div className="hidden print:block">
-        <CirculationCardPrintForm employee={selectedEmployee} />
-      </div>
+      {isPrinting && selectedEmployee && (
+        <div className="print-container">
+          <CirculationCardPrintForm employee={selectedEmployee} />
+        </div>
+      )}
     </>
   );
 }

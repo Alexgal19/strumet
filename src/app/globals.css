@@ -97,7 +97,19 @@ html, body, #__next__ {
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 1.5cm;
+  }
+  body, html {
+    background: white !important;
+    color: black !important;
+  }
   body.printing > *:not(.print-container) {
     display: none;
+  }
+  .print-container {
+    padding: 0;
+    margin: 0;
   }
 }

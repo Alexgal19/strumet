@@ -10,31 +10,6 @@ interface CirculationCardPrintFormProps {
 
 export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, CirculationCardPrintFormProps>(
   ({ employee }, ref) => {
-    const printStyles = `
-      @page {
-        size: A4;
-        margin: 1.5cm;
-      }
-      @media print {
-        html, body {
-          width: 100%;
-          height: auto;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: white !important;
-        }
-        .print-content {
-          width: 100%;
-          height: 100%;
-          margin: 0;
-          padding: 0;
-          box-shadow: none !important;
-          border: none !important;
-          transform: scale(1);
-        }
-      }
-    `;
-
     // Preview for the main page
     if (!employee) {
       return (
@@ -77,8 +52,6 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
     );
 
     return (
-      <>
-        <style>{printStyles}</style>
         <div ref={ref} className="print-content bg-white text-black font-sans p-8">
           <div style={{textAlign: 'center'}} className="mb-8">
               <h1 className="inline-block text-lg font-bold tracking-widest border-b-2 border-black pb-1">KARTA OBIEGOWA</h1>
@@ -116,7 +89,6 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
               {renderSection("BRYGADZISTA", foremanItems)}
           </div>
         </div>
-      </>
     );
   }
 );
