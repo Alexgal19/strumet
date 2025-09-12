@@ -97,14 +97,10 @@ html, body, #__next__ {
 }
 
 @media print {
-  body > .non-printable {
+  body > .printable-content-container {
     display: none;
   }
   .print-container {
     display: block !important;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
   }
 }

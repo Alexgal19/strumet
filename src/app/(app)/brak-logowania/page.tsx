@@ -208,7 +208,7 @@ export default function NoLoginPage() {
 
   return (
     <>
-      <div className="non-printable h-full flex-col flex">
+      <div className="printable-content-container h-full flex-col flex">
         <PageHeader
           title="Brak logowania"
           description="Generuj raporty dotyczące braku logowania przez pracowników."
