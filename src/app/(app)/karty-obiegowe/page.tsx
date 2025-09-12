@@ -92,9 +92,7 @@ export default function CirculationCardsPage() {
       };
     }
   }, [printingCard]);
-
-  const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
-
+  
   const selectedEmployee = useMemo(() => {
     return employees.find(e => e.id === selectedEmployeeId) ?? null;
   }, [selectedEmployeeId, employees]);
@@ -156,7 +154,7 @@ export default function CirculationCardsPage() {
 
   return (
     <>
-      <div className="flex h-full flex-col">
+      <div className="flex h-full flex-col print:hidden">
         <PageHeader
           title="Karty obiegowe"
           description="Generuj i drukuj karty obiegowe dla pracowników."
