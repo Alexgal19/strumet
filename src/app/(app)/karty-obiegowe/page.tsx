@@ -154,9 +154,7 @@ export default function CirculationCardPage() {
         
         <div className="lg:col-span-2">
             <div className="bg-muted/30 p-4 sm:p-8 rounded-2xl">
-                <div className="max-w-[210mm] mx-auto">
-                    <CirculationCardPrintForm employee={selectedEmployee} />
-                </div>
+                <CirculationCardPrintForm employee={selectedEmployee} />
             </div>
         </div>
       </div>
