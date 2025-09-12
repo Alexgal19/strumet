@@ -100,26 +100,6 @@ export default function NoLoginPage() {
     };
   }, [isLoading]);
   
-  useEffect(() => {
-    if (printingRecord) {
-      const handleAfterPrint = () => {
-        setPrintingRecord(null);
-        window.removeEventListener('afterprint', handleAfterPrint);
-      };
-      
-      window.addEventListener('afterprint', handleAfterPrint);
-      
-      // Ensure content is rendered before printing
-      requestAnimationFrame(() => {
-        window.print();
-      });
-
-      return () => {
-        window.removeEventListener('afterprint', handleAfterPrint);
-      };
-    }
-  }, [printingRecord]);
-
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const sortedRecords = useMemo(() => {
@@ -195,6 +175,10 @@ export default function NoLoginPage() {
   
   const handlePrint = (record: AbsenceRecord) => {
     setPrintingRecord(record);
+    setTimeout(() => {
+        window.print();
+        setPrintingRecord(null);
+    }, 100); // Small delay to ensure state update and re-render
   };
 
   if (isLoading) {
@@ -205,10 +189,9 @@ export default function NoLoginPage() {
     );
   }
 
-
   return (
     <>
-      <div className="printable-content-container h-full flex-col flex">
+      <div className="main-content-container h-full flex-col flex">
         <PageHeader
           title="Brak logowania"
           description="Generuj raporty dotyczące braku logowania przez pracowników."
@@ -408,7 +391,7 @@ export default function NoLoginPage() {
          </AlertDialog>
       </div>
        {printingRecord && (
-          <div className="print-container">
+          <div className="print-only">
             <AbsenceRecordPrintForm 
                 ref={printComponentRef}
                 record={printingRecord}
