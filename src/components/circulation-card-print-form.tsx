@@ -60,6 +60,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
               body, html {
                 margin: 0;
                 padding: 0;
+                width: 100%;
                 background: white;
                 -webkit-print-color-adjust: exact;
               }
