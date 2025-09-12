@@ -54,12 +54,12 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
               </p>
             </div>
              <div className="border-y border-black py-3 px-2 mb-4">
-              <p className="text-center font-bold text-base tracking-wide">
+              <p className="text-center text-base tracking-wide">
                 {record.department.toUpperCase()}
               </p>
             </div>
             <div className="border-y border-black py-3 px-2 mb-6">
-                <p className="text-center font-bold text-base tracking-wide">
+                <p className="text-center text-base tracking-wide">
                     {record.jobTitle.toUpperCase()}
                 </p>
             </div>
@@ -67,11 +67,11 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
             <div className="flex justify-between items-center mb-8 text-sm">
                 <div className="flex items-baseline">
                    <span className="mr-2">w dniu / в день:</span>
-                   <span className="font-bold text-base border-b border-dotted border-black px-4">{format(parseISO(record.incidentDate), 'dd.MM.yyyy')}</span>
+                   <span className="font-bold text-base border-b border-dotted border-black px-4">{record.incidentDate ? format(parseISO(record.incidentDate), 'dd.MM.yyyy') : ''}</span>
                 </div>
                 <div className="flex items-baseline">
                    <span className="mr-2">świadczył usługi w godzinach / працював:</span>
-                   <span className="font-bold text-base border-b border-dotted border-black min-w-[150px] inline-block">&nbsp;</span>
+                   <span className="font-bold text-base border-b border-dotted border-black min-w-[150px] inline-block">{record.hours || '\u00A0'}</span>
                 </div>
             </div>
 
