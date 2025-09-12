@@ -122,11 +122,11 @@ export default function NoLoginPage() {
   }, [selectedEmployeeId, activeEmployees]);
 
   const handleSaveRecord = async () => {
-    if (!selectedEmployee || !incidentDate || !hours || !reason) {
+    if (!selectedEmployee || !incidentDate || !reason) {
       toast({
         variant: 'destructive',
         title: 'Błąd walidacji',
-        description: 'Proszę wypełnić wszystkie pola: pracownik, data, godziny i przyczyna.',
+        description: 'Proszę wypełnić wszystkie pola: pracownik, data i przyczyna.',
       });
       return;
     }
@@ -408,5 +408,7 @@ export default function NoLoginPage() {
     </>
   );
 }
+
+    
 
     
