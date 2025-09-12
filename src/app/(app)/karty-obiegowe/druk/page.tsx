@@ -4,7 +4,9 @@ import { db } from "@/lib/firebase";
 import { Employee } from "@/lib/types";
 import { get, ref } from "firebase/database";
 import { format } from "date-fns";
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense } from "react";
+import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
 
 const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
     <section className="mb-2">
@@ -28,14 +30,7 @@ const SignatureRow = ({ label }: { label: string }) => (
     </div>
 );
 
-
 const PrintLayout = ({ employee }: { employee: Employee | null }) => {
-    
-    useEffect(() => {
-        // Automatically trigger print when the component mounts
-        setTimeout(() => window.print(), 100);
-    }, []);
-
     if (!employee) {
         return <div>Pracownik o podanym ID nie został znaleziony.</div>;
     }
@@ -57,13 +52,12 @@ const PrintLayout = ({ employee }: { employee: Employee | null }) => {
     const foremanItems = ["Miarka", "Kabel spawalniczy", "Masa"];
 
     return (
-        <div>
+        <div className="print:p-0 p-8">
             <style>
                 {`
                     @import url('https://cdn.jsdelivr.net/font-geist/latest/geist.css');
                     body { 
                         font-family: 'Geist', sans-serif;
-                        font-size: 10pt;
                         color: #000;
                         -webkit-font-smoothing: antialiased;
                         -moz-osx-font-smoothing: grayscale;
@@ -74,7 +68,12 @@ const PrintLayout = ({ employee }: { employee: Employee | null }) => {
                     }
                 `}
             </style>
-             <div className="w-full">
+             <Button onClick={() => window.print()} className="fixed top-4 right-4 print:hidden">
+                <Printer className="mr-2 h-4 w-4" />
+                Drukuj
+             </Button>
+
+             <div className="w-full bg-white text-black text-xs">
                 <header className="text-center mb-4">
                     <h1 className="text-lg font-bold tracking-wider">KARTA OBIEGOWA</h1>
                 </header>
@@ -134,13 +133,11 @@ const PrintLayout = ({ employee }: { employee: Employee | null }) => {
                         {foremanItems.map(item => <ChecklistRow key={item} label={item} />)}
                         <SignatureRow label="Podpis" />
                     </Section>
-
                 </main>
             </div>
         </div>
     );
 };
-
 
 const PrintPageContent = ({ employeeId }: { employeeId: string }) => {
     const [employee, setEmployee] = React.useState<Employee | null>(null);
@@ -166,7 +163,6 @@ const PrintPageContent = ({ employeeId }: { employeeId: string }) => {
 
     return <PrintLayout employee={employee} />;
 }
-
 
 export default function PrintPage({ searchParams }: { searchParams: { employeeId: string } }) {
     const employeeId = searchParams.employeeId;
