@@ -24,7 +24,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
           {`
             @page {
               size: A4;
-              margin: 1.5cm;
+              margin: 0;
             }
             body {
               font-family: Arial, sans-serif;
@@ -33,7 +33,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
           `}
         </style>
         
-        <div>
+        <div className="p-[1.5cm]">
             <header className="text-center mb-10">
                 <h1 className="text-lg font-bold tracking-wider">OŚWIADCZENIE / ЗАЯВА</h1>
             </header>

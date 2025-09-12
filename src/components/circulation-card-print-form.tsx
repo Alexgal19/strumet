@@ -53,7 +53,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
           {`
             @page {
               size: A4;
-              margin: 1.5cm;
+              margin: 0;
             }
             body {
               font-family: Arial, sans-serif;
@@ -62,7 +62,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
             }
           `}
         </style>
-        <div className="p-4">
+        <div className="p-[1.5cm]">
             <h1 className="text-center font-bold text-lg mb-6">KARTA OBIEGOWA PRACOWNIKA</h1>
 
             <div className="border-2 border-black p-3 mb-6 space-y-1">
