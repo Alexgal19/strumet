@@ -1,21 +1,19 @@
 'use client';
 
 import React from 'react';
-import { Employee } from '@/lib/types';
-import { format } from 'date-fns';
+import { Employee, ClothingIssuanceHistoryItem } from '@/lib/types';
+import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 interface ClothingIssuancePrintFormProps {
   employee: Employee | null;
-  clothingItems: string[];
-  issuanceDate: Date;
+  issuance: ClothingIssuanceHistoryItem | null;
 }
 
 export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, ClothingIssuancePrintFormProps>(
-  ({ employee, clothingItems, issuanceDate }, ref) => {
+  ({ employee, issuance }, ref) => {
     
-    if (!employee) {
-        // This part is not intended for printing, just for visual feedback in the UI
+    if (!employee || !issuance) {
         return <div ref={ref} />;
     }
 
@@ -33,16 +31,6 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
               font-family: 'Times New Roman', Times, serif;
               font-size: 11pt;
             }
-            .print-container {
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-              min-height: 24cm; /* Approximate height for A4 with margins */
-              width: 100%;
-              border: 1px solid black;
-              padding: 1cm;
-              box-sizing: border-box;
-            }
           `}
         </style>
         <div className="print-container">
@@ -52,7 +40,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
             </header>
 
             <div className="text-right mb-8">
-                <p>Data: {format(issuanceDate, 'dd.MM.yyyy', { locale: pl })}</p>
+                <p>Data: {format(parseISO(issuance.date), 'dd.MM.yyyy', { locale: pl })}</p>
             </div>
             
             <section className="space-y-2 mb-6">
@@ -67,9 +55,9 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
 
             <section className="space-y-2">
                 <p><strong>Wnioskowane artykuły:</strong></p>
-                {clothingItems.length > 0 ? (
+                {issuance.items.length > 0 ? (
                     <ul className="list-decimal list-inside pl-4 space-y-1">
-                        {clothingItems.map((item, index) => (
+                        {issuance.items.map((item, index) => (
                             <li key={index}>{item}</li>
                         ))}
                     </ul>
@@ -79,7 +67,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
             </section>
           </div>
             
-          <footer className="pt-12">
+          <footer className="pt-24 mt-auto">
               <div className="flex justify-between">
                   <div className="text-center w-2/5">
                       <div className="border-t border-black pt-1">

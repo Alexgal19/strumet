@@ -37,15 +37,6 @@ export interface AllConfig {
   clothingItems: ClothingItem[];
 }
 
-
-export interface ClothingIssuance {
-  id: string;
-  employeeId: string;
-  date: string; // ISO string format
-  items: string[];
-  signature: string;
-}
-
 export interface ClothingIssuanceHistoryItem {
     id: string;
     employeeId: string;
@@ -85,7 +76,3 @@ export interface AppNotification {
   createdAt: string; // ISO string
   read: boolean;
 }
-
-    
-
-    

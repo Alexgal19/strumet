@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
@@ -10,14 +9,17 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Loader2, Printer, CheckIcon, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Printer, CheckIcon, ChevronsUpDown, Shirt, History } from 'lucide-react';
 import { Employee, ClothingIssuanceHistoryItem, AllConfig } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { ref, set, push, onValue } from 'firebase/database';
-import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { format, parseISO } from 'date-fns';
+import { pl } from 'date-fns/locale';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -33,10 +35,11 @@ export default function ClothingIssuancePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   const [selectedClothing, setSelectedClothing] = useState<Record<string, boolean>>({});
-  const [isSaving, setIsSaving] = useState(false);
-
-  const printComponentRef = useRef<HTMLDivElement>(null);
   
+  const [printingIssuance, setPrintingIssuance] = useState<ClothingIssuanceHistoryItem | null>(null);
+
+  const { toast } = useToast();
+
   useEffect(() => {
     const employeesRef = ref(db, 'employees');
     const configRef = ref(db, 'config');
@@ -44,7 +47,7 @@ export default function ClothingIssuancePage() {
 
     const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
       setEmployees(objectToArray(snapshot.val()));
-      if(isLoading) setIsLoading(false);
+      setIsLoading(false);
     });
 
     const unsubscribeConfig = onValue(configRef, (snapshot) => {
@@ -56,12 +59,12 @@ export default function ClothingIssuancePage() {
         nationalities: objectToArray(data?.nationalities),
         clothingItems: objectToArray(data?.clothingItems),
       });
-      if(isLoading) setIsLoading(false);
+      setIsLoading(false);
     });
 
     const unsubscribeIssuances = onValue(issuancesRef, (snapshot) => {
       setClothingIssuances(objectToArray(snapshot.val()));
-      if(isLoading) setIsLoading(false);
+      setIsLoading(false);
     });
 
     return () => {
@@ -69,7 +72,23 @@ export default function ClothingIssuancePage() {
       unsubscribeConfig();
       unsubscribeIssuances();
     };
-  }, [isLoading]);
+  }, []);
+
+  useEffect(() => {
+    if (printingIssuance) {
+        document.body.classList.add('printing');
+        const timer = setTimeout(() => {
+            window.print();
+            setPrintingIssuance(null);
+            document.body.classList.remove('printing');
+        }, 100);
+      return () => {
+          clearTimeout(timer);
+          document.body.classList.remove('printing');
+      };
+    }
+  }, [printingIssuance]);
+
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
   const selectedEmployee = useMemo(() => {
@@ -88,13 +107,17 @@ export default function ClothingIssuancePage() {
     .filter(([, isSelected]) => isSelected)
     .map(([itemName]) => itemName);
 
-  const handlePrint = () => {
-    window.print();
-    
+  const handleSaveAndPrint = async () => {
     if (!selectedEmployeeId || !selectedEmployee) return;
-    if (selectedItemsList.length === 0) return;
+    if (selectedItemsList.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Proszę wybrać przynajmniej jeden element odzieży.',
+      });
+      return;
+    }
 
-    setIsSaving(true);
     try {
         const newIssuanceRef = push(ref(db, 'clothingIssuances'));
         const newIssuance: Omit<ClothingIssuanceHistoryItem, 'id'> = {
@@ -103,13 +126,22 @@ export default function ClothingIssuancePage() {
             date: format(new Date(), 'yyyy-MM-dd'),
             items: selectedItemsList,
         };
-        set(newIssuanceRef, newIssuance);
-        // Reset state after saving
+        await set(newIssuanceRef, newIssuance);
+        
+        toast({
+          title: 'Sukces',
+          description: 'Zapis o wydaniu został dodany.',
+        });
+        
+        setPrintingIssuance({ ...newIssuance, id: newIssuanceRef.key! });
         setSelectedClothing({});
     } catch (error) {
         console.error("Error saving issuance:", error);
-    } finally {
-        setIsSaving(false);
+        toast({
+          variant: 'destructive',
+          title: 'Błąd serwera',
+          description: 'Nie udało się zapisać wydania.',
+        });
     }
   };
   
@@ -119,7 +151,6 @@ export default function ClothingIssuancePage() {
       [itemName]: !prev[itemName]
     }));
   };
-
     
   if (isLoading) {
     return (
@@ -131,7 +162,7 @@ export default function ClothingIssuancePage() {
 
   return (
     <>
-      <div className="flex h-full flex-col print:hidden">
+      <div className="flex h-full flex-col">
         <PageHeader
           title="Wydawanie odzieży"
           description="Zarządzaj wydawaniem odzieży pracownikom i drukuj wnioski."
@@ -172,6 +203,7 @@ export default function ClothingIssuancePage() {
                                                   onSelect={() => {
                                                       setSelectedEmployeeId(employee.id);
                                                       setIsComboboxOpen(false);
+                                                      setSelectedClothing({});
                                                   }}
                                               >
                                                   <CheckIcon
@@ -194,27 +226,17 @@ export default function ClothingIssuancePage() {
               {selectedEmployee && (
                   <Card>
                       <CardHeader>
-                          <CardTitle>2. Wybierz odzież</CardTitle>
-                          <CardDescription>Wybierz elementy odzieży do wydania.</CardDescription>
+                          <CardTitle>2. Utwórz nowe wydanie</CardTitle>
+                          <CardDescription>Wybierz odzież, zapisz i wydrukuj wniosek.</CardDescription>
                       </CardHeader>
-                      <CardContent>
-                          <Button onClick={() => setIsModalOpen(true)} className="w-full">
-                              Wybierz z listy ({selectedItemsList.length})
+                      <CardContent className="space-y-4">
+                          <Button variant="outline" onClick={() => setIsModalOpen(true)} className="w-full">
+                              <Shirt className="mr-2 h-4 w-4" />
+                              Wybierz odzież ({selectedItemsList.length})
                           </Button>
-                      </CardContent>
-                  </Card>
-              )}
-
-              {selectedEmployee && selectedItemsList.length > 0 && (
-                   <Card>
-                      <CardHeader>
-                          <CardTitle>3. Drukuj wniosek</CardTitle>
-                          <CardDescription>Wygeneruj i wydrukuj dokument wydania.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                          <Button onClick={handlePrint} disabled={isSaving} className="w-full">
-                              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                              Drukuj wniosek
+                          <Button onClick={handleSaveAndPrint} disabled={selectedItemsList.length === 0} className="w-full">
+                              <Printer className="mr-2 h-4 w-4" />
+                              Zapisz i drukuj wniosek
                           </Button>
                       </CardContent>
                   </Card>
@@ -224,46 +246,51 @@ export default function ClothingIssuancePage() {
           <div className="lg:col-span-2">
               <Card className="h-full">
                   <CardHeader>
-                      <CardTitle>Podgląd wniosku i historia</CardTitle>
-                      <CardDescription>Tutaj zobaczysz podgląd dokumentu oraz historię wydań dla pracownika.</CardDescription>
+                    <div className="flex items-center gap-3">
+                        <History className="h-6 w-6" />
+                        <div>
+                            <CardTitle>Historia wydań</CardTitle>
+                            <CardDescription>
+                                {selectedEmployee ? `dla ${selectedEmployee.fullName}` : 'Wybierz pracownika, aby zobaczyć historię.'}
+                            </CardDescription>
+                        </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                      {selectedEmployee ? (
                           <>
-                              <div className="border rounded-lg p-4 mb-6">
-                                  <ClothingIssuancePrintForm
-                                      employee={selectedEmployee}
-                                      clothingItems={selectedItemsList}
-                                      issuanceDate={new Date()}
-                                  />
-                              </div>
-                              <h3 className="text-lg font-semibold mb-4">Historia wydań</h3>
                                {employeeIssuanceHistory.length > 0 ? (
-                                  <div className="max-h-96 overflow-y-auto border rounded-lg">
+                                  <ScrollArea className="max-h-96 rounded-lg border">
                                       <Table>
-                                          <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
+                                          <TableHeader>
                                               <TableRow>
                                                   <TableHead>Data</TableHead>
                                                   <TableHead>Wydane elementy</TableHead>
+                                                  <TableHead className="text-right">Akcje</TableHead>
                                               </TableRow>
                                           </TableHeader>
                                           <TableBody>
                                               {employeeIssuanceHistory.map(issuance => (
                                                   <TableRow key={issuance.id}>
-                                                      <TableCell className="font-medium">{issuance.date}</TableCell>
+                                                      <TableCell className="font-medium">{format(parseISO(issuance.date), "dd.MM.yyyy")}</TableCell>
                                                       <TableCell>{issuance.items.join(', ')}</TableCell>
+                                                      <TableCell className="text-right">
+                                                        <Button variant="ghost" size="icon" onClick={() => setPrintingIssuance(issuance)}>
+                                                            <Printer className="h-4 w-4" />
+                                                        </Button>
+                                                      </TableCell>
                                                   </TableRow>
                                               ))}
                                           </TableBody>
                                       </Table>
-                                  </div>
+                                  </ScrollArea>
                               ) : (
-                                  <p className="text-sm text-muted-foreground text-center py-4">Brak historii wydań dla tego pracownika.</p>
+                                  <p className="text-sm text-muted-foreground text-center py-10">Brak historii wydań dla tego pracownika.</p>
                               )}
                           </>
                      ) : (
-                          <div className="flex items-center justify-center h-full text-muted-foreground">
-                              Wybierz pracownika, aby zobaczyć podgląd i historię.
+                          <div className="flex items-center justify-center h-full text-muted-foreground text-center py-10">
+                              Wybierz pracownika, aby zobaczyć jego historię wydań odzieży.
                           </div>
                      )}
                   </CardContent>
@@ -276,36 +303,36 @@ export default function ClothingIssuancePage() {
               <DialogHeader>
                   <DialogTitle>Wybierz odzież do wydania</DialogTitle>
               </DialogHeader>
-              <div className="max-h-[60vh] overflow-y-auto p-1">
-                  <div className="grid gap-4 py-4">
-                      {config.clothingItems.map(item => (
-                          <div key={item.id} className="flex items-center space-x-3">
+              <ScrollArea className="max-h-[60vh] my-4">
+                  <div className="grid gap-4 pr-6">
+                      {config.clothingItems.sort((a,b) => a.name.localeCompare(b.name)).map(item => (
+                          <div key={item.id} className="flex items-center space-x-3 rounded-md p-2 hover:bg-muted">
                               <Checkbox 
                                   id={`clothing-${item.id}`} 
                                   checked={!!selectedClothing[item.name]}
                                   onCheckedChange={() => handleToggleClothingItem(item.name)}
                               />
-                              <Label htmlFor={`clothing-${item.id}`} className="font-medium cursor-pointer">
+                              <Label htmlFor={`clothing-${item.id}`} className="font-medium cursor-pointer flex-1">
                                   {item.name}
                               </Label>
                           </div>
                       ))}
                   </div>
-              </div>
+              </ScrollArea>
               <DialogFooter>
                   <Button type="button" onClick={() => setIsModalOpen(false)}>Zatwierdź</Button>
               </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-      <div className="hidden print:block">
-        <ClothingIssuancePrintForm
-            ref={printComponentRef}
-            employee={selectedEmployee}
-            clothingItems={selectedItemsList}
-            issuanceDate={new Date()}
-        />
-      </div>
+       {printingIssuance && selectedEmployee && (
+          <div className="print-container">
+            <ClothingIssuancePrintForm
+              employee={selectedEmployee}
+              issuance={printingIssuance}
+            />
+          </div>
+       )}
     </>
   );
 }
