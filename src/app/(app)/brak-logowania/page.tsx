@@ -102,15 +102,20 @@ export default function NoLoginPage() {
   
   useEffect(() => {
     if (printingRecord) {
-        document.body.classList.add('printing');
-        const timer = setTimeout(() => {
-            window.print();
-            setPrintingRecord(null);
-            document.body.classList.remove('printing');
-        }, 100);
+      const handleAfterPrint = () => {
+        setPrintingRecord(null);
+        window.removeEventListener('afterprint', handleAfterPrint);
+      };
+      
+      window.addEventListener('afterprint', handleAfterPrint);
+      
+      // Ensure content is rendered before printing
+      requestAnimationFrame(() => {
+        window.print();
+      });
+
       return () => {
-          clearTimeout(timer);
-          document.body.classList.remove('printing');
+        window.removeEventListener('afterprint', handleAfterPrint);
       };
     }
   }, [printingRecord]);
@@ -203,7 +208,7 @@ export default function NoLoginPage() {
 
   return (
     <>
-      <div className="flex h-full flex-col">
+      <div className="non-printable h-full flex-col flex">
         <PageHeader
           title="Brak logowania"
           description="Generuj raporty dotyczące braku logowania przez pracowników."
