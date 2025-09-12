@@ -26,6 +26,7 @@ import {
   CalendarCheck,
   Bell,
   Trash2,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { ActiveView } from './main-layout';
@@ -121,6 +122,11 @@ const Notifications = () => {
     )
 }
 
+interface AppSidebarProps {
+  activeView: ActiveView;
+  setActiveView: (view: ActiveView) => void;
+}
+
 const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
   const isMobile = useIsMobile();
 
@@ -133,6 +139,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
     { view: 'wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
     { view: 'odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
     { view: 'brak-logowania', icon: <FileText />, label: 'Brak logowania' },
+    { view: 'karty-obiegowe', icon: <FileSpreadsheet />, label: 'Karty obiegowe' },
     { view: 'konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
   ];
 
