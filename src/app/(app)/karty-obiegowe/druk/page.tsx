@@ -5,8 +5,6 @@ import { Employee } from "@/lib/types";
 import { get, ref } from "firebase/database";
 import { format } from "date-fns";
 import React, { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
 
 const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
     <section className="mb-2">
@@ -52,7 +50,7 @@ const PrintLayout = ({ employee }: { employee: Employee | null }) => {
     const foremanItems = ["Miarka", "Kabel spawalniczy", "Masa"];
 
     return (
-        <div className="print:p-0 p-8">
+        <div className="p-4">
             <style>
                 {`
                     @import url('https://cdn.jsdelivr.net/font-geist/latest/geist.css');
@@ -68,11 +66,6 @@ const PrintLayout = ({ employee }: { employee: Employee | null }) => {
                     }
                 `}
             </style>
-             <Button onClick={() => window.print()} className="fixed top-4 right-4 print:hidden">
-                <Printer className="mr-2 h-4 w-4" />
-                Drukuj
-             </Button>
-
              <div className="w-full bg-white text-black text-xs">
                 <header className="text-center mb-4">
                     <h1 className="text-lg font-bold tracking-wider">KARTA OBIEGOWA</h1>

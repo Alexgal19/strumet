@@ -135,10 +135,17 @@ export default function CirculationCardPage() {
   }, [selectedEmployeeId, allEmployees]);
 
   const handlePrint = () => {
-    if (selectedEmployee) {
-      const url = `/karty-obiegowe/druk?employeeId=${selectedEmployee.id}`;
-      window.open(url, '_blank');
-    }
+    if (!selectedEmployee) return;
+
+    const url = `/karty-obiegowe/druk?employeeId=${selectedEmployee.id}`;
+    const printWindow = window.open(url, '_blank');
+    
+    printWindow?.addEventListener('load', () => {
+        printWindow?.print();
+        printWindow?.addEventListener('afterprint', () => {
+            printWindow?.close();
+        });
+    });
   };
 
 
