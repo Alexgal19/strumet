@@ -55,20 +55,14 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
               size: A4;
               margin: 1.5cm;
             }
-            html, body {
-              margin: 0;
-              padding: 0;
+            body {
               font-family: Arial, sans-serif;
               font-size: 10pt;
               background-color: white;
             }
-            .print-area {
-              height: 100%;
-              box-sizing: border-box;
-            }
           `}
         </style>
-        <div className="print-area p-4">
+        <div className="p-4">
             <h1 className="text-center font-bold text-lg mb-6">KARTA OBIEGOWA PRACOWNIKA</h1>
 
             <div className="border-2 border-black p-3 mb-6 space-y-1">

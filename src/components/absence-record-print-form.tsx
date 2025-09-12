@@ -24,24 +24,16 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
           {`
             @page {
               size: A4;
-              margin: 0;
+              margin: 1.5cm;
             }
-            html, body {
-              height: 100%;
-              margin: 0;
-              padding: 0;
+            body {
               font-family: Arial, sans-serif;
               font-size: 11pt;
-            }
-            .print-area {
-                padding: 1.5cm;
-                height: 100%;
-                box-sizing: border-box;
             }
           `}
         </style>
         
-        <div className="print-area">
+        <div>
             <header className="text-center mb-10">
                 <h1 className="text-lg font-bold tracking-wider">OŚWIADCZENIE / ЗАЯВА</h1>
             </header>
@@ -53,13 +45,12 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                 {record.employeeFullName.toUpperCase()}
               </p>
             </div>
-             <div className="text-center text-base mb-4">
-                <span className="text-gray-600">Dział:</span> {record.department}
+             <div className="text-center text-base mb-1">
+                Dział: {record.department}
             </div>
-            <div className="text-center text-base mb-6">
-                 <span className="text-gray-600">Stanowisko:</span> {record.jobTitle}
+            <div className="text-center text-base mb-8">
+                 Stanowisko: {record.jobTitle}
             </div>
-
 
             <div className="flex justify-between items-center mb-8 text-sm">
                 <div className="flex items-baseline">
@@ -87,7 +78,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                 </div>
             </section>
             
-            <footer className="mt-32">
+            <footer className="pt-24">
                 <div className="flex justify-between">
                     <div className="text-center w-2/5">
                         <div className="border-t border-gray-400 pt-1">
