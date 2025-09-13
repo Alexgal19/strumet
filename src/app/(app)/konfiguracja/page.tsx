@@ -138,7 +138,7 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
   };
 
   const renderConfigList = (configType: ConfigType, items: ConfigItem[]) => (
-    <div className="mt-6 w-full max-w-2xl">
+    <div className="w-full max-w-2xl">
       <Card>
         <CardHeader>
           <CardTitle>{configLabels[configType as ConfigView]}</CardTitle>
