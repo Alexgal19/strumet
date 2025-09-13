@@ -138,7 +138,7 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
   };
 
   const renderConfigList = (configType: ConfigType, items: ConfigItem[]) => (
-    <div className="mt-6 space-y-4">
+    <div className="mt-6 w-full max-w-2xl">
       <Card>
         <CardHeader>
           <CardTitle>{configLabels[configType as ConfigView]}</CardTitle>
@@ -148,7 +148,7 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
           <div className="space-y-3">
             {items.map((item) => (
               <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
-                <span className="flex-1 break-words font-medium">{item.name}</span>
+                <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
                 <div className="flex items-center gap-2 shrink-0">
                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(configType, item)}>
                         <Edit className="h-4 w-4" />
