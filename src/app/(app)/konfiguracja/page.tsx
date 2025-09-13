@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -264,9 +264,4 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
 
     </div>
   );
-
-    
-
-    
-
-
+}
