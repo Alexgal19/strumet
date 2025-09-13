@@ -240,7 +240,7 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
   );
 
   const renderMobileView = () => (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-md">
       {paginatedEmployees.map(employee => (
         <Card key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
           <CardHeader>
@@ -458,7 +458,7 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
         </div>
 
 
-        <div className="flex w-full flex-col flex-grow">
+        <div className="flex w-full flex-col flex-grow items-center">
           {isMobile ? renderMobileView() : renderDesktopView()}
           {totalPages > 1 && <PaginationControls />}
         </div>
@@ -466,5 +466,7 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
     </div>
   );
 }
+
+    
 
     
