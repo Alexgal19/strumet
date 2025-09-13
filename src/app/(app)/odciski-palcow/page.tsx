@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -47,21 +47,19 @@ import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, UserPlus, Trash2 } fr
 import { PageHeader } from '@/components/page-header';
 import { Employee, FingerprintAppointment } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { ref, set, push, onValue, remove } from 'firebase/database';
+import { ref, set, push, remove } from 'firebase/database';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
+interface FingerprintAppointmentsPageProps {
+  employees: Employee[];
+  fingerprintAppointments: FingerprintAppointment[];
+  isLoading: boolean;
+}
 
-export default function FingerprintAppointmentsPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [appointments, setAppointments] = useState<FingerprintAppointment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+export default function FingerprintAppointmentsPage({ employees, fingerprintAppointments: appointments, isLoading }: FingerprintAppointmentsPageProps) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [appointmentDate, setAppointmentDate] = useState<Date | undefined>();
   const [isSaving, setIsSaving] = useState(false);
@@ -70,26 +68,6 @@ export default function FingerprintAppointmentsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { toast } = useToast();
-
-  useEffect(() => {
-    const employeesRef = ref(db, 'employees');
-    const appointmentsRef = ref(db, 'fingerprintAppointments');
-
-    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-      setEmployees(objectToArray(snapshot.val()));
-      setIsLoading(false);
-    });
-
-    const unsubscribeAppointments = onValue(appointmentsRef, (snapshot) => {
-      setAppointments(objectToArray(snapshot.val()));
-      setIsLoading(false);
-    });
-
-    return () => {
-      unsubscribeEmployees();
-      unsubscribeAppointments();
-    };
-  }, []);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 

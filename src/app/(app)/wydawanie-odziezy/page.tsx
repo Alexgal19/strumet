@@ -33,9 +33,9 @@ import {
 } from '@/components/ui/table';
 import { Loader2, ChevronsUpDown, CheckIcon, Printer, History, PlusCircle, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { Employee, ClothingIssuance, ClothingItem, AllConfig } from '@/lib/types';
+import { Employee, ClothingIssuance, AllConfig } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { ref, set, push, onValue, remove } from 'firebase/database';
+import { ref, set, push, remove } from 'firebase/database';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -44,16 +44,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
+interface ClothingIssuancePageProps {
+  employees: Employee[];
+  config: AllConfig;
+  clothingIssuances: ClothingIssuance[];
+  isLoading: boolean;
+}
 
-export default function ClothingIssuancePage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: []});
-  const [issuances, setIssuances] = useState<ClothingIssuance[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+export default function ClothingIssuancePage({ employees, config, clothingIssuances: issuances, isLoading }: ClothingIssuancePageProps) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
@@ -64,40 +62,6 @@ export default function ClothingIssuancePage() {
   
   const { toast } = useToast();
 
-  useEffect(() => {
-    const employeesRef = ref(db, 'employees');
-    const configRef = ref(db, 'config');
-    const issuancesRef = ref(db, 'clothingIssuances');
-
-    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-      setEmployees(objectToArray(snapshot.val()));
-      setIsLoading(false);
-    });
-
-    const unsubscribeConfig = onValue(configRef, (snapshot) => {
-        const data = snapshot.val();
-        setConfig({
-            departments: objectToArray(data?.departments),
-            jobTitles: objectToArray(data?.jobTitles),
-            managers: objectToArray(data?.managers),
-            nationalities: objectToArray(data?.nationalities),
-            clothingItems: objectToArray(data?.clothingItems),
-        });
-        setIsLoading(false);
-    });
-
-    const unsubscribeIssuances = onValue(issuancesRef, (snapshot) => {
-      setIssuances(objectToArray(snapshot.val()));
-      setIsLoading(false);
-    });
-
-    return () => {
-      unsubscribeEmployees();
-      unsubscribeConfig();
-      unsubscribeIssuances();
-    };
-  }, []);
-  
   useEffect(() => {
     if (printingIssuance) {
       document.body.classList.add('printing');

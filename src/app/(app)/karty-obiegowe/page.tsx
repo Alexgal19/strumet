@@ -35,23 +35,20 @@ import { Loader2, ChevronsUpDown, CheckIcon, Printer, History } from 'lucide-rea
 import { PageHeader } from '@/components/page-header';
 import { Employee, CirculationCard } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { ref, set, push, onValue } from 'firebase/database';
+import { ref, set, push } from 'firebase/database';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { CirculationCardPrintForm } from '@/components/circulation-card-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
+interface CirculationCardsPageProps {
+  employees: Employee[];
+  circulationCards: CirculationCard[];
+  isLoading: boolean;
+}
 
-export default function CirculationCardsPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+export default function CirculationCardsPage({ employees, circulationCards, isLoading }: CirculationCardsPageProps) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
@@ -60,26 +57,6 @@ export default function CirculationCardsPage() {
   
   const { toast } = useToast();
 
-  useEffect(() => {
-    const employeesRef = ref(db, 'employees');
-    const cardsRef = ref(db, 'circulationCards');
-
-    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-      setEmployees(objectToArray(snapshot.val()));
-      setIsLoading(false);
-    });
-
-    const unsubscribeCards = onValue(cardsRef, (snapshot) => {
-      setCirculationCards(objectToArray(snapshot.val()));
-      setIsLoading(false);
-    });
-
-    return () => {
-      unsubscribeEmployees();
-      unsubscribeCards();
-    };
-  }, []);
-  
   useEffect(() => {
     if (printingCard) {
       document.body.classList.add('printing');

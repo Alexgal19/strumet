@@ -47,7 +47,7 @@ import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, FilePlus2, Trash2, Br
 import { PageHeader } from '@/components/page-header';
 import { Employee, AbsenceRecord } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { ref, set, push, onValue, remove } from 'firebase/database';
+import { ref, set, push, remove } from 'firebase/database';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -57,15 +57,13 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AbsenceRecordPrintForm } from '@/components/absence-record-print-form';
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
+interface NoLoginPageProps {
+  employees: Employee[];
+  absenceRecords: AbsenceRecord[];
+  isLoading: boolean;
+}
 
-export default function NoLoginPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [records, setRecords] = useState<AbsenceRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+export default function NoLoginPage({ employees, absenceRecords: records, isLoading }: NoLoginPageProps) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [incidentDate, setIncidentDate] = useState<Date | undefined>();
   const [hours, setHours] = useState<string>('');
@@ -80,26 +78,6 @@ export default function NoLoginPage() {
   const printComponentRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
-
-  useEffect(() => {
-    const employeesRef = ref(db, 'employees');
-    const recordsRef = ref(db, 'absenceRecords');
-
-    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-      setEmployees(objectToArray(snapshot.val()));
-      if (isLoading) setIsLoading(false);
-    });
-
-    const unsubscribeRecords = onValue(recordsRef, (snapshot) => {
-      setRecords(objectToArray(snapshot.val()));
-      if (isLoading) setIsLoading(false);
-    });
-
-    return () => {
-      unsubscribeEmployees();
-      unsubscribeRecords();
-    };
-  }, [isLoading]);
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 

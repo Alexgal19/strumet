@@ -1,14 +1,15 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
-import { AllConfig } from '@/lib/types';
-
+import type { AllConfig, Employee, AbsenceRecord, CirculationCard, FingerprintAppointment, ClothingIssuance, AppNotification } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
 
 export type ActiveView = 
   | 'aktywni' 
@@ -41,11 +42,54 @@ const LoadingComponent = () => (
   </div>
 );
 
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 export default function MainLayout() {
   const [activeView, setActiveView] = useState<ActiveView>('aktywni');
   
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: []});
+  const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
+  const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
+  const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
+  const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const dataRef = ref(db);
+    const unsubscribe = onValue(dataRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        setEmployees(objectToArray(data.employees));
+        setConfig({
+            departments: objectToArray(data.config?.departments),
+            jobTitles: objectToArray(data.config?.jobTitles),
+            managers: objectToArray(data.config?.managers),
+            nationalities: objectToArray(data.config?.nationalities),
+            clothingItems: objectToArray(data.config?.clothingItems),
+        });
+        setAbsenceRecords(objectToArray(data.absenceRecords));
+        setCirculationCards(objectToArray(data.circulationCards));
+        setFingerprintAppointments(objectToArray(data.fingerprintAppointments));
+        setClothingIssuances(objectToArray(data.clothingIssuances));
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const ActiveViewComponent = viewComponents[activeView] || viewComponents.aktywni;
+
+  const viewProps = {
+    employees,
+    config,
+    absenceRecords,
+    circulationCards,
+    fingerprintAppointments,
+    clothingIssuances,
+    isLoading, // Pass loading state for components that might need it
+  };
 
   return (
     <SidebarProvider>
@@ -53,7 +97,7 @@ export default function MainLayout() {
         <AppSidebar activeView={activeView} setActiveView={setActiveView} />
         <SidebarInset className="m-2 flex flex-col p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 backdrop-blur-xl bg-background/80 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
           <React.Suspense fallback={<LoadingComponent />}>
-            <ActiveViewComponent />
+            {isLoading ? <LoadingComponent /> : <ActiveViewComponent {...viewProps} />}
           </React.Suspense>
         </SidebarInset>
         <AppBottomNav activeView={activeView} setActiveView={setActiveView} />

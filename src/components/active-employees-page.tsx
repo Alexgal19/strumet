@@ -44,7 +44,7 @@ import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, Ch
 import type { Employee, AllConfig } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { db } from '@/lib/firebase';
-import { ref, set, push, update, remove, onValue } from "firebase/database";
+import { ref, set, push, update, remove } from "firebase/database";
 import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -62,16 +62,15 @@ const EmployeeSummary = dynamic(() => import('./employee-summary').then(mod => m
 
 const ITEMS_PER_PAGE = 50;
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
+interface ActiveEmployeesPageProps {
+  employees: Employee[];
+  config: AllConfig;
+  isLoading: boolean;
+}
 
-export default function ActiveEmployeesPage() {
+export default function ActiveEmployeesPage({ employees, config, isLoading }: ActiveEmployeesPageProps) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: []});
-  const [isLoading, setIsLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
@@ -84,33 +83,6 @@ export default function ActiveEmployeesPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   
-  useEffect(() => {
-    const employeesRef = ref(db, 'employees');
-    const configRef = ref(db, 'config');
-    
-    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-        const data = snapshot.val();
-        setEmployees(objectToArray(data));
-        setIsLoading(false);
-    });
-    
-    const unsubscribeConfig = onValue(configRef, (snapshot) => {
-        const data = snapshot.val();
-        setConfig({
-            departments: objectToArray(data?.departments),
-            jobTitles: objectToArray(data?.jobTitles),
-            managers: objectToArray(data?.managers),
-            nationalities: objectToArray(data?.nationalities),
-            clothingItems: objectToArray(data?.clothingItems),
-        });
-    });
-
-    return () => {
-        unsubscribeEmployees();
-        unsubscribeConfig();
-    }
-  }, []);
-
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
@@ -174,7 +146,7 @@ export default function ActiveEmployeesPage() {
     return filteredEmployees.slice(startIndex, endIndex);
   }, [filteredEmployees, currentPage]);
   
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange]);
   

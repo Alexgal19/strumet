@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/page-header';
 import { Loader2, Users } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { db } from '@/lib/firebase';
-import { ref, onValue, update } from 'firebase/database';
+import { ref, update } from 'firebase/database';
 import { Employee, AllConfig } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -23,16 +23,13 @@ import { EmployeeForm } from '@/components/employee-form';
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
+interface StatisticsPageProps {
+  employees: Employee[];
+  config: AllConfig;
+  isLoading: boolean;
+}
 
-
-export default function StatisticsPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [] });
-  const [isLoading, setIsLoading] = useState(true);
-  
+export default function StatisticsPage({ employees, config, isLoading }: StatisticsPageProps) {
   const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState('');
   const [dialogEmployees, setDialogEmployees] = useState<Employee[]>([]);
@@ -41,32 +38,6 @@ export default function StatisticsPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   
   const { toast } = useToast();
-
-  useEffect(() => {
-    const employeesRef = ref(db, 'employees');
-    const configRef = ref(db, 'config');
-
-    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-        setEmployees(objectToArray(snapshot.val()));
-        if (isLoading) setIsLoading(false);
-    });
-
-    const unsubscribeConfig = onValue(configRef, (snapshot) => {
-        const data = snapshot.val();
-        setConfig({
-            departments: objectToArray(data?.departments),
-            jobTitles: objectToArray(data?.jobTitles),
-            managers: objectToArray(data?.managers),
-            nationalities: objectToArray(data?.nationalities),
-            clothingItems: objectToArray(data?.clothingItems),
-        });
-    });
-
-    return () => {
-        unsubscribeEmployees();
-        unsubscribeConfig();
-    };
-  }, [isLoading]);
   
   const activeEmployees = useMemo(() => {
     return employees.filter(e => e.status === 'aktywny');
@@ -454,9 +425,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    

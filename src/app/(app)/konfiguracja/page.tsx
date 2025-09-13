@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PlusCircle, Trash2, Loader2, Edit } from 'lucide-react';
 import type { ConfigItem, ConfigType, AllConfig, Employee } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { ref, set, push, remove, onValue, update } from 'firebase/database';
+import { ref, set, push, remove, update } from 'firebase/database';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -33,15 +34,13 @@ const configTypeToEmployeeField: Record<ConfigType, keyof Employee> = {
   clothingItems: 'fullName', // Not directly linked to an employee field
 };
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
+interface ConfigurationPageProps {
+  config: AllConfig;
+  employees: Employee[];
+  isLoading: boolean;
+}
 
-export default function ConfigurationPage() {
-  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [] });
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
+export default function ConfigurationPage({ config, employees, isLoading }: ConfigurationPageProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -52,32 +51,6 @@ export default function ConfigurationPage() {
   const [editedItemName, setEditedItemName] = useState('');
 
   const { toast } = useToast();
-
-  useEffect(() => {
-    const configRef = ref(db, 'config');
-    const employeesRef = ref(db, 'employees');
-
-    const unsubscribeConfig = onValue(configRef, (snapshot) => {
-        const data = snapshot.val();
-        setConfig({
-            departments: objectToArray(data?.departments),
-            jobTitles: objectToArray(data?.jobTitles),
-            managers: objectToArray(data?.managers),
-            nationalities: objectToArray(data?.nationalities),
-            clothingItems: objectToArray(data?.clothingItems),
-        });
-        if (isLoading) setIsLoading(false);
-    });
-
-    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-        setEmployees(objectToArray(snapshot.val()));
-    });
-    
-    return () => {
-        unsubscribeConfig();
-        unsubscribeEmployees();
-    };
-  }, [isLoading]);
 
   const openAddDialog = (configType: ConfigType) => {
     setCurrentConfigType(configType);

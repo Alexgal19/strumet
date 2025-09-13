@@ -36,7 +36,7 @@ import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2,
 import type { Employee, AllConfig } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { db } from '@/lib/firebase';
-import { ref, update, remove, onValue } from "firebase/database";
+import { ref, update, remove } from "firebase/database";
 import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -51,17 +51,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 const ITEMS_PER_PAGE = 50;
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
+interface TerminatedEmployeesPageProps {
+  employees: Employee[];
+  config: AllConfig;
+  isLoading: boolean;
+}
 
-
-export default function TerminatedEmployeesPage() {
+export default function TerminatedEmployeesPage({ employees, config, isLoading }: TerminatedEmployeesPageProps) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: []});
-  const [isLoading, setIsLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
@@ -72,33 +70,6 @@ export default function TerminatedEmployeesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  
-  useEffect(() => {
-    const employeesRef = ref(db, 'employees');
-    const configRef = ref(db, 'config');
-    
-    const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-        const data = snapshot.val();
-        setEmployees(objectToArray(data));
-        setIsLoading(false);
-    });
-    
-    const unsubscribeConfig = onValue(configRef, (snapshot) => {
-        const data = snapshot.val();
-        setConfig({
-            departments: objectToArray(data?.departments),
-            jobTitles: objectToArray(data?.jobTitles),
-            managers: objectToArray(data?.managers),
-            nationalities: objectToArray(data?.nationalities),
-            clothingItems: objectToArray(data?.clothingItems),
-        });
-    });
-
-    return () => {
-        unsubscribeEmployees();
-        unsubscribeConfig();
-    }
-  }, []);
 
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
@@ -152,7 +123,7 @@ export default function TerminatedEmployeesPage() {
     return filteredEmployees.slice(startIndex, endIndex);
   }, [filteredEmployees, currentPage]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, dateRange]);
 
