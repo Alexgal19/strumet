@@ -51,7 +51,7 @@ export default function MainLayout() {
     <SidebarProvider>
       <div className="flex h-full flex-col md:flex-row bg-transparent">
         <AppSidebar activeView={activeView} setActiveView={setActiveView} />
-        <SidebarInset className="m-2 flex flex-col p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 backdrop-blur-3xl bg-background/50 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
+        <SidebarInset className="m-2 flex flex-col p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 backdrop-blur-xl bg-background/80 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
           <React.Suspense fallback={<LoadingComponent />}>
             <ActiveViewComponent />
           </React.Suspense>
