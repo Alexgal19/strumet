@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
@@ -32,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
+import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2, ChevronLeft, ChevronRight, XCircle, Copy } from 'lucide-react';
 import type { Employee, AllConfig } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { db } from '@/lib/firebase';
@@ -222,6 +223,16 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
     }
   };
 
+  const handleCopy = (employee: Employee) => {
+    const textToCopy = employee.fullName;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        toast({
+            title: 'Skopiowano!',
+            description: 'Imię i nazwisko pracownika zostało skopiowane.',
+        });
+    });
+  };
+
   const PaginationControls = () => (
     <div className="flex items-center justify-center space-x-4 pt-4">
         <Button 
@@ -249,7 +260,7 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
   );
 
   const renderMobileView = () => (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       {paginatedEmployees.map(employee => (
         <Card key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
           <CardHeader>
@@ -268,13 +279,18 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); handleEditEmployee(employee); }}>
+                <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edytuj
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); handleRestoreEmployee(employee.id); }}>
+                <DropdownMenuItem onSelect={() => handleCopy(employee)}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Kopiuj imię
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => handleRestoreEmployee(employee.id)}>
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Przywróć
                 </DropdownMenuItem>
@@ -327,6 +343,11 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
                            <Edit className="mr-2 h-4 w-4" />
                             Edytuj
                         </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleCopy(employee)}>
+                           <Copy className="mr-2 h-4 w-4" />
+                            Kopiuj imię
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={() => handleRestoreEmployee(employee.id)}>
                           <RotateCcw className="mr-2 h-4 w-4" />
                           Przywróć
@@ -475,9 +496,11 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
 
 
       <div className="flex flex-col flex-grow items-center">
-        {isMobile ? <div className="w-full max-w-md">{renderMobileView()}</div> : renderDesktopView()}
+        {hasMounted && isMobile ? renderMobileView() : renderDesktopView()}
         {totalPages > 1 && <PaginationControls />}
       </div>
     </div>
   );
 }
+
+    

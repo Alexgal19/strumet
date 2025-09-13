@@ -6,7 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelL
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, Copy } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { db } from '@/lib/firebase';
 import { ref, update } from 'firebase/database';
@@ -14,7 +14,7 @@ import { Employee, AllConfig } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -175,6 +175,23 @@ export default function StatisticsPage({ employees, config, isLoading }: Statist
     }
   };
 
+  const handleCopyNames = () => {
+    if (dialogEmployees.length === 0) return;
+    const names = dialogEmployees.map(e => e.fullName).join('\n');
+    navigator.clipboard.writeText(names).then(() => {
+      toast({
+        title: 'Skopiowano!',
+        description: 'Imiona i nazwiska zostały skopiowane do schowka.',
+      });
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Nie udało się skopiować listy.',
+      });
+    });
+  };
 
   if (isLoading) {
     return (
@@ -401,6 +418,14 @@ export default function StatisticsPage({ employees, config, isLoading }: Statist
                       ))}
                   </div>
               </ScrollArea>
+              {dialogEmployees.length > 0 && (
+                <DialogFooter>
+                  <Button onClick={handleCopyNames}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Kopiuj imiona
+                  </Button>
+                </DialogFooter>
+              )}
           </DialogContent>
       </Dialog>
       
@@ -425,3 +450,5 @@ export default function StatisticsPage({ employees, config, isLoading }: Statist
     </div>
   );
 }
+
+    

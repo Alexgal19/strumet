@@ -248,11 +248,11 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
   }
 
   const handleCopy = (employee: Employee) => {
-    const textToCopy = `${employee.fullName}\n${employee.jobTitle}\n${employee.department}`;
+    const textToCopy = employee.fullName;
     navigator.clipboard.writeText(textToCopy).then(() => {
         toast({
             title: 'Skopiowano!',
-            description: 'Dane pracownika zostały skopiowane do schowka.',
+            description: 'Imię i nazwisko pracownika zostało skopiowane.',
         });
     });
   };
@@ -284,7 +284,7 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
   );
 
   const renderMobileView = () => (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
         {paginatedEmployees.map(employee => (
             <Card key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
                 <CardHeader>
@@ -313,7 +313,7 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
                               </DropdownMenuItem>
                                <DropdownMenuItem onSelect={() => handleCopy(employee)}>
                                 <Copy className="mr-2 h-4 w-4" />
-                                Kopiuj dane
+                                Kopiuj imię
                               </DropdownMenuItem>
                                <DropdownMenuItem>
                                   <Bot className="mr-2 h-4 w-4" />
@@ -381,7 +381,7 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
                               </DropdownMenuItem>
                                <DropdownMenuItem onSelect={() => handleCopy(employee)}>
                                 <Copy className="mr-2 h-4 w-4" />
-                                Kopiuj dane
+                                Kopiuj imię
                               </DropdownMenuItem>
                                <DropdownMenuItem>
                                   <Bot className="mr-2 h-4 w-4" />
@@ -559,9 +559,11 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
 
 
       <div className="flex flex-col flex-grow items-center">
-        {isMobile ? <div className="w-full max-w-md">{renderMobileView()}</div> : renderDesktopView()}
+        {hasMounted && isMobile ? renderMobileView() : renderDesktopView()}
         {totalPages > 1 && <PaginationControls />}
       </div>
     </div>
   );
 }
+
+    
