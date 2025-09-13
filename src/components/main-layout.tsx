@@ -24,7 +24,7 @@ export type ActiveView =
   | 'odwiedzalnosc';
 
 const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
-  aktywni: dynamic(() => import('./active-employees-page'), { loading: () => <LoadingComponent /> }),
+  aktywni: dynamic(() => import('../app/(app)/aktywni/page'), { loading: () => <LoadingComponent /> }),
   zwolnieni: dynamic(() => import('../app/(app)/zwolnieni/page'), { loading: () => <LoadingComponent /> }),
   planowanie: dynamic(() => import('../app/(app)/planowanie/page'), { loading: () => <LoadingComponent /> }),
   odwiedzalnosc: dynamic(() => import('../app/(app)/odwiedzalnosc/page'), { loading: () => <LoadingComponent /> }),
