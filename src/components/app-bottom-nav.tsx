@@ -10,6 +10,7 @@ import {
   CalendarCheck,
   FileText,
   Shirt,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -28,7 +29,7 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
     { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
     { view: 'planowanie', icon: CalendarClock, label: 'Plan' },
     { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność' },
-    { view: 'wydawanie-odziezy', icon: Shirt, label: 'Odzież' },
+    { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];
   
