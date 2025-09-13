@@ -146,13 +146,13 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
         <CardContent>
           <div className="space-y-3">
             {items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between rounded-md border p-3">
-                <span className="font-medium">{item.name}</span>
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => openEditDialog(configType, item)}>
+              <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
+                <span className="font-medium flex-1 break-words min-w-0">{item.name}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(configType, item)}>
                         <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleRemoveItem(configType, item.id)}>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleRemoveItem(configType, item.id)}>
                         <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
@@ -180,7 +180,7 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
       
       <Tabs defaultValue="departments" className="flex h-full w-full flex-col">
         <div className="flex justify-center">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="departments">Działy</TabsTrigger>
             <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
             <TabsTrigger value="managers">Kierownicy</TabsTrigger>
@@ -267,3 +267,4 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
     
 
     
+
