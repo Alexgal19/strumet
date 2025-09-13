@@ -347,7 +347,9 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
     </div>
   );
   
-  if (isLoading || !hasMounted) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (isLoading || !hasMounted) {
+    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -470,6 +472,7 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
             </Popover>
         </div>
       </div>
+
 
       <div className="flex flex-col flex-grow items-center">
         {isMobile ? <div className="w-full max-w-md">{renderMobileView()}</div> : renderDesktopView()}

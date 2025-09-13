@@ -409,7 +409,9 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
     </div>
   );
 
-  if (isLoading || !hasMounted) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (isLoading || !hasMounted) {
+    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
 
   return (
     <div className="flex h-full w-full flex-col">

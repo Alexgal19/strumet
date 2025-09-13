@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 
 const MOBILE_BREAKPOINT = 1024
@@ -10,7 +11,8 @@ export function useIsMobile() {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     };
 
-    checkSize(); // Check on mount
+    // We only want to run this on the client
+    checkSize(); 
     window.addEventListener("resize", checkSize);
 
     return () => window.removeEventListener("resize", checkSize);
