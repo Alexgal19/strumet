@@ -179,13 +179,15 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
       />
       
       <Tabs defaultValue="departments" className="flex h-full w-full flex-col">
-        <TabsList className="flex-wrap h-auto justify-start">
-          <TabsTrigger value="departments">Działy</TabsTrigger>
-          <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
-          <TabsTrigger value="managers">Kierownicy</TabsTrigger>
-          <TabsTrigger value="nationalities">Narodowości</TabsTrigger>
-          <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
-        </TabsList>
+        <div className="flex justify-center">
+            <TabsList className="flex-wrap h-auto justify-start">
+            <TabsTrigger value="departments">Działy</TabsTrigger>
+            <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
+            <TabsTrigger value="managers">Kierownicy</TabsTrigger>
+            <TabsTrigger value="nationalities">Narodowości</TabsTrigger>
+            <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
+            </TabsList>
+        </div>
         <TabsContent value="departments" className="flex-grow">
           {renderConfigList('departments', config.departments)}
         </TabsContent>
@@ -261,4 +263,5 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
 
     </div>
   );
-}
+
+    
