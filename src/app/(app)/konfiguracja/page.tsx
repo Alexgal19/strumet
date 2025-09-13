@@ -180,7 +180,7 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
       
       <Tabs defaultValue="departments" className="flex h-full w-full flex-col">
         <div className="flex justify-center">
-            <TabsList className="h-auto flex-wrap">
+            <TabsList>
             <TabsTrigger value="departments">Działy</TabsTrigger>
             <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
             <TabsTrigger value="managers">Kierownicy</TabsTrigger>
