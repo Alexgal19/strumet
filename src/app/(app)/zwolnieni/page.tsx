@@ -413,54 +413,58 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
         </DialogContent>
       </Dialog>
       
-      <div className="mb-4 space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+      <div className="flex w-full flex-col items-center">
+        <div className="mb-4 w-full max-w-md space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <MultiSelect
+                options={departmentOptions}
+                selected={selectedDepartments}
+                onChange={setSelectedDepartments}
+                placeholder="Filtruj po dziale"
+              />
+              <MultiSelect
+                options={jobTitleOptions}
+                selected={selectedJobTitles}
+                onChange={setSelectedJobTitles}
+                placeholder="Filtruj po stanowisku"
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zwolniony od</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.to && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zwolniony do</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
+                </PopoverContent>
+              </Popover>
+          </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            <MultiSelect
-              options={departmentOptions}
-              selected={selectedDepartments}
-              onChange={setSelectedDepartments}
-              placeholder="Filtruj po dziale"
-            />
-            <MultiSelect
-              options={jobTitleOptions}
-              selected={selectedJobTitles}
-              onChange={setSelectedJobTitles}
-              placeholder="Filtruj po stanowisku"
-            />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zwolniony od</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.to && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zwolniony do</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
-              </PopoverContent>
-            </Popover>
-        </div>
-      </div>
 
 
-      <div className="flex flex-col flex-grow">
-        {isMobile ? renderMobileView() : renderDesktopView()}
-        {totalPages > 1 && <PaginationControls />}
+        <div className="flex w-full flex-col flex-grow">
+          {isMobile ? renderMobileView() : renderDesktopView()}
+          {totalPages > 1 && <PaginationControls />}
+        </div>
       </div>
     </div>
   );
 }
+
+    
