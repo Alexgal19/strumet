@@ -148,7 +148,7 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
           <div className="space-y-3">
             {items.map((item) => (
               <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
-                <span className="font-medium flex-1 break-words min-w-0">{item.name}</span>
+                <span className="flex-1 break-words font-medium">{item.name}</span>
                 <div className="flex items-center gap-2 shrink-0">
                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(configType, item)}>
                         <Edit className="h-4 w-4" />
