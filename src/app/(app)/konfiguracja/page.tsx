@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -15,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useHasMounted } from '@/hooks/use-mobile';
 
 type ConfigView = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
@@ -41,6 +41,7 @@ interface ConfigurationPageProps {
 }
 
 export default function ConfigurationPage({ config, employees, isLoading }: ConfigurationPageProps) {
+  const hasMounted = useHasMounted();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -169,7 +170,7 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
     </div>
   );
   
-  if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (isLoading || !hasMounted) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
     <div className="flex h-full flex-col">
@@ -267,4 +268,5 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
     
 
     
+
 
