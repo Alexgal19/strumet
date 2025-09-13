@@ -52,7 +52,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from './excel-import-button';
 import { ExcelExportButton } from './excel-export-button';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { EmployeeForm } from '@/components/employee-form';
 
@@ -71,6 +71,7 @@ interface ActiveEmployeesPageProps {
 export default function ActiveEmployeesPage({ employees, config, isLoading }: ActiveEmployeesPageProps) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const hasMounted = useHasMounted();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
@@ -264,7 +265,7 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
         >
-            <ChevronLeft className="h-4 w-4 mr-1" />
+            <ChevronLeft className="mr-2 h-4 w-4" />
             Poprzednia
         </Button>
         <span className="text-sm font-medium">
@@ -277,7 +278,7 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
             disabled={currentPage >= totalPages}
         >
             Następna
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
     </div>
   );
@@ -408,7 +409,7 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
     </div>
   );
 
-  if (isLoading) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (isLoading || !hasMounted) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
     <div className="flex h-full w-full flex-col">
