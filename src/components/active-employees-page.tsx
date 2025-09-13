@@ -556,8 +556,8 @@ export default function ActiveEmployeesPage({ employees, config, isLoading }: Ac
       </div>
 
 
-      <div className="flex flex-col flex-grow">
-        {isMobile ? renderMobileView() : renderDesktopView()}
+      <div className="flex flex-col flex-grow items-center">
+        {isMobile ? <div className="w-full max-w-md">{renderMobileView()}</div> : renderDesktopView()}
         {totalPages > 1 && <PaginationControls />}
       </div>
     </div>

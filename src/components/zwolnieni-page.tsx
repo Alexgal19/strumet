@@ -32,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
 import type { Employee, AllConfig } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { db } from '@/lib/firebase';
@@ -77,6 +77,14 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
   const managerOptions: OptionType[] = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedDepartments([]);
+    setSelectedJobTitles([]);
+    setSelectedManagers([]);
+    setDateRange({ from: undefined, to: undefined });
+  };
 
   const filteredEmployees = useMemo(() => {
     return terminatedEmployees.filter(employee => {
@@ -222,7 +230,7 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
         >
-            <ChevronLeft className="h-4 w-4 mr-1" />
+            <ChevronLeft className="mr-2 h-4 w-4" />
             Poprzednia
         </Button>
         <span className="text-sm font-medium">
@@ -235,13 +243,13 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
             disabled={currentPage >= totalPages}
         >
             Następna
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
     </div>
   );
 
   const renderMobileView = () => (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4">
       {paginatedEmployees.map(employee => (
         <Card key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
           <CardHeader>
@@ -415,11 +423,17 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
       </Dialog>
       
       <div className="mb-4 space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        <div className="flex items-center gap-4">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          </div>
+           <Button variant="outline" onClick={handleClearFilters}>
+              <XCircle className="mr-2 h-4 w-4" />
+              Wyczyść filtry
+            </Button>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             <MultiSelect
               options={departmentOptions}
               selected={selectedDepartments}
@@ -457,9 +471,8 @@ export default function TerminatedEmployeesPage({ employees, config, isLoading }
         </div>
       </div>
 
-
-      <div className="flex flex-col flex-grow">
-        {isMobile ? renderMobileView() : renderDesktopView()}
+      <div className="flex flex-col flex-grow items-center">
+        {isMobile ? <div className="w-full max-w-md">{renderMobileView()}</div> : renderDesktopView()}
         {totalPages > 1 && <PaginationControls />}
       </div>
     </div>
