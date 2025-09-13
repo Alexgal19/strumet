@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   format,
   addMonths,
@@ -32,7 +34,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { getAttendanceDataForMonth, AttendanceData } from '@/lib/attendance-actions';
 import { cn } from '@/lib/utils';
-import { Employee, AllConfig } from '@/lib/types';
+import { Employee, AllConfig, Absence } from '@/lib/types';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -108,6 +110,8 @@ export default function AttendancePage() {
   
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [attendanceData, setAttendanceData] = useState<AttendanceData | null>(null);
+  
+  const [isAbsenceListOpen, setIsAbsenceListOpen] = useState(false);
 
   useEffect(() => {
     const configRef = ref(db, 'config');
@@ -166,6 +170,30 @@ export default function AttendancePage() {
         return departmentMatch && searchMatch;
     });
   }, [attendanceData, selectedDepartments, searchTerm]);
+  
+  const absencesByEmployee = useMemo(() => {
+    if (!attendanceData) return [];
+    
+    const grouped: { employee: Employee, dates: string[] }[] = [];
+    const employeeMap = new Map<string, Employee>(attendanceData.employees.map(e => [e.id, e]));
+    const absencesMap = new Map<string, string[]>();
+
+    attendanceData.absences.forEach(absence => {
+        if (!absencesMap.has(absence.employeeId)) {
+            absencesMap.set(absence.employeeId, []);
+        }
+        absencesMap.get(absence.employeeId)!.push(format(parseISO(absence.date), 'dd.MM'));
+    });
+    
+    absencesMap.forEach((dates, employeeId) => {
+        const employee = employeeMap.get(employeeId);
+        if (employee) {
+            grouped.push({ employee, dates: dates.sort() });
+        }
+    });
+
+    return grouped.sort((a,b) => a.employee.fullName.localeCompare(b.employee.fullName));
+  }, [attendanceData]);
 
 
   const handleDateChange = (newDate: Date) => {
@@ -222,169 +250,200 @@ export default function AttendancePage() {
   }));
 
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader
-        title="Odliczanie obecności"
-        description="Zarządzaj kalendarzem obecności pracowników."
-      />
+    <>
+      <div className="flex h-full flex-col">
+        <PageHeader
+          title="Odliczanie obecności"
+          description="Zarządzaj kalendarzem obecności pracowników."
+        />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Aktywni pracownicy</CardTitle>
-                  <User className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{attendanceData?.stats.totalActiveEmployees ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
-              </CardContent>
-          </Card>
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Dni robocze w miesiącu</CardTitle>
-                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{attendanceData?.stats.workingDaysInMonth ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
-              </CardContent>
-          </Card>
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Suma nieobecności</CardTitle>
-                  <TrendingDown className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{attendanceData?.stats.totalAbsences ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
-              </CardContent>
-          </Card>
-           <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Procent nieobecności</CardTitle>
-                  <div className="h-4 w-4 text-muted-foreground font-bold text-lg">%</div>
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">
-                    {attendanceData ? `${attendanceData.stats.overallAbsencePercentage.toFixed(1)}%` : <Loader2 className="h-6 w-6 animate-spin" />}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Aktywni pracownicy</CardTitle>
+                    <User className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{attendanceData?.stats.totalActiveEmployees ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Dni robocze w miesiącu</CardTitle>
+                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{attendanceData?.stats.workingDaysInMonth ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
+                </CardContent>
+            </Card>
+            <Card 
+              onClick={() => setIsAbsenceListOpen(true)}
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+            >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Suma nieobecności</CardTitle>
+                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{attendanceData?.stats.totalAbsences ?? <Loader2 className="h-6 w-6 animate-spin" />}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Procent nieobecności</CardTitle>
+                    <div className="h-4 w-4 text-muted-foreground font-bold text-lg">%</div>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">
+                      {attendanceData ? `${attendanceData.stats.overallAbsencePercentage.toFixed(1)}%` : <Loader2 className="h-6 w-6 animate-spin" />}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+
+        {attendanceData && attendanceData.stats.departmentAbsenceData.length > 0 && (
+          <Card className="mb-6">
+            <Accordion type="single" collapsible>
+              <AccordionItem value="item-1">
+                <AccordionTrigger className="px-6">
+                    <div className="flex items-center">
+                      <Building className="mr-2 h-5 w-5" />
+                      <span className="font-semibold">Nieobecności wg działów</span>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="px-6 pb-4 pt-0">
+                    <p className="text-sm text-muted-foreground mb-4">Statystyka nieobecności dla poszczególnych działów w wybranym miesiącu.</p>
+                    <div className="space-y-4">
+                      {attendanceData.stats.departmentAbsenceData.map((dept) => dept && (
+                          <div key={dept.name} className="space-y-1">
+                              <div className="flex justify-between items-center text-sm font-medium">
+                                  <span style={{ color: dept.fill }}>{dept.name}</span>
+                                  <span>{dept.absences} dni ({dept.percentage.toFixed(1)}%)</span>
+                              </div>
+                              <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
+                          </div>
+                      ))}
+                    </div>
                   </div>
-              </CardContent>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </Card>
+        )}
+
+      <Card className="flex-grow flex flex-col">
+          <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <CardTitle className="text-2xl capitalize">
+                      {format(currentDate, 'LLLL yyyy', { locale: pl })}
+                  </CardTitle>
+                  <div className="flex items-center gap-2 flex-wrap">
+                      <Button variant="outline" size="icon" onClick={handlePrevMonth} disabled={isDataLoading}>
+                          <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                      <Select value={currentDate.getMonth().toString()} onValueChange={handleMonthChange}>
+                          <SelectTrigger className="w-full sm:w-[140px]">
+                              <SelectValue placeholder="Miesiąc" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {months.map(month => (
+                                  <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                      <Select value={currentDate.getFullYear().toString()} onValueChange={handleYearChange}>
+                          <SelectTrigger className="w-full sm:w-[100px]">
+                              <SelectValue placeholder="Rok" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {years.map(year => (
+                                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                      <Button variant="outline" size="icon" onClick={handleNextMonth} disabled={isDataLoading}>
+                          <ArrowRight className="h-4 w-4" />
+                      </Button>
+                  </div>
+              </div>
+              <div className="mt-4 flex flex-col md:flex-row gap-4">
+                <div className="relative flex-grow">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Szukaj po nazwisku..." 
+                    className="pl-9" 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                  />
+                </div>
+                <div className="w-full md:w-[220px]">
+                    <MultiSelect
+                      options={departmentOptions}
+                      selected={selectedDepartments}
+                      onChange={setSelectedDepartments}
+                      placeholder="Wybierz dział"
+                    />
+                </div>
+              </div>
+          </CardHeader>
+          <CardContent className="flex-grow overflow-auto relative">
+              {isDataLoading && (
+                  <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-20">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+              )}
+              {!isDataLoading && attendanceData ? (
+                  filteredEmployees.length > 0 ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                          {filteredEmployees.map(employee => (
+                            <EmployeeAttendanceCard 
+                                  key={employee.id}
+                                  employee={employee}
+                                  attendanceData={attendanceData}
+                                  onToggleAbsence={toggleAbsence}
+                            />
+                          ))}
+                      </div>
+                  ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
+                          <UserX className="h-12 w-12 mb-4" />
+                          <h3 className="text-lg font-semibold">Brak pracowników</h3>
+                          <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów filtrowania.</p>
+                      </div>
+                  )
+              ) : !isDataLoading && (
+                  <div className="text-center text-muted-foreground py-10">Brak danych o obecności.</div>
+              )}
+          </CardContent>
+        </Card>
       </div>
 
-      {attendanceData && attendanceData.stats.departmentAbsenceData.length > 0 && (
-        <Card className="mb-6">
-           <Accordion type="single" collapsible>
-            <AccordionItem value="item-1">
-              <AccordionTrigger className="px-6">
-                  <div className="flex items-center">
-                    <Building className="mr-2 h-5 w-5" />
-                    <span className="font-semibold">Nieobecności wg działów</span>
-                  </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="px-6 pb-4 pt-0">
-                  <p className="text-sm text-muted-foreground mb-4">Statystyka nieobecności dla poszczególnych działów w wybranym miesiącu.</p>
-                  <div className="space-y-4">
-                    {attendanceData.stats.departmentAbsenceData.map((dept) => dept && (
-                        <div key={dept.name} className="space-y-1">
-                            <div className="flex justify-between items-center text-sm font-medium">
-                                <span style={{ color: dept.fill }}>{dept.name}</span>
-                                <span>{dept.absences} dni ({dept.percentage.toFixed(1)}%)</span>
+       <Dialog open={isAbsenceListOpen} onOpenChange={setIsAbsenceListOpen}>
+          <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                  <DialogTitle className="capitalize">Lista nieobecności - {format(currentDate, 'LLLL yyyy', { locale: pl })}</DialogTitle>
+                   <DialogDescription>
+                        Znaleziono {absencesByEmployee.length} pracowników z nieobecnościami.
+                    </DialogDescription>
+              </DialogHeader>
+              <ScrollArea className="max-h-96 my-4">
+                  <div className="space-y-3 pr-6">
+                      {absencesByEmployee.length > 0 ? (
+                        absencesByEmployee.map(({employee, dates}) => (
+                            <div key={employee.id} className="flex justify-between text-sm p-2 rounded-md hover:bg-muted/50">
+                                <span className="font-medium">{employee.fullName}</span>
+                                <span className="text-muted-foreground text-right">{dates.join(', ')}</span>
                             </div>
-                            <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
-                        </div>
-                    ))}
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">Brak nieobecności w tym miesiącu.</p>
+                      )}
                   </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </Card>
-      )}
-
-    <Card className="flex-grow flex flex-col">
-        <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <CardTitle className="text-2xl capitalize">
-                    {format(currentDate, 'LLLL yyyy', { locale: pl })}
-                </CardTitle>
-                 <div className="flex items-center gap-2 flex-wrap">
-                    <Button variant="outline" size="icon" onClick={handlePrevMonth} disabled={isDataLoading}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <Select value={currentDate.getMonth().toString()} onValueChange={handleMonthChange}>
-                        <SelectTrigger className="w-full sm:w-[140px]">
-                            <SelectValue placeholder="Miesiąc" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {months.map(month => (
-                                <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select value={currentDate.getFullYear().toString()} onValueChange={handleYearChange}>
-                        <SelectTrigger className="w-full sm:w-[100px]">
-                            <SelectValue placeholder="Rok" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {years.map(year => (
-                                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button variant="outline" size="icon" onClick={handleNextMonth} disabled={isDataLoading}>
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
-             <div className="mt-4 flex flex-col md:flex-row gap-4">
-              <div className="relative flex-grow">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Szukaj po nazwisku..." 
-                  className="pl-9" 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                />
-              </div>
-              <div className="w-full md:w-[220px]">
-                  <MultiSelect
-                    options={departmentOptions}
-                    selected={selectedDepartments}
-                    onChange={setSelectedDepartments}
-                    placeholder="Wybierz dział"
-                  />
-              </div>
-            </div>
-        </CardHeader>
-        <CardContent className="flex-grow overflow-auto relative">
-             {isDataLoading && (
-                <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-20">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-            )}
-            {!isDataLoading && attendanceData ? (
-                filteredEmployees.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                        {filteredEmployees.map(employee => (
-                           <EmployeeAttendanceCard 
-                                key={employee.id}
-                                employee={employee}
-                                attendanceData={attendanceData}
-                                onToggleAbsence={toggleAbsence}
-                           />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
-                        <UserX className="h-12 w-12 mb-4" />
-                        <h3 className="text-lg font-semibold">Brak pracowników</h3>
-                        <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów filtrowania.</p>
-                    </div>
-                )
-            ) : !isDataLoading && (
-                <div className="text-center text-muted-foreground py-10">Brak danych o obecności.</div>
-            )}
-        </CardContent>
-      </Card>
-    </div>
+              </ScrollArea>
+          </DialogContent>
+      </Dialog>
+    </>
   );
-}
+
+    
