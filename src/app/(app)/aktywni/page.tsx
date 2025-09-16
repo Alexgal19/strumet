@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -62,13 +61,7 @@ const EmployeeSummary = dynamic(() => import('@/components/employee-summary').th
 
 const ITEMS_PER_PAGE = 50;
 
-interface ActiveEmployeesPageProps {
-  employees: Employee[];
-  config: AllConfig;
-  isLoading: boolean;
-}
-
-export default function AktywniPage({ employees, config, isLoading }: ActiveEmployeesPageProps) {
+export default function AktywniPage({ employees, config, isLoading }: { employees: Employee[], config: AllConfig, isLoading: boolean }) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -509,28 +502,28 @@ export default function AktywniPage({ employees, config, isLoading }: ActiveEmpl
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             <MultiSelect
+              title="Dział"
               options={departmentOptions}
               selected={selectedDepartments}
               onChange={setSelectedDepartments}
-              placeholder="Filtruj po dziale"
             />
             <MultiSelect
+              title="Stanowisko"
               options={jobTitleOptions}
               selected={selectedJobTitles}
               onChange={setSelectedJobTitles}
-              placeholder="Filtruj po stanowisku"
             />
             <MultiSelect
+              title="Kierownik"
               options={managerOptions}
               selected={selectedManagers}
               onChange={setSelectedManagers}
-              placeholder="Filtruj po kierowniku"
             />
              <MultiSelect
+              title="Narodowość"
               options={nationalityOptions}
               selected={selectedNationalities}
               onChange={setSelectedNationalities}
-              placeholder="Filtruj po narodowości"
             />
             <Popover>
               <PopoverTrigger asChild>
@@ -559,7 +552,9 @@ export default function AktywniPage({ employees, config, isLoading }: ActiveEmpl
 
 
       <div className="flex flex-col flex-grow items-center">
-        {hasMounted && isMobile ? renderMobileView() : renderDesktopView()}
+        <div className="w-full">
+          {hasMounted && isMobile ? renderMobileView() : renderDesktopView()}
+        </div>
         {totalPages > 1 && <PaginationControls />}
       </div>
     </div>

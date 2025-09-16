@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -52,13 +51,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 const ITEMS_PER_PAGE = 50;
 
-interface TerminatedEmployeesPageProps {
-  employees: Employee[];
-  config: AllConfig;
-  isLoading: boolean;
-}
-
-export default function ZwolnieniPage({ employees, config, isLoading }: TerminatedEmployeesPageProps) {
+export default function ZwolnieniPage({ employees, config, isLoading }: { employees: Employee[], config: AllConfig, isLoading: boolean }) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -458,16 +451,16 @@ export default function ZwolnieniPage({ employees, config, isLoading }: Terminat
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             <MultiSelect
+              title="Dział"
               options={departmentOptions}
               selected={selectedDepartments}
               onChange={setSelectedDepartments}
-              placeholder="Filtruj po dziale"
             />
             <MultiSelect
+              title="Stanowisko"
               options={jobTitleOptions}
               selected={selectedJobTitles}
               onChange={setSelectedJobTitles}
-              placeholder="Filtruj po stanowisku"
             />
             <Popover>
               <PopoverTrigger asChild>
@@ -496,7 +489,9 @@ export default function ZwolnieniPage({ employees, config, isLoading }: Terminat
 
 
       <div className="flex flex-col flex-grow items-center">
-        {hasMounted && isMobile ? renderMobileView() : renderDesktopView()}
+        <div className="w-full">
+          {hasMounted && isMobile ? renderMobileView() : renderDesktopView()}
+        </div>
         {totalPages > 1 && <PaginationControls />}
       </div>
     </div>
