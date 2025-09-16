@@ -29,7 +29,7 @@ interface DataTableProps<TData, TValue> {
   onRowClick?: (row: TData) => void
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends {id: string}, TValue>({
   columns,
   data,
   onRowClick,
@@ -69,6 +69,7 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onRowSelectionChange: setRowSelection,
+    getRowId: (row) => row.id,
     state: {
       rowSelection,
     },
@@ -78,11 +79,6 @@ export function DataTable<TData, TValue>({
         }
     }
   })
-
-  // Reset selection when data changes
-  useEffect(() => {
-    setRowSelection({});
-  }, [data]);
 
   return (
     <div className="flex-grow flex flex-col h-full">
