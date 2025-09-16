@@ -1,15 +1,8 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, ChevronLeft, ChevronRight, CalendarIcon, Trash2, XCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, CalendarIcon, Trash2, XCircle } from 'lucide-react';
 import type { Employee, AllConfig } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { db } from '@/lib/firebase';
@@ -54,12 +47,13 @@ import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { EmployeeForm } from '@/components/employee-form';
+import { DataTable } from '@/components/data-table';
+import type { ColumnDef } from "@tanstack/react-table"
 
 const EmployeeSummary = dynamic(() => import('@/components/employee-summary').then(mod => mod.EmployeeSummary), {
   ssr: false
 });
 
-const ITEMS_PER_PAGE = 50;
 
 export default function AktywniPage({ employees, config, isLoading }: { employees: Employee[], config: AllConfig, isLoading: boolean }) {
   const { toast } = useToast();
@@ -75,7 +69,6 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
@@ -95,12 +88,10 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
 
   const filteredEmployees = useMemo(() => {
     return activeEmployees.filter(employee => {
-      const searchTerms = searchTerm.split(',').map(term => term.trim().toLowerCase()).filter(term => term);
+      const searchLower = searchTerm.toLowerCase();
       
-      const searchMatch = searchTerms.length === 0 || searchTerms.some(term => 
-        (employee.fullName && employee.fullName.toLowerCase().includes(term)) ||
-        (employee.cardNumber && employee.cardNumber.toLowerCase().includes(term))
-      );
+      const searchMatch = (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
+        (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower));
 
       const isInDateRange = () => {
         if (!dateRange.from && !dateRange.to) return true;
@@ -135,18 +126,6 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
       );
     });
   }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange]);
-  
-  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
-
-  const paginatedEmployees = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredEmployees.slice(startIndex, endIndex);
-  }, [filteredEmployees, currentPage]);
-  
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange]);
   
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
     setDateRange(prev => ({ ...prev, [type]: date }));
@@ -253,36 +232,61 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
         });
     });
   };
-  
-  const PaginationControls = () => (
-    <div className="flex items-center justify-center space-x-4 pt-4">
-        <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-        >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Poprzednia
-        </Button>
-        <span className="text-sm font-medium">
-            Strona {currentPage} z {totalPages}
-        </span>
-        <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage >= totalPages}
-        >
-            Następna
-            <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
-    </div>
-  );
+
+  const columns = useMemo<ColumnDef<Employee>[]>(() => [
+    { accessorKey: "fullName", header: "Nazwisko i imię" },
+    { accessorKey: "hireDate", header: "Data zatrudnienia" },
+    { accessorKey: "jobTitle", header: "Stanowisko" },
+    { accessorKey: "department", header: "Dział" },
+    { accessorKey: "manager", header: "Kierownik" },
+    { accessorKey: "cardNumber", header: "Nr karty" },
+    { accessorKey: "nationality", header: "Narodowość" },
+    { accessorKey: "lockerNumber", header: "Nr szafki" },
+    { accessorKey: "departmentLockerNumber", header: "Nr szafki w dziale" },
+    { accessorKey: "sealNumber", header: "Nr pieczęci" },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const employee = row.original;
+        return (
+           <EmployeeSummary employee={employee}>
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Otwórz menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edytuj
+                  </DropdownMenuItem>
+                   <DropdownMenuItem onSelect={() => handleCopy(employee)}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Kopiuj imię
+                  </DropdownMenuItem>
+                   <DropdownMenuItem>
+                      <Bot className="mr-2 h-4 w-4" />
+                       Generuj podsumowanie
+                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
+                    <UserX className="mr-2 h-4 w-4" />
+                    Zwolnij
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+          </EmployeeSummary>
+        );
+      },
+    },
+  ], []);
 
   const renderMobileView = () => (
     <div className="w-full space-y-4">
-        {paginatedEmployees.map(employee => (
+        {filteredEmployees.slice(0, 50).map(employee => ( // Simple pagination for mobile
             <Card key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
                 <CardHeader>
                     <CardTitle>{employee.fullName}</CardTitle>
@@ -327,82 +331,6 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
                 </CardFooter>
             </Card>
         ))}
-    </div>
-  );
-
-  const renderDesktopView = () => (
-    <div className="flex-grow overflow-auto rounded-lg border">
-        <Table>
-          <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm">
-            <TableRow>
-              <TableHead>Nazwisko i imię</TableHead>
-              <TableHead>Data zatrudnienia</TableHead>
-              <TableHead>Stanowisko</TableHead>
-              <TableHead>Dział</TableHead>
-              <TableHead>Kierownik</TableHead>
-              <TableHead>Nr karty</TableHead>
-              <TableHead>Narodowość</TableHead>
-              <TableHead>Nr szafki</TableHead>
-              <TableHead>Nr szafki w dziale</TableHead>
-              <TableHead>Nr pieczęci</TableHead>
-              <TableHead className="text-right">Akcje</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedEmployees.length > 0 ? paginatedEmployees.map(employee => (
-              <TableRow key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
-                <TableCell className="font-medium">{employee.fullName}</TableCell>
-                <TableCell>{employee.hireDate}</TableCell>
-                <TableCell>{employee.jobTitle}</TableCell>
-                <TableCell>{employee.department}</TableCell>
-                <TableCell>{employee.manager}</TableCell>
-                <TableCell>{employee.cardNumber}</TableCell>
-                <TableCell>{employee.nationality}</TableCell>
-                <TableCell>{employee.lockerNumber}</TableCell>
-                <TableCell>{employee.departmentLockerNumber}</TableCell>
-                <TableCell>{employee.sealNumber}</TableCell>
-                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <EmployeeSummary employee={employee}>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Otwórz menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                              <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edytuj
-                              </DropdownMenuItem>
-                               <DropdownMenuItem onSelect={() => handleCopy(employee)}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Kopiuj imię
-                              </DropdownMenuItem>
-                               <DropdownMenuItem>
-                                  <Bot className="mr-2 h-4 w-4" />
-                                   Generuj podsumowanie
-                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
-                                <UserX className="mr-2 h-4 w-4" />
-                                Zwolnij
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </EmployeeSummary>
-                </TableCell>
-              </TableRow>
-            )) : !isLoading && (
-              <TableRow>
-                <TableCell colSpan={11} className="h-24 text-center">
-                  Brak aktywnych pracowników pasujących do kryteriów.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
     </div>
   );
 
@@ -497,7 +425,7 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
         <div className="flex items-center gap-4">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Szukaj po nazwisku, imieniu, karcie (można po przecinku)..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
            <Button variant="outline" onClick={handleClearFilters}>
               <XCircle className="mr-2 h-4 w-4" />
@@ -554,15 +482,16 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
         </div>
       </div>
 
-
-      <div className="flex flex-col flex-grow items-center">
-        <div className="w-full">
-          {hasMounted && isMobile ? renderMobileView() : renderDesktopView()}
-        </div>
-        {totalPages > 1 && <PaginationControls />}
+       <div className="flex flex-col flex-grow">
+        {hasMounted && isMobile 
+          ? renderMobileView() 
+          : <DataTable 
+              columns={columns} 
+              data={filteredEmployees} 
+              onRowClick={handleEditEmployee}
+            />
+        }
       </div>
     </div>
   );
 }
-
-    

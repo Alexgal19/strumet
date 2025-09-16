@@ -1,0 +1,169 @@
+
+"use client"
+
+import React, { useState, useEffect } from "react"
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  useReactTable,
+  Row,
+} from "@tanstack/react-table"
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
+interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[]
+  data: TData[]
+  onRowClick?: (row: TData) => void
+}
+
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  onRowClick,
+}: DataTableProps<TData, TValue>) {
+    const [rowSelection, setRowSelection] = useState({})
+
+    const tableColumns: ColumnDef<TData, TValue>[] = [
+        {
+          id: "select",
+          header: ({ table }) => (
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && "indeterminate")
+              }
+              onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+              aria-label="Select all"
+            />
+          ),
+          cell: ({ row }) => (
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ),
+          enableSorting: false,
+          enableHiding: false,
+        },
+        ...columns,
+    ]
+
+  const table = useReactTable({
+    data,
+    columns: tableColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onRowSelectionChange: setRowSelection,
+    state: {
+      rowSelection,
+    },
+    initialState: {
+        pagination: {
+            pageSize: 50,
+        }
+    }
+  })
+
+  // Reset selection when data changes
+  useEffect(() => {
+    setRowSelection({});
+  }, [data]);
+
+  return (
+    <div className="flex-grow flex flex-col h-full">
+        <div className="flex-grow overflow-auto rounded-lg border">
+            <Table>
+            <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm z-10">
+                {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                    return (
+                        <TableHead key={header.id}>
+                        {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                            )}
+                        </TableHead>
+                    )
+                    })}
+                </TableRow>
+                ))}
+            </TableHeader>
+            <TableBody>
+                {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                    <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && "selected"}
+                        onClick={() => onRowClick && onRowClick(row.original)}
+                        className="cursor-pointer"
+                    >
+                    {row.getVisibleCells().map((cell) => (
+                        <TableCell 
+                            key={cell.id} 
+                            onClick={cell.column.id === 'actions' ? (e) => e.stopPropagation() : undefined}
+                        >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                    ))}
+                    </TableRow>
+                ))
+                ) : (
+                <TableRow>
+                    <TableCell colSpan={columns.length + 1} className="h-24 text-center">
+                    Brak wyników.
+                    </TableCell>
+                </TableRow>
+                )}
+            </TableBody>
+            </Table>
+        </div>
+         <div className="flex items-center justify-center space-x-4 py-4">
+            <div className="flex-1 text-sm text-muted-foreground">
+                Wybrano {table.getFilteredSelectedRowModel().rows.length} z{" "}
+                {table.getFilteredRowModel().rows.length} wierszy.
+            </div>
+            <div className="flex items-center justify-center space-x-4">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                >
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Poprzednia
+                </Button>
+                <span className="text-sm font-medium">
+                    Strona {table.getState().pagination.pageIndex + 1} z {table.getPageCount()}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                >
+                    Następna
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+            </div>
+      </div>
+    </div>
+  )
+}
