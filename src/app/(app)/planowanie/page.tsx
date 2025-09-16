@@ -44,23 +44,31 @@ export default function PlanningPage({ employees, isLoading }: PlanningPageProps
     return activeEmployees
       .filter(e => {
         if (!e.vacationStartDate || !e.vacationEndDate) return false;
-        const start = startOfDay(parseISO(e.vacationStartDate));
-        const end = endOfDay(parseISO(e.vacationEndDate));
-        return isWithinInterval(today, { start, end });
+        try {
+            const start = startOfDay(parseISO(e.vacationStartDate));
+            const end = endOfDay(parseISO(e.vacationEndDate));
+            return isWithinInterval(today, { start, end });
+        } catch (error) {
+            return false;
+        }
       })
       .sort((a, b) => new Date(a.vacationEndDate!).getTime() - new Date(b.vacationEndDate!).getTime());
   }, [activeEmployees]);
 
-  const approachingVacations = useMemo(() => {
+  const allPlannedVacations = useMemo(() => {
     const today = startOfDay(new Date());
     return activeEmployees
       .filter(e => {
-        if (!e.vacationStartDate) return false;
-        const diff = differenceInDays(parseISO(e.vacationStartDate), today);
-        return diff >= 0 && diff <= 7;
+        if (!e.vacationStartDate || !e.vacationEndDate) return false;
+        try {
+            const startDate = startOfDay(parseISO(e.vacationStartDate));
+            return startDate >= today && !onVacation.some(onVac => onVac.id === e.id);
+        } catch (error) {
+            return false;
+        }
       })
       .sort((a, b) => new Date(a.vacationStartDate!).getTime() - new Date(b.vacationStartDate!).getTime());
-  }, [activeEmployees]);
+  }, [activeEmployees, onVacation]);
 
 
   if (isLoading) {
@@ -71,9 +79,9 @@ export default function PlanningPage({ employees, isLoading }: PlanningPageProps
     );
   }
 
-  const EmployeeCard = ({ employee, type }: { employee: Employee, type: 'termination' | 'vacation' | 'vacation-approaching' }) => {
+  const EmployeeCard = ({ employee, type }: { employee: Employee, type: 'termination' | 'vacation' | 'vacation-planned' }) => {
     const today = startOfDay(new Date());
-    let date, diff, isUrgent, isWarning, isInfo, dateLabel, dateString;
+    let date, diff, isUrgent, isWarning, dateLabel, dateString;
 
     if (type === 'termination' && employee.plannedTerminationDate) {
         date = parseISO(employee.plannedTerminationDate);
@@ -81,18 +89,18 @@ export default function PlanningPage({ employees, isLoading }: PlanningPageProps
         dateLabel = "Data zwolnienia";
     } else if (type === 'vacation' && employee.vacationEndDate) {
         date = parseISO(employee.vacationEndDate);
-        diff = differenceInDays(startOfDay(date), today);
         dateLabel = "Koniec urlopu";
-    } else if (type === 'vacation-approaching' && employee.vacationStartDate) {
+    } else if (type === 'vacation-planned' && employee.vacationStartDate) {
         date = parseISO(employee.vacationStartDate);
         diff = differenceInDays(startOfDay(date), today);
-        dateLabel = "Początek urlopu";
+        dateLabel = `Urlop od ${format(date, "PPP", { locale: pl })} do ${employee.vacationEndDate ? format(parseISO(employee.vacationEndDate), "PPP", { locale: pl }) : ''}`;
     }
     
-    if (date) {
+    if (date && type !== 'vacation') {
         isUrgent = diff !== undefined && diff >= 0 && diff <= 3;
         isWarning = diff !== undefined && diff > 3 && diff <= 7;
-        isInfo = !isUrgent && !isWarning;
+        dateString = format(date, "PPP", { locale: pl });
+    } else if (date) {
         dateString = format(date, "PPP", { locale: pl });
     }
 
@@ -115,19 +123,27 @@ export default function PlanningPage({ employees, isLoading }: PlanningPageProps
                     <CardTitle className="text-lg">{employee.fullName}</CardTitle>
                     <CardDescription>{employee.jobTitle} - {employee.department}</CardDescription>
                 </div>
-                 {(isUrgent || isWarning) && <AlertTriangle className={cn("h-5 w-5", isUrgent ? "text-destructive" : "text-yellow-600")} />}
+                 {(isUrgent || isWarning) && type === 'termination' && <AlertTriangle className={cn("h-5 w-5", isUrgent ? "text-destructive" : "text-yellow-600")} />}
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-                <div className="flex items-center text-muted-foreground">
+                 <div className="flex items-center text-muted-foreground">
                     <CalendarClock className="mr-2 h-4 w-4" />
-                    <span>{dateLabel}: <strong className="text-foreground">{dateString}</strong></span>
+                     {type === 'vacation' ? (
+                        <span>Koniec urlopu: <strong className="text-foreground">{dateString}</strong></span>
+                    ) : type === 'termination' ? (
+                        <span>Data zwolnienia: <strong className="text-foreground">{dateString}</strong></span>
+                    ) : (
+                         <span>
+                           Urlop: <strong className="text-foreground">{employee.vacationStartDate ? format(parseISO(employee.vacationStartDate), "dd.MM") : ''} - {employee.vacationEndDate ? format(parseISO(employee.vacationEndDate), "dd.MM") : ''}</strong>
+                        </span>
+                    )}
                 </div>
                 {diff !== undefined && diff >= 0 && (
                     <div className={cn(
                         "text-xs font-medium px-2 py-1 rounded-full inline-block",
                         isUrgent && 'bg-destructive/20 text-destructive-foreground',
                         isWarning && 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300',
-                        isInfo && 'bg-muted text-muted-foreground'
+                        !isUrgent && !isWarning && 'bg-muted text-muted-foreground'
                     )}>
                         {getDaysLabel(diff)}
                     </div>
@@ -137,7 +153,7 @@ export default function PlanningPage({ employees, isLoading }: PlanningPageProps
     )
   };
   
-  const renderEmployeeList = (list: Employee[], type: 'termination' | 'vacation' | 'vacation-approaching', emptyMessage: string) => {
+  const renderEmployeeList = (list: Employee[], type: 'termination' | 'vacation' | 'vacation-planned', emptyMessage: string) => {
     if (list.length === 0) {
       return <p className="text-center text-muted-foreground py-6">{emptyMessage}</p>;
     }
@@ -169,8 +185,8 @@ export default function PlanningPage({ employees, isLoading }: PlanningPageProps
             <h2 className="text-2xl font-bold tracking-tight">Pracownicy na urlopie</h2>
             {renderEmployeeList(onVacation, 'vacation', 'Obecnie nikt nie przebywa na urlopie.')}
             
-            <h2 className="text-2xl font-bold tracking-tight pt-4">Nadchodzące urlopy (7 dni)</h2>
-            {renderEmployeeList(approachingVacations, 'vacation-approaching', 'Brak nadchodzących urlopów w najbliższym tygodniu.')}
+            <h2 className="text-2xl font-bold tracking-tight pt-4">Wszystkie zaplanowane urlopy</h2>
+            {renderEmployeeList(allPlannedVacations, 'vacation-planned', 'Brak zaplanowanych urlopów.')}
         </div>
 
       </div>
