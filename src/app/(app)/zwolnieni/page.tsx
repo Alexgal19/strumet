@@ -227,6 +227,9 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
       { accessorKey: "manager", header: "Kierownik" },
       { accessorKey: "cardNumber", header: "Nr karty" },
       { accessorKey: "nationality", header: "Narodowość" },
+      { accessorKey: "lockerNumber", header: "Nr szafki" },
+      { accessorKey: "departmentLockerNumber", header: "Nr szafki w dziale" },
+      { accessorKey: "sealNumber", header: "Nr pieczęci" },
       {
         id: "actions",
         cell: ({ row }) => {
@@ -445,5 +448,7 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
     </div>
   );
 }
+
+    
 
     

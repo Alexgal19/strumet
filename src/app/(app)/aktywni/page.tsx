@@ -510,3 +510,5 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
 }
 
     
+
+    
