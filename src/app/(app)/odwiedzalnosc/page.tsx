@@ -163,10 +163,11 @@ export default function AttendancePage() {
 
   const filteredEmployees = useMemo(() => {
     if (!attendanceData) return [];
-    const searchLower = searchTerm.toLowerCase();
+    const searchTerms = searchTerm.split(',').map(term => term.trim().toLowerCase()).filter(term => term);
+    
     return attendanceData.employees.filter(e => {
         const departmentMatch = selectedDepartments.length === 0 || selectedDepartments.includes(e.department);
-        const searchMatch = !searchLower || e.fullName.toLowerCase().includes(searchLower);
+        const searchMatch = searchTerms.length === 0 || searchTerms.some(term => e.fullName.toLowerCase().includes(term));
         return departmentMatch && searchMatch;
     });
   }, [attendanceData, selectedDepartments, searchTerm]);
@@ -393,7 +394,7 @@ export default function AttendancePage() {
                 <div className="relative flex-grow">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder="Szukaj po nazwisku..." 
+                    placeholder="Szukaj po nazwisku (można po przecinku)..." 
                     className="pl-9" 
                     value={searchTerm} 
                     onChange={(e) => setSearchTerm(e.target.value)} 
@@ -404,7 +405,7 @@ export default function AttendancePage() {
                       options={departmentOptions}
                       selected={selectedDepartments}
                       onChange={setSelectedDepartments}
-                      placeholder="Wybierz dział"
+                      title="Wybierz dział"
                     />
                 </div>
               </div>
@@ -476,3 +477,5 @@ export default function AttendancePage() {
     </>
   );
 }
+
+    

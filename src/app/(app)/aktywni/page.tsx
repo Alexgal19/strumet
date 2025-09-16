@@ -95,8 +95,13 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
 
   const filteredEmployees = useMemo(() => {
     return activeEmployees.filter(employee => {
-      const searchLower = searchTerm.toLowerCase();
+      const searchTerms = searchTerm.split(',').map(term => term.trim().toLowerCase()).filter(term => term);
       
+      const searchMatch = searchTerms.length === 0 || searchTerms.some(term => 
+        (employee.fullName && employee.fullName.toLowerCase().includes(term)) ||
+        (employee.cardNumber && employee.cardNumber.toLowerCase().includes(term))
+      );
+
       const isInDateRange = () => {
         if (!dateRange.from && !dateRange.to) return true;
         if (!employee.hireDate || typeof employee.hireDate !== 'string') return false;
@@ -121,8 +126,7 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
       };
 
       return (
-        ((employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
-          (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))) &&
+        searchMatch &&
         (selectedDepartments.length === 0 || selectedDepartments.includes(employee.department)) &&
         (selectedManagers.length === 0 || selectedManagers.includes(employee.manager)) &&
         (selectedJobTitles.length === 0 || selectedJobTitles.includes(employee.jobTitle)) &&
@@ -493,7 +497,7 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
         <div className="flex items-center gap-4">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <Input placeholder="Szukaj po nazwisku, imieniu, karcie (można po przecinku)..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
            <Button variant="outline" onClick={handleClearFilters}>
               <XCircle className="mr-2 h-4 w-4" />
@@ -560,3 +564,5 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
     </div>
   );
 }
+
+    
