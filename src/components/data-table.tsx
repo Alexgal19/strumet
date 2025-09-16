@@ -9,6 +9,7 @@ import {
   getPaginationRowModel,
   useReactTable,
   Row,
+  RowSelectionState,
 } from "@tanstack/react-table"
 
 import {
@@ -27,14 +28,17 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   onRowClick?: (row: TData) => void
+  rowSelection: RowSelectionState
+  onRowSelectionChange: React.Dispatch<React.SetStateAction<RowSelectionState>>
 }
 
 export function DataTable<TData extends {id: string}, TValue>({
   columns,
   data,
   onRowClick,
+  rowSelection,
+  onRowSelectionChange,
 }: DataTableProps<TData, TValue>) {
-    const [rowSelection, setRowSelection] = useState({})
 
     const tableColumns: ColumnDef<TData, TValue>[] = [
         {
@@ -68,7 +72,7 @@ export function DataTable<TData extends {id: string}, TValue>({
     columns: tableColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: onRowSelectionChange,
     getRowId: (row) => row.id,
     state: {
       rowSelection,
@@ -163,3 +167,5 @@ export function DataTable<TData extends {id: string}, TValue>({
     </div>
   )
 }
+
+    

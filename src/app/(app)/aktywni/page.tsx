@@ -48,7 +48,7 @@ import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { EmployeeForm } from '@/components/employee-form';
 import { DataTable } from '@/components/data-table';
-import type { ColumnDef } from "@tanstack/react-table"
+import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
 
 const EmployeeSummary = dynamic(() => import('@/components/employee-summary').then(mod => mod.EmployeeSummary), {
   ssr: false
@@ -70,6 +70,9 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
+  
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
@@ -84,13 +87,17 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
     setSelectedManagers([]);
     setSelectedNationalities([]);
     setDateRange({ from: undefined, to: undefined });
+    setRowSelection({});
   };
 
   const filteredEmployees = useMemo(() => {
     return activeEmployees.filter(employee => {
+      const isSelected = selectedEmployeeIds.includes(employee.id);
+      if (isSelected) return true;
+
       const searchLower = searchTerm.toLowerCase();
       
-      const searchMatch = (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
+      const searchMatch = !searchTerm || (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
         (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower));
 
       const isInDateRange = () => {
@@ -116,6 +123,10 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
         }
       };
 
+      const noFiltersApplied = !searchTerm && selectedDepartments.length === 0 && selectedManagers.length === 0 && selectedJobTitles.length === 0 && selectedNationalities.length === 0 && !dateRange.from && !dateRange.to;
+      if (noFiltersApplied) return true;
+
+
       return (
         searchMatch &&
         (selectedDepartments.length === 0 || selectedDepartments.includes(employee.department)) &&
@@ -125,7 +136,7 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
         isInDateRange()
       );
     });
-  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange]);
+  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange, selectedEmployeeIds]);
   
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
     setDateRange(prev => ({ ...prev, [type]: date }));
@@ -489,9 +500,13 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
               columns={columns} 
               data={filteredEmployees} 
               onRowClick={handleEditEmployee}
+              rowSelection={rowSelection}
+              onRowSelectionChange={setRowSelection}
             />
         }
       </div>
     </div>
   );
 }
+
+    

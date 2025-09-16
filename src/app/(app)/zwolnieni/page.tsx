@@ -42,7 +42,7 @@ import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/data-table';
-import type { ColumnDef } from "@tanstack/react-table"
+import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
 
 
 export default function ZwolnieniPage({ employees, config, isLoading }: { employees: Employee[], config: AllConfig, isLoading: boolean }) {
@@ -59,6 +59,9 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
+
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
 
@@ -70,13 +73,17 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
     setSelectedJobTitles([]);
     setSelectedManagers([]);
     setDateRange({ from: undefined, to: undefined });
+    setRowSelection({});
   };
 
   const filteredEmployees = useMemo(() => {
     return terminatedEmployees.filter(employee => {
+      const isSelected = selectedEmployeeIds.includes(employee.id);
+      if (isSelected) return true;
+
        const searchLower = searchTerm.toLowerCase();
       
-      const searchMatch = (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
+      const searchMatch = !searchTerm || (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
         (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower));
 
       const isInDateRange = () => {
@@ -102,6 +109,9 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
         }
       };
 
+      const noFiltersApplied = !searchTerm && selectedDepartments.length === 0 && selectedManagers.length === 0 && selectedJobTitles.length === 0 && !dateRange.from && !dateRange.to;
+      if (noFiltersApplied) return true;
+
       return (
         searchMatch &&
         (selectedDepartments.length === 0 || selectedDepartments.includes(employee.department)) &&
@@ -110,7 +120,7 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
         isInDateRange()
       );
     });
-  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, dateRange]);
+  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, dateRange, selectedEmployeeIds]);
 
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
     setDateRange(prev => ({ ...prev, [type]: date }));
@@ -427,9 +437,13 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
               columns={columns} 
               data={filteredEmployees} 
               onRowClick={handleEditEmployee}
+              rowSelection={rowSelection}
+              onRowSelectionChange={setRowSelection}
             />
         }
       </div>
     </div>
   );
 }
+
+    
