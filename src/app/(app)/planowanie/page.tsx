@@ -10,9 +10,9 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, CalendarClock, AlertTriangle } from 'lucide-react';
+import { Loader2, CalendarClock } from 'lucide-react';
 import { Employee } from '@/lib/types';
-import { format, differenceInDays, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -80,74 +80,37 @@ export default function PlanningPage({ employees, isLoading }: PlanningPageProps
   }
 
   const EmployeeCard = ({ employee, type }: { employee: Employee, type: 'termination' | 'vacation' | 'vacation-planned' }) => {
-    const today = startOfDay(new Date());
-    let date, diff, isUrgent, isWarning, dateLabel, dateString;
+    let dateLabel, dateString;
 
     if (type === 'termination' && employee.plannedTerminationDate) {
-        date = parseISO(employee.plannedTerminationDate);
-        diff = differenceInDays(startOfDay(date), today);
-        dateLabel = "Data zwolnienia";
+        dateString = format(parseISO(employee.plannedTerminationDate), "PPP", { locale: pl });
+        dateLabel = `Data zwolnienia: ${dateString}`;
     } else if (type === 'vacation' && employee.vacationEndDate) {
-        date = parseISO(employee.vacationEndDate);
-        dateLabel = "Koniec urlopu";
+        dateString = format(parseISO(employee.vacationEndDate), "PPP", { locale: pl });
+        dateLabel = `Koniec urlopu: ${dateString}`;
     } else if (type === 'vacation-planned' && employee.vacationStartDate) {
-        date = parseISO(employee.vacationStartDate);
-        diff = differenceInDays(startOfDay(date), today);
-        dateLabel = `Urlop od ${format(date, "PPP", { locale: pl })} do ${employee.vacationEndDate ? format(parseISO(employee.vacationEndDate), "PPP", { locale: pl }) : ''}`;
+        const startDate = format(parseISO(employee.vacationStartDate), "dd.MM");
+        const endDate = employee.vacationEndDate ? format(parseISO(employee.vacationEndDate), "dd.MM.yyyy") : '';
+        dateLabel = `Urlop: ${startDate} - ${endDate}`;
     }
-    
-    if (date && type !== 'vacation') {
-        isUrgent = diff !== undefined && diff >= 0 && diff <= 3;
-        isWarning = diff !== undefined && diff > 3 && diff <= 7;
-        dateString = format(date, "PPP", { locale: pl });
-    } else if (date) {
-        dateString = format(date, "PPP", { locale: pl });
-    }
-
-    const getDaysLabel = (days: number) => {
-        if (days < 0) return '';
-        if (days === 0) return 'dzisiaj';
-        if (days === 1) return `za 1 dzień`;
-        if (days > 1 && days < 5) return `za ${days} dni`;
-        return `za ${days} dni`;
-    };
     
     return (
         <Card className={cn(
             "w-full",
-            isUrgent && 'border-destructive/50 bg-destructive/10',
-            isWarning && 'border-yellow-500/50 bg-yellow-500/10',
+            type === 'termination' && 'border-destructive/50 bg-destructive/10',
+            (type === 'vacation' || type === 'vacation-planned') && 'border-yellow-500/50 bg-yellow-500/10',
         )}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                 <div className="space-y-1">
                     <CardTitle className="text-lg">{employee.fullName}</CardTitle>
                     <CardDescription>{employee.jobTitle} - {employee.department}</CardDescription>
                 </div>
-                 {(isUrgent || isWarning) && type === 'termination' && <AlertTriangle className={cn("h-5 w-5", isUrgent ? "text-destructive" : "text-yellow-600")} />}
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
                  <div className="flex items-center text-muted-foreground">
                     <CalendarClock className="mr-2 h-4 w-4" />
-                     {type === 'vacation' ? (
-                        <span>Koniec urlopu: <strong className="text-foreground">{dateString}</strong></span>
-                    ) : type === 'termination' ? (
-                        <span>Data zwolnienia: <strong className="text-foreground">{dateString}</strong></span>
-                    ) : (
-                         <span>
-                           Urlop: <strong className="text-foreground">{employee.vacationStartDate ? format(parseISO(employee.vacationStartDate), "dd.MM") : ''} - {employee.vacationEndDate ? format(parseISO(employee.vacationEndDate), "dd.MM") : ''}</strong>
-                        </span>
-                    )}
+                    <strong className="text-foreground">{dateLabel}</strong>
                 </div>
-                {diff !== undefined && diff >= 0 && (
-                    <div className={cn(
-                        "text-xs font-medium px-2 py-1 rounded-full inline-block",
-                        isUrgent && 'bg-destructive/20 text-destructive-foreground',
-                        isWarning && 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300',
-                        !isUrgent && !isWarning && 'bg-muted text-muted-foreground'
-                    )}>
-                        {getDaysLabel(diff)}
-                    </div>
-                )}
             </CardContent>
         </Card>
     )
