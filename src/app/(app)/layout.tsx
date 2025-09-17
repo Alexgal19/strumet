@@ -61,6 +61,18 @@ export default function AppLayout({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, err => {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     const dataRef = ref(db);
     const unsubscribe = onValue(dataRef, (snapshot) => {
         const data = snapshot.val() || {};

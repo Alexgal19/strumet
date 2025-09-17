@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import ClientSideEffect from '@/components/client-side-effect';
 
 // This metadata is now static and won't be used by the PWA manifest directly
 // But it's good practice to keep it for SEO and browser tabs.
@@ -23,7 +22,6 @@ export default function RootLayout({
         <meta name="theme-color" content="#8b5cf6" />
       </head>
       <body className="font-body antialiased">
-        <ClientSideEffect />
         {children}
         <Toaster />
       </body>
