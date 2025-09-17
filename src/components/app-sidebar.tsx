@@ -41,15 +41,6 @@ import type { AppNotification } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: Array<string>;
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed',
-    platform: string
-  }>;
-  prompt(): Promise<void>;
-}
-
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
@@ -138,38 +129,6 @@ interface AppSidebarProps {
 
 const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
   const isMobile = useIsMobile();
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsInstallable(true);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      return;
-    }
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-    } else {
-      console.log('User dismissed the install prompt');
-    }
-    setDeferredPrompt(null);
-    setIsInstallable(false);
-  };
-
 
   const menuItems: { view: ActiveView, icon: React.ReactNode, label: string }[] = [
     { view: 'aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
@@ -218,11 +177,6 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
       <SidebarFooter className="p-4 flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
             <Notifications />
-            {isInstallable && (
-                <button onClick={handleInstallClick} className="relative rounded-full p-2 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent">
-                    <Download className="h-5 w-5" />
-                </button>
-            )}
         </div>
         <SidebarMenu>
           <SidebarMenuItem className="p-0">
