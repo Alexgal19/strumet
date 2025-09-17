@@ -23,7 +23,14 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  experimental: {},
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+    // This is to prevent the server from restarting when the config file is touched
+    // by the build process.
+    ignoredFilePatterns: ['**/next.config.ts'],
+  },
   allowedDevOrigins: [
     "https://*.cloudworkstations.dev",
   ]
