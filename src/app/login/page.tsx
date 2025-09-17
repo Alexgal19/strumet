@@ -32,14 +32,12 @@ export default function LoginPage() {
   const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
-    // Register the service worker
+    // Register the service worker immediately
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-          console.log('SW registered: ', registration);
-        }).catch(registrationError => {
-          console.log('SW registration failed: ', registrationError);
-        });
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('SW registered: ', registration);
+      }).catch(registrationError => {
+        console.log('SW registration failed: ', registrationError);
       });
     }
     
@@ -48,6 +46,7 @@ export default function LoginPage() {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsInstallable(true);
+      console.log('beforeinstallprompt event fired');
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
