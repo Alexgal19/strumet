@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Component, Download } from "lucide-react";
+import { Component, Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -25,6 +27,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
@@ -40,16 +43,30 @@ export default function LoginPage() {
     };
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    // Mock validation
-    if (email === 'admin@example.com' && password === 'password') {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       toast({ title: 'Sukces', description: 'Zalogowano pomyślnie.' });
       router.push("/");
-    } else {
-      setError("Nieprawidłowy email lub hasło.");
+    } catch (error: any) {
+      let errorMessage = "Wystąpił błąd podczas logowania.";
+       switch (error.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          errorMessage = 'Nieprawidłowy email lub hasło.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Nieprawidłowy format adresu email.';
+          break;
+      }
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -89,10 +106,11 @@ export default function LoginPage() {
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="admin@example.com" 
+                placeholder="email@example.com" 
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -101,15 +119,16 @@ export default function LoginPage() {
                 id="password" 
                 type="password" 
                 required 
-                placeholder="password"
+                placeholder="********"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             {error && <p className="text-sm font-medium text-destructive">{error}</p>}
             <div className="space-y-2 pt-2">
-                <Button type="submit" className="w-full">
-                  Zaloguj się
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="animate-spin" /> : "Zaloguj się"}
                 </Button>
             </div>
           </form>
