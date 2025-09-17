@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Component, Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -20,6 +21,10 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
@@ -37,23 +42,32 @@ export default function LoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/");
+    setError('');
+
+    // Mock validation
+    if (email === 'admin@example.com' && password === 'password') {
+      toast({ title: 'Sukces', description: 'Zalogowano pomyślnie.' });
+      router.push("/");
+    } else {
+      setError("Nieprawidłowy email lub hasło.");
+    }
   };
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      // If the deferred prompt isn't available, do nothing.
-      // The browser might not support PWA installation, or the event hasn't fired yet.
-      // Optionally, show a message to the user.
-      console.log("Можливість інсталяції ще не доступна.");
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Nie można zainstalować aplikacji w tym momencie.',
+      });
       return;
     }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
+      toast({ title: 'Sukces', description: 'Aplikacja została zainstalowana.' });
     } else {
-      console.log('User dismissed the install prompt');
+      toast({ title: 'Anulowano', description: 'Instalacja aplikacji została anulowana.' });
     }
     setDeferredPrompt(null);
   };
@@ -72,12 +86,27 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="admin@example.com" required />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="admin@example.com" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Hasło</Label>
-              <Input id="password" type="password" required />
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                placeholder="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
+            {error && <p className="text-sm font-medium text-destructive">{error}</p>}
             <div className="space-y-2 pt-2">
                 <Button type="submit" className="w-full">
                   Zaloguj się
@@ -85,9 +114,9 @@ export default function LoginPage() {
             </div>
           </form>
            <div className="mt-4 text-center text-sm">
-            Немає облікового запису?{" "}
+            Nie masz konta?{" "}
             <Link href="/register" className="underline font-bold">
-              Зареєструватися
+              Zarejestruj się
             </Link>
           </div>
           <div className="mt-4">

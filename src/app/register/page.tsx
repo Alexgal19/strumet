@@ -8,9 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Component } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,7 +25,12 @@ export default function RegisterPage() {
       return;
     }
     setError('');
-    console.log("Rejestracja pomyślna (mock)");
+    // Mock registration logic
+    console.log("Rejestracja pomyślna (mock) dla:", email);
+    toast({
+      title: "Rejestracja pomyślna",
+      description: "Teraz możesz się zalogować.",
+    });
     router.push("/login");
   };
 
@@ -40,7 +48,14 @@ export default function RegisterPage() {
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="admin@example.com" required />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="admin@example.com" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Hasło</Label>
