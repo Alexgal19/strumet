@@ -1,30 +1,19 @@
-import type {Metadata} from 'next';
-import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
+'use client';
 
-// This metadata is now static and won't be used by the PWA manifest directly
-// But it's good practice to keep it for SEO and browser tabs.
-export const metadata: Metadata = {
-  title: 'HOL manager',
-  description: 'System do zarządzania pracownikami',
-};
+import { useEffect } from 'react';
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="pl">
-      <head>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-geist/latest/geist.css" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#8b5cf6" />
-      </head>
-      <body className="font-body antialiased">
-        {children}
-        <Toaster />
-      </body>
-    </html>
-  );
+export default function ClientSideEffect() {
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('SW registered: ', registration);
+        }).catch(registrationError => {
+          console.log('SW registration failed: ', registrationError);
+        });
+      });
+    }
+  }, []);
+
+  return null;
 }

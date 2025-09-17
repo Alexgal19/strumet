@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -59,18 +60,6 @@ export default function AppLayout({
   const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
   const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, err => {
-          console.log('ServiceWorker registration failed: ', err);
-        });
-      });
-    }
-  }, []);
 
   useEffect(() => {
     const dataRef = ref(db);
