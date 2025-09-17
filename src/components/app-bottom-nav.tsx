@@ -1,7 +1,7 @@
-
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   Users,
   UserX,
@@ -11,6 +11,7 @@ import {
   FileText,
   Shirt,
   BarChart3,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -21,16 +22,22 @@ interface AppBottomNavProps {
   setActiveView: (view: ActiveView) => void;
 }
 
+interface MenuItem {
+    view?: ActiveView;
+    href?: string;
+    icon: React.ElementType;
+    label: string;
+}
+
 const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const isMobile = useIsMobile();
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
     { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
-    { view: 'planowanie', icon: CalendarClock, label: 'Plan' },
     { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność' },
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
-    { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
+    { href: '/login', icon: LogOut, label: 'Wyloguj' },
   ];
   
   if (!isMobile) {
@@ -42,16 +49,17 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
       <nav className="flex h-16 items-center justify-around rounded-2xl bg-neutral-500/20 shadow-lg border border-white/10 backdrop-blur-md">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeView === item.view;
-          return (
-            <button
-              key={item.view}
-              onClick={() => setActiveView(item.view as ActiveView)}
-              className={cn(
+          const isActive = item.view ? activeView === item.view : false;
+          
+          const commonProps = {
+              className: cn(
                 'flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium rounded-lg transition-all w-16 h-16 transform',
                 isActive ? 'text-primary -translate-y-2' : 'text-muted-foreground hover:text-primary'
-              )}
-            >
+              )
+          };
+
+          const content = (
+             <>
               <div className={cn(
                 'flex items-center justify-center w-8 h-8 rounded-full transition-colors',
                  isActive ? 'bg-primary/10' : ''
@@ -59,6 +67,24 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
                  <Icon className="h-5 w-5" />
               </div>
               <span className={cn('transition-opacity', isActive ? 'opacity-100' : 'opacity-0')}>{item.label}</span>
+             </>
+          );
+
+          if (item.href) {
+              return (
+                <Link key={item.label} href={item.href} {...commonProps}>
+                    {content}
+                </Link>
+              );
+          }
+
+          return (
+            <button
+              key={item.view}
+              onClick={() => setActiveView(item.view as ActiveView)}
+              {...commonProps}
+            >
+             {content}
             </button>
           )
         })}
