@@ -1,21 +1,62 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Component } from "lucide-react";
+import { Component, Download } from "lucide-react";
+
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: Array<string>;
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed',
+    platform: string
+  }>;
+  prompt(): Promise<void>;
+}
 
 export default function LoginPage() {
   const router = useRouter();
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you'd have authentication logic here.
-    // For now, we'll just redirect to the main app page.
     router.push("/");
   };
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -40,6 +81,12 @@ export default function LoginPage() {
             <Button type="submit" className="w-full">
               Zaloguj się
             </Button>
+            {isInstallable && (
+                 <Button type="button" variant="outline" className="w-full" onClick={handleInstallClick}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Zainstaluj aplikację
+                </Button>
+            )}
           </form>
         </CardContent>
       </Card>
