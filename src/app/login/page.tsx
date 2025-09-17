@@ -78,15 +78,17 @@ export default function LoginPage() {
               <Label htmlFor="password">Hasło</Label>
               <Input id="password" type="password" required defaultValue="password" />
             </div>
-            <Button type="submit" className="w-full">
-              Zaloguj się
-            </Button>
-            {isInstallable && (
-                 <Button type="button" variant="outline" className="w-full" onClick={handleInstallClick}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Zainstaluj aplikację
+            <div className="space-y-2 pt-2">
+                <Button type="submit" className="w-full">
+                  Zaloguj się
                 </Button>
-            )}
+                {isInstallable && (
+                     <Button type="button" variant="outline" className="w-full" onClick={handleInstallClick}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Zainstaluj aplikację
+                    </Button>
+                )}
+            </div>
           </form>
         </CardContent>
       </Card>
