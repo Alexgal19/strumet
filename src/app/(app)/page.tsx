@@ -1,5 +1,15 @@
+'use client';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
 // This is the main entry point for the authenticated part of the app.
-// The MainLayout component will handle rendering the default view ('aktywni').
+// It redirects to the default view ('aktywni').
 export default function AppPage() {
-  return null;
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/aktywni');
+  }, [router]);
+
+  return null; // Or a loading spinner
 }
