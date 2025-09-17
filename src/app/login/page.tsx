@@ -83,8 +83,6 @@ export default function LoginPage() {
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
       toast({ title: 'Sukces', description: 'Aplikacja została zainstalowana.' });
-    } else {
-      toast({ title: 'Anulowano', description: 'Instalacja aplikacji została anulowana.' });
     }
     setDeferredPrompt(null);
   };
