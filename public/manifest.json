@@ -1,21 +1,21 @@
 {
   "name": "HOL manager",
-  "short_name": "HOL manager",
+  "short_name": "HOL",
   "description": "System do zarządzania pracownikami",
+  "start_url": "/login",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#209cee",
   "icons": [
     {
       "src": "/icon/icon-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "type": "image/png"
     },
     {
       "src": "/icon/icon-512x512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "type": "image/png"
     }
-  ],
-  "start_url": "/login",
-  "display": "standalone",
-  "theme_color": "#209cee",
-  "background_color": "#ffffff"
+  ]
 }
