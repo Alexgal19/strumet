@@ -71,11 +71,11 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="admin@example.com" required defaultValue="admin@example.com" />
+              <Input id="email" type="email" placeholder="admin@example.com" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Hasło</Label>
-              <Input id="password" type="password" required defaultValue="password" />
+              <Input id="password" type="password" required />
             </div>
             <div className="space-y-2 pt-2">
                 <Button type="submit" className="w-full">
