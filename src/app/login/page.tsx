@@ -21,13 +21,11 @@ interface BeforeInstallPromptEvent extends Event {
 export default function LoginPage() {
   const router = useRouter();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsInstallable(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -44,6 +42,10 @@ export default function LoginPage() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
+      // If the deferred prompt isn't available, do nothing.
+      // The browser might not support PWA installation, or the event hasn't fired yet.
+      // Optionally, show a message to the user.
+      console.log("Можливість інсталяції ще не доступна.");
       return;
     }
     deferredPrompt.prompt();
@@ -54,7 +56,6 @@ export default function LoginPage() {
       console.log('User dismissed the install prompt');
     }
     setDeferredPrompt(null);
-    setIsInstallable(false);
   };
 
   return (
@@ -89,14 +90,12 @@ export default function LoginPage() {
               Зареєструватися
             </Link>
           </div>
-          {isInstallable && (
-            <div className="mt-4">
-              <Button variant="outline" className="w-full" onClick={handleInstallClick}>
-                <Download className="mr-2 h-4 w-4" />
-                Zainstaluj aplikację
-              </Button>
-            </div>
-          )}
+          <div className="mt-4">
+            <Button variant="outline" className="w-full" onClick={handleInstallClick}>
+              <Download className="mr-2 h-4 w-4" />
+              Zainstaluj aplikację
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
