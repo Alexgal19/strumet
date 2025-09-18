@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -80,7 +81,7 @@ function MultiSelect({
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command>
-          <CommandInput placeholder={`Szukaj ${title?.toLowerCase()}...`} />
+          <CommandInput placeholder={`Szukaj ${title?.toLowerCase() ?? 'opcji'}...`} />
           <CommandList>
             <CommandEmpty>Brak wyników.</CommandEmpty>
             <CommandGroup>

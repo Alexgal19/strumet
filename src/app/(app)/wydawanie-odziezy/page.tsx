@@ -64,17 +64,12 @@ export default function ClothingIssuancePage({ employees, config, clothingIssuan
 
   useEffect(() => {
     if (printingIssuance) {
-      document.body.classList.add('printing');
-      const timer = setTimeout(() => {
-        window.print();
-        setPrintingIssuance(null);
-        document.body.classList.remove('printing');
-      }, 100);
+        const timer = setTimeout(() => {
+            window.print();
+            setPrintingIssuance(null);
+        }, 100);
 
-      return () => {
-        clearTimeout(timer);
-        document.body.classList.remove('printing');
-      };
+        return () => clearTimeout(timer);
     }
   }, [printingIssuance]);
   
@@ -180,7 +175,7 @@ export default function ClothingIssuancePage({ employees, config, clothingIssuan
 
   return (
     <>
-      <div className="flex h-full flex-col">
+      <div className="main-content-container flex h-full flex-col">
         <PageHeader
           title="Wydawanie odzieży"
           description="Rejestruj i drukuj potwierdzenia wydania odzieży roboczej."
@@ -248,7 +243,7 @@ export default function ClothingIssuancePage({ employees, config, clothingIssuan
                             });
                             setCurrentItems(newItems);
                         }}
-                        placeholder="Wybierz odzież..."
+                        title="Wybierz odzież..."
                     />
                 </div>
 
@@ -339,7 +334,7 @@ export default function ClothingIssuancePage({ employees, config, clothingIssuan
         </div>
       </div>
       {printingIssuance && selectedEmployeeForPrint && (
-        <div className="print-container" ref={printComponentRef}>
+        <div className="print-only" ref={printComponentRef}>
           <ClothingIssuancePrintForm 
             employee={selectedEmployeeForPrint}
             issuance={printingIssuance}
@@ -349,3 +344,5 @@ export default function ClothingIssuancePage({ employees, config, clothingIssuan
     </>
   );
 }
+
+    
