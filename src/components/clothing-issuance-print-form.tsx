@@ -18,20 +18,8 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
     }
 
     return (
-      <div ref={ref} className="bg-white text-black font-serif">
-        <style type="text/css" media="print">
-          {`
-            @page {
-                size: A4;
-                margin: 1cm;
-            }
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-          `}
-        </style>
-        <div className="min-h-full w-full py-6 px-8 flex flex-col justify-between border border-black">
+      <div ref={ref} className="text-black font-serif">
+        <div className="border border-black h-[26.7cm] flex flex-col justify-between p-8">
             <div>
                 <header className="text-center mb-6">
                     <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
