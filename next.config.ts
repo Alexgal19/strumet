@@ -33,6 +33,7 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: [
     "https://*.google.com",
+    "https://*.cloudworkstations.dev"
   ]
 };
 
