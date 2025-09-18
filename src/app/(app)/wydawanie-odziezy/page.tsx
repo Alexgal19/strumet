@@ -175,7 +175,7 @@ export default function ClothingIssuancePage({ employees, config, clothingIssuan
 
   return (
     <>
-      <div className="main-content-container flex h-full flex-col">
+      <div className="main-content-container h-full flex-col flex">
         <PageHeader
           title="Wydawanie odzieży"
           description="Rejestruj i drukuj potwierdzenia wydania odzieży roboczej."
@@ -344,5 +344,3 @@ export default function ClothingIssuancePage({ employees, config, clothingIssuan
     </>
   );
 }
-
-    
