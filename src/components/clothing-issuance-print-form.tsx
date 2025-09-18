@@ -21,27 +21,17 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
       <div ref={ref} className="bg-white text-black font-serif">
          <style type="text/css" media="print">
           {`
-            @page { 
-              size: A4;
-              margin: 1cm;
+            @page {
+                size: A4;
+                margin: 1cm;
             }
-            html, body {
-              width: 210mm;
-              height: 297mm;
-              margin: 0;
-              padding: 0;
-              font-family: 'Times New Roman', Times, serif;
-              font-size: 11pt;
-            }
-            .printable-card {
-                height: calc(297mm - 2cm); /* A4 height minus margins */
-            }
-            .no-break {
-                page-break-inside: avoid;
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
           `}
         </style>
-        <div className="border border-black p-6 flex flex-col justify-between printable-card w-full">
+        <div className="h-screen p-6 flex flex-col justify-between w-full border border-black">
             <div>
                 <header className="text-center mb-6">
                     <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
@@ -52,7 +42,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                     <p>Data wydania: {format(parseISO(issuance.date), 'dd.MM.yyyy', { locale: pl })}</p>
                 </div>
                 
-                <section className="space-y-2 mb-4 text-sm no-break">
+                <section className="space-y-2 mb-4 text-sm">
                     <p><strong>Dane Pracownika / Employee Details:</strong></p>
                     <div className="grid grid-cols-[120px_1fr] gap-x-2 gap-y-1">
                         <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
@@ -61,7 +51,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                     </div>
                 </section>
 
-                <section className="mb-6 no-break">
+                <section className="mb-6">
                     <p className="font-bold text-sm mb-2">Wydane elementy / Issued Items:</p>
                     <table className="w-full border-collapse border border-black text-sm">
                         <thead>
@@ -86,7 +76,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                 </section>
             </div>
             
-            <footer className="text-sm no-break">
+            <footer className="text-sm">
               <div className="flex justify-between items-end">
                   <div className="text-center w-2/5">
                       <div className="border-t border-dotted border-black pt-1">
