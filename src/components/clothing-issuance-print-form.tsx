@@ -38,26 +38,26 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
             }
           `}
         </style>
-        <div className="p-4">
-            <header className="text-center mb-8">
+        <div className="p-4 border border-black m-8">
+            <header className="text-center mb-6">
                 <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
                 <p className="text-sm">(Workwear Issuance Confirmation)</p>
             </header>
 
-            <div className="text-right mb-6">
+            <div className="text-right mb-4">
                 <p>Data wydania: {format(parseISO(issuance.date), 'dd.MM.yyyy', { locale: pl })}</p>
             </div>
             
-            <section className="space-y-2 mb-6 text-sm no-break">
+            <section className="space-y-2 mb-4 text-sm no-break">
                 <p><strong>Dane Pracownika / Employee Details:</strong></p>
-                <div className="grid grid-cols-[180px_1fr] gap-x-2 gap-y-1">
+                <div className="grid grid-cols-[120px_1fr] gap-x-2 gap-y-1">
                     <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
                     <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
                     <p>Dział:</p>          <p className="font-semibold">{employee.department}</p>
                 </div>
             </section>
 
-            <section className="mb-8 no-break">
+            <section className="mb-6 no-break">
                 <p className="font-bold text-sm mb-2">Wydane elementy / Issued Items:</p>
                 <table className="w-full border-collapse border border-black text-sm">
                     <thead>
@@ -81,7 +81,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                 </table>
             </section>
             
-            <footer className="pt-16 text-sm no-break">
+            <footer className="pt-12 text-sm no-break">
               <div className="flex justify-between items-end">
                   <div className="text-center w-2/5">
                       <div className="border-t border-dotted border-black pt-1">
