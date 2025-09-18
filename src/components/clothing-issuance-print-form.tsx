@@ -18,8 +18,22 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
     }
 
     return (
-      <div ref={ref} className="text-black font-serif">
-        <div className="border border-black h-[26.7cm] flex flex-col justify-between p-8">
+      <div ref={ref} className="text-black bg-white font-serif">
+         <style type="text/css" media="print">
+          {`
+            @page { 
+              size: A4;
+              margin: 1cm;
+            }
+            html, body {
+              width: 210mm;
+              height: 297mm;
+              font-family: 'Times New Roman', Times, serif;
+              font-size: 11pt;
+            }
+          `}
+        </style>
+        <div className="flex flex-col justify-between h-full p-4">
             <div>
                 <header className="text-center mb-6">
                     <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
@@ -64,7 +78,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                 </section>
             </div>
             
-            <footer className="text-sm">
+            <footer className="text-sm mt-auto">
               <div className="flex justify-between items-end">
                   <div className="text-center w-2/5">
                       <div className="border-t border-dotted border-black pt-1">
