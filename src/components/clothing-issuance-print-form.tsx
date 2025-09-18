@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -80,18 +79,6 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                         ))}
                     </tbody>
                 </table>
-            </section>
-            
-            <section className="space-y-4 text-xs mt-10 no-break">
-                <p>
-                    Oświadczam, że otrzymałem/am wyżej wymienioną odzież roboczą, która jest kompletna i nieuszkodzona. 
-                    Zobowiązuję się do jej użytkowania zgodnie z przeznaczeniem i dbania o jej stan.
-                    <br/>
-                    <em className="text-gray-600">
-                        I hereby confirm that I have received the above-mentioned workwear, which is complete and undamaged. 
-                        I undertake to use it for its intended purpose and to take care of its condition.
-                    </em>
-                </p>
             </section>
             
             <footer className="pt-16 text-sm no-break">
