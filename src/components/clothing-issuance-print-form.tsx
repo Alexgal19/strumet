@@ -41,7 +41,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
             }
           `}
         </style>
-        <div className="border border-black p-6 flex flex-col justify-between printable-card">
+        <div className="border border-black p-6 flex flex-col justify-between printable-card w-full">
             <div>
                 <header className="text-center mb-6">
                     <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
