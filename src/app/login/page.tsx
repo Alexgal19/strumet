@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -29,24 +30,20 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
-    // Register the service worker immediately
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('SW registered: ', registration);
-      }).catch(registrationError => {
-        console.log('SW registration failed: ', registrationError);
-      });
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW registered: ', registration);
+        }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+        });
     }
-    
-    // Listen for the beforeinstallprompt event
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsInstallable(true);
-      console.log('beforeinstallprompt event fired');
+      console.log('beforeinstallprompt event fired and stored');
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -98,7 +95,6 @@ export default function LoginPage() {
       toast({ title: 'Sukces', description: 'Aplikacja została zainstalowana.' });
     }
     setDeferredPrompt(null);
-    setIsInstallable(false);
   };
 
   return (
@@ -150,7 +146,7 @@ export default function LoginPage() {
               Zarejestruj się
             </Link>
           </div>
-          {isInstallable && (
+          {deferredPrompt && (
             <div className="mt-4">
               <Button variant="outline" className="w-full" onClick={handleInstallClick}>
                 <Download className="mr-2 h-4 w-4" />
