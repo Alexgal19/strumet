@@ -33,55 +33,60 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
               font-family: 'Times New Roman', Times, serif;
               font-size: 11pt;
             }
+            .printable-card {
+                height: calc(297mm - 2cm); /* A4 height minus margins */
+            }
             .no-break {
                 page-break-inside: avoid;
             }
           `}
         </style>
-        <div className="p-4 border border-black m-8">
-            <header className="text-center mb-6">
-                <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
-                <p className="text-sm">(Workwear Issuance Confirmation)</p>
-            </header>
+        <div className="border border-black p-6 flex flex-col justify-between printable-card">
+            <div>
+                <header className="text-center mb-6">
+                    <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
+                    <p className="text-sm">(Workwear Issuance Confirmation)</p>
+                </header>
 
-            <div className="text-right mb-4">
-                <p>Data wydania: {format(parseISO(issuance.date), 'dd.MM.yyyy', { locale: pl })}</p>
+                <div className="text-right mb-4">
+                    <p>Data wydania: {format(parseISO(issuance.date), 'dd.MM.yyyy', { locale: pl })}</p>
+                </div>
+                
+                <section className="space-y-2 mb-4 text-sm no-break">
+                    <p><strong>Dane Pracownika / Employee Details:</strong></p>
+                    <div className="grid grid-cols-[120px_1fr] gap-x-2 gap-y-1">
+                        <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
+                        <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
+                        <p>Dział:</p>          <p className="font-semibold">{employee.department}</p>
+                    </div>
+                </section>
+
+                <section className="mb-6 no-break">
+                    <p className="font-bold text-sm mb-2">Wydane elementy / Issued Items:</p>
+                    <table className="w-full border-collapse border border-black text-sm">
+                        <thead>
+                            <tr className="bg-gray-100">
+                                <th className="border border-black p-2 w-1/12 text-center">Lp.</th>
+                                <th className="border border-black p-2 text-left">Nazwa elementu / Item Name</th>
+                                <th className="border border-black p-2 w-1/6 text-center">Ilość / Quantity</th>
+                                <th className="border border-black p-2 w-1/4 text-center">Podpis pracownika /<br/>Employee Signature</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {issuance.items.map((item, index) => (
+                                <tr key={item.id}>
+                                    <td className="border border-black p-2 text-center">{index + 1}.</td>
+                                    <td className="border border-black p-2">{item.name}</td>
+                                    <td className="border border-black p-2 text-center">{item.quantity}</td>
+                                    <td className="border border-black p-2 h-16"></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </section>
             </div>
             
-            <section className="space-y-2 mb-4 text-sm no-break">
-                <p><strong>Dane Pracownika / Employee Details:</strong></p>
-                <div className="grid grid-cols-[120px_1fr] gap-x-2 gap-y-1">
-                    <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
-                    <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
-                    <p>Dział:</p>          <p className="font-semibold">{employee.department}</p>
-                </div>
-            </section>
-
-            <section className="mb-6 no-break">
-                <p className="font-bold text-sm mb-2">Wydane elementy / Issued Items:</p>
-                <table className="w-full border-collapse border border-black text-sm">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="border border-black p-2 w-1/12 text-center">Lp.</th>
-                            <th className="border border-black p-2 text-left">Nazwa elementu / Item Name</th>
-                            <th className="border border-black p-2 w-1/6 text-center">Ilość / Quantity</th>
-                            <th className="border border-black p-2 w-1/4 text-center">Podpis pracownika /<br/>Employee Signature</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {issuance.items.map((item, index) => (
-                            <tr key={item.id}>
-                                <td className="border border-black p-2 text-center">{index + 1}.</td>
-                                <td className="border border-black p-2">{item.name}</td>
-                                <td className="border border-black p-2 text-center">{item.quantity}</td>
-                                <td className="border border-black p-2 h-12"></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </section>
-            
-            <footer className="pt-12 text-sm no-break">
+            <footer className="text-sm no-break">
               <div className="flex justify-between items-end">
                   <div className="text-center w-2/5">
                       <div className="border-t border-dotted border-black pt-1">
