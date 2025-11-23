@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -15,7 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import type { ActiveView } from './main-layout';
+import type { ActiveView } from '@/lib/types';
 
 interface AppBottomNavProps {
   activeView: ActiveView;

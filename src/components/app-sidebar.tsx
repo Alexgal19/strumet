@@ -29,7 +29,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import type { ActiveView } from './main-layout';
+import type { ActiveView, AppNotification } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -37,11 +37,10 @@ import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
 import { db } from '@/lib/firebase';
 import { ref, onValue, update, remove } from 'firebase/database';
-import type { AppNotification } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 

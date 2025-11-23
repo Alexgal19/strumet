@@ -26,10 +26,8 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2, XCircle, Copy } from 'lucide-react';
-import type { Employee, AllConfig } from '@/lib/types';
+import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-import { db } from '@/lib/firebase';
-import { ref, update, remove } from "firebase/database";
 import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -44,7 +42,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { DataTable } from '@/components/data-table';
 import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
 import { useVirtualizer } from '@tanstack/react-virtual';
-
+import { useAppContext } from '@/context/app-context';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -61,7 +59,8 @@ const exportColumns = [
 ];
 
 
-export default function ZwolnieniPage({ employees, config, isLoading }: { employees: Employee[], config: AllConfig, isLoading: boolean }) {
+export default function ZwolnieniPage() {
+  const { employees, config, isLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees } = useAppContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -149,57 +148,9 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
     setDateRange(prev => ({ ...prev, [type]: date }));
   };
 
-  const handleRestoreEmployee = async (employeeId: string) => {
+  const onRestoreEmployee = async (employeeId: string) => {
     if (window.confirm('Czy na pewno chcesz przywrócić tego pracownika?')) {
-        try {
-            const employeeRef = ref(db, `employees/${employeeId}`);
-            await update(employeeRef, {
-                status: 'aktywny',
-                terminationDate: null 
-            });
-            toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
-        } catch (error) {
-            console.error("Error restoring employee: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
-        }
-    }
-  };
-
-  const handleDeleteAllHireDates = async () => {
-    try {
-      const updates: Record<string, any> = {};
-      employees.forEach(employee => {
-        updates[`/employees/${employee.id}/hireDate`] = null;
-      });
-      await update(ref(db), updates);
-      toast({
-        title: 'Sukces',
-        description: 'Wszystkie daty zatrudnienia zostały usunięte.',
-      });
-    } catch (error) {
-      console.error("Error deleting all hire dates: ", error);
-      toast({
-        variant: 'destructive',
-        title: 'Błąd',
-        description: 'Nie udało się usunąć dat zatrudnienia.',
-      });
-    }
-  };
-
-  const handleDeleteAllEmployees = async () => {
-    try {
-      await remove(ref(db, 'employees'));
-      toast({
-        title: 'Sukces',
-        description: 'Wszyscy pracownicy zostali usunięci.',
-      });
-    } catch (error) {
-      console.error("Error deleting all employees: ", error);
-      toast({
-        variant: 'destructive',
-        title: 'Błąd',
-        description: 'Nie udało się usunąć pracowników.',
-      });
+        await handleRestoreEmployee(employeeId);
     }
   };
 
@@ -208,27 +159,10 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
     setIsFormOpen(true);
   };
   
-  const handleSaveEmployee = async (employeeData: Employee) => {
-    if (!editingEmployee) return;
-    try {
-        const { id, ...dataToSave } = employeeData;
-        
-        // Convert undefined to null for Firebase compatibility
-        Object.keys(dataToSave).forEach(key => {
-            if ((dataToSave as any)[key] === undefined) {
-                (dataToSave as any)[key] = null;
-            }
-        });
-
-        const employeeRef = ref(db, `employees/${id}`);
-        await update(employeeRef, dataToSave);
-        setEditingEmployee(null);
-        setIsFormOpen(false);
-        toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
-    } catch (error) {
-        console.error("Error saving employee: ", error);
-        toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych.' });
-    }
+  const onSave = async (employeeData: Employee) => {
+    await handleSaveEmployee(employeeData);
+    setEditingEmployee(null);
+    setIsFormOpen(false);
   };
 
   const handleCopy = (employee: Employee) => {
@@ -276,7 +210,7 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
                         Kopiuj imię
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => handleRestoreEmployee(employee.id)}>
+                    <DropdownMenuItem onSelect={() => onRestoreEmployee(employee.id)}>
                       <RotateCcw className="mr-2 h-4 w-4" />
                       Przywróć
                     </DropdownMenuItem>
@@ -285,7 +219,7 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
           );
         },
       },
-  ], []);
+  ], [onRestoreEmployee]);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
@@ -325,7 +259,7 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
                     Kopiuj imię
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => handleRestoreEmployee(employee.id)}>
+                <DropdownMenuItem onSelect={() => onRestoreEmployee(employee.id)}>
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Przywróć
                 </DropdownMenuItem>
@@ -334,7 +268,7 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
           </CardFooter>
         </Card>
       </div>
-  ), [handleEditEmployee, handleCopy, handleRestoreEmployee]);
+  ), [handleEditEmployee, handleCopy, onRestoreEmployee]);
 
   const renderMobileView = () => {
     if (filteredEmployees.length === 0) {
@@ -355,8 +289,8 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
             position: 'relative',
           }}
         >
-          {rowVirtualizer.getVirtualItems().map((virtualItem.tsx) => {
-            const employee = filteredEmployees[virtualItem.tsx.index];
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+            const employee = filteredEmployees[virtualItem.index];
             return (
               <MobileCard
                 key={employee.id}
@@ -366,8 +300,8 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
                   top: 0,
                   left: 0,
                   width: '100%',
-                  height: `${virtualItem.tsx.size}px`,
-                  transform: `translateY(${virtualItem.tsx.start}px)`,
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
                 }}
               />
             );
@@ -446,7 +380,7 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
           <div className="flex-grow overflow-y-auto -mr-6 pr-6">
             <EmployeeForm
               employee={editingEmployee}
-              onSave={handleSaveEmployee}
+              onSave={onSave}
               onCancel={() => setIsFormOpen(false)}
               config={config}
             />

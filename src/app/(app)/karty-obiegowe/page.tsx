@@ -34,21 +34,16 @@ import {
 import { Loader2, ChevronsUpDown, CheckIcon, Printer, History } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Employee, CirculationCard } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { ref, set, push } from 'firebase/database';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { CirculationCardPrintForm } from '@/components/circulation-card-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAppContext } from '@/context/app-context';
 
-interface CirculationCardsPageProps {
-  employees: Employee[];
-  circulationCards: CirculationCard[];
-  isLoading: boolean;
-}
 
-export default function CirculationCardsPage({ employees, circulationCards, isLoading }: CirculationCardsPageProps) {
+export default function CirculationCardsPage() {
+  const { employees, circulationCards, isLoading, addCirculationCard } = useAppContext();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
@@ -94,29 +89,9 @@ export default function CirculationCardsPage({ employees, circulationCards, isLo
       return;
     }
 
-    try {
-      const newCardRef = push(ref(db, 'circulationCards'));
-      const newCard: Omit<CirculationCard, 'id'> = {
-        employeeId: selectedEmployee.id,
-        employeeFullName: selectedEmployee.fullName,
-        date: new Date().toISOString(),
-      };
-      await set(newCardRef, newCard);
-      
-      const cardToPrint = { ...newCard, id: newCardRef.key! };
-      setPrintingCard(cardToPrint);
-
-      toast({
-        title: 'Sukces',
-        description: 'Karta obiegowa została wygenerowana i dodana do historii.',
-      });
-    } catch (error) {
-      console.error('Error saving circulation card:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Błąd serwera',
-        description: 'Nie udało się zapisać karty obiegowej.',
-      });
+    const cardToPrint = await addCirculationCard(selectedEmployee.id, selectedEmployee.fullName);
+    if(cardToPrint) {
+        setPrintingCard(cardToPrint);
     }
   };
   

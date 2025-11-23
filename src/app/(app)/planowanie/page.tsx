@@ -15,13 +15,11 @@ import { Employee } from '@/lib/types';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useAppContext } from '@/context/app-context';
 
-interface PlanningPageProps {
-  employees: Employee[];
-  isLoading: boolean;
-}
 
-export default function PlanningPage({ employees, isLoading }: PlanningPageProps) {
+export default function PlanningPage() {
+  const { employees, isLoading } = useAppContext();
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const plannedTerminations = useMemo(() => {

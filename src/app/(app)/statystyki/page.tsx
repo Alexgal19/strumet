@@ -8,9 +8,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Copy } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { db } from '@/lib/firebase';
-import { ref, update } from 'firebase/database';
-import { Employee, AllConfig } from '@/lib/types';
+import { Employee } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -19,17 +17,14 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
+import { useAppContext } from '@/context/app-context';
 
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
-interface StatisticsPageProps {
-  employees: Employee[];
-  config: AllConfig;
-  isLoading: boolean;
-}
 
-export default function StatisticsPage({ employees, config, isLoading }: StatisticsPageProps) {
+export default function StatisticsPage() {
+  const { employees, config, isLoading, handleSaveEmployee } = useAppContext();
   const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState('');
   const [dialogEmployees, setDialogEmployees] = useState<Employee[]>([]);
@@ -150,29 +145,10 @@ export default function StatisticsPage({ employees, config, isLoading }: Statist
       setIsFormOpen(true);
   };
 
-  const handleSaveEmployee = async (employeeData: Employee) => {
-    if (!editingEmployee) return;
-    try {
-        const { id, ...dataToSave } = employeeData;
-        
-        const finalData: any = {};
-        for (const key in dataToSave) {
-            if ((dataToSave as any)[key] === undefined) {
-                finalData[key] = null;
-            } else {
-                finalData[key] = (dataToSave as any)[key];
-            }
-        }
-
-        const employeeRef = ref(db, `employees/${id}`);
-        await update(employeeRef, finalData);
-        setEditingEmployee(null);
-        setIsFormOpen(false);
-        toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
-    } catch (error) {
-        console.error("Error saving employee: ", error);
-        toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych.' });
-    }
+  const onSave = async (employeeData: Employee) => {
+    await handleSaveEmployee(employeeData);
+    setEditingEmployee(null);
+    setIsFormOpen(false);
   };
 
   const handleCopyNames = () => {
@@ -440,7 +416,7 @@ export default function StatisticsPage({ employees, config, isLoading }: Statist
           <div className="flex-grow overflow-y-auto -mr-6 pr-6">
             <EmployeeForm
               employee={editingEmployee}
-              onSave={handleSaveEmployee}
+              onSave={onSave}
               onCancel={() => setIsFormOpen(false)}
               config={config}
             />

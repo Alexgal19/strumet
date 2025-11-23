@@ -45,9 +45,7 @@ import {
 
 import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, FilePlus2, Trash2, Briefcase, Building, Printer } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { Employee, AbsenceRecord } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { ref, set, push, remove } from 'firebase/database';
+import { AbsenceRecord, Employee } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -56,14 +54,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AbsenceRecordPrintForm } from '@/components/absence-record-print-form';
+import { useAppContext } from '@/context/app-context';
 
-interface NoLoginPageProps {
-  employees: Employee[];
-  absenceRecords: AbsenceRecord[];
-  isLoading: boolean;
-}
 
-export default function NoLoginPage({ employees, absenceRecords: records, isLoading }: NoLoginPageProps) {
+export default function NoLoginPage() {
+  const { employees, absenceRecords, isLoading, addAbsenceRecord, deleteAbsenceRecord } = useAppContext();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [incidentDate, setIncidentDate] = useState<Date | undefined>();
   const [hours, setHours] = useState<string>('');
@@ -80,6 +75,7 @@ export default function NoLoginPage({ employees, absenceRecords: records, isLoad
   const { toast } = useToast();
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+  const records = absenceRecords;
 
   const sortedRecords = useMemo(() => {
     return [...records].sort((a, b) => new Date(b.incidentDate).getTime() - new Date(a.incidentDate).getTime());
@@ -100,56 +96,30 @@ export default function NoLoginPage({ employees, absenceRecords: records, isLoad
     }
 
     setIsSaving(true);
-    try {
-      const newRecordRef = push(ref(db, 'absenceRecords'));
-      const newRecord: Omit<AbsenceRecord, 'id'> = {
-        employeeId: selectedEmployee.id,
-        employeeFullName: selectedEmployee.fullName,
-        incidentDate: incidentDate.toISOString(),
-        department: selectedEmployee.department,
-        jobTitle: selectedEmployee.jobTitle,
-        hours: hours,
-        reason: reason as 'no_card' | 'forgot_to_scan',
-      };
-      await set(newRecordRef, newRecord);
-      toast({
-        title: 'Sukces',
-        description: 'Zapis został pomyślnie dodany.',
-      });
-      // Reset form
-      setSelectedEmployeeId('');
-      setIncidentDate(undefined);
-      setHours('');
-      setReason('');
-    } catch (error) {
-      console.error('Error saving record:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Błąd serwera',
-        description: 'Nie udało się zapisać rekordu.',
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    
+    const newRecord: Omit<AbsenceRecord, 'id'> = {
+      employeeId: selectedEmployee.id,
+      employeeFullName: selectedEmployee.fullName,
+      incidentDate: incidentDate.toISOString(),
+      department: selectedEmployee.department,
+      jobTitle: selectedEmployee.jobTitle,
+      hours: hours,
+      reason: reason as 'no_card' | 'forgot_to_scan',
+    };
+    
+    await addAbsenceRecord(newRecord);
+    
+    // Reset form
+    setSelectedEmployeeId('');
+    setIncidentDate(undefined);
+    setHours('');
+    setReason('');
+    setIsSaving(false);
   };
   
   const handleDeleteRecord = async (recordId: string) => {
-      try {
-          await remove(ref(db, `absenceRecords/${recordId}`));
-          toast({
-              title: 'Sukces',
-              description: 'Zapis został usunięty.',
-          });
-      } catch (error) {
-          console.error('Error deleting record:', error);
-          toast({
-              variant: 'destructive',
-              title: 'Błąd',
-              description: 'Nie udało się usunąć zapisu.',
-          });
-      } finally {
-        setDeletingId(null);
-      }
+    await deleteAbsenceRecord(recordId);
+    setDeletingId(null);
   };
   
   const handlePrint = (record: AbsenceRecord) => {

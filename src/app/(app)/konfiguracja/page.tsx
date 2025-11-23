@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,15 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Trash2, Loader2, Edit } from 'lucide-react';
-import type { ConfigItem, ConfigType, AllConfig, Employee } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { ref, set, push, remove, update } from 'firebase/database';
+import type { ConfigItem, ConfigType, Employee } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useHasMounted } from '@/hooks/use-mobile';
+import { useAppContext } from '@/context/app-context';
 
 type ConfigView = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
@@ -34,13 +34,8 @@ const configTypeToEmployeeField: Record<ConfigType, keyof Employee> = {
   clothingItems: 'fullName', // Not directly linked to an employee field
 };
 
-interface ConfigurationPageProps {
-  config: AllConfig;
-  employees: Employee[];
-  isLoading: boolean;
-}
-
-export default function ConfigurationPage({ config, employees, isLoading }: ConfigurationPageProps) {
+export default function ConfigurationPage() {
+  const { config, employees, isLoading, addConfigItems, updateConfigItem, removeConfigItem } = useAppContext();
   const hasMounted = useHasMounted();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -66,7 +61,7 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
     setIsEditDialogOpen(true);
   }
 
-  const handleAddMultipleItems = () => {
+  const handleAddMultipleItems = async () => {
     if (!currentConfigType || !newItemsText.trim()) return;
 
     const itemsToAdd = newItemsText
@@ -76,11 +71,7 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
     
     if (itemsToAdd.length === 0) return;
 
-    const configRef = ref(db, `config/${currentConfigType}`);
-    itemsToAdd.forEach(itemName => {
-      const newItemRef = push(configRef);
-      set(newItemRef, { name: itemName });
-    });
+    await addConfigItems(currentConfigType, itemsToAdd);
 
     toast({ title: "Sukces", description: `${itemsToAdd.length} ${itemsToAdd.length > 1 ? 'elementy zostały' : 'element został'} dodane.`});
     setIsAddDialogOpen(false);
@@ -99,41 +90,17 @@ export default function ConfigurationPage({ config, employees, isLoading }: Conf
           return;
       }
       
-      try {
-          const updates: Record<string, any> = {};
-          
-          // 1. Update the config item itself
-          updates[`/config/${currentConfigType}/${editingItem.id}/name`] = newName;
-          
-          // 2. Find and update all employees using the old value
-          const employeeFieldToUpdate = configTypeToEmployeeField[currentConfigType];
-          if (employeeFieldToUpdate && currentConfigType !== 'clothingItems') {
-              employees.forEach(employee => {
-                  if (employee[employeeFieldToUpdate] === oldName) {
-                      updates[`/employees/${employee.id}/${employeeFieldToUpdate}`] = newName;
-                  }
-              });
-          }
-          
-          await update(ref(db), updates);
-          
-          toast({ title: "Sukces", description: "Element został zaktualizowany."});
-      } catch (error) {
-          console.error("Error updating item:", error);
-          toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zaktualizować elementu."});
-      } finally {
-          setIsEditDialogOpen(false);
-          setEditingItem(null);
-          setCurrentConfigType(null);
-          setEditedItemName('');
-      }
+      await updateConfigItem(currentConfigType, editingItem.id, newName);
+      
+      setIsEditDialogOpen(false);
+      setEditingItem(null);
+      setCurrentConfigType(null);
+      setEditedItemName('');
   };
 
   const handleRemoveItem = (configType: ConfigType, itemId: string) => {
     if (window.confirm('Czy na pewno chcesz usunąć ten element?')) {
-      const itemRef = ref(db, `config/${configType}/${itemId}`);
-      remove(itemRef);
-      toast({ title: "Sukces", description: "Element został usunięty."});
+      removeConfigItem(configType, itemId);
     }
   };
 

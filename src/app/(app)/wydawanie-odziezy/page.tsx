@@ -33,9 +33,7 @@ import {
 } from '@/components/ui/table';
 import { Loader2, ChevronsUpDown, CheckIcon, Printer, History, PlusCircle, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { Employee, ClothingIssuance, AllConfig } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { ref, set, push, remove } from 'firebase/database';
+import { Employee, ClothingIssuance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -43,15 +41,13 @@ import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
+import { useAppContext } from '@/context/app-context';
 
-interface ClothingIssuancePageProps {
-  employees: Employee[];
-  config: AllConfig;
-  clothingIssuances: ClothingIssuance[];
-  isLoading: boolean;
-}
 
-export default function ClothingIssuancePage({ employees, config, clothingIssuances: issuances, isLoading }: ClothingIssuancePageProps) {
+export default function ClothingIssuancePage() {
+  const { employees, config, clothingIssuances, isLoading, addClothingIssuance, deleteClothingIssuance } = useAppContext();
+  const issuances = clothingIssuances;
+
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
@@ -111,36 +107,22 @@ export default function ClothingIssuancePage({ employees, config, clothingIssuan
       return;
     }
 
-    try {
-      const newIssuanceRef = push(ref(db, 'clothingIssuances'));
-      const newIssuance: Omit<ClothingIssuance, 'id'> = {
-        employeeId: selectedEmployee.id,
-        employeeFullName: selectedEmployee.fullName,
-        date: new Date().toISOString(),
-        items: currentItems,
-      };
-      await set(newIssuanceRef, newIssuance);
+    const newIssuance: Omit<ClothingIssuance, 'id'> = {
+      employeeId: selectedEmployee.id,
+      employeeFullName: selectedEmployee.fullName,
+      date: new Date().toISOString(),
+      items: currentItems,
+    };
       
-      const issuanceToPrint = { ...newIssuance, id: newIssuanceRef.key! };
+    const issuanceToPrint = await addClothingIssuance(newIssuance);
+    
+    if (issuanceToPrint) {
       setPrintingIssuance(issuanceToPrint);
-
-      toast({
-        title: 'Sukces',
-        description: 'Zapis o wydaniu odzieży został zapisany i jest gotowy do druku.',
-      });
-      
-      // Reset form
-      setCurrentItems([]);
-      setSelectedEmployeeId('');
-
-    } catch (error) {
-      console.error('Error saving clothing issuance:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Błąd serwera',
-        description: 'Nie udało się zapisać danych.',
-      });
     }
+      
+    // Reset form
+    setCurrentItems([]);
+    setSelectedEmployeeId('');
   };
   
   const handleReprint = (issuance: ClothingIssuance) => {
@@ -149,19 +131,7 @@ export default function ClothingIssuancePage({ employees, config, clothingIssuan
 
   const handleDeleteIssuance = async (issuanceId: string) => {
       if (window.confirm('Czy na pewno chcesz usunąć ten zapis?')) {
-        try {
-            await remove(ref(db, `clothingIssuances/${issuanceId}`));
-            toast({
-                title: 'Sukces',
-                description: 'Zapis został usunięty.',
-            });
-        } catch (error) {
-             toast({
-                variant: 'destructive',
-                title: 'Błąd',
-                description: 'Nie udało się usunąć zapisu.',
-            });
-        }
+        await deleteClothingIssuance(issuanceId);
       }
   };
 

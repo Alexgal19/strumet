@@ -1,4 +1,16 @@
 
+export type ActiveView = 
+  | 'aktywni' 
+  | 'zwolnieni' 
+  | 'statystyki' 
+  | 'karty-obiegowe' 
+  | 'odciski-palcow' 
+  | 'brak-logowania' 
+  | 'konfiguracja'
+  | 'planowanie'
+  | 'wydawanie-odziezy'
+  | 'odwiedzalnosc';
+
 export interface Employee {
   id: string;
   fullName: string;
@@ -86,4 +98,15 @@ export interface ClothingIssuance {
         name: string;
         quantity: number;
     }[];
+}
+
+// Props for the page components rendered in the main layout
+export interface ViewPageProps {
+    employees: Employee[];
+    config: AllConfig;
+    absenceRecords: AbsenceRecord[];
+    circulationCards: CirculationCard[];
+    fingerprintAppointments: FingerprintAppointment[];
+    clothingIssuances: ClothingIssuance[];
+    isLoading: boolean;
 }

@@ -46,20 +46,17 @@ import {
 import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, UserPlus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Employee, FingerprintAppointment } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { ref, set, push, remove } from 'firebase/database';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useAppContext } from '@/context/app-context';
 
-interface FingerprintAppointmentsPageProps {
-  employees: Employee[];
-  fingerprintAppointments: FingerprintAppointment[];
-  isLoading: boolean;
-}
 
-export default function FingerprintAppointmentsPage({ employees, fingerprintAppointments: appointments, isLoading }: FingerprintAppointmentsPageProps) {
+export default function FingerprintAppointmentsPage() {
+  const { employees, fingerprintAppointments, isLoading, addFingerprintAppointment, deleteFingerprintAppointment } = useAppContext();
+  const appointments = fingerprintAppointments;
+  
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [appointmentDate, setAppointmentDate] = useState<Date | undefined>();
   const [isSaving, setIsSaving] = useState(false);
@@ -90,49 +87,22 @@ export default function FingerprintAppointmentsPage({ employees, fingerprintAppo
     }
 
     setIsSaving(true);
-    try {
-      const newAppointmentRef = push(ref(db, 'fingerprintAppointments'));
-      const newAppointment: Omit<FingerprintAppointment, 'id'> = {
-        employeeId: selectedEmployee.id,
-        employeeFullName: selectedEmployee.fullName,
-        appointmentDate: appointmentDate.toISOString(),
-      };
-      await set(newAppointmentRef, newAppointment);
-      toast({
-        title: 'Sukces',
-        description: 'Termin został pomyślnie dodany.',
-      });
-      setSelectedEmployeeId('');
-      setAppointmentDate(undefined);
-    } catch (error) {
-      console.error('Error saving appointment:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Błąd serwera',
-        description: 'Nie udało się zapisać terminu.',
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    const newAppointment: Omit<FingerprintAppointment, 'id'> = {
+      employeeId: selectedEmployee.id,
+      employeeFullName: selectedEmployee.fullName,
+      appointmentDate: appointmentDate.toISOString(),
+    };
+    
+    await addFingerprintAppointment(newAppointment);
+
+    setSelectedEmployeeId('');
+    setAppointmentDate(undefined);
+    setIsSaving(false);
   };
   
   const handleDeleteAppointment = async (appointmentId: string) => {
-      try {
-          await remove(ref(db, `fingerprintAppointments/${appointmentId}`));
-          toast({
-              title: 'Sukces',
-              description: 'Termin został usunięty.',
-          });
-      } catch (error) {
-          console.error('Error deleting appointment:', error);
-          toast({
-              variant: 'destructive',
-              title: 'Błąd',
-              description: 'Nie udało się usunąć terminu.',
-          });
-      } finally {
-        setDeletingId(null);
-      }
+    await deleteFingerprintAppointment(appointmentId);
+    setDeletingId(null);
   };
 
   if (isLoading) {

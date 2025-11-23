@@ -1,28 +1,15 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
-import type { AllConfig, Employee, AbsenceRecord, CirculationCard, FingerprintAppointment, ClothingIssuance, AppNotification } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
+import type { ActiveView } from '@/lib/types';
+import { AppProvider, useAppContext } from '@/context/app-context';
 import { cn } from '@/lib/utils';
-
-export type ActiveView = 
-  | 'aktywni' 
-  | 'zwolnieni' 
-  | 'statystyki' 
-  | 'karty-obiegowe' 
-  | 'odciski-palcow' 
-  | 'brak-logowania' 
-  | 'konfiguracja'
-  | 'planowanie'
-  | 'wydawanie-odziezy'
-  | 'odwiedzalnosc';
 
 const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   aktywni: dynamic(() => import('@/app/(app)/aktywni/page'), { loading: () => <LoadingComponent /> }),
@@ -43,14 +30,10 @@ const LoadingComponent = () => (
   </div>
 );
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
-
 const ViewTransitionWrapper = ({ children, viewKey }: { children: React.ReactNode, viewKey: string }) => {
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [isAnimating, setIsAnimating] = React.useState(false);
   
-  useEffect(() => {
+  React.useEffect(() => {
     setIsAnimating(true);
     const timer = setTimeout(() => setIsAnimating(false), 150); // duration of animation
     return () => clearTimeout(timer);
@@ -63,71 +46,33 @@ const ViewTransitionWrapper = ({ children, viewKey }: { children: React.ReactNod
   );
 };
 
+const AppContent = () => {
+    const { activeView, setActiveView, isLoading } = useAppContext();
+    const ActiveViewComponent = viewComponents[activeView] || viewComponents.aktywni;
 
-export default function AppLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const [activeView, setActiveView] = useState<ActiveView>('aktywni');
-  
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: []});
-  const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
-  const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
-  const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
-  const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+    return (
+        <SidebarProvider>
+            <div className="flex h-full flex-col md:flex-row bg-transparent">
+                <AppSidebar activeView={activeView} setActiveView={setActiveView} />
+                <SidebarInset className="m-2 flex flex-col p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 backdrop-blur-xl bg-card/50 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
+                    <React.Suspense fallback={<LoadingComponent />}>
+                        {isLoading ? <LoadingComponent /> : (
+                            <ViewTransitionWrapper viewKey={activeView}>
+                                <ActiveViewComponent />
+                            </ViewTransitionWrapper>
+                        )}
+                    </React.Suspense>
+                </SidebarInset>
+                <AppBottomNav activeView={activeView} setActiveView={setActiveView} />
+            </div>
+        </SidebarProvider>
+    );
+};
 
-  useEffect(() => {
-    const dataRef = ref(db);
-    const unsubscribe = onValue(dataRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        setEmployees(objectToArray(data.employees));
-        setConfig({
-            departments: objectToArray(data.config?.departments),
-            jobTitles: objectToArray(data.config?.jobTitles),
-            managers: objectToArray(data.config?.managers),
-            nationalities: objectToArray(data.config?.nationalities),
-            clothingItems: objectToArray(data.config?.clothingItems),
-        });
-        setAbsenceRecords(objectToArray(data.absenceRecords));
-        setCirculationCards(objectToArray(data.circulationCards));
-        setFingerprintAppointments(objectToArray(data.fingerprintAppointments));
-        setClothingIssuances(objectToArray(data.clothingIssuances));
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const ActiveViewComponent = viewComponents[activeView] || viewComponents.aktywni;
-
-  const viewProps = {
-    employees,
-    config,
-    absenceRecords,
-    circulationCards,
-    fingerprintAppointments,
-    clothingIssuances,
-    isLoading, // Pass loading state for components that might need it
-  };
-
+export default function AppLayout() {
   return (
-    <SidebarProvider>
-      <div className="flex h-full flex-col md:flex-row bg-transparent">
-        <AppSidebar activeView={activeView} setActiveView={setActiveView} />
-        <SidebarInset className="m-2 flex flex-col p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 backdrop-blur-xl bg-card/50 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
-          <React.Suspense fallback={<LoadingComponent />}>
-            {isLoading ? <LoadingComponent /> : (
-              <ViewTransitionWrapper viewKey={activeView}>
-                <ActiveViewComponent {...viewProps} />
-              </ViewTransitionWrapper>
-            )}
-          </React.Suspense>
-        </SidebarInset>
-        <AppBottomNav activeView={activeView} setActiveView={setActiveView} />
-      </div>
-    </SidebarProvider>
+    <AppProvider>
+        <AppContent />
+    </AppProvider>
   );
 }
