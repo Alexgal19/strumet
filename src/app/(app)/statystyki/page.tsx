@@ -450,5 +450,3 @@ export default function StatisticsPage({ employees, config, isLoading }: Statist
     </div>
   );
 }
-
-    

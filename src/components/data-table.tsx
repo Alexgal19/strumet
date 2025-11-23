@@ -167,5 +167,3 @@ export function DataTable<TData extends {id: string}, TValue>({
     </div>
   )
 }
-
-    

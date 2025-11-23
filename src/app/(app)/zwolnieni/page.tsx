@@ -35,7 +35,7 @@ import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
-import { TerminatedExcelExportButton } from '@/components/terminated-excel-export-button';
+import { ExcelExportButton } from '@/components/excel-export-button';
 import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
@@ -43,6 +43,20 @@ import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/data-table';
 import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
+
+const exportColumns = [
+  { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
+  { key: 'hireDate' as keyof Employee, name: 'Data zatrudnienia' },
+  { key: 'terminationDate' as keyof Employee, name: 'Data zwolnienia' },
+  { key: 'jobTitle' as keyof Employee, name: 'Stanowisko' },
+  { key: 'department' as keyof Employee, name: 'Dział' },
+  { key: 'manager' as keyof Employee, name: 'Kierownik' },
+  { key: 'cardNumber' as keyof Employee, name: 'Nr karty' },
+  { key: 'nationality' as keyof Employee, name: 'Narodowość' },
+  { key: 'lockerNumber' as keyof Employee, name: 'Nr szafki' },
+  { key: 'departmentLockerNumber' as keyof Employee, name: 'Nr szafki w dziale' },
+  { key: 'sealNumber' as keyof Employee, name: 'Nr pieczęci' },
+];
 
 
 export default function ZwolnieniPage({ employees, config, isLoading }: { employees: Employee[], config: AllConfig, isLoading: boolean }) {
@@ -77,49 +91,56 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
   };
 
   const filteredEmployees = useMemo(() => {
-    return terminatedEmployees.filter(employee => {
-      const isSelected = selectedEmployeeIds.includes(employee.id);
-      if (isSelected) return true;
+    let filtered = terminatedEmployees;
 
-       const searchLower = searchTerm.toLowerCase();
-      
-      const searchMatch = !searchTerm || (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
-        (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower));
+    if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        filtered = filtered.filter(employee =>
+            (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
+            (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))
+        );
+    }
+    
+    if (selectedDepartments.length > 0) {
+        filtered = filtered.filter(employee => selectedDepartments.includes(employee.department));
+    }
+    if (selectedManagers.length > 0) {
+        filtered = filtered.filter(employee => selectedManagers.includes(employee.manager));
+    }
+    if (selectedJobTitles.length > 0) {
+        filtered = filtered.filter(employee => selectedJobTitles.includes(employee.jobTitle));
+    }
 
-      const isInDateRange = () => {
-        if (!dateRange.from && !dateRange.to) return true;
-        if (!employee.terminationDate || typeof employee.terminationDate !== 'string') return false;
-        
-        try {
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.terminationDate)) return false;
+    if (dateRange.from || dateRange.to) {
+        filtered = filtered.filter(employee => {
+            if (!employee.terminationDate || typeof employee.terminationDate !== 'string') return false;
+            
+            try {
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.terminationDate)) return false;
 
-          const terminationDate = parse(employee.terminationDate, 'yyyy-MM-dd', new Date());
-          if (isNaN(terminationDate.getTime())) return false;
+                const terminationDate = parse(employee.terminationDate, 'yyyy-MM-dd', new Date());
+                if (isNaN(terminationDate.getTime())) return false;
 
-          const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
-          const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
-          
-          if (from && to) return isWithinInterval(terminationDate, { start: from, end: to });
-          if (from) return terminationDate >= from;
-          if (to) return terminationDate <= to;
-          return true;
-        } catch (e) {
-          console.error("Error parsing termination date:", e);
-          return false;
-        }
-      };
+                const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
+                const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
+                
+                if (from && to) return isWithinInterval(terminationDate, { start: from, end: to });
+                if (from) return terminationDate >= from;
+                if (to) return terminationDate <= to;
+                return true;
+            } catch (e) {
+                console.error("Error parsing termination date:", e);
+                return false;
+            }
+        });
+    }
 
-      const noFiltersApplied = !searchTerm && selectedDepartments.length === 0 && selectedManagers.length === 0 && selectedJobTitles.length === 0 && !dateRange.from && !dateRange.to;
-      if (noFiltersApplied) return true;
+    if (selectedEmployeeIds.length > 0) {
+        const selectedSet = new Set(selectedEmployeeIds);
+        return filtered.filter(employee => selectedSet.has(employee.id));
+    }
 
-      return (
-        searchMatch &&
-        (selectedDepartments.length === 0 || selectedDepartments.includes(employee.department)) &&
-        (selectedManagers.length === 0 || selectedManagers.includes(employee.manager)) &&
-        (selectedJobTitles.length === 0 || selectedJobTitles.includes(employee.jobTitle)) &&
-        isInDateRange()
-      );
-    });
+    return filtered;
   }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, dateRange, selectedEmployeeIds]);
 
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
@@ -318,7 +339,7 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
         description="Przeglądaj historię zwolnionych pracowników."
       >
         <div className="hidden md:flex shrink-0 items-center space-x-2">
-            <TerminatedExcelExportButton employees={filteredEmployees} fileName="zwolnieni_pracownicy" />
+            <ExcelExportButton employees={filteredEmployees} fileName="zwolnieni_pracownicy" columns={exportColumns} />
             <TerminatedExcelImportButton />
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -448,7 +469,3 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
     </div>
   );
 }
-
-    
-
-    

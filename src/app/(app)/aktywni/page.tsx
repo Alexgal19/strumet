@@ -54,6 +54,19 @@ const EmployeeSummary = dynamic(() => import('@/components/employee-summary').th
   ssr: false
 });
 
+const exportColumns = [
+  { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
+  { key: 'hireDate' as keyof Employee, name: 'Data zatrudnienia' },
+  { key: 'jobTitle' as keyof Employee, name: 'Stanowisko' },
+  { key: 'department' as keyof Employee, name: 'Dział' },
+  { key: 'manager' as keyof Employee, name: 'Kierownik' },
+  { key: 'cardNumber' as keyof Employee, name: 'Nr karty' },
+  { key: 'nationality' as keyof Employee, name: 'Narodowość' },
+  { key: 'lockerNumber' as keyof Employee, name: 'Nr szafki' },
+  { key: 'departmentLockerNumber' as keyof Employee, name: 'Nr szafki w dziale' },
+  { key: 'sealNumber' as keyof Employee, name: 'Nr pieczęci' },
+];
+
 
 export default function AktywniPage({ employees, config, isLoading }: { employees: Employee[], config: AllConfig, isLoading: boolean }) {
   const { toast } = useToast();
@@ -91,17 +104,31 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
   };
 
   const filteredEmployees = useMemo(() => {
-    return activeEmployees.filter(employee => {
-      const isSelected = selectedEmployeeIds.includes(employee.id);
-      if (isSelected) return true;
+    let filtered = activeEmployees;
 
+    if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      
-      const searchMatch = !searchTerm || (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
-        (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower));
+      filtered = filtered.filter(employee =>
+        (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
+        (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    if (selectedDepartments.length > 0) {
+      filtered = filtered.filter(employee => selectedDepartments.includes(employee.department));
+    }
+    if (selectedManagers.length > 0) {
+      filtered = filtered.filter(employee => selectedManagers.includes(employee.manager));
+    }
+    if (selectedJobTitles.length > 0) {
+      filtered = filtered.filter(employee => selectedJobTitles.includes(employee.jobTitle));
+    }
+    if (selectedNationalities.length > 0) {
+      filtered = filtered.filter(employee => selectedNationalities.includes(employee.nationality));
+    }
 
-      const isInDateRange = () => {
-        if (!dateRange.from && !dateRange.to) return true;
+    if (dateRange.from || dateRange.to) {
+      filtered = filtered.filter(employee => {
         if (!employee.hireDate || typeof employee.hireDate !== 'string') return false;
         
         try {
@@ -121,21 +148,15 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
           console.error("Error parsing hire date:", e);
           return false;
         }
-      };
+      });
+    }
 
-      const noFiltersApplied = !searchTerm && selectedDepartments.length === 0 && selectedManagers.length === 0 && selectedJobTitles.length === 0 && selectedNationalities.length === 0 && !dateRange.from && !dateRange.to;
-      if (noFiltersApplied) return true;
+    if (selectedEmployeeIds.length > 0) {
+      const selectedSet = new Set(selectedEmployeeIds);
+      return filtered.filter(employee => selectedSet.has(employee.id));
+    }
 
-
-      return (
-        searchMatch &&
-        (selectedDepartments.length === 0 || selectedDepartments.includes(employee.department)) &&
-        (selectedManagers.length === 0 || selectedManagers.includes(employee.manager)) &&
-        (selectedJobTitles.length === 0 || selectedJobTitles.includes(employee.jobTitle)) &&
-        (selectedNationalities.length === 0 || selectedNationalities.includes(employee.nationality)) &&
-        isInDateRange()
-      );
-    });
+    return filtered;
   }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange, selectedEmployeeIds]);
   
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
@@ -356,7 +377,7 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
         description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
       >
         <div className="hidden md:flex shrink-0 items-center space-x-2">
-            <ExcelExportButton employees={filteredEmployees} fileName="aktywni_pracownicy" />
+            <ExcelExportButton employees={filteredEmployees} fileName="aktywni_pracownicy" columns={exportColumns} />
             <ExcelImportButton />
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -508,7 +529,3 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
     </div>
   );
 }
-
-    
-
-    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -6,32 +7,26 @@ import { Button } from '@/components/ui/button';
 import { FileDown } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/date';
 
 interface ExcelExportButtonProps {
   employees: Employee[];
   fileName?: string;
+  columns: { key: keyof Employee, name: string }[];
 }
 
-const englishToPolishMapping: Record<keyof Omit<Employee, 'id' | 'status' | 'terminationDate' | 'plannedTerminationDate' | 'vacationStartDate' | 'vacationEndDate'>, string> = {
-  fullName: 'Nazwisko i imię',
-  hireDate: 'Data zatrudnienia',
-  jobTitle: 'Stanowisko',
-  department: 'Dział',
-  manager: 'Kierownik',
-  cardNumber: 'Nr karty',
-  nationality: 'Narodowość',
-  lockerNumber: 'Nr szafki',
-  departmentLockerNumber: 'Nr szafki w dziale',
-  sealNumber: 'Nr plomby',
-};
-
-export function ExcelExportButton({ employees, fileName = 'pracownicy' }: ExcelExportButtonProps) {
+export function ExcelExportButton({ employees, fileName = 'pracownicy', columns }: ExcelExportButtonProps) {
   const handleExport = () => {
     const dataToExport = employees.map(emp => {
       const polishEmp: any = {};
-      for (const key in englishToPolishMapping) {
-        polishEmp[englishToPolishMapping[key as keyof typeof englishToPolishMapping]] = emp[key as keyof typeof emp];
-      }
+      columns.forEach(col => {
+        let value = emp[col.key] || '';
+        // Use our centralized date formatter for date fields
+        if ((col.key === 'hireDate' || col.key === 'terminationDate') && value) {
+            value = formatDate(value as string, 'dd.MM.yyyy');
+        }
+        polishEmp[col.name] = value;
+      });
       return polishEmp;
     });
 
@@ -39,9 +34,8 @@ export function ExcelExportButton({ employees, fileName = 'pracownicy' }: ExcelE
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Pracownicy');
     
-    // Auto-size columns
-    const cols = Object.keys(dataToExport[0] || {}).map(key => ({
-        wch: Math.max(20, ...dataToExport.map(row => (row[key] || '').toString().length))
+    const cols = columns.map(col => ({
+        wch: Math.max(20, ...dataToExport.map(row => (row[col.name] || '').toString().length))
     }));
     worksheet['!cols'] = cols;
     
