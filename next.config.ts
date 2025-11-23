@@ -29,7 +29,8 @@ const nextConfig: NextConfig = {
     },
   },
   watchOptions: {
-    ignored: ['**/next.config.ts'],
+    poll: 1000,
+    ignored: ['**/node_modules'],
   },
   allowedDevOrigins: [
     "https://*.google.com",
