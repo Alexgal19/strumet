@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   DropdownMenu,
@@ -49,6 +49,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { EmployeeForm } from '@/components/employee-form';
 import { DataTable } from '@/components/data-table';
 import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
+import { useVirtualizer } from '@tanstack/react-virtual';
+
 
 const EmployeeSummary = dynamic(() => import('@/components/employee-summary').then(mod => mod.EmployeeSummary), {
   ssr: false
@@ -316,55 +318,103 @@ export default function AktywniPage({ employees, config, isLoading }: { employee
     },
   ], []);
 
-  const renderMobileView = () => (
-    <div className="w-full space-y-4">
-        {filteredEmployees.slice(0, 50).map(employee => ( // Simple pagination for mobile
-            <Card key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
-                <CardHeader>
-                    <CardTitle>{employee.fullName}</CardTitle>
-                    <CardDescription>{employee.jobTitle}</CardDescription>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                    <p>Dział: {employee.department}</p>
-                    <p>Kierownik: {employee.manager}</p>
-                    <p>Nr karty: {employee.cardNumber}</p>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                     <EmployeeSummary employee={employee}>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                                <span className="sr-only">Otwórz menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                              <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                              <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edytuj
-                              </DropdownMenuItem>
-                               <DropdownMenuItem onSelect={() => handleCopy(employee)}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Kopiuj imię
-                              </DropdownMenuItem>
-                               <DropdownMenuItem>
-                                  <Bot className="mr-2 h-4 w-4" />
-                                   Generuj podsumowanie
-                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
-                                <UserX className="mr-2 h-4 w-4" />
-                                Zwolnij
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </EmployeeSummary>
-                </CardFooter>
-            </Card>
-        ))}
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: filteredEmployees.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 53, // Approximate height of a row
+    overscan: 5,
+  });
+
+  const MobileCard = useCallback(({ employee, style }: { employee: Employee, style: React.CSSProperties }) => (
+    <div style={style} className="px-1 py-1.5">
+      <Card onClick={() => handleEditEmployee(employee)} className="cursor-pointer animate-fade-in-up">
+        <CardHeader>
+          <CardTitle>{employee.fullName}</CardTitle>
+          <CardDescription>{employee.jobTitle}</CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          <p>Dział: {employee.department}</p>
+          <p>Kierownik: {employee.manager}</p>
+          <p>Nr karty: {employee.cardNumber}</p>
+        </CardContent>
+        <CardFooter className="flex justify-end">
+          <EmployeeSummary employee={employee}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                  <span className="sr-only">Otwórz menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edytuj
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleCopy(employee)}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Kopiuj imię
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Bot className="mr-2 h-4 w-4" />
+                  Generuj podsumowanie
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onSelect={() => handleTerminateEmployee(employee.id)}>
+                  <UserX className="mr-2 h-4 w-4" />
+                  Zwolnij
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </EmployeeSummary>
+        </CardFooter>
+      </Card>
     </div>
-  );
+  ), [handleEditEmployee, handleCopy, handleTerminateEmployee]);
+
+  const renderMobileView = () => {
+    if (filteredEmployees.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
+          <UserX className="h-12 w-12 mb-4" />
+          <h3 className="text-lg font-semibold">Brak pracowników</h3>
+          <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów filtrowania.</p>
+        </div>
+      )
+    }
+
+    return (
+      <div ref={parentRef} className="w-full h-full overflow-y-auto">
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+            const employee = filteredEmployees[virtualItem.index];
+            return (
+              <MobileCard
+                key={employee.id}
+                employee={employee}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   if (isLoading || !hasMounted) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;

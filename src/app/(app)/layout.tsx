@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 import type { AllConfig, Employee, AbsenceRecord, CirculationCard, FingerprintAppointment, ClothingIssuance, AppNotification } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
+import { cn } from '@/lib/utils';
 
 export type ActiveView = 
   | 'aktywni' 
@@ -45,6 +46,23 @@ const LoadingComponent = () => (
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
+
+const ViewTransitionWrapper = ({ children, viewKey }: { children: React.ReactNode, viewKey: string }) => {
+  const [isAnimating, setIsAnimating] = useState(false);
+  
+  useEffect(() => {
+    setIsAnimating(true);
+    const timer = setTimeout(() => setIsAnimating(false), 150); // duration of animation
+    return () => clearTimeout(timer);
+  }, [viewKey]);
+
+  return (
+    <div key={viewKey} className={cn("animate-fade-in", isAnimating ? "opacity-0" : "opacity-100")}>
+        {children}
+    </div>
+  );
+};
+
 
 export default function AppLayout({
   children,
@@ -101,7 +119,11 @@ export default function AppLayout({
         <AppSidebar activeView={activeView} setActiveView={setActiveView} />
         <SidebarInset className="m-2 flex flex-col p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 backdrop-blur-xl bg-card/50 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
           <React.Suspense fallback={<LoadingComponent />}>
-            {isLoading ? <LoadingComponent /> : <ActiveViewComponent {...viewProps} />}
+            {isLoading ? <LoadingComponent /> : (
+              <ViewTransitionWrapper viewKey={activeView}>
+                <ActiveViewComponent {...viewProps} />
+              </ViewTransitionWrapper>
+            )}
           </React.Suspense>
         </SidebarInset>
         <AppBottomNav activeView={activeView} setActiveView={setActiveView} />

@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import {
   ColumnDef,
   flexRender,
@@ -11,6 +11,7 @@ import {
   Row,
   RowSelectionState,
 } from "@tanstack/react-table"
+import { useVirtualizer } from '@tanstack/react-virtual'
 
 import {
   Table,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, UserX } from "lucide-react"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -84,55 +85,77 @@ export function DataTable<TData extends {id: string}, TValue>({
     }
   })
 
+  const { rows } = table.getRowModel();
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 53, // This is a reasonable estimate for a table row height
+    overscan: 5,
+  });
+
   return (
     <div className="flex-grow flex flex-col h-full">
-        <div className="flex-grow overflow-auto rounded-lg border">
-            <Table>
-            <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                    return (
-                        <TableHead key={header.id}>
-                        {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                            )}
-                        </TableHead>
-                    )
-                    })}
-                </TableRow>
-                ))}
-            </TableHeader>
-            <TableBody>
-                {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                    <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                        onClick={() => onRowClick && onRowClick(row.original)}
-                        className="cursor-pointer"
-                    >
-                    {row.getVisibleCells().map((cell) => (
-                        <TableCell 
-                            key={cell.id} 
-                            onClick={cell.column.id === 'actions' ? (e) => e.stopPropagation() : undefined}
+        <div ref={parentRef} className="flex-grow overflow-auto rounded-lg border">
+            <Table style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+              <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm z-10">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                      return (
+                          <TableHead key={header.id} style={{width: header.getSize()}}>
+                          {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                              )}
+                          </TableHead>
+                      )
+                      })}
+                  </TableRow>
+                  ))}
+              </TableHeader>
+              <TableBody>
+                  {rowVirtualizer.getVirtualItems().length > 0 ? (
+                    rowVirtualizer.getVirtualItems().map(virtualRow => {
+                      const row = rows[virtualRow.index]
+                      return (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && "selected"}
+                          onClick={() => onRowClick && onRowClick(row.original)}
+                          className="cursor-pointer"
+                          style={{
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start - virtualRow.index * virtualRow.size}px)`
+                          }}
                         >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          {row.getVisibleCells().map((cell) => (
+                              <TableCell 
+                                  key={cell.id} 
+                                  onClick={cell.column.id === 'actions' ? (e) => e.stopPropagation() : undefined}
+                                  style={{width: cell.column.getSize()}}
+                              >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </TableCell>
+                          ))}
+                        </TableRow>
+                      )
+                    })
+                  ) : (
+                    <TableRow>
+                        <TableCell colSpan={columns.length + 1} className="h-24 text-center">
+                          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
+                            <UserX className="h-12 w-12 mb-4" />
+                            <h3 className="text-lg font-semibold">Brak wyników</h3>
+                            <p className="text-sm max-w-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów. Spróbuj zmienić filtry lub wyczyścić je, aby zobaczyć wszystkie wyniki.</p>
+                          </div>
                         </TableCell>
-                    ))}
                     </TableRow>
-                ))
-                ) : (
-                <TableRow>
-                    <TableCell colSpan={columns.length + 1} className="h-24 text-center">
-                    Brak wyników.
-                    </TableCell>
-                </TableRow>
-                )}
-            </TableBody>
+                  )}
+              </TableBody>
             </Table>
         </div>
          <div className="flex items-center justify-center space-x-4 py-4">

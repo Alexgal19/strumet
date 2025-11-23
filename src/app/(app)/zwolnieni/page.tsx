@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +43,8 @@ import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/data-table';
 import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
+import { useVirtualizer } from '@tanstack/react-virtual';
+
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -285,10 +287,17 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
       },
   ], []);
 
-  const renderMobileView = () => (
-    <div className="w-full space-y-4">
-      {filteredEmployees.slice(0, 50).map(employee => (
-        <Card key={employee.id} onClick={() => handleEditEmployee(employee)} className="cursor-pointer">
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: filteredEmployees.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 140, // Approximate height of a card
+    overscan: 5,
+  });
+
+  const MobileCard = useCallback(({ employee, style }: { employee: Employee, style: React.CSSProperties }) => (
+    <div style={style} className="px-1 py-1.5">
+      <Card onClick={() => handleEditEmployee(employee)} className="cursor-pointer animate-fade-in-up">
           <CardHeader>
             <CardTitle>{employee.fullName}</CardTitle>
             <CardDescription>{employee.jobTitle}</CardDescription>
@@ -324,9 +333,49 @@ export default function ZwolnieniPage({ employees, config, isLoading }: { employ
             </DropdownMenu>
           </CardFooter>
         </Card>
-      ))}
-    </div>
-  );
+      </div>
+  ), [handleEditEmployee, handleCopy, handleRestoreEmployee]);
+
+  const renderMobileView = () => {
+    if (filteredEmployees.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
+          <UserX className="h-12 w-12 mb-4" />
+          <h3 className="text-lg font-semibold">Brak pracowników</h3>
+          <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów filtrowania.</p>
+        </div>
+      )
+    }
+    return (
+      <div ref={parentRef} className="w-full h-full overflow-y-auto">
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualItem.tsx) => {
+            const employee = filteredEmployees[virtualItem.tsx.index];
+            return (
+              <MobileCard
+                key={employee.id}
+                employee={employee}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualItem.tsx.size}px`,
+                  transform: `translateY(${virtualItem.tsx.start}px)`,
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
   
   if (isLoading || !hasMounted) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
