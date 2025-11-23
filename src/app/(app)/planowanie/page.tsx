@@ -16,7 +16,7 @@ import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-f
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
-
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function PlanningPage() {
   const { employees, isLoading } = useAppContext();
@@ -53,13 +53,14 @@ export default function PlanningPage() {
       .sort((a, b) => new Date(a.vacationEndDate!).getTime() - new Date(b.vacationEndDate!).getTime());
   }, [activeEmployees]);
 
-  const allPlannedVacations = useMemo(() => {
+  const upcomingVacations = useMemo(() => {
     const today = startOfDay(new Date());
     return activeEmployees
       .filter(e => {
         if (!e.vacationStartDate || !e.vacationEndDate) return false;
         try {
             const startDate = startOfDay(parseISO(e.vacationStartDate));
+            // Ensure the employee is not already counted in the 'onVacation' list
             return startDate >= today && !onVacation.some(onVac => onVac.id === e.id);
         } catch (error) {
             return false;
@@ -94,20 +95,20 @@ export default function PlanningPage() {
     
     return (
         <Card className={cn(
-            "w-full",
+            "w-full animate-fade-in-up",
             type === 'termination' && 'border-destructive/50 bg-destructive/10',
             (type === 'vacation' || type === 'vacation-planned') && 'border-yellow-500/50 bg-yellow-500/10',
         )}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                 <div className="space-y-1">
-                    <CardTitle className="text-lg">{employee.fullName}</CardTitle>
-                    <CardDescription>{employee.jobTitle} - {employee.department}</CardDescription>
+                    <CardTitle className="text-base">{employee.fullName}</CardTitle>
+                    <CardDescription className="text-xs">{employee.jobTitle} - {employee.department}</CardDescription>
                 </div>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
                  <div className="flex items-center text-muted-foreground">
                     <CalendarClock className="mr-2 h-4 w-4" />
-                    <strong className="text-foreground">{dateLabel}</strong>
+                    <strong className="text-foreground text-xs">{dateLabel}</strong>
                 </div>
             </CardContent>
         </Card>
@@ -116,38 +117,47 @@ export default function PlanningPage() {
   
   const renderEmployeeList = (list: Employee[], type: 'termination' | 'vacation' | 'vacation-planned', emptyMessage: string) => {
     if (list.length === 0) {
-      return <p className="text-center text-muted-foreground py-6">{emptyMessage}</p>;
+      return <p className="text-center text-sm text-muted-foreground py-6">{emptyMessage}</p>;
     }
     return (
-      <div className="space-y-4">
-        {list.map(employee => (
-          <EmployeeCard key={employee.id} employee={employee} type={type} />
-        ))}
-      </div>
+      <ScrollArea className="h-full">
+        <div className="space-y-3 pr-4">
+          {list.map(employee => (
+            <EmployeeCard key={employee.id} employee={employee} type={type} />
+          ))}
+        </div>
+      </ScrollArea>
     );
   };
 
-
   return (
-    <div>
+    <div className="h-full flex flex-col">
       <PageHeader
         title="Planowanie"
         description="Zarządzaj nadchodzącymi zwolnieniami i urlopami pracowników."
       />
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 flex-grow">
         
-        <div className="space-y-6">
-            <h2 className="text-2xl font-bold tracking-tight">Planowane zwolnienia</h2>
-            {renderEmployeeList(plannedTerminations, 'termination', 'Brak zaplanowanych zwolnień.')}
+        <div className="flex flex-col space-y-4">
+            <h2 className="text-xl font-bold tracking-tight">Planowane zwolnienia ({plannedTerminations.length})</h2>
+            <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
+                {renderEmployeeList(plannedTerminations, 'termination', 'Brak zaplanowanych zwolnień.')}
+            </div>
         </div>
 
-        <div className="space-y-6">
-            <h2 className="text-2xl font-bold tracking-tight">Pracownicy na urlopie</h2>
-            {renderEmployeeList(onVacation, 'vacation', 'Obecnie nikt nie przebywa na urlopie.')}
-            
-            <h2 className="text-2xl font-bold tracking-tight pt-4">Wszystkie zaplanowane urlopy</h2>
-            {renderEmployeeList(allPlannedVacations, 'vacation-planned', 'Brak zaplanowanych urlopów.')}
+        <div className="flex flex-col space-y-4">
+            <h2 className="text-xl font-bold tracking-tight">Pracownicy na urlopie ({onVacation.length})</h2>
+             <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
+                {renderEmployeeList(onVacation, 'vacation', 'Obecnie nikt nie przebywa na urlopie.')}
+            </div>
+        </div>
+        
+        <div className="flex flex-col space-y-4">
+            <h2 className="text-xl font-bold tracking-tight">Nadchodzące urlopy ({upcomingVacations.length})</h2>
+            <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
+                {renderEmployeeList(upcomingVacations, 'vacation-planned', 'Brak zaplanowanych urlopów.')}
+            </div>
         </div>
 
       </div>
