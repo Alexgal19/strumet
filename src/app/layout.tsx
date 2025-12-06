@@ -2,6 +2,8 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from '@/components/theme-provider';
+
 
 // This metadata is now static and won't be used by the PWA manifest directly
 // But it's good practice to keep it for SEO and browser tabs.
@@ -17,15 +19,22 @@ export default function RootLayout({
 }>) {
 
   return (
-    <html lang="pl">
+    <html lang="pl" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-geist/latest/geist.css" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#209cee" />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+         <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

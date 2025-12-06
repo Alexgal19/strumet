@@ -5,9 +5,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Sidebar,
-  SidebarHeader,
   SidebarContent,
   SidebarFooter,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -26,7 +26,6 @@ import {
   Bell,
   Trash2,
   Shirt,
-  Download,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { ActiveView, AppNotification } from '@/lib/types';
@@ -39,6 +38,8 @@ import { db } from '@/lib/firebase';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { ThemeToggle } from './theme-toggle';
+
 
 const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -174,8 +175,9 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4 flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
             <Notifications />
+            <ThemeToggle />
         </div>
         <SidebarMenu>
           <SidebarMenuItem className="p-0">

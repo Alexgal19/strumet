@@ -1,15 +1,15 @@
 
-export type ActiveView = 
-  | 'aktywni' 
-  | 'zwolnieni' 
-  | 'statystyki' 
-  | 'karty-obiegowe' 
-  | 'odciski-palcow' 
-  | 'brak-logowania' 
-  | 'konfiguracja'
+export type ActiveView =
+  | 'aktywni'
+  | 'zwolnieni'
   | 'planowanie'
+  | 'odwiedzalnosc'
+  | 'statystyki'
   | 'wydawanie-odziezy'
-  | 'odwiedzalnosc';
+  | 'karty-obiegowe'
+  | 'odciski-palcow'
+  | 'brak-logowania'
+  | 'konfiguracja';
 
 export interface Employee {
   id: string;
@@ -40,6 +40,8 @@ export type JobTitle = ConfigItem;
 export type Manager = ConfigItem;
 export type Nationality = ConfigItem;
 export type ClothingItem = ConfigItem;
+
+export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
 export interface AllConfig {
   departments: Department[];
@@ -98,15 +100,4 @@ export interface ClothingIssuance {
         name: string;
         quantity: number;
     }[];
-}
-
-// Props for the page components rendered in the main layout
-export interface ViewPageProps {
-    employees: Employee[];
-    config: AllConfig;
-    absenceRecords: AbsenceRecord[];
-    circulationCards: CirculationCard[];
-    fingerprintAppointments: FingerprintAppointment[];
-    clothingIssuances: ClothingIssuance[];
-    isLoading: boolean;
 }

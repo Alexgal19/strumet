@@ -20,7 +20,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,12 +42,13 @@ import { ExcelImportButton } from '@/components/excel-import-button';
 import { ExcelExportButton } from '@/components/excel-export-button';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { EmployeeForm } from '@/components/employee-form';
 import { DataTable } from '@/components/data-table';
 import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAppContext } from '@/context/app-context';
+import { EmployeeCard } from '@/components/employee-card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 const EmployeeSummary = dynamic(() => import('@/components/employee-summary').then(mod => mod.EmployeeSummary), {
@@ -153,12 +153,10 @@ export default function AktywniPage() {
       });
     }
 
-    if (selectedEmployeeIds.length > 0) {
-      const selectedSet = new Set(selectedEmployeeIds);
-      return filtered.filter(employee => selectedSet.has(employee.id));
-    }
-
-    return filtered;
+    return filtered.filter(employee => {
+      if (selectedEmployeeIds.length === 0) return true;
+      return selectedEmployeeIds.includes(employee.id);
+    });
   }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange, selectedEmployeeIds]);
   
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
@@ -198,16 +196,28 @@ export default function AktywniPage() {
   };
 
   const columns = useMemo<ColumnDef<Employee>[]>(() => [
-    { accessorKey: "fullName", header: "Nazwisko i imię" },
+    {
+        accessorKey: "fullName",
+        header: "Nazwisko i imię",
+        cell: ({ row }) => {
+            const employee = row.original;
+            return (
+                <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={`https://avatar.vercel.sh/${employee.fullName}.png`} alt={employee.fullName} />
+                        <AvatarFallback>{employee.fullName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{employee.fullName}</span>
+                </div>
+            )
+        }
+    },
     { accessorKey: "hireDate", header: "Data zatrudnienia" },
     { accessorKey: "jobTitle", header: "Stanowisko" },
     { accessorKey: "department", header: "Dział" },
     { accessorKey: "manager", header: "Kierownik" },
     { accessorKey: "cardNumber", header: "Nr karty" },
     { accessorKey: "nationality", header: "Narodowość" },
-    { accessorKey: "lockerNumber", header: "Nr szafki" },
-    { accessorKey: "departmentLockerNumber", header: "Nr szafki w dziale" },
-    { accessorKey: "sealNumber", header: "Nr pieczęci" },
     {
       id: "actions",
       cell: ({ row }) => {
@@ -252,57 +262,9 @@ export default function AktywniPage() {
   const rowVirtualizer = useVirtualizer({
     count: filteredEmployees.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 53, // Approximate height of a row
+    estimateSize: () => 170, // Approximate height of a card
     overscan: 5,
   });
-
-  const MobileCard = useCallback(({ employee, style }: { employee: Employee, style: React.CSSProperties }) => (
-    <div style={style} className="px-1 py-1.5">
-      <Card onClick={() => handleEditEmployee(employee)} className="cursor-pointer animate-fade-in-up">
-        <CardHeader>
-          <CardTitle>{employee.fullName}</CardTitle>
-          <CardDescription>{employee.jobTitle}</CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          <p>Dział: {employee.department}</p>
-          <p>Kierownik: {employee.manager}</p>
-          <p>Nr karty: {employee.cardNumber}</p>
-        </CardContent>
-        <CardFooter className="flex justify-end">
-          <EmployeeSummary employee={employee}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                  <span className="sr-only">Otwórz menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edytuj
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleCopy(employee)}>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Kopiuj imię
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Bot className="mr-2 h-4 w-4" />
-                  Generuj podsumowanie
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onSelect={() => onTerminate(employee.id)}>
-                  <UserX className="mr-2 h-4 w-4" />
-                  Zwolnij
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </EmployeeSummary>
-        </CardFooter>
-      </Card>
-    </div>
-  ), [handleEditEmployee, handleCopy, onTerminate]);
 
   const renderMobileView = () => {
     if (filteredEmployees.length === 0) {
@@ -327,18 +289,24 @@ export default function AktywniPage() {
           {rowVirtualizer.getVirtualItems().map((virtualItem) => {
             const employee = filteredEmployees[virtualItem.index];
             return (
-              <MobileCard
+               <div
                 key={employee.id}
-                employee={employee}
                 style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
                   width: '100%',
-                  height: `${virtualItem.size}px`,
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
-              />
+                className="p-2"
+              >
+                <EmployeeCard 
+                    employee={employee} 
+                    onEdit={() => handleEditEmployee(employee)}
+                    onTerminate={() => onTerminate(employee.id)}
+                    onCopy={() => handleCopy(employee)}
+                />
+              </div>
             );
           })}
         </div>
@@ -439,10 +407,12 @@ export default function AktywniPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-           <Button variant="outline" onClick={handleClearFilters}>
-              <XCircle className="mr-2 h-4 w-4" />
-              Wyczyść filtry
-            </Button>
+           {(searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || dateRange.from || dateRange.to) && (
+             <Button variant="outline" onClick={handleClearFilters}>
+                <XCircle className="mr-2 h-4 w-4" />
+                Wyczyść filtry
+              </Button>
+           )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             <MultiSelect

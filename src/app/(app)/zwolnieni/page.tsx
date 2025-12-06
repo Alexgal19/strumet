@@ -38,11 +38,14 @@ import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserX } from 'lucide-react';
 import { DataTable } from '@/components/data-table';
 import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAppContext } from '@/context/app-context';
+import { EmployeeCard } from '@/components/employee-card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -53,9 +56,6 @@ const exportColumns = [
   { key: 'manager' as keyof Employee, name: 'Kierownik' },
   { key: 'cardNumber' as keyof Employee, name: 'Nr karty' },
   { key: 'nationality' as keyof Employee, name: 'Narodowość' },
-  { key: 'lockerNumber' as keyof Employee, name: 'Nr szafki' },
-  { key: 'departmentLockerNumber' as keyof Employee, name: 'Nr szafki w dziale' },
-  { key: 'sealNumber' as keyof Employee, name: 'Nr pieczęci' },
 ];
 
 
@@ -79,6 +79,7 @@ export default function ZwolnieniPage() {
 
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
+  const managerOptions: OptionType[] = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
@@ -135,13 +136,12 @@ export default function ZwolnieniPage() {
             }
         });
     }
+    
+    return filtered.filter(employee => {
+      if (selectedEmployeeIds.length === 0) return true;
+      return selectedEmployeeIds.includes(employee.id);
+    });
 
-    if (selectedEmployeeIds.length > 0) {
-        const selectedSet = new Set(selectedEmployeeIds);
-        return filtered.filter(employee => selectedSet.has(employee.id));
-    }
-
-    return filtered;
   }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, dateRange, selectedEmployeeIds]);
 
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
@@ -176,7 +176,22 @@ export default function ZwolnieniPage() {
   };
 
   const columns = useMemo<ColumnDef<Employee>[]>(() => [
-      { accessorKey: "fullName", header: "Nazwisko i imię" },
+      { 
+          accessorKey: "fullName", 
+          header: "Nazwisko i imię",
+          cell: ({ row }) => {
+            const employee = row.original;
+            return (
+                <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={`https://avatar.vercel.sh/${employee.fullName}.png`} alt={employee.fullName} />
+                        <AvatarFallback>{employee.fullName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{employee.fullName}</span>
+                </div>
+            )
+        }
+      },
       { accessorKey: "hireDate", header: "Data zatrudnienia" },
       { accessorKey: "terminationDate", header: "Data zwolnienia" },
       { accessorKey: "jobTitle", header: "Stanowisko" },
@@ -184,9 +199,6 @@ export default function ZwolnieniPage() {
       { accessorKey: "manager", header: "Kierownik" },
       { accessorKey: "cardNumber", header: "Nr karty" },
       { accessorKey: "nationality", header: "Narodowość" },
-      { accessorKey: "lockerNumber", header: "Nr szafki" },
-      { accessorKey: "departmentLockerNumber", header: "Nr szafki w dziale" },
-      { accessorKey: "sealNumber", header: "Nr pieczęci" },
       {
         id: "actions",
         cell: ({ row }) => {
@@ -225,50 +237,9 @@ export default function ZwolnieniPage() {
   const rowVirtualizer = useVirtualizer({
     count: filteredEmployees.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 140, // Approximate height of a card
+    estimateSize: () => 170, // Approximate height of a card
     overscan: 5,
   });
-
-  const MobileCard = useCallback(({ employee, style }: { employee: Employee, style: React.CSSProperties }) => (
-    <div style={style} className="px-1 py-1.5">
-      <Card onClick={() => handleEditEmployee(employee)} className="cursor-pointer animate-fade-in-up">
-          <CardHeader>
-            <CardTitle>{employee.fullName}</CardTitle>
-            <CardDescription>{employee.jobTitle}</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            <p>Data zwolnienia: {employee.terminationDate}</p>
-            <p>Dział: {employee.department}</p>
-          </CardContent>
-          <CardFooter className="flex justify-end">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                  <span className="sr-only">Otwórz menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edytuj
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleCopy(employee)}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Kopiuj imię
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => onRestoreEmployee(employee.id)}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Przywróć
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </CardFooter>
-        </Card>
-      </div>
-  ), [handleEditEmployee, handleCopy, onRestoreEmployee]);
 
   const renderMobileView = () => {
     if (filteredEmployees.length === 0) {
@@ -292,18 +263,24 @@ export default function ZwolnieniPage() {
           {rowVirtualizer.getVirtualItems().map((virtualItem) => {
             const employee = filteredEmployees[virtualItem.index];
             return (
-              <MobileCard
+              <div
                 key={employee.id}
-                employee={employee}
                 style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
                   width: '100%',
-                  height: `${virtualItem.size}px`,
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
-              />
+                className="p-2"
+              >
+                <EmployeeCard 
+                    employee={employee}
+                    onEdit={() => handleEditEmployee(employee)}
+                    onRestore={() => onRestoreEmployee(employee.id)}
+                    onCopy={() => handleCopy(employee)}
+                />
+              </div>
             );
           })}
         </div>
@@ -394,10 +371,12 @@ export default function ZwolnieniPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-           <Button variant="outline" onClick={handleClearFilters}>
+          {(searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || dateRange.from || dateRange.to) && (
+            <Button variant="outline" onClick={handleClearFilters}>
               <XCircle className="mr-2 h-4 w-4" />
               Wyczyść filtry
             </Button>
+          )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             <MultiSelect
