@@ -19,7 +19,7 @@ import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-f
 import { pl } from 'date-fns/locale';
 import type { Employee } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import EmployeeSummary from './employee-summary';
+import { EmployeeSummary } from './employee-summary';
 
 
 interface EmployeeCardProps {
