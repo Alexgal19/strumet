@@ -8,37 +8,45 @@ html, body, #__next__ {
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 240 20% 98%; /* Light Gray */
     --foreground: 222.2 84% 4.9%;
+    
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
+    
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 100%;
+
+    --primary: 207 88% 68%; /* Soft Blue */
+    --primary-foreground: 222.2 84% 4.9%;
+    
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 215.4 16.3% 46.9%;
+    
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 221 83% 53%;
+
+    --accent: 207 90% 61%; /* Darker Blue */
     --accent-foreground: 0 0% 100%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+    
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --ring: 207 88% 68%;
     --radius: 0.8rem;
     
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 221 83% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 207 88% 68%;
+    --sidebar-primary-foreground: 222.2 84% 4.9%;
     --sidebar-accent: 210 40% 96.1%;
     --sidebar-accent-foreground: 222.2 84% 4.9%;
     --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 221 83% 53%;
+    --sidebar-ring: 207 88% 68%;
 
-    --chart-1: 221 83% 53%;
+    --chart-1: 207 88% 68%;
     --chart-2: 160 60% 45%;
     --chart-3: 340 82% 56%;
     --chart-4: 40 90% 55%;
@@ -46,37 +54,45 @@ html, body, #__next__ {
   }
 
   .dark {
-    --background: 224 71% 4%;
+    --background: 240 5% 10%; /* Dark Gray */
     --foreground: 210 40% 98%;
-    --card: 224 71% 4%;
+
+    --card: 240 5% 12%;
     --card-foreground: 210 40% 98%;
-    --popover: 224 71% 4%;
+    
+    --popover: 240 5% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
+
+    --primary: 207 88% 68%; /* Soft Blue */
     --primary-foreground: 224 71% 4%;
+
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
+    
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 217 91% 60%;
+
+    --accent: 207 90% 61%; /* Darker Blue */
     --accent-foreground: 224 71% 4%;
+
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
+    
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --ring: 207 88% 68%;
     --radius: 0.8rem;
     
-    --sidebar-background: 224 71% 4%;
+    --sidebar-background: 240 5% 10%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary: 207 88% 68%;
     --sidebar-primary-foreground: 224 71% 4%;
     --sidebar-accent: 217 33% 17%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 207 88% 68%;
 
-    --chart-1: 217 91% 60%;
+    --chart-1: 207 88% 68%;
     --chart-2: 160 60% 45%;
     --chart-3: 340 82% 56%;
     --chart-4: 40 90% 55%;
