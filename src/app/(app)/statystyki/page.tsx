@@ -2,26 +2,44 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { Loader2, Users, Copy, Building, Briefcase } from 'lucide-react';
 import { Employee } from '@/lib/types';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
 import { useAppContext } from '@/context/app-context';
+import { cn } from '@/lib/utils';
 
 
-const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-1) / 0.7)", "hsl(var(--chart-2) / 0.7)"];
 
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col space-y-1">
+            <span className="text-[0.70rem] uppercase text-muted-foreground">
+              {data.name}
+            </span>
+            <span className="font-bold text-muted-foreground">
+              {data.value} ({data.percentage.toFixed(1)}%)
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
 
 export default function StatisticsPage() {
   const { employees, config, isLoading, handleSaveEmployee } = useAppContext();
@@ -40,54 +58,30 @@ export default function StatisticsPage() {
   
   const totalActiveEmployees = activeEmployees.length;
 
-  const departmentData = useMemo(() => {
-    if (totalActiveEmployees === 0) return [];
-    
-    const departments: { [key: string]: { employees: Employee[] } } = {};
+  const stats = useMemo(() => {
+    const departments = new Set(activeEmployees.map(e => e.department));
+    const managers = new Set(activeEmployees.map(e => e.manager));
+    const totalManagers = managers.size > 0 ? managers.size : 1;
 
-    activeEmployees.forEach(employee => {
-      if (!departments[employee.department]) {
-        departments[employee.department] = { employees: [] };
-      }
-      departments[employee.department].employees.push(employee);
-    });
-
-    return Object.entries(departments)
-      .map(([name, data], index) => {
-        
-        const managersMap = new Map<string, Employee[]>();
-        data.employees.forEach(e => {
-            if(!managersMap.has(e.manager)) {
-                managersMap.set(e.manager, []);
-            }
-            managersMap.get(e.manager)!.push(e);
-        });
-
-        const managersArray = Array.from(managersMap.entries()).map(([managerName, managerEmployees]) => {
-            const jobTitles: { [key: string]: number } = {};
-            managerEmployees.forEach(e => {
-                jobTitles[e.jobTitle] = (jobTitles[e.jobTitle] || 0) + 1;
-            });
-            return {
-                name: managerName,
-                employeesCount: managerEmployees.length,
-                jobTitles: Object.entries(jobTitles)
-                    .map(([name, value]) => ({ name, value }))
-                    .sort((a, b) => b.value - a.value)
-            };
-        }).sort((a,b) => b.employeesCount - a.employeesCount);
-
-        return { 
-          name, 
-          value: data.employees.length,
-          percentage: (data.employees.length / totalActiveEmployees) * 100,
-          fill: CHART_COLORS[index % CHART_COLORS.length],
-          managers: managersArray
-        }
-      })
-      .sort((a, b) => b.value - a.value);
+    return {
+        totalDepartments: departments.size,
+        averageEmployeesPerManager: (totalActiveEmployees / totalManagers).toFixed(1),
+    };
   }, [activeEmployees, totalActiveEmployees]);
 
+  const departmentData = useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    activeEmployees.forEach(employee => {
+      counts[employee.department] = (counts[employee.department] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value], index) => ({ 
+      name, 
+      value,
+      percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
+      fill: CHART_COLORS[index % CHART_COLORS.length] 
+    })).sort((a, b) => b.value - a.value);
+  }, [activeEmployees, totalActiveEmployees]);
+  
   const nationalityData = useMemo(() => {
     const counts: { [key: string]: number } = {};
     activeEmployees.forEach(employee => {
@@ -98,7 +92,7 @@ export default function StatisticsPage() {
       value,
       percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
       fill: CHART_COLORS[index % CHART_COLORS.length] 
-    }));
+    })).sort((a, b) => b.value - a.value);
   }, [activeEmployees, totalActiveEmployees]);
 
   const jobTitleData = useMemo(() => {
@@ -114,29 +108,28 @@ export default function StatisticsPage() {
     })).sort((a, b) => b.value - a.value);
   }, [activeEmployees, totalActiveEmployees]);
 
-  const handleDepartmentClick = (departmentName: string) => {
-    const filtered = activeEmployees.filter(e => e.department === departmentName);
-    setDialogTitle(`Pracownicy w dziale: ${departmentName}`);
+  const handleChartClick = (name: string, type: 'department' | 'nationality' | 'jobTitle') => {
+    let filtered: Employee[] = [];
+    let title = '';
+    
+    switch(type) {
+        case 'department':
+            filtered = activeEmployees.filter(e => e.department === name);
+            title = `Pracownicy w dziale: ${name}`;
+            break;
+        case 'nationality':
+            filtered = activeEmployees.filter(e => e.nationality === name);
+            title = `Pracownicy narodowości: ${name}`;
+            break;
+        case 'jobTitle':
+            filtered = activeEmployees.filter(e => e.jobTitle === name);
+            title = `Pracownicy na stanowisku: ${name}`;
+            break;
+    }
+    
+    setDialogTitle(title);
     setDialogEmployees(filtered);
     setIsStatDialogOpen(true);
-  };
-  
-  const handleManagerClick = (departmentName: string, managerName: string) => {
-    const filtered = activeEmployees.filter(e => e.department === departmentName && e.manager === managerName);
-    setDialogTitle(`Pracownicy kierownika: ${managerName}`);
-    setDialogEmployees(filtered);
-    setIsStatDialogOpen(true);
-  };
-  
-  const handleJobTitleClick = (departmentName: string, managerName: string, jobTitleName: string) => {
-      const filtered = activeEmployees.filter(e => 
-          e.department === departmentName && 
-          e.manager === managerName && 
-          e.jobTitle === jobTitleName
-      );
-      setDialogTitle(`${jobTitleName} (Kier. ${managerName})`);
-      setDialogEmployees(filtered);
-      setIsStatDialogOpen(true);
   };
   
   const handleEmployeeClick = (employee: Employee) => {
@@ -168,6 +161,52 @@ export default function StatisticsPage() {
       });
     });
   };
+  
+  const renderPieChart = (data: any[], title: string, description: string, type: 'department' | 'nationality' | 'jobTitle') => (
+      <Card>
+        <CardHeader>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <ChartContainer config={{}} className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Tooltip content={<CustomTooltip />} />
+                        <Pie
+                            data={data}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            innerRadius={60}
+                            paddingAngle={5}
+                            labelLine={false}
+                            onClick={(d) => handleChartClick(d.name, type)}
+                            className="cursor-pointer"
+                        >
+                            {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} stroke={entry.fill} />
+                            ))}
+                        </Pie>
+                        <Legend
+                            iconType="circle"
+                            layout="vertical"
+                            verticalAlign="middle"
+                            align="right"
+                            formatter={(value, entry) => (
+                                <span className="text-muted-foreground text-sm">
+                                  {value} <span className="font-bold">({entry.payload?.value})</span>
+                                </span>
+                            )}
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        </CardContent>
+    </Card>
+  );
 
   if (isLoading) {
     return (
@@ -180,199 +219,54 @@ export default function StatisticsPage() {
   return (
     <div>
       <PageHeader
-        title="Statystyki"
-        description="Analizuj dane dotyczące pracowników."
+        title="Statystyki - Raport"
+        description="Kluczowe wskaźniki dotyczące struktury personelu."
       />
       {employees.length === 0 ? (
          <div className="text-center text-muted-foreground py-10">
             Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card className="lg:col-span-2">
-                <CardHeader>
-                    <CardTitle>Rozkład pracowników wg działów</CardTitle>
-                    <CardDescription>
-                        Liczba pracowników, kierownicy i stanowiska w poszczególnych działach.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Accordion type="multiple" className="w-full space-y-4">
-                      {departmentData.map((dept, index) => (
-                          <AccordionItem value={`item-${index}`} key={dept.name} className="border-b-0">
-                             <Card className="overflow-hidden">
-                                <div className="flex items-center p-4 hover:bg-muted/50">
-                                    <AccordionTrigger className="flex-1 text-left p-0 hover:no-underline">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.fill }}></div>
-                                            <div className="flex-grow">
-                                                <p className="font-semibold">{dept.name}</p>
-                                                <p className="text-xs text-muted-foreground">{dept.value} pracowników ({dept.percentage.toFixed(1)}%)</p>
-                                            </div>
-                                        </div>
-                                    </AccordionTrigger>
-                                    <div className='flex items-center gap-2 pl-4'>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleDepartmentClick(dept.name)}
-                                            className="h-8 w-8 shrink-0"
-                                        >
-                                            <Users className="h-4 w-4" />
-                                        </Button>
-                                        <Badge variant="secondary" className="hidden sm:inline-flex">{dept.value} prac.</Badge>
-                                    </div>
-                                </div>
-                              <AccordionContent>
-                                <div className="px-6 pb-6 space-y-6">
-                                    {dept.managers.map((manager, managerIndex) => (
-                                        <div key={manager.name}>
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <Button 
-                                                    variant="link" 
-                                                    className="p-0 h-auto text-base font-semibold"
-                                                    onClick={() => handleManagerClick(dept.name, manager.name)}
-                                                >
-                                                    {manager.name}
-                                                </Button>
-                                                <Badge variant="outline">{manager.employeesCount} prac.</Badge>
-                                            </div>
-                                            <div className="space-y-3 pl-4">
-                                                {manager.jobTitles.map((job) => (
-                                                    <div key={job.name} className="space-y-1.5">
-                                                        <div className="flex justify-between items-center text-sm font-medium">
-                                                            <Button 
-                                                                variant="link" 
-                                                                className="p-0 h-auto text-sm"
-                                                                onClick={() => handleJobTitleClick(dept.name, manager.name, job.name)}
-                                                            >
-                                                                {job.name}
-                                                            </Button>
-                                                            <span className="text-muted-foreground">{job.value} ({ (manager.employeesCount > 0 ? (job.value / manager.employeesCount) * 100 : 0).toFixed(1)}%)</span>
-                                                        </div>
-                                                        <Progress value={manager.employeesCount > 0 ? (job.value / manager.employeesCount) * 100 : 0} className="h-1.5" />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            {managerIndex < dept.managers.length - 1 && <Separator className="mt-6" />}
-                                        </div>
-                                    ))}
-                                </div>
-                              </AccordionContent>
-                            </Card>
-                          </AccordionItem>
-                      ))}
-                    </Accordion>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Pracownicy wg narodowości</CardTitle>
-                    <CardDescription>Liczba i odsetek pracowników z podziałem na narodowości.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ChartContainer config={{}} className="h-[450px] w-full">
-                        <BarChart data={nationalityData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
-                            <XAxis type="number" hide />
-                            <YAxis 
-                                dataKey="name" 
-                                type="category" 
-                                tickLine={false} 
-                                axisLine={false} 
-                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))'}} 
-                                width={100}
-                                interval={0}
-                            />
-                             <Tooltip 
-                                cursor={{ fill: 'hsl(var(--muted))' }} 
-                                content={<ChartTooltipContent 
-                                    formatter={(value, name, props) => {
-                                        if (props.payload && typeof props.payload.percentage === 'number') {
-                                          return `${value} (${props.payload.percentage.toFixed(1)}%)`;
-                                        }
-                                        return value;
-                                    }}
-                                    nameKey="name"
-                                    hideIndicator
-                                />} 
-                            />
-                            <Bar dataKey="value" radius={5}>
-                                <LabelList 
-                                    dataKey="value" 
-                                    position="right" 
-                                    offset={8} 
-                                    className="fill-foreground"
-                                    fontSize={12}
-                                    formatter={(value: number, props: any) => {
-                                      if (props && typeof props.percentage === 'number') {
-                                        return `${value} (${props.percentage.toFixed(1)}%)`;
-                                      }
-                                      return value;
-                                    }}
-                                />
-                                {nationalityData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Pracownicy wg stanowisk</CardTitle>
-                    <CardDescription>Liczba i odsetek pracowników na poszczególnych stanowiskach.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ChartContainer config={{}} className="h-[450px] w-full">
-                        <BarChart data={jobTitleData} layout="vertical" margin={{ left: 20, right: 40, top: 5, bottom: 5 }} barGap={4}>
-                            <XAxis type="number" hide />
-                            <YAxis 
-                                dataKey="name" 
-                                type="category" 
-                                tickLine={false} 
-                                axisLine={false} 
-                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))', width: 150, whiteSpace: 'normal', wordWrap: 'break-word'}} 
-                                width={150} 
-                                interval={0} 
-                            />
-                             <Tooltip 
-                                cursor={{ fill: 'hsl(var(--muted))' }} 
-                                content={<ChartTooltipContent 
-                                    formatter={(value, name, props) => {
-                                        if (props.payload && typeof props.payload.percentage === 'number') {
-                                          return `${value} (${props.payload.percentage.toFixed(1)}%)`;
-                                        }
-                                        return value;
-                                    }}
-                                    nameKey="name"
-                                    hideIndicator
-                                />} 
-                            />
-                            <Bar dataKey="value" radius={5}>
-                                <LabelList 
-                                    dataKey="value" 
-                                    position="right" 
-                                    offset={8} 
-                                    className="fill-foreground"
-                                    fontSize={12}
-                                    formatter={(value: number, props: any) => {
-                                      if (props && typeof props.percentage === 'number') {
-                                          return `${value} (${props.percentage.toFixed(1)}%)`;
-                                      }
-                                      return value;
-                                    }}
-                                />
-                                {jobTitleData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
+        <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Aktywni pracownicy</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalActiveEmployees}</div>
+                        <p className="text-xs text-muted-foreground">Całkowita liczba pracowników</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Liczba działów</CardTitle>
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats.totalDepartments}</div>
+                        <p className="text-xs text-muted-foreground">Aktywne działy w firmie</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Pracownicy / Kierownik</CardTitle>
+                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats.averageEmployeesPerManager}</div>
+                        <p className="text-xs text-muted-foreground">Średnia liczba pracowników na kierownika</p>
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {renderPieChart(departmentData, 'Rozkład wg Działów', 'Liczba pracowników w poszczególnych działach.', 'department')}
+                {renderPieChart(nationalityData, 'Rozkład wg Narodowości', 'Struktura pracowników z podziałem na narodowości.', 'nationality')}
+                <div className="lg:col-span-2">
+                   {renderPieChart(jobTitleData, 'Rozkład wg Stanowisk', 'Liczba pracowników na poszczególnych stanowiskach.', 'jobTitle')}
+                </div>
+            </div>
         </div>
       )}
       
