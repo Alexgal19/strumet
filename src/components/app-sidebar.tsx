@@ -19,7 +19,7 @@ import {
   BarChart3,
   Fingerprint,
   FileText,
-  Component,
+  Database,
   LogOut,
   CalendarClock,
   CalendarCheck,
@@ -154,7 +154,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
       <SidebarHeader>
         <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Component className="h-7 w-7" />
+                <Database className="h-7 w-7" />
             </div>
             <span className="font-bold text-lg text-sidebar-accent-foreground">Baza - ST</span>
         </div>

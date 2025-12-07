@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Component, Loader2 } from "lucide-react";
+import { Database, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -61,7 +62,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-sm bg-background/80">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Component className="h-8 w-8" />
+            <Database className="h-8 w-8" />
           </div>
           <CardTitle className="text-2xl font-bold">Utwórz konto</CardTitle>
           <CardDescription>Wprowadź swoje dane, aby się zarejestrować.</CardDescription>
