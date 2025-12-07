@@ -8,7 +8,6 @@ import {
   UserX,
   Settings,
   CalendarClock,
-  CalendarCheck,
   FileText,
   Shirt,
   BarChart3,
@@ -36,8 +35,8 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const menuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
     { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
-    { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność' },
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
+    { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
     { href: '/login', icon: LogOut, label: 'Wyloguj' },
   ];
   

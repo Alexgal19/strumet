@@ -3,7 +3,6 @@ export type ActiveView =
   | 'aktywni'
   | 'zwolnieni'
   | 'planowanie'
-  | 'odwiedzalnosc'
   | 'statystyki'
   | 'wydawanie-odziezy'
   | 'karty-obiegowe'
@@ -63,12 +62,6 @@ export interface FingerprintAppointment {
   employeeId: string;
   employeeFullName: string;
   appointmentDate: string; // ISO string format
-}
-
-export interface Absence {
-  id: string;
-  employeeId: string;
-  date: string; // YYYY-MM-DD
 }
 
 export interface AbsenceRecord {

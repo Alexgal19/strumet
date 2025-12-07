@@ -15,7 +15,6 @@ const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   aktywni: dynamic(() => import('@/app/(app)/aktywni/page'), { loading: () => <LoadingComponent /> }),
   zwolnieni: dynamic(() => import('@/app/(app)/zwolnieni/page'), { loading: () => <LoadingComponent /> }),
   planowanie: dynamic(() => import('@/app/(app)/planowanie/page'), { loading: () => <LoadingComponent /> }),
-  odwiedzalnosc: dynamic(() => import('@/app/(app)/odwiedzalnosc/page'), { loading: () => <LoadingComponent /> }),
   statystyki: dynamic(() => import('@/app/(app)/statystyki/page'), { loading: () => <LoadingComponent /> }),
   'karty-obiegowe': dynamic(() => import('@/app/(app)/karty-obiegowe/page'), { loading: () => <LoadingComponent /> }),
   'odciski-palcow': dynamic(() => import('@/app/(app)/odciski-palcow/page'), { loading: () => <LoadingComponent /> }),
@@ -46,7 +45,7 @@ const AppContent = () => {
         <SidebarProvider>
             <div className="flex h-full flex-col md:flex-row bg-transparent">
                 <AppSidebar activeView={activeView} setActiveView={setActiveView} />
-                <SidebarInset className="m-0 flex flex-col md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-2xl border-border/20 md:border">
+                <SidebarInset className="m-0 flex flex-col md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-2xl border-white/10 md:border bg-card/80 backdrop-blur-lg">
                     <React.Suspense fallback={<LoadingComponent />}>
                         {isLoading ? <LoadingComponent /> : (
                             <ViewTransitionWrapper viewKey={activeView}>
