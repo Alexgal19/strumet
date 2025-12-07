@@ -10,12 +10,12 @@ import {
     isSameDay,
     isToday,
     startOfDay,
-    parse,
     getDay
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { getPolishHolidays } from '@/lib/holidays';
 import type { Employee, Absence, ConfigItem } from '@/lib/types';
+import { parseMaybeDate } from '@/lib/date';
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
@@ -103,12 +103,8 @@ export async function getAttendanceDataForMonth(
 
   // 3. Filter absences for the current month and create a lookup map
   const monthAbsences = allAbsences.filter(absence => {
-    try {
-      const absenceDate = parse(absence.date, 'yyyy-MM-dd', new Date());
-      return absenceDate >= startDate && absenceDate <= endDate;
-    } catch {
-      return false;
-    }
+    const absenceDate = parseMaybeDate(absence.date);
+    return absenceDate && absenceDate >= startDate && absenceDate <= endDate;
   });
 
   const absencesByEmployeeMap = new Map<string, string[]>();
@@ -171,5 +167,3 @@ export async function getAttendanceDataForMonth(
     employeeStats,
   };
 }
-
-    

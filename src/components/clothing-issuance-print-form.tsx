@@ -1,9 +1,9 @@
+
 'use client';
 
 import React from 'react';
 import { Employee, ClothingIssuance } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { formatDate } from '@/lib/date';
 
 interface ClothingIssuancePrintFormProps {
   employee: Employee | null;
@@ -41,7 +41,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                 </header>
 
                 <div className="text-right mb-4">
-                    <p>Data wydania: {format(parseISO(issuance.date), 'dd.MM.yyyy', { locale: pl })}</p>
+                    <p>Data wydania: {formatDate(issuance.date, 'dd.MM.yyyy')}</p>
                 </div>
                 
                 <section className="space-y-2 mb-4 text-sm">

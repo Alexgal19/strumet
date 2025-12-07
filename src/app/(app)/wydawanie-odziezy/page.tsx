@@ -35,7 +35,7 @@ import { Loader2, ChevronsUpDown, CheckIcon, Printer, History, PlusCircle, Trash
 import { PageHeader } from '@/components/page-header';
 import { Employee, ClothingIssuance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { formatDateTime } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -275,7 +275,7 @@ export default function ClothingIssuancePage() {
                         <TableBody>
                           {employeeIssuanceHistory.map(issuance => (
                             <TableRow key={issuance.id}>
-                              <TableCell className="font-medium">{format(parseISO(issuance.date), "dd.MM.yyyy HH:mm")}</TableCell>
+                              <TableCell className="font-medium">{formatDateTime(issuance.date, "dd.MM.yyyy HH:mm")}</TableCell>
                               <TableCell>{issuance.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
                               <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" onClick={() => handleReprint(issuance)}>

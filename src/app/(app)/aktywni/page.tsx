@@ -35,7 +35,7 @@ import {
 import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, CalendarIcon, Trash2, XCircle } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { isWithinInterval, startOfDay, endOfDay, format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +50,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAppContext } from '@/context/app-context';
 import { EmployeeCard } from '@/components/employee-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { formatDate, parseMaybeDate } from '@/lib/date';
 
 
 const EmployeeSummary = dynamic(() => import('@/components/employee-summary').then(mod => mod.EmployeeSummary), {
@@ -132,25 +133,16 @@ export default function AktywniPage() {
 
     if (dateRange.from || dateRange.to) {
       filtered = filtered.filter(employee => {
-        if (!employee.hireDate || typeof employee.hireDate !== 'string') return false;
+        const hireDate = parseMaybeDate(employee.hireDate);
+        if (!hireDate) return false;
+
+        const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
+        const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
         
-        try {
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.hireDate)) return false;
-
-          const hireDate = parse(employee.hireDate, 'yyyy-MM-dd', new Date());
-          if (isNaN(hireDate.getTime())) return false; 
-
-          const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
-          const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
-          
-          if (from && to) return isWithinInterval(hireDate, { start: from, end: to });
-          if (from) return hireDate >= from;
-          if (to) return hireDate <= to;
-          return true;
-        } catch (e) {
-          console.error("Error parsing hire date:", e);
-          return false;
-        }
+        if (from && to) return isWithinInterval(hireDate, { start: from, end: to });
+        if (from) return hireDate >= from;
+        if (to) return hireDate <= to;
+        return true;
       });
     }
 
@@ -213,7 +205,7 @@ export default function AktywniPage() {
             )
         }
     },
-    { accessorKey: "hireDate", header: "Data zatrudnienia" },
+    { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'dd.MM.yyyy') },
     { accessorKey: "jobTitle", header: "Stanowisko" },
     { accessorKey: "department", header: "Dział" },
     { accessorKey: "manager", header: "Kierownik" },
@@ -480,5 +472,3 @@ export default function AktywniPage() {
     </div>
   );
 }
-
-    

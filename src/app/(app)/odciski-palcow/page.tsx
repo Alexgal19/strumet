@@ -47,7 +47,8 @@ import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, UserPlus, Trash2 } fr
 import { PageHeader } from '@/components/page-header';
 import { Employee, FingerprintAppointment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { formatDate, formatDateTime } from '@/lib/date';
+import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
@@ -185,7 +186,7 @@ export default function FingerprintAppointmentsPage() {
                         )}
                         >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {appointmentDate ? format(appointmentDate, "PPP HH:mm", { locale: pl }) : <span>Wybierz datę i godzinę</span>}
+                        {appointmentDate ? formatDateTime(appointmentDate, "PPP HH:mm") : <span>Wybierz datę i godzinę</span>}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -247,8 +248,8 @@ export default function FingerprintAppointmentsPage() {
                       sortedAppointments.map((apt) => (
                         <TableRow key={apt.id}>
                           <TableCell className="font-medium">{apt.employeeFullName}</TableCell>
-                          <TableCell>{format(parseISO(apt.appointmentDate), "dd.MM.yyyy", { locale: pl })}</TableCell>
-                          <TableCell>{format(parseISO(apt.appointmentDate), "HH:mm", { locale: pl })}</TableCell>
+                          <TableCell>{formatDate(apt.appointmentDate, "dd.MM.yyyy")}</TableCell>
+                          <TableCell>{formatDate(apt.appointmentDate, "HH:mm")}</TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => setDeletingId(apt.id)}>
                                <Trash2 className="h-4 w-4 text-destructive" />

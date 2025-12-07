@@ -1,9 +1,9 @@
+
 'use client';
 
 import React from 'react';
 import { AbsenceRecord } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { formatDate } from '@/lib/date';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 
@@ -55,7 +55,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
             <div className="flex justify-between items-center mb-8 text-sm">
                 <div className="flex items-baseline">
                    <span className="mr-2">w dniu / в день:</span>
-                   <span className="font-bold text-base border-b border-dotted border-black px-4">{record.incidentDate ? format(parseISO(record.incidentDate), 'dd.MM.yyyy') : ''}</span>
+                   <span className="font-bold text-base border-b border-dotted border-black px-4">{formatDate(record.incidentDate, 'dd.MM.yyyy')}</span>
                 </div>
                 <div className="flex items-baseline ml-8">
                    <span className="mr-2">świadczył usługi w godzinach / працював:</span>

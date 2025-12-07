@@ -28,7 +28,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2, XCircle, Copy } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-import { format, parse, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { isWithinInterval, startOfDay, endOfDay, format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -45,6 +45,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAppContext } from '@/context/app-context';
 import { EmployeeCard } from '@/components/employee-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { formatDate, parseMaybeDate } from '@/lib/date';
 
 
 const exportColumns = [
@@ -115,25 +116,16 @@ export default function ZwolnieniPage() {
 
     if (dateRange.from || dateRange.to) {
         filtered = filtered.filter(employee => {
-            if (!employee.terminationDate || typeof employee.terminationDate !== 'string') return false;
+            const terminationDate = parseMaybeDate(employee.terminationDate);
+            if (!terminationDate) return false;
+
+            const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
+            const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
             
-            try {
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(employee.terminationDate)) return false;
-
-                const terminationDate = parse(employee.terminationDate, 'yyyy-MM-dd', new Date());
-                if (isNaN(terminationDate.getTime())) return false;
-
-                const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
-                const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
-                
-                if (from && to) return isWithinInterval(terminationDate, { start: from, end: to });
-                if (from) return terminationDate >= from;
-                if (to) return terminationDate <= to;
-                return true;
-            } catch (e) {
-                console.error("Error parsing termination date:", e);
-                return false;
-            }
+            if (from && to) return isWithinInterval(terminationDate, { start: from, end: to });
+            if (from) return terminationDate >= from;
+            if (to) return terminationDate <= to;
+            return true;
         });
     }
     
@@ -192,8 +184,8 @@ export default function ZwolnieniPage() {
             )
         }
       },
-      { accessorKey: "hireDate", header: "Data zatrudnienia" },
-      { accessorKey: "terminationDate", header: "Data zwolnienia" },
+      { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'dd.MM.yyyy')},
+      { accessorKey: "terminationDate", header: "Data zwolnienia", cell: ({row}) => formatDate(row.original.terminationDate, 'dd.MM.yyyy') },
       { accessorKey: "jobTitle", header: "Stanowisko" },
       { accessorKey: "department", header: "Dział" },
       { accessorKey: "manager", header: "Kierownik" },

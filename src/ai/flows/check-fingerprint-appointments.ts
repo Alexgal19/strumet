@@ -12,6 +12,7 @@ import { ref, get, push, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { isSameDay, addDays, startOfDay } from 'date-fns';
 import type { FingerprintAppointment, AppNotification } from '@/lib/types';
+import { parseMaybeDate } from '@/lib/date';
 
 const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -46,12 +47,9 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     const notificationDate = addDays(today, 2);
 
     const upcomingAppointments = appointments.filter(apt => {
-        try {
-            const aptDate = startOfDay(new Date(apt.appointmentDate));
-            return isSameDay(aptDate, notificationDate);
-        } catch (e) {
-            return false;
-        }
+        const aptDate = parseMaybeDate(apt.appointmentDate);
+        if (!aptDate) return false;
+        return isSameDay(startOfDay(aptDate), notificationDate);
     });
 
     console.log(`Found ${upcomingAppointments.length} appointments for ${notificationDate.toDateString()}.`);

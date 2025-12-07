@@ -6,8 +6,8 @@ import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { FileDown } from 'lucide-react';
 import type { Employee } from '@/lib/types';
-import { format } from 'date-fns';
 import { formatDate } from '@/lib/date';
+import { format } from 'date-fns';
 
 interface ExcelExportButtonProps {
   employees: Employee[];
@@ -20,12 +20,12 @@ export function ExcelExportButton({ employees, fileName = 'pracownicy', columns 
     const dataToExport = employees.map(emp => {
       const polishEmp: any = {};
       columns.forEach(col => {
-        let value = emp[col.key] || '';
+        let value = emp[col.key] as string | undefined | null;
         // Use our centralized date formatter for date fields
         if ((col.key === 'hireDate' || col.key === 'terminationDate') && value) {
-            value = formatDate(value as string, 'dd.MM.yyyy');
+            value = formatDate(value, 'dd.MM.yyyy');
         }
-        polishEmp[col.name] = value;
+        polishEmp[col.name] = value || '';
       });
       return polishEmp;
     });

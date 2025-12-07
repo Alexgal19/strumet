@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef, useState } from 'react';
@@ -9,6 +10,7 @@ import { db } from '@/lib/firebase';
 import { ref, update } from "firebase/database";
 import type { Employee } from '@/lib/types';
 import { push } from 'firebase/database';
+import { format } from 'date-fns';
 
 const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status'>> = {
   'Nazwisko i imię': 'fullName',
@@ -60,15 +62,15 @@ export function TerminatedExcelImportButton() {
             }
           }
             
-           const formatDate = (date: any): string | null => {
+           const formatDateString = (date: any): string | null => {
             if (!date) return null;
             if (date instanceof Date) {
-              return date.toISOString().split('T')[0];
+              return format(date, 'yyyy-MM-dd');
             }
             if (typeof date === 'string') {
                if (/\d{4}-\d{2}-\d{2}/.test(date) || /\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{4}/.test(date)) {
                 try {
-                  return new Date(date).toISOString().split('T')[0];
+                  return format(new Date(date), 'yyyy-MM-dd');
                 } catch(e) {
                   return null;
                 }
@@ -77,8 +79,8 @@ export function TerminatedExcelImportButton() {
             return null;
           };
 
-          const hireDate = formatDate(englishItem.hireDate);
-          const terminationDate = formatDate(englishItem.terminationDate);
+          const hireDate = formatDateString(englishItem.hireDate);
+          const terminationDate = formatDateString(englishItem.terminationDate);
 
           const employee: Omit<Employee, 'id'> = {
             fullName: String(englishItem.fullName || ''),

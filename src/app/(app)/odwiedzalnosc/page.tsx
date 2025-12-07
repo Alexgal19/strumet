@@ -35,6 +35,7 @@ import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { getAttendanceDataForMonth, AttendanceData } from '@/lib/attendance-actions';
 import { cn } from '@/lib/utils';
 import { Employee, AllConfig, Absence } from '@/lib/types';
+import { parseMaybeDate } from '@/lib/date';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -71,7 +72,7 @@ const EmployeeAttendanceCard = ({ employee, attendanceData, onToggleAbsence }: {
                         }
                         
                         const isAbsent = empStats.absenceDates.includes(day.dateString!);
-                        const dayDate = parseISO(day.dateString!);
+                        const dayDate = parseMaybeDate(day.dateString!)!;
                         
                         return (
                             <Button
@@ -477,5 +478,3 @@ export default function AttendancePage() {
     </>
   );
 }
-
-    

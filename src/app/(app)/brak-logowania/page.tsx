@@ -47,6 +47,7 @@ import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, FilePlus2, Trash2, Br
 import { PageHeader } from '@/components/page-header';
 import { AbsenceRecord, Employee } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { formatDate } from '@/lib/date';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -295,7 +296,7 @@ export default function NoLoginPage() {
                         sortedRecords.map((rec) => (
                           <TableRow key={rec.id}>
                             <TableCell className="font-medium">{rec.employeeFullName}</TableCell>
-                            <TableCell>{rec.incidentDate ? format(parseISO(rec.incidentDate), "dd.MM.yyyy", { locale: pl }) : ''}</TableCell>
+                            <TableCell>{formatDate(rec.incidentDate, "dd.MM.yyyy")}</TableCell>
                             <TableCell>{rec.hours}</TableCell>
                              <TableCell>{rec.reason === 'no_card' ? 'Brak karty' : 'Zapomnienie'}</TableCell>
                             <TableCell className="text-right space-x-2">

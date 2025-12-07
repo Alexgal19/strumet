@@ -12,11 +12,11 @@ import {
 import { PageHeader } from '@/components/page-header';
 import { Loader2, CalendarClock } from 'lucide-react';
 import { Employee } from '@/lib/types';
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatDate, parseMaybeDate } from '@/lib/date';
 
 export default function PlanningPage() {
   const { employees, isLoading } = useAppContext();
@@ -27,12 +27,8 @@ export default function PlanningPage() {
     return activeEmployees
       .filter(e => {
         if (!e.plannedTerminationDate) return false;
-        try {
-          const terminationDate = startOfDay(parseISO(e.plannedTerminationDate));
-          return terminationDate >= today;
-        } catch (error) {
-          return false;
-        }
+        const terminationDate = parseMaybeDate(e.plannedTerminationDate);
+        return terminationDate ? startOfDay(terminationDate) >= today : false;
       })
       .sort((a, b) => new Date(a.plannedTerminationDate!).getTime() - new Date(b.plannedTerminationDate!).getTime());
   }, [activeEmployees]);
@@ -42,13 +38,10 @@ export default function PlanningPage() {
     return activeEmployees
       .filter(e => {
         if (!e.vacationStartDate || !e.vacationEndDate) return false;
-        try {
-            const start = startOfDay(parseISO(e.vacationStartDate));
-            const end = endOfDay(parseISO(e.vacationEndDate));
-            return isWithinInterval(today, { start, end });
-        } catch (error) {
-            return false;
-        }
+        const start = parseMaybeDate(e.vacationStartDate);
+        const end = parseMaybeDate(e.vacationEndDate);
+        if (!start || !end) return false;
+        return isWithinInterval(today, { start: startOfDay(start), end: endOfDay(end) });
       })
       .sort((a, b) => new Date(a.vacationEndDate!).getTime() - new Date(b.vacationEndDate!).getTime());
   }, [activeEmployees]);
@@ -57,14 +50,11 @@ export default function PlanningPage() {
     const today = startOfDay(new Date());
     return activeEmployees
       .filter(e => {
-        if (!e.vacationStartDate || !e.vacationEndDate) return false;
-        try {
-            const startDate = startOfDay(parseISO(e.vacationStartDate));
-            // Ensure the employee is not already counted in the 'onVacation' list
-            return startDate >= today && !onVacation.some(onVac => onVac.id === e.id);
-        } catch (error) {
-            return false;
-        }
+        if (!e.vacationStartDate) return false;
+        const startDate = parseMaybeDate(e.vacationStartDate);
+        if (!startDate) return false;
+        // Ensure the employee is not already counted in the 'onVacation' list
+        return startOfDay(startDate) >= today && !onVacation.some(onVac => onVac.id === e.id);
       })
       .sort((a, b) => new Date(a.vacationStartDate!).getTime() - new Date(b.vacationStartDate!).getTime());
   }, [activeEmployees, onVacation]);
@@ -79,17 +69,17 @@ export default function PlanningPage() {
   }
 
   const EmployeeCard = ({ employee, type }: { employee: Employee, type: 'termination' | 'vacation' | 'vacation-planned' }) => {
-    let dateLabel, dateString;
+    let dateLabel: string | undefined;
 
-    if (type === 'termination' && employee.plannedTerminationDate) {
-        dateString = format(parseISO(employee.plannedTerminationDate), "PPP", { locale: pl });
+    if (type === 'termination') {
+        const dateString = formatDate(employee.plannedTerminationDate, "PPP");
         dateLabel = `Data zwolnienia: ${dateString}`;
-    } else if (type === 'vacation' && employee.vacationEndDate) {
-        dateString = format(parseISO(employee.vacationEndDate), "PPP", { locale: pl });
+    } else if (type === 'vacation') {
+        const dateString = formatDate(employee.vacationEndDate, "PPP");
         dateLabel = `Koniec urlopu: ${dateString}`;
-    } else if (type === 'vacation-planned' && employee.vacationStartDate) {
-        const startDate = format(parseISO(employee.vacationStartDate), "dd.MM");
-        const endDate = employee.vacationEndDate ? format(parseISO(employee.vacationEndDate), "dd.MM.yyyy") : '';
+    } else if (type === 'vacation-planned') {
+        const startDate = formatDate(employee.vacationStartDate, "dd.MM");
+        const endDate = formatDate(employee.vacationEndDate, "dd.MM.yyyy");
         dateLabel = `Urlop: ${startDate} - ${endDate}`;
     }
     

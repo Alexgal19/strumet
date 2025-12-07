@@ -67,8 +67,10 @@ const Notifications = () => {
     };
     
     const handleClearAll = () => {
-        const notifsRef = ref(db, 'notifications');
-        remove(notifsRef);
+        if (window.confirm('Czy na pewno chcesz usunąć wszystkie powiadomienia?')) {
+            const notifsRef = ref(db, 'notifications');
+            remove(notifsRef);
+        }
     }
     
     return (

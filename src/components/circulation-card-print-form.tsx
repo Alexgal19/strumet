@@ -1,9 +1,9 @@
+
 'use client';
 
 import React from 'react';
 import { Employee, CirculationCard } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { formatDate } from '@/lib/date';
 
 interface CirculationCardPrintFormProps {
   employee: Employee | null;
@@ -50,7 +50,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
             </header>
 
             <div className="text-right mb-6">
-                <p>Data: {format(parseISO(card.date), 'dd.MM.yyyy', { locale: pl })}</p>
+                <p>Data: {formatDate(card.date, 'dd.MM.yyyy')}</p>
             </div>
             
             <section className="space-y-2 mb-6 text-sm">
@@ -59,8 +59,8 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
                     <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
                     <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
                     <p>Dział:</p>          <p className="font-semibold">{employee.department}</p>
-                    <p>Data zatrudnienia:</p> <p className="font-semibold">{employee.hireDate || '________________'}</p>
-                    <p>Data zwolnienia:</p> <p className="font-semibold">{employee.terminationDate || '________________'}</p>
+                    <p>Data zatrudnienia:</p> <p className="font-semibold">{formatDate(employee.hireDate, 'dd.MM.yyyy') || '________________'}</p>
+                    <p>Data zwolnienia:</p> <p className="font-semibold">{formatDate(employee.terminationDate, 'dd.MM.yyyy') || '________________'}</p>
                 </div>
             </section>
 

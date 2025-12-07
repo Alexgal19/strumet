@@ -35,7 +35,7 @@ import { Loader2, ChevronsUpDown, CheckIcon, Printer, History } from 'lucide-rea
 import { PageHeader } from '@/components/page-header';
 import { Employee, CirculationCard } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { formatDateTime } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import { CirculationCardPrintForm } from '@/components/circulation-card-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -207,7 +207,7 @@ export default function CirculationCardsPage() {
                         <TableBody>
                           {employeeCardHistory.map(card => (
                             <TableRow key={card.id}>
-                              <TableCell className="font-medium">{format(parseISO(card.date), "dd.MM.yyyy HH:mm")}</TableCell>
+                              <TableCell className="font-medium">{formatDateTime(card.date, "dd.MM.yyyy HH:mm")}</TableCell>
                               <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" onClick={() => handleReprint(card)}>
                                   <Printer className="h-4 w-4" />

@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
-import { format, parse, isValid, parseISO } from 'date-fns';
+import { format as formatFns, parse, isValid, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Employee, AllConfig } from '@/lib/types';
 import { Separator } from './ui/separator';
+import { formatDate, parseMaybeDate } from '@/lib/date';
 
 interface EmployeeFormProps {
   employee: Employee | null;
@@ -42,7 +43,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
     }
     return {
         fullName: '',
-        hireDate: format(new Date(), 'yyyy-MM-dd'),
+        hireDate: formatFns(new Date(), 'yyyy-MM-dd'),
         jobTitle: '',
         department: '',
         manager: '',
@@ -77,7 +78,9 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
         if (!formData.nationality) newErrors.nationality = "Narodowość jest wymagana.";
 
         if (formData.vacationStartDate && formData.vacationEndDate) {
-            if (parseISO(formData.vacationEndDate) < parseISO(formData.vacationStartDate)) {
+            const startDate = parseMaybeDate(formData.vacationStartDate);
+            const endDate = parseMaybeDate(formData.vacationEndDate);
+            if (startDate && endDate && endDate < startDate) {
                 newErrors.vacationEndDate = "Data końcowa nie może być wcześniejsza niż początkowa.";
             }
         }
@@ -102,7 +105,7 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
     };
 
     const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
-        const dateValue = value && isValid(parseISO(value)) ? parseISO(value) : undefined;
+        const dateValue = parseMaybeDate(value);
         return (
             <Popover>
                 <PopoverTrigger asChild>
@@ -111,14 +114,14 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                         className={cn("w-full justify-start text-left font-normal", !dateValue && "text-muted-foreground")}
                     >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateValue ? format(dateValue, "PPP", { locale: pl }) : <span>{placeholder}</span>}
+                        {dateValue ? formatDate(dateValue, "PPP") : <span>{placeholder}</span>}
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 flex flex-col">
                     <Calendar
                         mode="single"
-                        selected={dateValue}
-                        onSelect={(date) => onChange(date ? format(date, 'yyyy-MM-dd') : undefined)}
+                        selected={dateValue || undefined}
+                        onSelect={(date) => onChange(date ? formatFns(date, 'yyyy-MM-dd') : undefined)}
                         locale={pl}
                         initialFocus
                     />

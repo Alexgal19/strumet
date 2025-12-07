@@ -15,11 +15,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, Edit, Copy, UserX, RotateCcw, CalendarClock, Briefcase, Building } from 'lucide-react';
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import type { Employee } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { EmployeeSummary } from './employee-summary';
+import { formatDate, parseMaybeDate } from '@/lib/date';
 
 
 interface EmployeeCardProps {
@@ -39,11 +39,17 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({
 }) => {
     
   const today = startOfDay(new Date());
-  const isOnVacation = employee.vacationStartDate && employee.vacationEndDate && isWithinInterval(today, {
-    start: startOfDay(parseISO(employee.vacationStartDate)),
-    end: endOfDay(parseISO(employee.vacationEndDate))
+  
+  const vacationStartDate = parseMaybeDate(employee.vacationStartDate);
+  const vacationEndDate = parseMaybeDate(employee.vacationEndDate);
+  const plannedTerminationDateDate = parseMaybeDate(employee.plannedTerminationDate);
+
+  const isOnVacation = vacationStartDate && vacationEndDate && isWithinInterval(today, {
+    start: startOfDay(vacationStartDate),
+    end: endOfDay(vacationEndDate)
   });
-  const hasUpcomingTermination = employee.plannedTerminationDate && startOfDay(parseISO(employee.plannedTerminationDate)) >= today;
+
+  const hasUpcomingTermination = plannedTerminationDateDate && startOfDay(plannedTerminationDateDate) >= today;
   
   let statusBadge: React.ReactNode = null;
   if (employee.status === 'zwolniony') {
@@ -56,9 +62,9 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({
     statusBadge = <Badge variant="secondary" className="bg-green-500/20 text-green-700 border-green-500/50 text-xs">Aktywny</Badge>;
   }
 
-  const hireDate = employee.hireDate ? format(parseISO(employee.hireDate), "dd.MM.yyyy") : 'Brak danych';
-  const terminationDate = employee.terminationDate ? format(parseISO(employee.terminationDate), "dd.MM.yyyy") : 'Brak danych';
-  const plannedTerminationDate = employee.plannedTerminationDate ? format(parseISO(employee.plannedTerminationDate), "dd.MM.yyyy") : '';
+  const hireDateStr = formatDate(employee.hireDate, "dd.MM.yyyy") || 'Brak danych';
+  const terminationDateStr = formatDate(employee.terminationDate, "dd.MM.yyyy") || 'Brak danych';
+  const plannedTerminationDateStr = formatDate(employee.plannedTerminationDate, "dd.MM.yyyy");
 
   return (
     <Card className="flex flex-col h-full animate-fade-in-up">
@@ -101,18 +107,18 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({
         </div>
          <div className="flex items-center">
             <CalendarClock className="mr-3 h-4 w-4 shrink-0" />
-            <span>Zatr. {hireDate}</span>
+            <span>Zatr. {hireDateStr}</span>
         </div>
         {employee.status === 'zwolniony' && (
              <div className="flex items-center text-destructive">
                 <CalendarClock className="mr-3 h-4 w-4 shrink-0" />
-                <span>Zwol. {terminationDate}</span>
+                <span>Zwol. {terminationDateStr}</span>
             </div>
         )}
         {hasUpcomingTermination && (
              <div className="flex items-center text-orange-600">
                 <CalendarClock className="mr-3 h-4 w-4 shrink-0" />
-                <span>Plan. zwol. {plannedTerminationDate}</span>
+                <span>Plan. zwol. {plannedTerminationDateStr}</span>
             </div>
         )}
       </CardContent>
