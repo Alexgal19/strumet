@@ -38,7 +38,6 @@ import { db } from '@/lib/firebase';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ThemeToggle } from './theme-toggle';
 
 
 const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
@@ -179,7 +178,6 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
       <SidebarFooter className="p-4 flex flex-row items-center justify-between">
         <div className="flex items-center gap-1">
             <Notifications />
-            <ThemeToggle />
         </div>
         <SidebarMenu>
           <SidebarMenuItem className="p-0">
