@@ -28,10 +28,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  watchOptions: {
-    poll: 1000,
-    ignored: ['**/node_modules'],
-  },
   allowedDevOrigins: [
     "https://*.google.com",
     "https://*.cloudworkstations.dev"
