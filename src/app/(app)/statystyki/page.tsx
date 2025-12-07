@@ -231,8 +231,6 @@ export default function StatisticsPage() {
                             innerRadius={60}
                             paddingAngle={2}
                             labelLine={false}
-                            onClick={(d) => handleChartClick(d.name, type)}
-                            className="cursor-pointer focus:outline-none"
                         >
                             {data.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.fill} stroke={"hsl(var(--card))"} />
@@ -245,8 +243,9 @@ export default function StatisticsPage() {
                             align="right"
                             iconSize={8}
                             wrapperStyle={{ lineHeight: '1.5em' }}
+                            onClick={(d) => handleChartClick(d.value, type)}
                             formatter={(value, entry) => (
-                                <span className="text-muted-foreground text-xs pl-1">
+                                <span className="text-muted-foreground text-xs pl-1 cursor-pointer hover:text-foreground">
                                   {value} <span className="font-bold">({entry.payload?.value})</span>
                                 </span>
                             )}
