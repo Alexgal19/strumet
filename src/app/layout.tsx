@@ -8,7 +8,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 // This metadata is now static and won't be used by the PWA manifest directly
 // But it's good practice to keep it for SEO and browser tabs.
 export const metadata: Metadata = {
-  title: 'HOL manager',
+  title: 'Baza - ST',
   description: 'System do zarządzania pracownikami',
 };
 
