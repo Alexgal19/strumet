@@ -46,8 +46,8 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:hidden">
-      <nav className="flex h-16 items-center justify-around rounded-2xl bg-neutral-500/20 shadow-lg border border-white/10 backdrop-blur-md">
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-2 md:hidden">
+      <nav className="flex h-16 items-center justify-around rounded-2xl bg-card/80 shadow-lg border border-border/80 backdrop-blur-md">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.view ? activeView === item.view : false;
@@ -67,7 +67,7 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
               )}>
                  <Icon className="h-5 w-5" />
               </div>
-              <span className={cn('transition-opacity', isActive ? 'opacity-100' : 'opacity-0')}>{item.label}</span>
+              <span className={cn('transition-opacity text-xs', isActive ? 'opacity-100' : 'opacity-0')}>{item.label}</span>
              </>
           );
 

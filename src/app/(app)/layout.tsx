@@ -31,16 +31,8 @@ const LoadingComponent = () => (
 );
 
 const ViewTransitionWrapper = ({ children, viewKey }: { children: React.ReactNode, viewKey: string }) => {
-  const [isAnimating, setIsAnimating] = React.useState(false);
-  
-  React.useEffect(() => {
-    setIsAnimating(true);
-    const timer = setTimeout(() => setIsAnimating(false), 150); // duration of animation
-    return () => clearTimeout(timer);
-  }, [viewKey]);
-
   return (
-    <div key={viewKey} className={cn("animate-fade-in", isAnimating ? "opacity-0" : "opacity-100")}>
+    <div key={viewKey} className="animate-fade-in">
         {children}
     </div>
   );
@@ -54,7 +46,7 @@ const AppContent = () => {
         <SidebarProvider>
             <div className="flex h-full flex-col md:flex-row bg-transparent">
                 <AppSidebar activeView={activeView} setActiveView={setActiveView} />
-                <SidebarInset className="m-2 flex flex-col p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 backdrop-blur-xl bg-card/50 rounded-2xl border border-white/10 shadow-2xl shadow-black/20">
+                <SidebarInset className="m-0 flex flex-col md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-2xl border-border/20 md:border">
                     <React.Suspense fallback={<LoadingComponent />}>
                         {isLoading ? <LoadingComponent /> : (
                             <ViewTransitionWrapper viewKey={activeView}>
