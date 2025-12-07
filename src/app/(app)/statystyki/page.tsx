@@ -280,7 +280,7 @@ export default function StatisticsPage() {
                                 type="category" 
                                 tickLine={false} 
                                 axisLine={false} 
-                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))', width: 100}} 
+                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))'}} 
                                 width={100}
                                 interval={0}
                             />
@@ -334,7 +334,7 @@ export default function StatisticsPage() {
                                 type="category" 
                                 tickLine={false} 
                                 axisLine={false} 
-                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))', width: 180, whiteSpace: 'normal', wordWrap: 'break-word'}} 
+                                tick={{fontSize: 12, fill: 'hsl(var(--muted-foreground))', width: 150, whiteSpace: 'normal', wordWrap: 'break-word'}} 
                                 width={150} 
                                 interval={0} 
                             />

@@ -17,8 +17,8 @@ html, body, #__next__ {
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 207 88% 68%; /* Soft Blue */
-    --primary-foreground: 222.2 84% 4.9%;
+    --primary: 142 70% 45%; /* Vivid Green */
+    --primary-foreground: 210 40% 98%;
     
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 215.4 16.3% 46.9%;
@@ -34,37 +34,37 @@ html, body, #__next__ {
     
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 207 88% 68%;
+    --ring: 142 70% 45%;
     --radius: 0.8rem;
     
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 207 88% 68%;
-    --sidebar-primary-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 142 70% 45%;
+    --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 210 40% 96.1%;
     --sidebar-accent-foreground: 222.2 84% 4.9%;
     --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 207 88% 68%;
+    --sidebar-ring: 142 70% 45%;
 
-    --chart-1: 207 88% 68%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 340 82% 56%;
-    --chart-4: 40 90% 55%;
-    --chart-5: 280 70% 55%;
+    --chart-1: 142 70% 45%; /* Green */
+    --chart-2: 207 88% 68%; /* Blue */
+    --chart-3: 40 90% 55%; /* Orange */
+    --chart-4: 340 82% 56%; /* Pink */
+    --chart-5: 280 70% 55%; /* Purple */
   }
 
   .dark {
-    --background: 240 5% 10%; /* Dark Gray */
+    --background: 240 5% 8%; /* Very Dark Gray */
     --foreground: 210 40% 98%;
 
-    --card: 240 5% 12%;
+    --card: 240 5% 10%;
     --card-foreground: 210 40% 98%;
     
-    --popover: 240 5% 10%;
+    --popover: 240 5% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 207 88% 68%; /* Soft Blue */
-    --primary-foreground: 224 71% 4%;
+    --primary: 142 70% 45%; /* Vivid Green */
+    --primary-foreground: 210 40% 98%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -78,25 +78,25 @@ html, body, #__next__ {
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
     
-    --border: 217 33% 17%;
+    --border: 217 33% 25%;
     --input: 217 33% 17%;
-    --ring: 207 88% 68%;
+    --ring: 142 70% 45%;
     --radius: 0.8rem;
     
-    --sidebar-background: 240 5% 10%;
+    --sidebar-background: 240 5% 8%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 207 88% 68%;
-    --sidebar-primary-foreground: 224 71% 4%;
+    --sidebar-primary: 142 70% 45%;
+    --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 217 33% 17%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 207 88% 68%;
+    --sidebar-border: 217 33% 25%;
+    --sidebar-ring: 142 70% 45%;
 
-    --chart-1: 207 88% 68%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 340 82% 56%;
-    --chart-4: 40 90% 55%;
-    --chart-5: 280 70% 55%;
+    --chart-1: 142 70% 45%; /* Green */
+    --chart-2: 207 88% 68%; /* Blue */
+    --chart-3: 40 90% 55%; /* Orange */
+    --chart-4: 340 82% 56%; /* Pink */
+    --chart-5: 280 70% 55%; /* Purple */
   }
 }
 
