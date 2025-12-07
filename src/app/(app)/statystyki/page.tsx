@@ -4,9 +4,9 @@
 import React, { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight } from 'lucide-react';
 import { Employee } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,15 +15,29 @@ import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
 import { useAppContext } from '@/context/app-context';
 import { cn } from '@/lib/utils';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-1) / 0.7)", "hsl(var(--chart-2) / 0.7)"];
+
+interface DialogContentData {
+  title: string;
+  total: number;
+  type: 'list' | 'hierarchy';
+  data: Employee[] | DepartmentHierarchy;
+}
+
+interface DepartmentHierarchy {
+    [manager: string]: {
+        [jobTitle: string]: Employee[];
+    };
+}
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="rounded-lg border bg-background p-2 shadow-sm">
+      <div className="rounded-lg border bg-background/80 backdrop-blur-sm p-2 shadow-sm">
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col space-y-1">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
@@ -44,8 +58,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 export default function StatisticsPage() {
   const { employees, config, isLoading, handleSaveEmployee } = useAppContext();
   const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
-  const [dialogTitle, setDialogTitle] = useState('');
-  const [dialogEmployees, setDialogEmployees] = useState<Employee[]>([]);
+  const [dialogContent, setDialogContent] = useState<DialogContentData | null>(null);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -59,8 +72,8 @@ export default function StatisticsPage() {
   const totalActiveEmployees = activeEmployees.length;
 
   const stats = useMemo(() => {
-    const departments = new Set(activeEmployees.map(e => e.department));
-    const managers = new Set(activeEmployees.map(e => e.manager));
+    const departments = new Set(activeEmployees.map(e => e.department).filter(Boolean));
+    const managers = new Set(activeEmployees.map(e => e.manager).filter(Boolean));
     const totalManagers = managers.size > 0 ? managers.size : 1;
 
     return {
@@ -72,7 +85,7 @@ export default function StatisticsPage() {
   const departmentData = useMemo(() => {
     const counts: { [key: string]: number } = {};
     activeEmployees.forEach(employee => {
-      counts[employee.department] = (counts[employee.department] || 0) + 1;
+      if(employee.department) counts[employee.department] = (counts[employee.department] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value], index) => ({ 
       name, 
@@ -85,7 +98,7 @@ export default function StatisticsPage() {
   const nationalityData = useMemo(() => {
     const counts: { [key: string]: number } = {};
     activeEmployees.forEach(employee => {
-      counts[employee.nationality] = (counts[employee.nationality] || 0) + 1;
+      if(employee.nationality) counts[employee.nationality] = (counts[employee.nationality] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value], index) => ({ 
       name, 
@@ -98,7 +111,7 @@ export default function StatisticsPage() {
   const jobTitleData = useMemo(() => {
     const counts: { [key: string]: number } = {};
     activeEmployees.forEach(employee => {
-      counts[employee.jobTitle] = (counts[employee.jobTitle] || 0) + 1;
+      if(employee.jobTitle) counts[employee.jobTitle] = (counts[employee.jobTitle] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value], index) => ({
       name,
@@ -109,26 +122,46 @@ export default function StatisticsPage() {
   }, [activeEmployees, totalActiveEmployees]);
 
   const handleChartClick = (name: string, type: 'department' | 'nationality' | 'jobTitle') => {
-    let filtered: Employee[] = [];
-    let title = '';
-    
-    switch(type) {
-        case 'department':
-            filtered = activeEmployees.filter(e => e.department === name);
-            title = `Pracownicy w dziale: ${name}`;
-            break;
-        case 'nationality':
-            filtered = activeEmployees.filter(e => e.nationality === name);
-            title = `Pracownicy narodowości: ${name}`;
-            break;
-        case 'jobTitle':
-            filtered = activeEmployees.filter(e => e.jobTitle === name);
-            title = `Pracownicy na stanowisku: ${name}`;
-            break;
+    if (type === 'department') {
+        const departmentEmployees = activeEmployees.filter(e => e.department === name);
+        const hierarchy: DepartmentHierarchy = {};
+
+        departmentEmployees.forEach(emp => {
+            const manager = emp.manager || 'Brak kierownika';
+            const jobTitle = emp.jobTitle || 'Brak stanowiska';
+            if (!hierarchy[manager]) {
+                hierarchy[manager] = {};
+            }
+            if (!hierarchy[manager][jobTitle]) {
+                hierarchy[manager][jobTitle] = [];
+            }
+            hierarchy[manager][jobTitle].push(emp);
+        });
+
+        setDialogContent({
+            title: `Struktura działu: ${name}`,
+            total: departmentEmployees.length,
+            type: 'hierarchy',
+            data: hierarchy
+        });
+
+    } else {
+        const filtered = type === 'nationality'
+            ? activeEmployees.filter(e => e.nationality === name)
+            : activeEmployees.filter(e => e.jobTitle === name);
+        
+        const title = type === 'nationality'
+            ? `Pracownicy narodowości: ${name}`
+            : `Pracownicy na stanowisku: ${name}`;
+
+        setDialogContent({
+            title,
+            total: filtered.length,
+            type: 'list',
+            data: filtered
+        });
     }
     
-    setDialogTitle(title);
-    setDialogEmployees(filtered);
     setIsStatDialogOpen(true);
   };
   
@@ -145,8 +178,23 @@ export default function StatisticsPage() {
   };
 
   const handleCopyNames = () => {
-    if (dialogEmployees.length === 0) return;
-    const names = dialogEmployees.map(e => e.fullName).join('\n');
+    if (!dialogContent || !dialogContent.data) return;
+
+    let employeesToCopy: Employee[] = [];
+    if (dialogContent.type === 'list') {
+        employeesToCopy = dialogContent.data as Employee[];
+    } else {
+        const hierarchy = dialogContent.data as DepartmentHierarchy;
+        Object.values(hierarchy).forEach(manager => {
+            Object.values(manager).forEach(jobTitleGroup => {
+                employeesToCopy.push(...jobTitleGroup);
+            });
+        });
+    }
+
+    if (employeesToCopy.length === 0) return;
+
+    const names = employeesToCopy.map(e => e.fullName).join('\n');
     navigator.clipboard.writeText(names).then(() => {
       toast({
         title: 'Skopiowano!',
@@ -163,13 +211,13 @@ export default function StatisticsPage() {
   };
   
   const renderPieChart = (data: any[], title: string, description: string, type: 'department' | 'nationality' | 'jobTitle') => (
-      <Card>
+      <Card className="flex flex-col">
         <CardHeader>
             <CardTitle>{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
         </CardHeader>
-        <CardContent>
-            <ChartContainer config={{}} className="h-[300px] w-full">
+        <CardContent className="flex-1 flex items-center justify-center">
+            <ChartContainer config={{}} className="h-[250px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Tooltip content={<CustomTooltip />} />
@@ -181,13 +229,13 @@ export default function StatisticsPage() {
                             cy="50%"
                             outerRadius={80}
                             innerRadius={60}
-                            paddingAngle={5}
+                            paddingAngle={2}
                             labelLine={false}
                             onClick={(d) => handleChartClick(d.name, type)}
-                            className="cursor-pointer"
+                            className="cursor-pointer focus:outline-none"
                         >
                             {data.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} stroke={entry.fill} />
+                                <Cell key={`cell-${index}`} fill={entry.fill} stroke={"hsl(var(--card))"} />
                             ))}
                         </Pie>
                         <Legend
@@ -195,8 +243,10 @@ export default function StatisticsPage() {
                             layout="vertical"
                             verticalAlign="middle"
                             align="right"
+                            iconSize={8}
+                            wrapperStyle={{ lineHeight: '1.5em' }}
                             formatter={(value, entry) => (
-                                <span className="text-muted-foreground text-sm">
+                                <span className="text-muted-foreground text-xs pl-1">
                                   {value} <span className="font-bold">({entry.payload?.value})</span>
                                 </span>
                             )}
@@ -207,6 +257,55 @@ export default function StatisticsPage() {
         </CardContent>
     </Card>
   );
+
+  const renderDialogContent = () => {
+    if (!dialogContent) return null;
+
+    if (dialogContent.type === 'hierarchy') {
+      const hierarchy = dialogContent.data as DepartmentHierarchy;
+      return (
+         <Accordion type="multiple" className="w-full">
+            {Object.entries(hierarchy).map(([manager, jobTitles]) => (
+                <AccordionItem value={manager} key={manager}>
+                    <AccordionTrigger className="hover:no-underline">
+                        <div className="flex justify-between w-full pr-2">
+                           <span className="font-semibold">{manager}</span>
+                           <span className="text-muted-foreground">{Object.values(jobTitles).flat().length} os.</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <div className="pl-4 space-y-2">
+                            {Object.entries(jobTitles).map(([jobTitle, emps]) => (
+                                <div key={jobTitle}>
+                                    <h4 className="font-medium text-sm text-muted-foreground">{jobTitle} ({emps.length})</h4>
+                                    <div className="pl-4 border-l-2 border-border ml-2">
+                                        {emps.map(employee => (
+                                            <div key={employee.id} className="flex items-center justify-between text-sm p-1.5 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
+                                                <span>{employee.fullName}</span>
+                                                <span className="text-xs text-muted-foreground">{employee.cardNumber}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+            ))}
+        </Accordion>
+      )
+    }
+
+    // Default to list view
+    const employeesToShow = dialogContent.data as Employee[];
+    return employeesToShow.map(employee => (
+        <div key={employee.id} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
+            <span className="font-medium">{employee.fullName}</span>
+            <span className="text-muted-foreground">{employee.cardNumber}</span>
+        </div>
+    ));
+  };
+
 
   if (isLoading) {
     return (
@@ -273,22 +372,17 @@ export default function StatisticsPage() {
        <Dialog open={isStatDialogOpen} onOpenChange={setIsStatDialogOpen}>
           <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                  <DialogTitle>{dialogTitle}</DialogTitle>
+                  <DialogTitle>{dialogContent?.title}</DialogTitle>
                    <DialogDescription>
-                        Znaleziono {dialogEmployees.length} pracowników.
+                        Znaleziono {dialogContent?.total} pracowników.
                     </DialogDescription>
               </DialogHeader>
               <ScrollArea className="max-h-96 my-4">
-                  <div className="space-y-3 pr-6">
-                      {dialogEmployees.map(employee => (
-                          <div key={employee.id} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
-                              <span className="font-medium">{employee.fullName}</span>
-                              <span className="text-muted-foreground">{employee.cardNumber}</span>
-                          </div>
-                      ))}
+                  <div className="space-y-1 pr-4">
+                     {renderDialogContent()}
                   </div>
               </ScrollArea>
-              {dialogEmployees.length > 0 && (
+              {dialogContent && dialogContent.total > 0 && (
                 <DialogFooter>
                   <Button onClick={handleCopyNames}>
                     <Copy className="mr-2 h-4 w-4" />
