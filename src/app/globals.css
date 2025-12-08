@@ -8,49 +8,49 @@ html, body, #__next__ {
 
 @layer base {
   .dark {
-    --background: 224 71% 10%; /* Very Dark Blue/Black - Made Lighter */
+    --background: 240 10% 10%; /* Energetic Amethyst */
     --foreground: 210 40% 98%;
 
-    --card: 224 71% 12%; /* Slightly Lighter Dark Blue - Made Lighter */
+    --card: 240 10% 12%; 
     --card-foreground: 210 40% 98%;
     
-    --popover: 224 71% 4%;
+    --popover: 240 10% 4%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 142 70% 45%; /* Vivid Green */
+    --primary: 260 70% 60%; /* Energetic Amethyst */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 217 33% 17%;
+    --secondary: 240 10% 17%;
     --secondary-foreground: 210 40% 98%;
     
-    --muted: 217 33% 17%;
+    --muted: 240 10% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 207 90% 54%; /* Vivid Blue */
+    --accent: 300 70% 65%; /* Energetic Amethyst */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
     
-    --border: 217 33% 17%;
-    --input: 217 33% 25%;
-    --ring: 142 70% 45%;
+    --border: 240 10% 17%;
+    --input: 240 10% 25%;
+    --ring: 260 70% 60%;
     --radius: 0.8rem;
     
-    --sidebar-background: 224 71% 6%;
+    --sidebar-background: 240 10% 6%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 142 70% 45%;
+    --sidebar-primary: 260 70% 60%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent: 240 10% 17%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 12%;
-    --sidebar-ring: 142 70% 45%;
+    --sidebar-border: 240 10% 12%;
+    --sidebar-ring: 260 70% 60%;
 
-    --chart-1: 142 70% 45%; /* Green */
-    --chart-2: 207 88% 68%; /* Blue */
-    --chart-3: 40 90% 55%; /* Orange */
-    --chart-4: 340 82% 56%; /* Pink */
-    --chart-5: 280 70% 55%; /* Purple */
+    --chart-1: 260 70% 60%; 
+    --chart-2: 300 70% 65%; 
+    --chart-3: 210 80% 65%; 
+    --chart-4: 340 82% 60%; 
+    --chart-5: 280 70% 55%; 
   }
 }
 
