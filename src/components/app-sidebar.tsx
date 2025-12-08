@@ -26,7 +26,7 @@ import {
   Trash2,
   Shirt,
 } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import type { ActiveView, AppNotification } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Badge } from './ui/badge';
@@ -129,6 +129,7 @@ interface AppSidebarProps {
 
 const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
   const isMobile = useIsMobile();
+  const hasMounted = useHasMounted();
 
   const menuItems: { view: ActiveView, icon: React.ReactNode, label: string }[] = [
     { view: 'aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
@@ -142,7 +143,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
     { view: 'konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
   ];
 
-  if (isMobile) {
+  if (!hasMounted || isMobile) {
     return null;
   }
 

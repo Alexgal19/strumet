@@ -14,7 +14,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import type { ActiveView } from '@/lib/types';
 
 interface AppBottomNavProps {
@@ -31,6 +31,7 @@ interface MenuItem {
 
 const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const isMobile = useIsMobile();
+  const hasMounted = useHasMounted();
 
   const menuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
@@ -40,7 +41,7 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
     { href: '/login', icon: LogOut, label: 'Wyloguj' },
   ];
   
-  if (!isMobile) {
+  if (!hasMounted || !isMobile) {
     return null;
   }
 
