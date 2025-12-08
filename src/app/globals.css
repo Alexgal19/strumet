@@ -37,13 +37,13 @@ html, body, #__next__ {
     --ring: 260 70% 60%;
     --radius: 0.8rem;
     
-    --sidebar-background: 240 10% 6%;
+    --sidebar-background: 240 10% 8%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 260 70% 60%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 240 10% 17%;
+    --sidebar-accent: 260 70% 60% / 0.15;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 240 10% 12%;
+    --sidebar-border: 240 10% 15%;
     --sidebar-ring: 260 70% 60%;
 
     --chart-1: 260 70% 60%; 

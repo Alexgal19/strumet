@@ -572,7 +572,7 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size, isActive }), className)}
         {...props}
       >
-        <div className={cn("absolute left-0 h-6 w-1 rounded-r-full bg-sidebar-primary transition-transform scale-y-0", isActive && "scale-y-100")}></div>
+        
         {children}
       </Comp>
     )
