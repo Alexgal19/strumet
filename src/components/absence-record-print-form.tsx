@@ -46,19 +46,13 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
 
                 <p className="mb-4 text-sm">Oświadczam, że podwykonawca / Повідомляю, що виконавець:</p>
                 
-                <div className="border-b-2 border-black py-2 px-2 mb-2">
+                <div className="border-b-2 border-black py-2 px-2 mb-6">
                 <p className="text-center font-bold text-base tracking-wide">
                     {record.employeeFullName.toUpperCase()}
                 </p>
                 </div>
-                <div className="text-center text-sm mb-1">
-                    Dział: {record.department}
-                </div>
-                <div className="text-center text-sm mb-6">
-                    Stanowisko: {record.jobTitle}
-                </div>
-
-                <div className="flex justify-between items-center mb-6 text-sm">
+                
+                <div className="flex justify-between items-center mb-8 text-sm">
                     <div className="flex items-baseline">
                     <span className="mr-2">w dniu / в день:</span>
                     <span className="font-bold text-base border-b border-dotted border-black px-4">{formatDate(record.incidentDate, 'dd.MM.yyyy')}</span>
@@ -69,7 +63,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                     </div>
                 </div>
 
-                <section className="space-y-6 mb-6">
+                <section className="space-y-6 mb-10">
                     <div className="flex items-start space-x-3">
                         <Checkbox id="reason1" checked={record.reason === 'no_card'} readOnly className="mt-1 border-black" />
                         <Label htmlFor="reason1" className="text-sm leading-relaxed cursor-default">
@@ -85,7 +79,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                 </section>
             </div>
             
-            <footer className="pt-16">
+            <footer className="pt-20">
                 <div className="flex justify-between">
                     <div className="text-center w-2/5">
                         <div className="border-t border-gray-400 pt-1">

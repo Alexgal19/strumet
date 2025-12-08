@@ -67,15 +67,21 @@ html, body, #__next__ {
 }
 
 @media print {
-  body, .main-content-container {
+  @page {
+    margin: 0;
+    size: A4;
+  }
+  
+  body.printing, body.printing .main-content-container {
     visibility: hidden;
   }
   
-  .print-only, .print-only * {
+  body.printing .print-only, 
+  body.printing .print-only * {
     visibility: visible;
   }
 
-  .print-only {
+  body.printing .print-only {
     position: absolute;
     left: 0;
     top: 0;

@@ -86,6 +86,23 @@ export default function NoLoginPage() {
     return activeEmployees.find(e => e.id === selectedEmployeeId) ?? null;
   }, [selectedEmployeeId, activeEmployees]);
 
+  useEffect(() => {
+    if (printingRecord) {
+      document.body.classList.add('printing');
+      const timer = setTimeout(() => {
+        window.print();
+        document.body.classList.remove('printing');
+        setPrintingRecord(null);
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        document.body.classList.remove('printing');
+      };
+    }
+  }, [printingRecord]);
+
+
   const handleSaveRecord = async () => {
     if (!selectedEmployee || !incidentDate || !reason) {
       toast({
@@ -125,10 +142,6 @@ export default function NoLoginPage() {
   
   const handlePrint = (record: AbsenceRecord) => {
     setPrintingRecord(record);
-    setTimeout(() => {
-        window.print();
-        setPrintingRecord(null);
-    }, 100); // Small delay to ensure state update and re-render
   };
 
   if (isLoading) {
@@ -340,14 +353,14 @@ export default function NoLoginPage() {
               </AlertDialogContent>
          </AlertDialog>
       </div>
-       {printingRecord && (
-          <div className="print-only">
+       <div className="print-only">
+          {printingRecord && (
             <AbsenceRecordPrintForm 
                 ref={printComponentRef}
                 record={printingRecord}
             />
-          </div>
-       )}
+          )}
+       </div>
     </>
   );
 }
