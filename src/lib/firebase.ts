@@ -11,7 +11,7 @@ const firebaseConfig = {
   projectId: "kadry-online-4h3x9",
   storageBucket: "kadry-online-4h3x9.firebasestorage.app",
   messagingSenderId: "358071580509",
-  appId: "1:358071580509:web:c6deaffc2548f8fdde5ab4"
+  appId: "1:358071580509:web:4f4dd0622ade5586de5ab4"
 };
 
 // Initialize Firebase
