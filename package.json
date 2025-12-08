@@ -12,8 +12,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@genkit-ai/googleai": "^1.14.1",
-    "@genkit-ai/next": "^1.16.1",
+    "@genkit-ai/firebase": "^1.25.0",
+    "@genkit-ai/googleai": "^1.25.0",
+    "@genkit-ai/next": "^1.25.0",
     "@hookform/resolvers": "^3.9.0",
     "@opentelemetry/exporter-jaeger": "^1.25.1",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -46,7 +47,7 @@
     "dotenv": "^16.5.0",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^10.12.2",
-    "genkit": "^1.14.1",
+    "genkit": "^1.25.0",
     "handlebars": "^4.7.8",
     "lucide-react": "^0.475.0",
     "next": "^15.0.0",
