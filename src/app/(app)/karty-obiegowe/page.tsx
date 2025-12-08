@@ -51,22 +51,6 @@ export default function CirculationCardsPage() {
   const printComponentRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (printingCard) {
-      document.body.classList.add('printing');
-      const timer = setTimeout(() => {
-        window.print();
-        setPrintingCard(null); // Reset after printing
-        document.body.classList.remove('printing');
-      }, 100);
-
-      return () => {
-        clearTimeout(timer);
-        document.body.classList.remove('printing');
-      };
-    }
-  }, [printingCard]);
   
   const selectedEmployee = useMemo(() => {
     return employees.find(e => e.id === selectedEmployeeId) ?? null;
@@ -79,24 +63,29 @@ export default function CirculationCardsPage() {
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [circulationCards, selectedEmployeeId]);
 
-  const handlePrint = async () => {
-    if (!selectedEmployee) {
-      toast({
-        variant: 'destructive',
-        title: 'Błąd',
-        description: 'Proszę wybrać pracownika.',
-      });
-      return;
+  const handlePrint = async (cardToPrint?: CirculationCard) => {
+    let card: CirculationCard | null = cardToPrint || null;
+    if (!card) {
+        if (!selectedEmployee) {
+            toast({
+                variant: 'destructive',
+                title: 'Błąd',
+                description: 'Proszę wybrać pracownika.',
+            });
+            return;
+        }
+        card = await addCirculationCard(selectedEmployee.id, selectedEmployee.fullName);
     }
-
-    const cardToPrint = await addCirculationCard(selectedEmployee.id, selectedEmployee.fullName);
-    if(cardToPrint) {
-        setPrintingCard(cardToPrint);
+    
+    if(card) {
+        setPrintingCard(card);
+        document.body.classList.add('printing');
+        setTimeout(() => {
+            window.print();
+            document.body.classList.remove('printing');
+            setPrintingCard(null);
+        }, 100);
     }
-  };
-  
-  const handleReprint = (card: CirculationCard) => {
-    setPrintingCard(card);
   };
 
   if (isLoading) {
@@ -113,7 +102,7 @@ export default function CirculationCardsPage() {
 
   return (
     <>
-      <div className="flex h-full flex-col">
+      <div className="main-content-container h-full flex-col flex">
         <PageHeader
           title="Karty obiegowe"
           description="Generuj i drukuj karty obiegowe dla pracowników."
@@ -172,7 +161,7 @@ export default function CirculationCardsPage() {
                   </Popover>
                 </div>
 
-                <Button onClick={handlePrint} disabled={!selectedEmployee} className="w-full">
+                <Button onClick={() => handlePrint()} disabled={!selectedEmployee} className="w-full">
                   <Printer className="mr-2 h-4 w-4" />
                   Drukuj kartę
                 </Button>
@@ -209,7 +198,7 @@ export default function CirculationCardsPage() {
                             <TableRow key={card.id}>
                               <TableCell className="font-medium">{formatDateTime(card.date, "dd.MM.yyyy HH:mm")}</TableCell>
                               <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleReprint(card)}>
+                                <Button variant="ghost" size="icon" onClick={() => handlePrint(card)}>
                                   <Printer className="h-4 w-4" />
                                 </Button>
                               </TableCell>
@@ -231,14 +220,15 @@ export default function CirculationCardsPage() {
           </div>
         </div>
       </div>
-      {printingCard && selectedEmployeeForPrint && (
-        <div className="print-container" ref={printComponentRef}>
-          <CirculationCardPrintForm 
-            employee={selectedEmployeeForPrint}
-            card={printingCard}
-          />
-        </div>
-      )}
+      <div className="print-only">
+        {printingCard && selectedEmployeeForPrint && (
+            <CirculationCardPrintForm 
+                ref={printComponentRef}
+                employee={selectedEmployeeForPrint}
+                card={printingCard}
+            />
+        )}
+      </div>
     </>
   );
 }

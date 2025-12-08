@@ -72,20 +72,17 @@ html, body, #__next__ {
     size: A4;
   }
   
-  body.printing, body.printing .main-content-container {
-    visibility: hidden;
-  }
-  
-  body.printing .print-only, 
-  body.printing .print-only * {
-    visibility: visible;
+  body.printing .main-content-container,
+  body:not(.printing) .print-only,
+  .no-print {
+    display: none;
   }
 
   body.printing .print-only {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: auto;
+    display: block;
   }
+}
+
+.print-only {
+    display: none;
 }

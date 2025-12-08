@@ -86,21 +86,15 @@ export default function NoLoginPage() {
     return activeEmployees.find(e => e.id === selectedEmployeeId) ?? null;
   }, [selectedEmployeeId, activeEmployees]);
 
-  useEffect(() => {
-    if (printingRecord) {
-      document.body.classList.add('printing');
-      const timer = setTimeout(() => {
+  const handlePrint = (record: AbsenceRecord) => {
+    setPrintingRecord(record);
+    document.body.classList.add('printing');
+    setTimeout(() => {
         window.print();
         document.body.classList.remove('printing');
         setPrintingRecord(null);
-      }, 100);
-
-      return () => {
-        clearTimeout(timer);
-        document.body.classList.remove('printing');
-      };
-    }
-  }, [printingRecord]);
+    }, 100)
+  };
 
 
   const handleSaveRecord = async () => {
@@ -138,10 +132,6 @@ export default function NoLoginPage() {
   const handleDeleteRecord = async (recordId: string) => {
     await deleteAbsenceRecord(recordId);
     setDeletingId(null);
-  };
-  
-  const handlePrint = (record: AbsenceRecord) => {
-    setPrintingRecord(record);
   };
 
   if (isLoading) {

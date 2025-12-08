@@ -58,17 +58,6 @@ export default function ClothingIssuancePage() {
   
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (printingIssuance) {
-        const timer = setTimeout(() => {
-            window.print();
-            setPrintingIssuance(null);
-        }, 100);
-
-        return () => clearTimeout(timer);
-    }
-  }, [printingIssuance]);
-  
   const selectedEmployee = useMemo(() => {
     return employees.find(e => e.id === selectedEmployeeId) ?? null;
   }, [selectedEmployeeId, employees]);
@@ -97,38 +86,41 @@ export default function ClothingIssuancePage() {
       setCurrentItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity: Math.max(1, quantity) } : i));
   }
   
-  const handleSaveAndPrint = async () => {
-    if (!selectedEmployee || currentItems.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Błąd',
-        description: 'Proszę wybrać pracownika i przynajmniej jeden element odzieży.',
-      });
-      return;
-    }
+  const handleSaveAndPrint = async (issuanceToPrint?: ClothingIssuance) => {
+    let issuance = issuanceToPrint;
 
-    const newIssuance: Omit<ClothingIssuance, 'id'> = {
-      employeeId: selectedEmployee.id,
-      employeeFullName: selectedEmployee.fullName,
-      date: new Date().toISOString(),
-      items: currentItems,
-    };
-      
-    const issuanceToPrint = await addClothingIssuance(newIssuance);
-    
-    if (issuanceToPrint) {
-      setPrintingIssuance(issuanceToPrint);
+    if (!issuance) {
+        if (!selectedEmployee || currentItems.length === 0) {
+          toast({
+            variant: 'destructive',
+            title: 'Błąd',
+            description: 'Proszę wybrać pracownika i przynajmniej jeden element odzieży.',
+          });
+          return;
+        }
+        const newIssuanceData: Omit<ClothingIssuance, 'id'> = {
+          employeeId: selectedEmployee.id,
+          employeeFullName: selectedEmployee.fullName,
+          date: new Date().toISOString(),
+          items: currentItems,
+        };
+        issuance = await addClothingIssuance(newIssuanceData);
+        // Reset form after saving new one
+        setCurrentItems([]);
+        setSelectedEmployeeId('');
     }
-      
-    // Reset form
-    setCurrentItems([]);
-    setSelectedEmployeeId('');
+    
+    if (issuance) {
+      setPrintingIssuance(issuance);
+      document.body.classList.add('printing');
+      setTimeout(() => {
+          window.print();
+          document.body.classList.remove('printing');
+          setPrintingIssuance(null);
+      }, 100);
+    }
   };
   
-  const handleReprint = (issuance: ClothingIssuance) => {
-    setPrintingIssuance(issuance);
-  };
-
   const handleDeleteIssuance = async (issuanceId: string) => {
       if (window.confirm('Czy na pewno chcesz usunąć ten zapis?')) {
         await deleteClothingIssuance(issuanceId);
@@ -239,7 +231,7 @@ export default function ClothingIssuancePage() {
                     </div>
                 )}
 
-                <Button onClick={handleSaveAndPrint} disabled={!selectedEmployee || currentItems.length === 0} className="w-full">
+                <Button onClick={() => handleSaveAndPrint()} disabled={!selectedEmployee || currentItems.length === 0} className="w-full">
                   <Printer className="mr-2 h-4 w-4" />
                   Zapisz i drukuj
                 </Button>
@@ -278,7 +270,7 @@ export default function ClothingIssuancePage() {
                               <TableCell className="font-medium">{formatDateTime(issuance.date, "dd.MM.yyyy HH:mm")}</TableCell>
                               <TableCell>{issuance.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
                               <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleReprint(issuance)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleSaveAndPrint(issuance)}>
                                   <Printer className="h-4 w-4" />
                                 </Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleDeleteIssuance(issuance.id)}>
@@ -303,14 +295,15 @@ export default function ClothingIssuancePage() {
           </div>
         </div>
       </div>
-      {printingIssuance && selectedEmployeeForPrint && (
-        <div className="print-only" ref={printComponentRef}>
-          <ClothingIssuancePrintForm 
-            employee={selectedEmployeeForPrint}
-            issuance={printingIssuance}
-          />
-        </div>
-      )}
+      <div className="print-only">
+        {printingIssuance && selectedEmployeeForPrint && (
+            <ClothingIssuancePrintForm 
+                ref={printComponentRef}
+                employee={selectedEmployeeForPrint}
+                issuance={printingIssuance}
+            />
+        )}
+      </div>
     </>
   );
 }
