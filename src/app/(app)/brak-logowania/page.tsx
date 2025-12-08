@@ -213,19 +213,6 @@ export default function NoLoginPage() {
                   </Popover>
                 </div>
 
-                {selectedEmployee && (
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center text-muted-foreground">
-                      <Building className="mr-2 h-4 w-4" />
-                      <span>{selectedEmployee.department}</span>
-                    </div>
-                    <div className="flex items-center text-muted-foreground">
-                      <Briefcase className="mr-2 h-4 w-4" />
-                      <span>{selectedEmployee.jobTitle}</span>
-                    </div>
-                  </div>
-                )}
-
                 <div className="space-y-2">
                   <Label>Data</Label>
                    <Popover>
