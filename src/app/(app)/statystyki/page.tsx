@@ -231,9 +231,10 @@ export default function StatisticsPage() {
                             innerRadius={60}
                             paddingAngle={2}
                             labelLine={false}
+                            onClick={(data) => handleChartClick(data.name, type)}
                         >
                             {data.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} stroke={"hsl(var(--card))"} />
+                                <Cell key={`cell-${index}`} fill={entry.fill} stroke={"hsl(var(--card))"} className="cursor-pointer" />
                             ))}
                         </Pie>
                         <Legend
@@ -266,28 +267,35 @@ export default function StatisticsPage() {
          <Accordion type="multiple" className="w-full">
             {Object.entries(hierarchy).map(([manager, jobTitles]) => (
                 <AccordionItem value={manager} key={manager}>
-                    <AccordionTrigger className="hover:no-underline">
+                    <AccordionTrigger className="hover:no-underline text-base">
                         <div className="flex justify-between w-full pr-2">
                            <span className="font-semibold">{manager}</span>
                            <span className="text-muted-foreground">{Object.values(jobTitles).flat().length} os.</span>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent>
-                        <div className="pl-4 space-y-2">
+                        <Accordion type="multiple" className="w-full pl-4">
                             {Object.entries(jobTitles).map(([jobTitle, emps]) => (
-                                <div key={jobTitle}>
-                                    <h4 className="font-medium text-sm text-muted-foreground">{jobTitle} ({emps.length})</h4>
-                                    <div className="pl-4 border-l-2 border-border ml-2">
-                                        {emps.map(employee => (
-                                            <div key={employee.id} className="flex items-center justify-between text-sm p-1.5 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
-                                                <span>{employee.fullName}</span>
-                                                <span className="text-xs text-muted-foreground">{employee.cardNumber}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+                                <AccordionItem value={jobTitle} key={jobTitle}>
+                                    <AccordionTrigger className="hover:no-underline text-sm">
+                                         <div className="flex justify-between w-full pr-2">
+                                            <span className="font-medium text-muted-foreground">{jobTitle}</span>
+                                            <span className="text-muted-foreground">{emps.length} os.</span>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="pl-4 border-l-2 border-border ml-2">
+                                            {emps.map(employee => (
+                                                <div key={employee.id} className="flex items-center justify-between text-sm p-1.5 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
+                                                    <span>{employee.fullName}</span>
+                                                    <span className="text-xs text-muted-foreground">{employee.cardNumber}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
                             ))}
-                        </div>
+                        </Accordion>
                     </AccordionContent>
                 </AccordionItem>
             ))}
@@ -369,7 +377,7 @@ export default function StatisticsPage() {
       )}
       
        <Dialog open={isStatDialogOpen} onOpenChange={setIsStatDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
               <DialogHeader>
                   <DialogTitle>{dialogContent?.title}</DialogTitle>
                    <DialogDescription>
@@ -413,3 +421,4 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
