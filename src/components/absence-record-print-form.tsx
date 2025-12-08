@@ -37,7 +37,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
           `}
         </style>
         
-        <div className="h-[25cm] flex flex-col justify-between">
+        <div className="h-[25cm] flex flex-col justify-between p-4">
             <div>
                 <header className="text-center mb-8">
                     <h1 className="text-base font-bold tracking-wider">OŚWIADCZENIE / ЗАЯВА</h1>
@@ -45,7 +45,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
 
                 <p className="mb-4 text-sm">Oświadczam, że podwykonawca / Повідомляю, що виконавець:</p>
                 
-                <div className="border-b-2 border-black py-2 px-2 mb-2 text-center">
+                <div className="border-b-2 border-black py-2 px-2 mb-1 text-center">
                     <p className="font-bold text-base tracking-wide">
                         {record.employeeFullName.toUpperCase()}
                     </p>
@@ -82,12 +82,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
             </div>
             
             <footer className="pt-20">
-                <div className="flex justify-between">
-                    <div className="text-center w-2/5">
-                        <div className="border-t border-gray-400 pt-1">
-                             <p className="text-xs text-gray-600">(podpis pracownika)</p>
-                        </div>
-                    </div>
+                <div className="flex justify-center">
                     <div className="text-center w-2/5">
                         <div className="border-t border-gray-400 pt-1">
                              <p className="text-xs text-gray-600">(podpis kierownika)</p>
