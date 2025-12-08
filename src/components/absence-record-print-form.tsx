@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -46,10 +45,13 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
 
                 <p className="mb-4 text-sm">Oświadczam, że podwykonawca / Повідомляю, що виконавець:</p>
                 
-                <div className="border-b-2 border-black py-2 px-2 mb-6">
-                <p className="text-center font-bold text-base tracking-wide">
-                    {record.employeeFullName.toUpperCase()}
-                </p>
+                <div className="border-b-2 border-black py-2 px-2 mb-2 text-center">
+                    <p className="font-bold text-base tracking-wide">
+                        {record.employeeFullName.toUpperCase()}
+                    </p>
+                </div>
+                 <div className="text-center mb-6">
+                    <p className="text-xs text-gray-500">({record.jobTitle}, {record.department})</p>
                 </div>
                 
                 <div className="flex justify-between items-center mb-8 text-sm">
