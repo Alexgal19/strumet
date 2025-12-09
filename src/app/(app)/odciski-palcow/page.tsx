@@ -121,8 +121,8 @@ export default function FingerprintAppointmentsPage() {
         description="Zarządzaj terminami na pobranie odcisków palców."
       />
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div className="">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">Dodaj nowy termin</CardTitle>
@@ -226,7 +226,7 @@ export default function FingerprintAppointmentsPage() {
           </Card>
         </div>
 
-        <div className="">
+        <div className="lg:col-span-3">
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">Zaplanowane terminy</CardTitle>
