@@ -51,7 +51,8 @@ const checkExpiringContractsFlow = ai.defineFlow(
     const expiringContractsEmployees = activeEmployees
       .map(emp => {
         if (!emp.contractEndDate) return null;
-        const contractEndDate = parseMaybeDate(emp.contractEndDate);
+        // Explicitly create date in local timezone by adding time part
+        const contractEndDate = emp.contractEndDate ? new Date(emp.contractEndDate + 'T00:00:00') : null;
         if (!contractEndDate) return null;
         
         const daysRemaining = differenceInDays(startOfDay(contractEndDate), today);
