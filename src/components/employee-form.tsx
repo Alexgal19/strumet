@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import type { Employee, AllConfig } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { formatDate, parseMaybeDate } from '@/lib/date';
+import { legalizationStatuses } from '@/lib/legalization-statuses';
 
 interface EmployeeFormProps {
   employee: Employee | null;
@@ -40,7 +41,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             vacationStartDate: employee.vacationStartDate,
             vacationEndDate: employee.vacationEndDate,
             contractEndDate: employee.contractEndDate,
-            legalizationStatus: employee.legalizationStatus,
+            legalizationStatus: employee.legalizationStatus || 'Brak',
         };
     }
     return {
@@ -58,7 +59,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
         vacationStartDate: undefined,
         vacationEndDate: undefined,
         contractEndDate: undefined,
-        legalizationStatus: undefined,
+        legalizationStatus: 'Brak',
     };
 };
 
@@ -228,8 +229,19 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                         <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} />
                     </div>
                      <div>
-                        <Label htmlFor="legalizationStatus">Status legalizacyjny</Label>
-                        <Input id="legalizationStatus" value={formData.legalizationStatus || ''} onChange={e => handleChange('legalizationStatus', e.target.value)} />
+                        <Label>Status legalizacyjny</Label>
+                        <Select value={formData.legalizationStatus || 'Brak'} onValueChange={value => handleChange('legalizationStatus', value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Wybierz status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {legalizationStatuses.map(status => (
+                                    <SelectItem key={status.value} value={status.value}>
+                                        {status.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             </div>

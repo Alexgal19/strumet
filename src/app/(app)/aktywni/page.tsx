@@ -51,6 +51,8 @@ import { useAppContext } from '@/context/app-context';
 import { EmployeeCard } from '@/components/employee-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDate, parseMaybeDate } from '@/lib/date';
+import { getStatusColor, legalizationStatuses } from '@/lib/legalization-statuses';
+import { Badge } from '@/components/ui/badge';
 
 
 const EmployeeSummary = dynamic(() => import('@/components/employee-summary').then(mod => mod.EmployeeSummary), {
@@ -214,7 +216,22 @@ export default function AktywniPage() {
     { accessorKey: "manager", header: "Kierownik" },
     { accessorKey: "cardNumber", header: "Nr karty" },
     { accessorKey: "nationality", header: "Narodowość" },
-    { accessorKey: "legalizationStatus", header: "Status legalizacyjny" },
+    { 
+        accessorKey: "legalizationStatus", 
+        header: "Status legalizacyjny",
+        cell: ({ row }) => {
+            const status = row.original.legalizationStatus;
+            if (!status || status === "Brak") {
+                return <span className="text-muted-foreground">—</span>;
+            }
+            const colorClass = getStatusColor(status);
+            return (
+                <Badge className={cn("text-xs font-semibold", colorClass)}>
+                    {status}
+                </Badge>
+            );
+        }
+    },
     {
       id: "actions",
       cell: ({ row }) => {
@@ -470,6 +487,12 @@ export default function AktywniPage() {
               onRowClick={handleEditEmployee}
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
+              getRowProps={(row) => {
+                const status = row.original.legalizationStatus;
+                if (!status || status === 'Brak') return {};
+                const colorClass = getStatusColor(status, true); // Get background color
+                return { className: colorClass };
+              }}
             />
         }
       </div>

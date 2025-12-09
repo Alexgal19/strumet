@@ -31,6 +31,7 @@ interface DataTableProps<TData, TValue> {
   onRowClick?: (row: TData) => void
   rowSelection: RowSelectionState
   onRowSelectionChange: React.Dispatch<React.SetStateAction<RowSelectionState>>
+  getRowProps?: (row: Row<TData>) => React.HTMLAttributes<HTMLTableRowElement>
 }
 
 export function DataTable<TData extends {id: string}, TValue>({
@@ -39,6 +40,7 @@ export function DataTable<TData extends {id: string}, TValue>({
   onRowClick,
   rowSelection,
   onRowSelectionChange,
+  getRowProps = () => ({}),
 }: DataTableProps<TData, TValue>) {
 
     const tableColumns: ColumnDef<TData, TValue>[] = [
@@ -121,6 +123,7 @@ export function DataTable<TData extends {id: string}, TValue>({
                   {rowVirtualizer.getVirtualItems().length > 0 ? (
                     rowVirtualizer.getVirtualItems().map(virtualRow => {
                       const row = rows[virtualRow.index]
+                      const rowProps = getRowProps(row);
                       return (
                         <TableRow
                           key={row.id}
@@ -131,6 +134,7 @@ export function DataTable<TData extends {id: string}, TValue>({
                             height: `${virtualRow.size}px`,
                             transform: `translateY(${virtualRow.start - virtualRow.index * virtualRow.size}px)`
                           }}
+                          {...rowProps}
                         >
                           {row.getVisibleCells().map((cell) => (
                               <TableCell 
