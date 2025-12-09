@@ -20,7 +20,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +65,7 @@ const exportColumns = [
   { key: 'manager' as keyof Employee, name: 'Kierownik' },
   { key: 'cardNumber' as keyof Employee, name: 'Nr karty' },
   { key: 'nationality' as keyof Employee, name: 'Narodowość' },
+  { key: 'legalizationStatus' as keyof Employee, name: 'Status legalizacyjny' },
   { key: 'lockerNumber' as keyof Employee, name: 'Nr szafki' },
   { key: 'departmentLockerNumber' as keyof Employee, name: 'Nr szafki w dziale' },
   { key: 'sealNumber' as keyof Employee, name: 'Nr pieczęci' },
@@ -213,6 +213,7 @@ export default function AktywniPage() {
     { accessorKey: "manager", header: "Kierownik" },
     { accessorKey: "cardNumber", header: "Nr karty" },
     { accessorKey: "nationality", header: "Narodowość" },
+    { accessorKey: "legalizationStatus", header: "Status legalizacyjny" },
     {
       id: "actions",
       cell: ({ row }) => {

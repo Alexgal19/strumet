@@ -45,6 +45,7 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
         departmentLockerNumber: employee.departmentLockerNumber,
         sealNumber: employee.sealNumber,
         contractEndDate: employee.contractEndDate,
+        legalizationStatus: employee.legalizationStatus,
       });
       setSummary(result.summary);
     } catch (e) {

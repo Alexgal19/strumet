@@ -30,6 +30,7 @@ export interface Employee {
   vacationStartDate?: string; // ISO string format
   vacationEndDate?: string; // ISO string format
   contractEndDate?: string; // ISO string format
+  legalizationStatus?: string;
 }
 
 export interface ConfigItem {

@@ -40,6 +40,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             vacationStartDate: employee.vacationStartDate,
             vacationEndDate: employee.vacationEndDate,
             contractEndDate: employee.contractEndDate,
+            legalizationStatus: employee.legalizationStatus,
         };
     }
     return {
@@ -57,6 +58,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
         vacationStartDate: undefined,
         vacationEndDate: undefined,
         contractEndDate: undefined,
+        legalizationStatus: undefined,
     };
 };
 
@@ -224,6 +226,10 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                     <div>
                         <Label htmlFor="sealNumber">Numer pieczęci</Label>
                         <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} />
+                    </div>
+                     <div>
+                        <Label htmlFor="legalizationStatus">Status legalizacyjny</Label>
+                        <Input id="legalizationStatus" value={formData.legalizationStatus || ''} onChange={e => handleChange('legalizationStatus', e.target.value)} />
                     </div>
                 </div>
             </div>

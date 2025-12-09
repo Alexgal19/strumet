@@ -21,6 +21,7 @@ const GenerateEmployeeSummaryInputSchema = z.object({
   manager: z.string().describe('The manager of the employee.'),
   cardId: z.string().describe('The card ID of the employee.'),
   nationality: z.string().describe('The nationality of the employee.'),
+  legalizationStatus: z.string().optional().describe('The legalization status of the employee.'),
   lockerNumber: z.string().describe('The locker number of the employee.'),
   departmentLockerNumber: z.string().describe('The department locker number of the employee.'),
   sealNumber: z.string().describe('The seal number of the employee.'),
@@ -51,6 +52,7 @@ Department: {{department}}
 Manager: {{manager}}
 Card ID: {{cardId}}
 Nationality: {{nationality}}
+Legalization Status: {{legalizationStatus}}
 Locker Number: {{lockerNumber}}
 Department Locker Number: {{departmentLockerNumber}}
 Seal Number: {{sealNumber}}`,
