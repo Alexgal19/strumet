@@ -68,9 +68,10 @@ const JobTitleClothingSetsTab = () => {
                                         onChange={(e) => {
                                             setDescriptions(prev => ({ ...prev, [jobTitle.id]: e.target.value }));
                                         }}
+                                        onClick={(e) => e.stopPropagation()}
                                         className="min-h-[100px] lg:text-base"
                                     />
-                                    <Button onClick={() => handleSave(jobTitle.id)} className="lg:h-11 lg:px-6">
+                                    <Button onClick={(e) => { e.stopPropagation(); handleSave(jobTitle.id); }} className="lg:h-11 lg:px-6">
                                         <Save className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
                                         Zapisz zestaw
                                     </Button>
