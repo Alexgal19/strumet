@@ -463,39 +463,40 @@ const OrdersTab = () => {
             <div className="lg:col-span-1">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Nowe zamówienie</CardTitle>
-                        <CardDescription>Dodaj nowe zapotrzebowanie na pracowników.</CardDescription>
+                        <CardTitle className="text-2xl">Nowe zamówienie</CardTitle>
+                        <CardDescription className="text-base">Dodaj nowe zapotrzebowanie na pracowników.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
                         <div className="space-y-2">
-                            <Label>Dział</Label>
+                            <Label className="text-base">Dział</Label>
                             <Select value={department} onValueChange={setDepartment}>
-                                <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                                <SelectTrigger className="h-12 text-base"><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
                                 <SelectContent>
-                                    {config.departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                                    {config.departments.map(d => <SelectItem key={d.id} value={d.name} className="text-base">{d.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
                          <div className="space-y-2">
-                            <Label>Stanowisko</Label>
+                            <Label className="text-base">Stanowisko</Label>
                             <Select value={jobTitle} onValueChange={setJobTitle}>
-                                <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                                <SelectTrigger className="h-12 text-base"><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
                                 <SelectContent>
-                                    {config.jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
+                                    {config.jobTitles.map(j => <SelectItem key={j.id} value={j.name} className="text-base">{j.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
                          <div className="space-y-2">
-                            <Label>Ilość</Label>
+                            <Label className="text-base">Ilość</Label>
                             <Input 
                                 type="number"
                                 value={quantity}
                                 onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
                                 min="1"
+                                className="h-12 text-base"
                             />
                         </div>
-                        <Button onClick={handleAddOrder} className="w-full">
-                            <PlusCircle className="mr-2 h-4 w-4" />
+                        <Button onClick={handleAddOrder} className="w-full h-12 text-base">
+                            <PlusCircle className="mr-2 h-5 w-5" />
                             Dodaj zamówienie
                         </Button>
                     </CardContent>
@@ -504,15 +505,15 @@ const OrdersTab = () => {
             <div className="lg:col-span-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Aktywne zamówienia</CardTitle>
-                        <CardDescription>Lista aktualnych zapotrzebowań na personel.</CardDescription>
+                        <CardTitle className="text-2xl">Aktywne zamówienia</CardTitle>
+                        <CardDescription className="text-base">Lista aktualnych zapotrzebowań na personel.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {Object.keys(groupedOrders).length > 0 ? (
                            <Accordion type="multiple" className="w-full">
                                {Object.entries(groupedOrders).map(([dept, orderList]) => (
                                    <AccordionItem value={dept} key={dept}>
-                                       <AccordionTrigger>
+                                       <AccordionTrigger className="text-lg">
                                             <div className='flex justify-between w-full pr-4'>
                                                 <span className='font-bold'>{dept}</span>
                                                 <span className='text-muted-foreground'>
@@ -523,13 +524,13 @@ const OrdersTab = () => {
                                        <AccordionContent>
                                             <div className="space-y-2 pl-4">
                                                 {orderList.map(order => (
-                                                    <div key={order.id} className="flex items-center justify-between p-2 rounded-md border">
+                                                    <div key={order.id} className="flex items-center justify-between p-3 rounded-md border text-base">
                                                         <div>
                                                             <p className="font-medium">{order.jobTitle}</p>
                                                             <p className="text-sm text-muted-foreground">Ilość: {order.quantity}</p>
                                                         </div>
                                                         <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                            <Trash2 className="h-5 w-5 text-destructive" />
                                                         </Button>
                                                     </div>
                                                 ))}
@@ -539,7 +540,7 @@ const OrdersTab = () => {
                                ))}
                            </Accordion>
                         ) : (
-                            <p className="text-center text-muted-foreground py-10">Brak aktywnych zamówień.</p>
+                            <p className="text-center text-muted-foreground py-10 text-base">Brak aktywnych zamówień.</p>
                         )}
                     </CardContent>
                 </Card>
@@ -560,7 +561,7 @@ export default function StatisticsPage() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col w-full">
       <PageHeader
         title="Statystyki"
         description="Kluczowe wskaźniki i planowanie dotyczące struktury personelu."
@@ -580,5 +581,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
 
     
