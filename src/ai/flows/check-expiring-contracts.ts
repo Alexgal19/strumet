@@ -3,7 +3,7 @@
 /**
  * @fileOverview A flow to check for expiring contracts and send notifications.
  *
- * - checkExpiringContractsAndNotify - A function that checks for contracts expiring in 7 days and sends notifications.
+ * - checkExpiringContractsAndNotify - A function that checks for contracts expiring in 1 day and sends notifications.
  */
 
 import { ai } from '@/ai/genkit';
@@ -47,7 +47,7 @@ const checkExpiringContractsFlow = ai.defineFlow(
     }
     
     const today = startOfDay(new Date());
-    const notificationDate = addDays(today, 7);
+    const notificationDate = addDays(today, 1);
 
     const expiringContractsEmployees = activeEmployees.filter(emp => {
         if (!emp.contractEndDate) return false;
@@ -66,8 +66,8 @@ const checkExpiringContractsFlow = ai.defineFlow(
     const employeeNames = expiringContractsEmployees.map(emp => emp.fullName).join(', ');
     
     // 1. Create in-app notification
-    const title = `Uwaga: Umowy wygasają za 7 dni (${expiringContractsEmployees.length})`;
-    const message = `Pamiętaj o kończących się umowach dla następujących pracowników: ${employeeNames}.`;
+    const title = `Uwaga: Umowy wygasają jutro (${expiringContractsEmployees.length})`;
+    const message = `Pamiętaj o kończących się jutro umowach dla następujących pracowników: ${employeeNames}.`;
     
     const newNotificationRef = push(ref(db, 'notifications'));
     const newNotification: Omit<AppNotification, 'id'> = {
@@ -80,10 +80,10 @@ const checkExpiringContractsFlow = ai.defineFlow(
     console.log(`Created in-app notification for ${expiringContractsEmployees.length} employees.`);
     
     // 2. Send email notification
-    const emailSubject = `Przypomnienie: Wygasające umowy (${expiringContractsEmployees.length})`;
+    const emailSubject = `Przypomnienie: Umowy wygasające jutro (${expiringContractsEmployees.length})`;
     const emailBody = `
         <h1>Przypomnienie o wygasających umowach</h1>
-        <p>Za 7 dni (${notificationDate.toLocaleDateString('pl-PL')}) wygasają umowy następującym pracownikom:</p>
+        <p>Jutro (${notificationDate.toLocaleDateString('pl-PL')}) wygasają umowy następującym pracownikom:</p>
         <ul>
             ${expiringContractsEmployees.map(emp => `<li><strong>${emp.fullName}</strong> (Dział: ${emp.department}, Stanowisko: ${emp.jobTitle})</li>`).join('')}
         </ul>
