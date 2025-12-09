@@ -32,7 +32,7 @@ export const sendEmail = ai.defineTool(
         const resend = new Resend(process.env.RESEND_API_KEY);
         try {
             const { data, error } = await resend.emails.send({
-                from: 'HOL Manager <powiadomienia@smartwork.pl>',
+                from: 'Baza ST <onboarding@resend.dev>',
                 to: [NOTIFICATION_EMAIL],
                 subject: subject,
                 html: body,
