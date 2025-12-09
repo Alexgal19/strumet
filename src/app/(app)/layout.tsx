@@ -46,7 +46,7 @@ const AppContent = () => {
         <SidebarProvider>
             <div className="flex h-full flex-col md:flex-row bg-transparent">
                 <AppSidebar activeView={activeView} setActiveView={setActiveView} />
-                <SidebarInset className="m-0 flex flex-col md:w-full md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-2xl border-white/10 md:border bg-card/80 backdrop-blur-lg">
+                <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-2xl border-white/10 md:border bg-card/80 backdrop-blur-lg">
                     <React.Suspense fallback={<LoadingComponent />}>
                         {isLoading ? <LoadingComponent /> : (
                             <ViewTransitionWrapper viewKey={activeView}>

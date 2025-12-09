@@ -570,10 +570,10 @@ export default function StatisticsPage() {
           <TabsTrigger value="report">Raport</TabsTrigger>
           <TabsTrigger value="orders">Zamówienia</TabsTrigger>
         </TabsList>
-        <TabsContent value="report" className="flex-grow">
+        <TabsContent value="report" className="flex-grow h-full">
             <ReportTab />
         </TabsContent>
-        <TabsContent value="orders" className="flex-grow">
+        <TabsContent value="orders" className="flex-grow h-full">
             <OrdersTab />
         </TabsContent>
       </Tabs>
