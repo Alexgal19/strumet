@@ -1,87 +1,82 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { Resend } from 'resend';
 import { db } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 
-
 const NOTIFICATION_EMAIL = 'o.holiadynets@smartwork.pl';
 
-export const sendEmail = ai.defineTool(
-    {
-        name: 'sendEmail',
-        description: 'Sends an email with a reminder about fingerprint appointments.',
-        inputSchema: z.object({
-            subject: z.string().describe('The subject of the email.'),
-            body: z.string().describe('The HTML body content of the email.'),
-        }),
-        outputSchema: z.object({
-            success: z.boolean(),
-            message: z.string(),
-        }),
-    },
-    async ({ subject, body }) => {
-        let apiKey: string | undefined | null = process.env.RESEND_API_KEY;
+const SendEmailInputSchema = z.object({
+    subject: z.string().describe('The subject of the email.'),
+    body: z.string().describe('The HTML body content of the email.'),
+});
 
-        try {
-            // First, try to get the API key from the database
-            const apiKeyRef = ref(db, 'config/resendApiKey');
-            const snapshot = await get(apiKeyRef);
-            const dbApiKey = snapshot.val();
-            if (dbApiKey) {
-                apiKey = dbApiKey;
-            }
-        } catch (dbError) {
-            console.warn("Could not fetch Resend API key from Firebase, falling back to environment variable. Error:", dbError);
+const SendEmailOutputSchema = z.object({
+    success: z.boolean(),
+    message: z.string(),
+});
+
+export async function sendEmail(
+    input: z.infer<typeof SendEmailInputSchema>
+): Promise<z.infer<typeof SendEmailOutputSchema>> {
+    let apiKey: string | undefined | null = process.env.RESEND_API_KEY;
+
+    try {
+        const apiKeyRef = ref(db, 'config/resendApiKey');
+        const snapshot = await get(apiKeyRef);
+        const dbApiKey = snapshot.val();
+        if (dbApiKey) {
+            apiKey = dbApiKey;
         }
-
-        if (!apiKey) {
-            const warningMessage = "Resend API key not found in database or environment variables. Skipping email sending.";
-            console.warn(warningMessage);
-            return {
-                success: false,
-                message: warningMessage,
-            };
-        }
-        
-        const resend = new Resend(apiKey);
-        try {
-            const { data, error } = await resend.emails.send({
-                from: 'Baza ST <onboarding@resend.dev>',
-                to: [NOTIFICATION_EMAIL],
-                subject: subject,
-                html: body,
-            });
-
-            if (error) {
-                console.error('Resend API error:', error);
-                return {
-                    success: false,
-                    message: `Failed to send email: ${error.message}`,
-                };
-            }
-
-            console.log('Email sent successfully:', data);
-            return {
-                success: true,
-                message: `Email sent successfully to ${NOTIFICATION_EMAIL}.`,
-            };
-
-        } catch (error) {
-            console.error('General error sending email:', error);
-            if (error instanceof Error) {
-                 return {
-                    success: false,
-                    message: `An unexpected error occurred: ${error.message}`,
-                };
-            }
-            return {
-                success: false,
-                message: 'An unexpected error occurred while sending the email.',
-            };
-        }
+    } catch (dbError) {
+        console.warn("Could not fetch Resend API key from Firebase, falling back to environment variable. Error:", dbError);
     }
-);
+
+    if (!apiKey) {
+        const warningMessage = "Resend API key not found in database or environment variables. Skipping email sending.";
+        console.warn(warningMessage);
+        return {
+            success: false,
+            message: warningMessage,
+        };
+    }
+    
+    const resend = new Resend(apiKey);
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'Baza ST <onboarding@resend.dev>',
+            to: [NOTIFICATION_EMAIL],
+            subject: input.subject,
+            html: input.body,
+        });
+
+        if (error) {
+            console.error('Resend API error:', error);
+            return {
+                success: false,
+                message: `Failed to send email: ${error.message}`,
+            };
+        }
+
+        console.log('Email sent successfully:', data);
+        return {
+            success: true,
+            message: `Email sent successfully to ${NOTIFICATION_EMAIL}.`,
+        };
+
+    } catch (error) {
+        console.error('General error sending email:', error);
+        if (error instanceof Error) {
+             return {
+                success: false,
+                message: `An unexpected error occurred: ${error.message}`,
+            };
+        }
+        return {
+            success: false,
+            message: 'An unexpected error occurred while sending the email.',
+        };
+    }
+}
