@@ -25,6 +25,7 @@ export interface Employee {
   departmentLockerNumber: string;
   sealNumber: string;
   status: 'aktywny' | 'zwolniony';
+  avatarDataUri?: string; // For AI-generated avatars
   terminationDate?: string; // ISO string format will be present for 'zwolniony'
   plannedTerminationDate?: string; // ISO string format
   vacationStartDate?: string; // ISO string format

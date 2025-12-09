@@ -176,7 +176,7 @@ export default function ZwolnieniPage() {
             return (
                 <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src={`https://avatar.vercel.sh/${employee.fullName}.png`} alt={employee.fullName} />
+                        <AvatarImage src={employee.avatarDataUri || `https://avatar.vercel.sh/${employee.fullName}.png`} alt={employee.fullName} />
                         <AvatarFallback>{employee.fullName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{employee.fullName}</span>

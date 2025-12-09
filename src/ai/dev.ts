@@ -5,6 +5,7 @@ config();
 import '@/ai/flows/generate-employee-summary.ts';
 import '@/ai/flows/check-fingerprint-appointments.ts';
 import '@/ai/flows/check-expiring-contracts.ts';
+import '@/ai/flows/generate-avatar.ts';
 
 // This is a dev-only file that is used to run the Genkit flows locally.
 // It is not included in the production build.

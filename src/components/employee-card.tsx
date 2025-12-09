@@ -70,7 +70,7 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({
     <Card className="flex flex-col h-full animate-fade-in-up">
       <CardHeader className="flex flex-row items-start gap-4">
         <Avatar className="w-12 h-12">
-          <AvatarImage src={`https://avatar.vercel.sh/${employee.fullName}.png`} alt={employee.fullName} />
+          <AvatarImage src={employee.avatarDataUri || `https://avatar.vercel.sh/${employee.fullName}.png`} alt={employee.fullName} />
           <AvatarFallback>{employee.fullName.charAt(0)}</AvatarFallback>
         </Avatar>
         <div className="flex-grow">
