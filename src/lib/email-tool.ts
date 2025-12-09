@@ -4,6 +4,9 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { Resend } from 'resend';
+import { db } from '@/lib/firebase';
+import { ref, get } from 'firebase/database';
+
 
 const NOTIFICATION_EMAIL = 'o.holiadynets@smartwork.pl';
 
@@ -21,15 +24,30 @@ export const sendEmail = ai.defineTool(
         }),
     },
     async ({ subject, body }) => {
-        if (!process.env.RESEND_API_KEY) {
-            console.warn("RESEND_API_KEY is not set. Skipping email sending.");
+        let apiKey: string | undefined | null = process.env.RESEND_API_KEY;
+
+        try {
+            // First, try to get the API key from the database
+            const apiKeyRef = ref(db, 'config/resendApiKey');
+            const snapshot = await get(apiKeyRef);
+            const dbApiKey = snapshot.val();
+            if (dbApiKey) {
+                apiKey = dbApiKey;
+            }
+        } catch (dbError) {
+            console.warn("Could not fetch Resend API key from Firebase, falling back to environment variable. Error:", dbError);
+        }
+
+        if (!apiKey) {
+            const warningMessage = "Resend API key not found in database or environment variables. Skipping email sending.";
+            console.warn(warningMessage);
             return {
                 success: false,
-                message: 'Email sending is not configured on the server.',
+                message: warningMessage,
             };
         }
         
-        const resend = new Resend(process.env.RESEND_API_KEY);
+        const resend = new Resend(apiKey);
         try {
             const { data, error } = await resend.emails.send({
                 from: 'onboarding@resend.dev',
@@ -39,7 +57,7 @@ export const sendEmail = ai.defineTool(
             });
 
             if (error) {
-                console.error('Resend error:', error);
+                console.error('Resend API error:', error);
                 return {
                     success: false,
                     message: `Failed to send email: ${error.message}`,
@@ -53,7 +71,7 @@ export const sendEmail = ai.defineTool(
             };
 
         } catch (error) {
-            console.error('Error sending email:', error);
+            console.error('General error sending email:', error);
             if (error instanceof Error) {
                  return {
                     success: false,

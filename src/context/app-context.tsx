@@ -46,6 +46,7 @@ interface AppContextType {
     updateConfigItem: (configType: ConfigType, itemId: string, newName: string) => Promise<void>;
     removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
     handleSaveJobTitleClothingSet: (jobTitleId: string, description: string) => Promise<void>;
+    handleSaveResendApiKey: (apiKey: string) => Promise<void>;
     addAbsenceRecord: (record: Omit<AbsenceRecord, 'id'>) => Promise<void>;
     deleteAbsenceRecord: (recordId: string) => Promise<void>;
     addCirculationCard: (employeeId: string, employeeFullName: string) => Promise<CirculationCard | null>;
@@ -64,7 +65,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [activeView, setActiveView] = useState<ActiveView>('aktywni');
     
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [] });
+    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
     const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
     const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
     const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
@@ -84,7 +85,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 managers: objectToArray(data.config?.managers),
                 nationalities: objectToArray(data.config?.nationalities),
                 clothingItems: objectToArray(data.config?.clothingItems),
-                jobTitleClothingSets: objectToArray(data.config?.jobTitleClothingSets)
+                jobTitleClothingSets: objectToArray(data.config?.jobTitleClothingSets),
+                resendApiKey: data.config?.resendApiKey || '',
             });
             setAbsenceRecords(objectToArray(data.absenceRecords));
             setCirculationCards(objectToArray(data.circulationCards));
@@ -235,6 +237,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [toast]);
 
+    const handleSaveResendApiKey = useCallback(async (apiKey: string) => {
+        try {
+            await set(ref(db, 'config/resendApiKey'), apiKey);
+            toast({ title: "Sukces", description: "Klucz API Resend został zapisany."});
+        } catch (error) {
+            console.error("Error saving Resend API key:", error);
+            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać klucza API."});
+        }
+    }, [toast]);
+
     // --- Other Actions ---
     const addAbsenceRecord = useCallback(async (record: Omit<AbsenceRecord, 'id'>) => {
         try {
@@ -354,6 +366,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         updateConfigItem,
         removeConfigItem,
         handleSaveJobTitleClothingSet,
+        handleSaveResendApiKey,
         addAbsenceRecord,
         deleteAbsenceRecord,
         addCirculationCard,

@@ -58,6 +58,7 @@ export interface AllConfig {
   nationalities: Nationality[];
   clothingItems: ClothingItem[];
   jobTitleClothingSets: JobTitleClothingSet[];
+  resendApiKey?: string;
 }
 
 export interface CirculationCard {

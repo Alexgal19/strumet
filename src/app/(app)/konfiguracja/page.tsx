@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Trash2, Loader2, Edit, Save } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Edit, Save, KeyRound } from 'lucide-react';
 import type { ConfigItem, ConfigType, JobTitle } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -87,7 +87,7 @@ const JobTitleClothingSetsTab = () => {
 
 
 export default function ConfigurationPage() {
-  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem } = useAppContext();
+  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, handleSaveResendApiKey } = useAppContext();
   const hasMounted = useHasMounted();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -97,8 +97,15 @@ export default function ConfigurationPage() {
   
   const [editingItem, setEditingItem] = useState<{ id: string; name: string } | null>(null);
   const [editedItemName, setEditedItemName] = useState('');
+  
+  const [resendApiKey, setResendApiKey] = useState('');
 
   const { toast } = useToast();
+  
+  useEffect(() => {
+    setResendApiKey(config.resendApiKey || '');
+  }, [config.resendApiKey]);
+
 
   const openAddDialog = (configType: ConfigType) => {
     setCurrentConfigType(configType);
@@ -156,6 +163,10 @@ export default function ConfigurationPage() {
     }
   };
 
+  const onSaveApiKey = async () => {
+    await handleSaveResendApiKey(resendApiKey);
+  };
+
   const configLists: { type: ConfigType; items: ConfigItem[] }[] = [
     { type: 'departments', items: config.departments },
     { type: 'jobTitles', items: config.jobTitles },
@@ -174,45 +185,74 @@ export default function ConfigurationPage() {
       />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-grow">
-        <Card className="h-full flex flex-col">
-           <CardHeader>
-                <CardTitle className="lg:text-2xl">Listy Konfiguracyjne</CardTitle>
-                <CardDescription className="lg:text-base">Zarządzaj listami działów, stanowisk, etc.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow overflow-y-auto">
-                 <Accordion type="multiple" className="w-full">
-                    {configLists.map(({ type, items }) => (
-                        <AccordionItem value={type} key={type}>
-                            <AccordionTrigger className="lg:text-lg">{configLabels[type as Exclude<ConfigView, 'jobTitleClothingSets'>]}</AccordionTrigger>
-                            <AccordionContent>
-                                <div className="space-y-3 p-2">
-                                  <div className="space-y-2">
-                                    {items.map((item) => (
-                                      <div key={item.id} className="flex items-center justify-between rounded-md border p-3 lg:p-4 gap-2">
-                                        <span className="flex-1 break-words font-medium text-sm lg:text-base">{item.name}</span>
-                                        <div className="flex items-center gap-1 lg:gap-2 shrink-0">
-                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8 lg:h-9 lg:w-9" onClick={() => openEditDialog(type, item)}>
-                                                <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 lg:h-9 lg:w-9" onClick={() => handleRemoveItem(type, item.id)}>
-                                                <Trash2 className="h-4 w-4 lg:h-5 lg:w-5" />
-                                            </Button>
-                                        </div>
+        <div className="flex flex-col gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="lg:text-2xl flex items-center gap-3">
+                        <KeyRound className="h-6 w-6" />
+                        Klucz API Resend
+                    </CardTitle>
+                    <CardDescription className="lg:text-base">
+                        Wprowadź klucz API do wysyłania powiadomień email.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <Label htmlFor="resend-api-key">Klucz API</Label>
+                        <Input 
+                            id="resend-api-key"
+                            type="password"
+                            value={resendApiKey}
+                            onChange={(e) => setResendApiKey(e.target.value)}
+                            placeholder="re_xxxxxxxx_xxxxxxxxxxxx"
+                        />
+                    </div>
+                    <Button onClick={onSaveApiKey}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Zapisz klucz
+                    </Button>
+                </CardContent>
+            </Card>
+            <Card className="flex-grow flex flex-col">
+               <CardHeader>
+                    <CardTitle className="lg:text-2xl">Listy Konfiguracyjne</CardTitle>
+                    <CardDescription className="lg:text-base">Zarządzaj listami działów, stanowisk, etc.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow overflow-y-auto">
+                     <Accordion type="multiple" className="w-full">
+                        {configLists.map(({ type, items }) => (
+                            <AccordionItem value={type} key={type}>
+                                <AccordionTrigger className="lg:text-lg">{configLabels[type as Exclude<ConfigView, 'jobTitleClothingSets'>]}</AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-3 p-2">
+                                      <div className="space-y-2">
+                                        {items.map((item) => (
+                                          <div key={item.id} className="flex items-center justify-between rounded-md border p-3 lg:p-4 gap-2">
+                                            <span className="flex-1 break-words font-medium text-sm lg:text-base">{item.name}</span>
+                                            <div className="flex items-center gap-1 lg:gap-2 shrink-0">
+                                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8 lg:h-9 lg:w-9" onClick={() => openEditDialog(type, item)}>
+                                                    <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 lg:h-9 lg:w-9" onClick={() => handleRemoveItem(type, item.id)}>
+                                                    <Trash2 className="h-4 w-4 lg:h-5 lg:w-5" />
+                                                </Button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                        {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
                                       </div>
-                                    ))}
-                                    {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
-                                  </div>
-                                  <Button className="mt-2 w-full lg:h-11" variant="secondary" onClick={() => openAddDialog(type)}>
-                                    <PlusCircle className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
-                                    Dodaj nowe
-                                  </Button>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
-                 </Accordion>
-            </CardContent>
-        </Card>
+                                      <Button className="mt-2 w-full lg:h-11" variant="secondary" onClick={() => openAddDialog(type)}>
+                                        <PlusCircle className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                        Dodaj nowe
+                                      </Button>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                     </Accordion>
+                </CardContent>
+            </Card>
+        </div>
         
         <JobTitleClothingSetsTab />
       </div>
