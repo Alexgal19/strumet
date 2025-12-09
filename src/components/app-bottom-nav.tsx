@@ -13,6 +13,7 @@ import {
   BarChart3,
   LogOut,
   PackagePlus,
+  CalendarCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
@@ -37,7 +38,7 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const menuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
     { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
-    { view: 'wydawanie-odziezy-nowi', icon: PackagePlus, label: 'Nowi' },
+    { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność'},
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];

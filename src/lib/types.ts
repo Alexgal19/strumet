@@ -4,6 +4,7 @@ export type ActiveView =
   | 'aktywni'
   | 'zwolnieni'
   | 'planowanie'
+  | 'odwiedzalnosc'
   | 'statystyki'
   | 'wydawanie-odziezy'
   | 'wydawanie-odziezy-nowi'
@@ -60,6 +61,12 @@ export interface AllConfig {
   clothingItems: ClothingItem[];
   jobTitleClothingSets: JobTitleClothingSet[];
   resendApiKey?: string;
+}
+
+export interface Absence {
+    id: string;
+    employeeId: string;
+    date: string; // YYYY-MM-DD
 }
 
 export interface CirculationCard {

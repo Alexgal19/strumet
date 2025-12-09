@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -10,6 +9,7 @@ import { format } from 'date-fns';
 import type { 
     Employee, 
     AllConfig, 
+    Absence,
     AbsenceRecord, 
     CirculationCard, 
     FingerprintAppointment, 
@@ -28,6 +28,7 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 interface AppContextType {
     employees: Employee[];
     config: AllConfig;
+    absences: Absence[];
     absenceRecords: AbsenceRecord[];
     circulationCards: CirculationCard[];
     fingerprintAppointments: FingerprintAppointment[];
@@ -47,6 +48,8 @@ interface AppContextType {
     removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
     handleSaveJobTitleClothingSet: (jobTitleId: string, description: string) => Promise<void>;
     handleSaveResendApiKey: (apiKey: string) => Promise<void>;
+    addAbsence: (employeeId: string, date: string) => Promise<void>;
+    deleteAbsence: (absenceId: string) => Promise<void>;
     addAbsenceRecord: (record: Omit<AbsenceRecord, 'id'>) => Promise<void>;
     deleteAbsenceRecord: (recordId: string) => Promise<void>;
     addCirculationCard: (employeeId: string, employeeFullName: string) => Promise<CirculationCard | null>;
@@ -66,6 +69,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
+    const [absences, setAbsences] = useState<Absence[]>([]);
     const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
     const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
     const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
@@ -88,6 +92,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 jobTitleClothingSets: objectToArray(data.config?.jobTitleClothingSets),
                 resendApiKey: data.config?.resendApiKey || '',
             });
+            setAbsences(objectToArray(data.absences));
             setAbsenceRecords(objectToArray(data.absenceRecords));
             setCirculationCards(objectToArray(data.circulationCards));
             setFingerprintAppointments(objectToArray(data.fingerprintAppointments));
@@ -247,6 +252,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [toast]);
 
+    // --- Absence Actions ---
+    const addAbsence = useCallback(async (employeeId: string, date: string) => {
+        const newAbsenceRef = push(ref(db, 'absences'));
+        await set(newAbsenceRef, { employeeId, date });
+    }, []);
+
+    const deleteAbsence = useCallback(async (absenceId: string) => {
+        await remove(ref(db, `absences/${absenceId}`));
+    }, []);
+    
     // --- Other Actions ---
     const addAbsenceRecord = useCallback(async (record: Omit<AbsenceRecord, 'id'>) => {
         try {
@@ -348,6 +363,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const value = {
         employees,
         config,
+        absences,
         absenceRecords,
         circulationCards,
         fingerprintAppointments,
@@ -367,6 +383,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         removeConfigItem,
         handleSaveJobTitleClothingSet,
         handleSaveResendApiKey,
+        addAbsence,
+        deleteAbsence,
         addAbsenceRecord,
         deleteAbsenceRecord,
         addCirculationCard,

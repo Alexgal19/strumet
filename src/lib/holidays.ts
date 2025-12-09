@@ -1,5 +1,5 @@
 
-import { add, set } from 'date-fns';
+import { add } from 'date-fns';
 
 function getEaster(year: number): Date {
   const a = year % 19;
