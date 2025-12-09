@@ -78,7 +78,7 @@ const checkExpiringContractsFlow = ai.defineFlow(
         return acc;
     }, {} as Record<number, string[]>);
     
-    // 1. Create in-app notification
+    // 1. Create in-app notification for expiring contracts
     const totalExpiring = expiringContractsEmployees.length;
     const title = `Uwaga: ${totalExpiring} umow${totalExpiring > 1 ? 'y' : 'a'} wkrótce wygasają!`;
     const messageParts = Object.entries(groupedByDays)
@@ -132,15 +132,27 @@ const checkExpiringContractsFlow = ai.defineFlow(
     `;
 
     const emailResult = await sendEmail({ subject: emailSubject, body: emailBody });
+    
+    let emailsSentCount = 0;
     if(emailResult.success) {
         console.log(`Email sent successfully for ${totalExpiring} employees.`);
+        emailsSentCount = 1;
     } else {
         console.error(`Failed to send email: ${emailResult.message}`);
+        // Create an error notification
+        const errorNotificationRef = push(ref(db, 'notifications'));
+        const errorNotification: Omit<AppNotification, 'id'> = {
+            title: 'Błąd wysyłania Email',
+            message: `Nie udało się wysłać powiadomienia email. Szczegóły błędu: ${emailResult.message}`,
+            createdAt: new Date().toISOString(),
+            read: false,
+        };
+        await set(errorNotificationRef, errorNotification);
     }
 
     return {
-      notificationsCreated: 1,
-      emailsSent: emailResult.success ? 1 : 0,
+      notificationsCreated: 1, // We always create at least one main notification
+      emailsSent: emailsSentCount,
     };
   }
 );

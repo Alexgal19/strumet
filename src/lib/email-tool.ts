@@ -56,7 +56,7 @@ export async function sendEmail(
             console.error('Resend API error:', error);
             return {
                 success: false,
-                message: `Failed to send email: ${error.message}`,
+                message: `Resend error: ${error.message}`,
             };
         }
 
