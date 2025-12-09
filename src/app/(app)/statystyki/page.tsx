@@ -220,8 +220,8 @@ const ReportTab = () => {
     const renderPieChart = (data: any[], title: string, description: string, type: 'department' | 'nationality' | 'jobTitle') => (
         <Card className="flex flex-col">
             <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
+                <CardTitle className="text-xl">{title}</CardTitle>
+                <CardDescription className="text-sm">{description}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex items-center justify-center">
                 <ChartContainer config={{}} className="h-[350px] w-full">
@@ -379,14 +379,14 @@ const ReportTab = () => {
             </>
             )}
              <Dialog open={isStatDialogOpen} onOpenChange={setIsStatDialogOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>{dialogContent?.title}</DialogTitle>
                         <DialogDescription>
                                 Znaleziono {dialogContent?.total} pracowników.
                             </DialogDescription>
                     </DialogHeader>
-                    <ScrollArea className="max-h-80 my-4">
+                    <ScrollArea className="max-h-[60vh] my-4">
                         <div className="space-y-1 pr-4">
                             {renderDialogContent()}
                         </div>
@@ -585,3 +585,4 @@ export default function StatisticsPage() {
     
 
     
+
