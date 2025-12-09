@@ -16,7 +16,7 @@ export function formatDate(
 ): string {
   if (!input) return '';
 
-  const date = typeof input === 'string' ? parseISO(input) : new Date(input);
+  const date = new Date(input);
   if (!isValid(date)) return '';
   
   try {
@@ -38,7 +38,7 @@ export function formatDateTime(
 ): string {
     if (!input) return '';
 
-    const date = typeof input === 'string' ? parseISO(input) : new Date(input);
+    const date = new Date(input);
     if (!isValid(date)) return '';
 
     try {
@@ -58,7 +58,7 @@ export function parseMaybeDate(
 ): Date | null {
   if (!input) return null;
 
-  const date = typeof input === 'string' ? parseISO(input) : new Date(input);
+  const date = new Date(input);
   return isValid(date) ? date : null;
 }
 
