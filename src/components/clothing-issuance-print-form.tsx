@@ -22,7 +22,6 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
     let itemsToRender: { name: string; quantity: number }[] = [];
 
     if (isFullSetDescription) {
-        // If it's a full set, split the description by newlines to create individual items.
         const description = issuance.items[0].name || '';
         itemsToRender = description.split('\n').map(line => line.trim()).filter(line => line).map(name => ({ name, quantity: 1 }));
     } else {
@@ -46,8 +45,8 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
             }
           `}
         </style>
-        <div className="flex flex-col justify-between h-full p-4">
-            <div>
+        <div className="h-full flex flex-col justify-center items-center">
+            <div className="w-full">
                 <header className="text-center mb-6">
                     <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
                     <p className="text-sm">(Workwear Issuance Confirmation)</p>
@@ -83,22 +82,22 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                       ))}
                     </div>
                 </section>
-            </div>
             
-            <footer className="text-sm mt-auto">
-              <div className="flex justify-between items-end pt-16">
-                  <div className="text-center w-2/5">
-                      <div className="border-t border-dotted border-black pt-1">
-                           <p className="text-xs">(data i podpis pracownika)</p>
-                      </div>
-                  </div>
-                  <div className="text-center w-2/5">
-                      <div className="border-t border-dotted border-black pt-1">
-                           <p className="text-xs">(podpis osoby wydającej)</p>
-                      </div>
-                  </div>
-              </div>
-          </footer>
+                <footer className="text-sm mt-auto">
+                <div className="flex justify-between items-end pt-16">
+                    <div className="text-center w-2/5">
+                        <div className="border-t border-dotted border-black pt-1">
+                            <p className="text-xs">(data i podpis pracownika)</p>
+                        </div>
+                    </div>
+                    <div className="text-center w-2/5">
+                        <div className="border-t border-dotted border-black pt-1">
+                            <p className="text-xs">(podpis osoby wydającej)</p>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+            </div>
         </div>
       </div>
     );
