@@ -209,8 +209,8 @@ export default function AktywniPage() {
             )
         }
     },
-    { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'dd.MM.yyyy') },
-    { accessorKey: "contractEndDate", header: "Umowa do", cell: ({row}) => formatDate(row.original.contractEndDate, 'dd.MM.yyyy') },
+    { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'yyyy-MM-dd') },
+    { accessorKey: "contractEndDate", header: "Umowa do", cell: ({row}) => formatDate(row.original.contractEndDate, 'yyyy-MM-dd') },
     { accessorKey: "jobTitle", header: "Stanowisko" },
     { accessorKey: "department", header: "Dział" },
     { accessorKey: "manager", header: "Kierownik" },

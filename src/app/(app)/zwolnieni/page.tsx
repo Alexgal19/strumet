@@ -184,8 +184,8 @@ export default function ZwolnieniPage() {
             )
         }
       },
-      { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'dd.MM.yyyy')},
-      { accessorKey: "terminationDate", header: "Data zwolnienia", cell: ({row}) => formatDate(row.original.terminationDate, 'dd.MM.yyyy') },
+      { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'yyyy-MM-dd')},
+      { accessorKey: "terminationDate", header: "Data zwolnienia", cell: ({row}) => formatDate(row.original.terminationDate, 'yyyy-MM-dd') },
       { accessorKey: "jobTitle", header: "Stanowisko" },
       { accessorKey: "department", header: "Dział" },
       { accessorKey: "manager", header: "Kierownik" },
