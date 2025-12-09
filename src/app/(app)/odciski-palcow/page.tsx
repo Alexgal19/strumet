@@ -125,19 +125,19 @@ export default function FingerprintAppointmentsPage() {
         <div className="">
           <Card>
             <CardHeader>
-              <CardTitle>Dodaj nowy termin</CardTitle>
-              <CardDescription>Wybierz pracownika i datę, aby dodać nowy termin.</CardDescription>
+              <CardTitle className="text-2xl">Dodaj nowy termin</CardTitle>
+              <CardDescription className="text-base">Wybierz pracownika i datę, aby dodać nowy termin.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Pracownik</label>
+                <label className="text-base font-medium">Pracownik</label>
                 <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
                       aria-expanded={isComboboxOpen}
-                      className="w-full justify-between"
+                      className="w-full justify-between h-12 text-base"
                     >
                       {selectedEmployee ? selectedEmployee.fullName : "Wybierz pracownika..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -175,17 +175,17 @@ export default function FingerprintAppointmentsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Data wizyty</label>
+                <label className="text-base font-medium">Data wizyty</label>
                  <Popover>
                     <PopoverTrigger asChild>
                         <Button
                         variant={"outline"}
                         className={cn(
-                            "w-full justify-start text-left font-normal",
+                            "w-full justify-start text-left font-normal h-12 text-base",
                             !appointmentDate && "text-muted-foreground"
                         )}
                         >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="mr-2 h-5 w-5" />
                         {appointmentDate ? formatDateTime(appointmentDate, "PPP HH:mm") : <span>Wybierz datę i godzinę</span>}
                         </Button>
                     </PopoverTrigger>
@@ -198,10 +198,10 @@ export default function FingerprintAppointmentsPage() {
                             initialFocus
                         />
                          <div className="p-3 border-t border-border">
-                            <label className="text-sm font-medium">Godzina</label>
+                            <label className="text-base font-medium">Godzina</label>
                             <input
                                 type="time"
-                                className="w-full mt-1 p-2 border rounded-md"
+                                className="w-full mt-1 p-2 border rounded-md h-12 text-base"
                                 value={appointmentDate ? format(appointmentDate, 'HH:mm') : ''}
                                 onChange={(e) => {
                                     const time = e.target.value;
@@ -218,8 +218,8 @@ export default function FingerprintAppointmentsPage() {
                 </Popover>
               </div>
 
-              <Button onClick={handleSaveAppointment} disabled={isSaving} className="w-full">
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+              <Button onClick={handleSaveAppointment} disabled={isSaving} className="w-full h-12 text-base">
+                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <UserPlus className="mr-2 h-5 w-5" />}
                 Zapisz termin
               </Button>
             </CardContent>
@@ -229,37 +229,37 @@ export default function FingerprintAppointmentsPage() {
         <div className="">
           <Card>
             <CardHeader>
-              <CardTitle>Zaplanowane terminy</CardTitle>
-              <CardDescription>Lista nadchodzących wizyt na pobranie odcisków palców.</CardDescription>
+              <CardTitle className="text-2xl">Zaplanowane terminy</CardTitle>
+              <CardDescription className="text-base">Lista nadchodzących wizyt na pobranie odcisków palców.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Pracownik</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Godzina</TableHead>
-                      <TableHead className="text-right">Akcje</TableHead>
+                      <TableHead className="text-base">Pracownik</TableHead>
+                      <TableHead className="text-base">Data</TableHead>
+                      <TableHead className="text-base">Godzina</TableHead>
+                      <TableHead className="text-right text-base">Akcje</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sortedAppointments.length > 0 ? (
                       sortedAppointments.map((apt) => (
                         <TableRow key={apt.id}>
-                          <TableCell className="font-medium">{apt.employeeFullName}</TableCell>
-                          <TableCell>{formatDate(apt.appointmentDate, "dd.MM.yyyy")}</TableCell>
-                          <TableCell>{formatDate(apt.appointmentDate, "HH:mm")}</TableCell>
+                          <TableCell className="font-medium text-base">{apt.employeeFullName}</TableCell>
+                          <TableCell className="text-base">{formatDate(apt.appointmentDate, "dd.MM.yyyy")}</TableCell>
+                          <TableCell className="text-base">{formatDate(apt.appointmentDate, "HH:mm")}</TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => setDeletingId(apt.id)}>
-                               <Trash2 className="h-4 w-4 text-destructive" />
+                               <Trash2 className="h-5 w-5 text-destructive" />
                             </Button>
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
+                        <TableCell colSpan={4} className="h-24 text-center text-base">
                           Brak zaplanowanych terminów.
                         </TableCell>
                       </TableRow>
