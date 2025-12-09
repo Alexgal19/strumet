@@ -38,7 +38,9 @@
       "nextjs_docs",
       "nextjs_runtime",
       "upgrade_nextjs_16",
-      "init"
+      "init",
+      "nextjs_index",
+      "nextjs_call"
     ]
   }
 }

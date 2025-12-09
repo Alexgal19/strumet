@@ -450,7 +450,7 @@ export default function AttendancePage() {
                                             innerRadius={60}
                                             outerRadius={80}
                                             paddingAngle={5}
-                                            stroke="hsl(var(--background))"
+                                            stroke="hsl(var(--card))"
                                             strokeWidth={2}
                                         >
                                             {attendanceData.stats.departmentAbsenceData.map((entry, index) => (
