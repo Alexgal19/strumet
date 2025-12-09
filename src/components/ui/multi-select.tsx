@@ -77,7 +77,9 @@ function MultiSelect({
                             className="mr-1"
                         >
                             {option.label}
-                            <button
+                            <div
+                                role="button"
+                                tabIndex={0}
                                 className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
@@ -91,7 +93,7 @@ function MultiSelect({
                                 onClick={() => handleUnselect(option.value)}
                             >
                                 <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                            </button>
+                            </div>
                         </Badge>
                     ))}
                 </div>
