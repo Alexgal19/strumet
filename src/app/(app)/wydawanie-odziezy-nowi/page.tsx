@@ -23,21 +23,22 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Loader2, ChevronsUpDown, CheckIcon, Printer, User, Briefcase, Building2, CreditCard } from 'lucide-react';
+import { Loader2, ChevronsUpDown, CheckIcon, Printer, User, Briefcase, Building2, CreditCard, Package, CalendarIcon } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { Employee } from '@/lib/types';
+import { Employee, ClothingIssuance } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { NewHireInfoPrintForm } from '@/components/new-hire-info-print-form';
+import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { useAppContext } from '@/context/app-context';
+import { formatDate } from '@/lib/date';
 
 
 export default function NewHireClothingIssuancePage() {
-  const { employees, isLoading } = useAppContext();
+  const { employees, isLoading, config } = useAppContext();
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
-  const [printingEmployee, setPrintingEmployee] = useState<Employee | null>(null);
+  const [printingIssuance, setPrintingIssuance] = useState<ClothingIssuance | null>(null);
   const printComponentRef = useRef<HTMLDivElement>(null);
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
@@ -46,28 +47,58 @@ export default function NewHireClothingIssuancePage() {
     return activeEmployees.find(e => e.id === selectedEmployeeId) ?? null;
   }, [selectedEmployeeId, activeEmployees]);
   
-  const handlePrint = async () => {
-    if (!selectedEmployee) return;
+  const clothingSetForEmployee = useMemo(() => {
+    if (!selectedEmployee || !config.jobTitleClothingSets || !config.clothingItems) {
+        return [];
+    }
+    const jobTitleSet = config.jobTitleClothingSets.find(set => set.id === selectedEmployee.jobTitle);
+    if (!jobTitleSet) return [];
     
-    setPrintingEmployee(selectedEmployee);
+    return jobTitleSet.clothingItemIds.map(itemId => {
+        const itemDetails = config.clothingItems.find(ci => ci.id === itemId);
+        return {
+            id: itemId,
+            name: itemDetails?.name || 'Nieznany przedmiot',
+            quantity: 1
+        };
+    }).filter(item => item.name !== 'Nieznany przedmiot');
+
+  }, [selectedEmployee, config]);
+
+  const handlePrint = async () => {
+    if (!selectedEmployee || clothingSetForEmployee.length === 0) return;
+    
+    const issuanceToPrint: ClothingIssuance = {
+        id: `print-temp-${Date.now()}`,
+        employeeId: selectedEmployee.id,
+        employeeFullName: selectedEmployee.fullName,
+        date: new Date().toISOString(),
+        items: clothingSetForEmployee
+    };
+    
+    setPrintingIssuance(issuanceToPrint);
     document.body.classList.add('printing');
     setTimeout(() => {
         window.print();
         document.body.classList.remove('printing');
-        setPrintingEmployee(null);
+        setPrintingIssuance(null);
     }, 100);
   };
 
   if (isLoading) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
+  
+  const selectedEmployeeForPrint = printingIssuance 
+    ? employees.find(e => e.id === printingIssuance.employeeId) 
+    : null;
 
   return (
     <>
       <div className="main-content-container h-full flex-col flex">
         <PageHeader
-          title="Wydruk danych dla nowych"
-          description="Wybierz pracownika, aby wygenerować kartę informacyjną."
+          title="Wydawanie odzieży dla nowych"
+          description="Wybierz pracownika, aby wygenerować potwierdzenie wydania standardowego kompletu odzieży."
         />
 
         <div className="flex justify-center">
@@ -75,7 +106,7 @@ export default function NewHireClothingIssuancePage() {
                  <Card>
                     <CardHeader>
                         <CardTitle>Wybierz pracownika</CardTitle>
-                        <CardDescription>Wybierz nowego pracownika, aby przygotować dla niego kartę informacyjną.</CardDescription>
+                        <CardDescription>Automatycznie przypiszemy komplet odzieży na podstawie stanowiska.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
@@ -125,7 +156,7 @@ export default function NewHireClothingIssuancePage() {
                                     <User className="mr-3 h-5 w-5 text-muted-foreground" />
                                     <span className="font-medium">{selectedEmployee.fullName}</span>
                                 </div>
-                                 <div className="flex items-center text-base">
+                                <div className="flex items-center text-base">
                                     <Building2 className="mr-3 h-5 w-5 text-muted-foreground" />
                                     <span>{selectedEmployee.department}</span>
                                 </div>
@@ -134,15 +165,28 @@ export default function NewHireClothingIssuancePage() {
                                     <span>{selectedEmployee.jobTitle}</span>
                                 </div>
                                 <div className="flex items-center text-base">
-                                    <CreditCard className="mr-3 h-5 w-5 text-muted-foreground" />
-                                    <span>{selectedEmployee.cardNumber}</span>
+                                    <CalendarIcon className="mr-3 h-5 w-5 text-muted-foreground" />
+                                    <span>Data wydania: {formatDate(new Date(), 'dd.MM.yyyy')}</span>
                                 </div>
+                                
+                                {clothingSetForEmployee.length > 0 ? (
+                                    <div className="pt-4">
+                                        <h5 className="font-semibold text-md mb-2 flex items-center"><Package className="mr-2 h-5 w-5 text-muted-foreground"/> Zestaw odzieży:</h5>
+                                        <ul className="list-disc list-inside space-y-1 pl-2 text-base">
+                                            {clothingSetForEmployee.map(item => (
+                                                <li key={item.id}>{item.name} <span className="text-muted-foreground">(x{item.quantity})</span></li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-center text-orange-600 pt-4">Brak przypisanego zestawu odzieży dla tego stanowiska w konfiguracji.</p>
+                                )}
                             </div>
                         )}
 
-                        <Button onClick={handlePrint} disabled={!selectedEmployee} className="w-full">
+                        <Button onClick={handlePrint} disabled={!selectedEmployee || clothingSetForEmployee.length === 0} className="w-full">
                             <Printer className="mr-2 h-4 w-4" />
-                            Drukuj
+                            Drukuj potwierdzenie
                         </Button>
                     </CardContent>
                 </Card>
@@ -150,10 +194,11 @@ export default function NewHireClothingIssuancePage() {
         </div>
       </div>
       <div className="print-only">
-        {printingEmployee && (
-            <NewHireInfoPrintForm 
+        {printingIssuance && selectedEmployeeForPrint && (
+            <ClothingIssuancePrintForm 
                 ref={printComponentRef}
-                employee={printingEmployee}
+                employee={selectedEmployeeForPrint}
+                issuance={printingIssuance}
             />
         )}
       </div>
