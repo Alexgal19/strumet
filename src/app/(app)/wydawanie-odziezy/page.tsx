@@ -143,23 +143,23 @@ export default function ClothingIssuancePage() {
           description="Rejestruj i drukuj potwierdzenia wydania odzieży roboczej."
         />
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle>Nowe wydanie</CardTitle>
-                <CardDescription>Wybierz pracownika i dodaj wydane elementy odzieży.</CardDescription>
+                <CardTitle className="text-2xl">Nowe wydanie</CardTitle>
+                <CardDescription className="text-base">Wybierz pracownika i dodaj wydane elementy odzieży.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Pracownik</label>
+                  <label className="text-base font-medium">Pracownik</label>
                   <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         role="combobox"
                         aria-expanded={isComboboxOpen}
-                        className="w-full justify-between"
+                        className="w-full justify-between h-12 text-base"
                       >
                         {selectedEmployee ? selectedEmployee.fullName : "Wybierz pracownika..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -192,7 +192,7 @@ export default function ClothingIssuancePage() {
                 </div>
 
                 <div className="space-y-2">
-                   <label className="text-sm font-medium">Elementy odzieży</label>
+                   <label className="text-base font-medium">Elementy odzieży</label>
                    <MultiSelect
                         options={clothingOptions}
                         selected={currentItems.map(i => i.id)}
@@ -206,6 +206,7 @@ export default function ClothingIssuancePage() {
                             setCurrentItems(newItems);
                         }}
                         title="Wybierz odzież..."
+                        className="text-base"
                     />
                 </div>
 
@@ -213,17 +214,17 @@ export default function ClothingIssuancePage() {
                     <div className="space-y-3 rounded-md border p-4">
                         {currentItems.map(item => (
                             <div key={item.id} className="flex items-center justify-between">
-                                <span className="text-sm">{item.name}</span>
+                                <span className="text-base">{item.name}</span>
                                 <div className="flex items-center gap-2">
                                     <Input 
                                         type="number" 
                                         min="1"
                                         value={item.quantity}
                                         onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value, 10))}
-                                        className="h-8 w-16 text-center"
+                                        className="h-10 w-20 text-center text-base"
                                     />
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveItem(item.id)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => handleRemoveItem(item.id)}>
+                                        <Trash2 className="h-5 w-5 text-destructive" />
                                     </Button>
                                 </div>
                             </div>
@@ -231,22 +232,22 @@ export default function ClothingIssuancePage() {
                     </div>
                 )}
 
-                <Button onClick={() => handleSaveAndPrint()} disabled={!selectedEmployee || currentItems.length === 0} className="w-full">
-                  <Printer className="mr-2 h-4 w-4" />
+                <Button onClick={() => handleSaveAndPrint()} disabled={!selectedEmployee || currentItems.length === 0} className="w-full h-12 text-base">
+                  <Printer className="mr-2 h-5 w-5" />
                   Zapisz i drukuj
                 </Button>
               </CardContent>
             </Card>
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <Card className="h-full">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <History className="h-6 w-6" />
+                  <History className="h-7 w-7" />
                   <div>
-                    <CardTitle>Historia wydań</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-2xl">Historia wydań</CardTitle>
+                    <CardDescription className="text-base">
                       {selectedEmployee ? `dla ${selectedEmployee.fullName}` : 'Wybierz pracownika, aby zobaczyć historię.'}
                     </CardDescription>
                   </div>
@@ -255,26 +256,26 @@ export default function ClothingIssuancePage() {
               <CardContent>
                 {selectedEmployee ? (
                   employeeIssuanceHistory.length > 0 ? (
-                    <ScrollArea className="max-h-96 rounded-lg border">
+                    <ScrollArea className="max-h-[600px] rounded-lg border">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Data</TableHead>
-                            <TableHead>Elementy</TableHead>
-                            <TableHead className="text-right">Akcje</TableHead>
+                            <TableHead className="text-base">Data</TableHead>
+                            <TableHead className="text-base">Elementy</TableHead>
+                            <TableHead className="text-right text-base">Akcje</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {employeeIssuanceHistory.map(issuance => (
                             <TableRow key={issuance.id}>
-                              <TableCell className="font-medium">{formatDateTime(issuance.date, "dd.MM.yyyy HH:mm")}</TableCell>
-                              <TableCell>{issuance.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
+                              <TableCell className="font-medium text-base">{formatDateTime(issuance.date, "dd.MM.yyyy HH:mm")}</TableCell>
+                              <TableCell className="text-base">{issuance.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
                               <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" onClick={() => handleSaveAndPrint(issuance)}>
-                                  <Printer className="h-4 w-4" />
+                                  <Printer className="h-5 w-5" />
                                 </Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleDeleteIssuance(issuance.id)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                  <Trash2 className="h-5 w-5 text-destructive" />
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -283,10 +284,10 @@ export default function ClothingIssuancePage() {
                       </Table>
                     </ScrollArea>
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-10">Brak historii wydań dla tego pracownika.</p>
+                    <p className="text-base text-muted-foreground text-center py-10">Brak historii wydań dla tego pracownika.</p>
                   )
                 ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-center py-10">
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-center py-10 text-base">
                     Wybierz pracownika, aby zobaczyć historię.
                   </div>
                 )}
