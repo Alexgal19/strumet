@@ -328,6 +328,7 @@ const ReportTab = () => {
                     departmentData={departmentData}
                     nationalityData={nationalityData}
                     jobTitleData={jobTitleData}
+                    employees={activeEmployees}
                 />
             </div>
              {employees.length === 0 ? (
