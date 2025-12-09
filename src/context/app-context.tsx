@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -15,7 +16,8 @@ import type {
     ClothingIssuance, 
     AppNotification,
     ActiveView,
-    ConfigType
+    ConfigType,
+    Order
 } from '@/lib/types';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -30,6 +32,7 @@ interface AppContextType {
     fingerprintAppointments: FingerprintAppointment[];
     clothingIssuances: ClothingIssuance[];
     notifications: AppNotification[];
+    orders: Order[];
     isLoading: boolean;
     activeView: ActiveView;
     setActiveView: (view: ActiveView) => void;
@@ -48,6 +51,8 @@ interface AppContextType {
     deleteFingerprintAppointment: (appointmentId: string) => Promise<void>;
     addClothingIssuance: (issuance: Omit<ClothingIssuance, 'id'>) => Promise<ClothingIssuance | null>;
     deleteClothingIssuance: (issuanceId: string) => Promise<void>;
+    addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Promise<void>;
+    deleteOrder: (orderId: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -63,6 +68,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
     const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -82,6 +88,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setFingerprintAppointments(objectToArray(data.fingerprintAppointments));
             setClothingIssuances(objectToArray(data.clothingIssuances));
             setNotifications(objectToArray(data.notifications));
+            setOrders(objectToArray(data.orders));
             setIsLoading(false);
         }, (error) => {
             console.error("Firebase read failed: ", error);
@@ -285,6 +292,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [toast]);
 
+    const addOrder = useCallback(async (order: Omit<Order, 'id' | 'createdAt'>) => {
+        try {
+            const newOrderRef = push(ref(db, 'orders'));
+            await set(newOrderRef, { ...order, createdAt: new Date().toISOString() });
+            toast({ title: 'Sukces', description: 'Nowe zamówienie zostało dodane.'});
+        } catch(e) {
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zamówienia.'});
+        }
+    }, [toast]);
+
+    const deleteOrder = useCallback(async (orderId: string) => {
+        try {
+            await remove(ref(db, `orders/${orderId}`));
+            toast({ title: 'Sukces', description: 'Zamówienie zostało usunięte.'});
+        } catch(e) {
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zamówienia.'});
+        }
+    }, [toast]);
+
     const value = {
         employees,
         config,
@@ -293,6 +319,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         fingerprintAppointments,
         clothingIssuances,
         notifications,
+        orders,
         isLoading,
         activeView,
         setActiveView,
@@ -311,6 +338,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         deleteFingerprintAppointment,
         addClothingIssuance,
         deleteClothingIssuance,
+        addOrder,
+        deleteOrder
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

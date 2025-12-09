@@ -1,4 +1,5 @@
 
+
 export type ActiveView =
   | 'aktywni'
   | 'zwolnieni'
@@ -93,4 +94,12 @@ export interface ClothingIssuance {
         name: string;
         quantity: number;
     }[];
+}
+
+export interface Order {
+  id: string;
+  department: string;
+  jobTitle: string;
+  quantity: number;
+  createdAt: string; // ISO String
 }
