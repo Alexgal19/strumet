@@ -4,7 +4,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Trash2, Loader2, Edit, Save } from 'lucide-react';
@@ -93,7 +92,7 @@ const JobTitleClothingSetsTab = () => {
 
 
 export default function ConfigurationPage() {
-  const { config, employees, isLoading, addConfigItems, updateConfigItem, removeConfigItem } = useAppContext();
+  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem } = useAppContext();
   const hasMounted = useHasMounted();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -162,37 +161,14 @@ export default function ConfigurationPage() {
     }
   };
 
-  const renderConfigList = (configType: ConfigType, items: ConfigItem[]) => (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="lg:text-2xl">{configLabels[configType as Exclude<ConfigView, 'jobTitleClothingSets'>]}</CardTitle>
-        <CardDescription className="lg:text-base">Zarządzaj listą dostępnych {configLabels[configType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase()}.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow flex flex-col overflow-y-auto">
-        <div className="space-y-3 flex-grow">
-          {items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between rounded-md border p-3 lg:p-4 gap-2">
-              <span className="flex-1 break-words font-medium text-sm lg:text-base">{item.name}</span>
-              <div className="flex items-center gap-1 lg:gap-2 shrink-0">
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8 lg:h-9 lg:w-9" onClick={() => openEditDialog(configType, item)}>
-                      <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 lg:h-9 lg:w-9" onClick={() => handleRemoveItem(configType, item.id)}>
-                      <Trash2 className="h-4 w-4 lg:h-5 lg:w-5" />
-                  </Button>
-              </div>
-            </div>
-          ))}
-          {items.length === 0 && <p className="text-sm text-muted-foreground">Brak zdefiniowanych elementów.</p>}
-        </div>
-        <Button className="mt-4 lg:h-12 lg:text-lg" onClick={() => openAddDialog(configType)}>
-          <PlusCircle className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
-          Dodaj nowe
-        </Button>
-      </CardContent>
-    </Card>
-  );
-  
+  const configLists: { type: ConfigType; items: ConfigItem[] }[] = [
+    { type: 'departments', items: config.departments },
+    { type: 'jobTitles', items: config.jobTitles },
+    { type: 'managers', items: config.managers },
+    { type: 'nationalities', items: config.nationalities },
+    { type: 'clothingItems', items: config.clothingItems },
+  ];
+
   if (isLoading || !hasMounted) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
@@ -202,12 +178,47 @@ export default function ConfigurationPage() {
         description="Zarządzaj opcjami dostępnymi w systemie."
       />
       
-       <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {renderConfigList('departments', config.departments)}
-        {renderConfigList('jobTitles', config.jobTitles)}
-        {renderConfigList('managers', config.managers)}
-        {renderConfigList('nationalities', config.nationalities)}
-        {renderConfigList('clothingItems', config.clothingItems)}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-grow">
+        <Card className="h-full flex flex-col">
+           <CardHeader>
+                <CardTitle className="lg:text-2xl">Listy Konfiguracyjne</CardTitle>
+                <CardDescription className="lg:text-base">Zarządzaj listami działów, stanowisk, etc.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow overflow-y-auto">
+                 <Accordion type="multiple" className="w-full">
+                    {configLists.map(({ type, items }) => (
+                        <AccordionItem value={type} key={type}>
+                            <AccordionTrigger className="lg:text-lg">{configLabels[type as Exclude<ConfigView, 'jobTitleClothingSets'>]}</AccordionTrigger>
+                            <AccordionContent>
+                                <div className="space-y-3 p-2">
+                                  <div className="space-y-2">
+                                    {items.map((item) => (
+                                      <div key={item.id} className="flex items-center justify-between rounded-md border p-3 lg:p-4 gap-2">
+                                        <span className="flex-1 break-words font-medium text-sm lg:text-base">{item.name}</span>
+                                        <div className="flex items-center gap-1 lg:gap-2 shrink-0">
+                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8 lg:h-9 lg:w-9" onClick={() => openEditDialog(type, item)}>
+                                                <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 lg:h-9 lg:w-9" onClick={() => handleRemoveItem(type, item.id)}>
+                                                <Trash2 className="h-4 w-4 lg:h-5 lg:w-5" />
+                                            </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
+                                  </div>
+                                  <Button className="mt-2 w-full lg:h-11" variant="secondary" onClick={() => openAddDialog(type)}>
+                                    <PlusCircle className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                    Dodaj nowe
+                                  </Button>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                 </Accordion>
+            </CardContent>
+        </Card>
+        
         <JobTitleClothingSetsTab />
       </div>
 
@@ -270,4 +281,3 @@ export default function ConfigurationPage() {
     </div>
   );
 }
-
