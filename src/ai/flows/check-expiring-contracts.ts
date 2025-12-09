@@ -3,14 +3,14 @@
 /**
  * @fileOverview A flow to check for expiring contracts and send notifications.
  *
- * - checkExpiringContractsAndNotify - A function that checks for contracts expiring in 1 day and sends notifications.
+ * - checkExpiringContractsAndNotify - A function that checks for contracts expiring in the next 7 days and sends daily notifications.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ref, get, push, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { isSameDay, addDays, startOfDay } from 'date-fns';
+import { startOfDay, differenceInDays } from 'date-fns';
 import type { Employee, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 import { sendEmail } from '@/lib/email-tool';
@@ -47,27 +47,52 @@ const checkExpiringContractsFlow = ai.defineFlow(
     }
     
     const today = startOfDay(new Date());
-    const notificationDate = addDays(today, 1);
 
-    const expiringContractsEmployees = activeEmployees.filter(emp => {
-        if (!emp.contractEndDate) return false;
+    const expiringContractsEmployees = activeEmployees
+      .map(emp => {
+        if (!emp.contractEndDate) return null;
         const contractEndDate = parseMaybeDate(emp.contractEndDate);
-        if (!contractEndDate) return false;
-        return isSameDay(startOfDay(contractEndDate), notificationDate);
-    });
+        if (!contractEndDate) return null;
+        
+        const daysRemaining = differenceInDays(startOfDay(contractEndDate), today);
+        
+        if (daysRemaining >= 0 && daysRemaining <= 7) {
+          return { ...emp, daysRemaining };
+        }
+        return null;
+      })
+      .filter((emp): emp is Employee & { daysRemaining: number } => emp !== null);
 
-    console.log(`Found ${expiringContractsEmployees.length} contracts expiring on ${notificationDate.toDateString()}.`);
+    console.log(`Found ${expiringContractsEmployees.length} contracts expiring within the next 7 days.`);
 
     if (expiringContractsEmployees.length === 0) {
         return { notificationsCreated: 0, emailsSent: 0 };
     }
     
-    // Create one notification and one email for all expiring contracts for that day.
-    const employeeNames = expiringContractsEmployees.map(emp => emp.fullName).join(', ');
+    // Group employees by days remaining
+    const groupedByDays = expiringContractsEmployees.reduce((acc, emp) => {
+        const key = emp.daysRemaining;
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(emp.fullName);
+        return acc;
+    }, {} as Record<number, string[]>);
     
     // 1. Create in-app notification
-    const title = `Uwaga: Umowy wygasają jutro (${expiringContractsEmployees.length})`;
-    const message = `Pamiętaj o kończących się jutro umowach dla następujących pracowników: ${employeeNames}.`;
+    const totalExpiring = expiringContractsEmployees.length;
+    const title = `Uwaga: ${totalExpiring} umow${totalExpiring > 1 ? 'y' : 'a'} wkrótce wygasają!`;
+    const messageParts = Object.entries(groupedByDays)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([days, names]) => {
+        const daysNum = Number(days);
+        let dayText = `za ${daysNum} dni`;
+        if (daysNum === 1) dayText = 'jutro';
+        if (daysNum === 0) dayText = 'dzisiaj';
+        return `Wygasające ${dayText} (${names.length}): ${names.join(', ')}.`;
+      });
+    
+    const message = messageParts.join(' ');
     
     const newNotificationRef = push(ref(db, 'notifications'));
     const newNotification: Omit<AppNotification, 'id'> = {
@@ -77,22 +102,39 @@ const checkExpiringContractsFlow = ai.defineFlow(
         read: false,
     };
     await set(newNotificationRef, newNotification);
-    console.log(`Created in-app notification for ${expiringContractsEmployees.length} employees.`);
+    console.log(`Created in-app notification for ${totalExpiring} employees.`);
     
     // 2. Send email notification
-    const emailSubject = `Przypomnienie: Umowy wygasające jutro (${expiringContractsEmployees.length})`;
+    const emailSubject = `Codzienne przypomnienie: ${totalExpiring} umów wkrótce wygasa`;
+    const emailBodyParts = Object.entries(groupedByDays)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([days, names]) => {
+        const daysNum = Number(days);
+        let dayText = `za ${daysNum} dni`;
+        if (daysNum === 1) dayText = 'jutro';
+        if (daysNum === 0) dayText = 'dzisiaj';
+
+        const employeeDetails = expiringContractsEmployees
+          .filter(emp => emp.daysRemaining === daysNum)
+          .map(emp => `<li><strong>${emp.fullName}</strong> (Dział: ${emp.department})</li>`)
+          .join('');
+
+        return `
+          <h3>Umowy wygasające ${dayText}:</h3>
+          <ul>${employeeDetails}</ul>
+        `;
+      });
+
     const emailBody = `
-        <h1>Przypomnienie o wygasających umowach</h1>
-        <p>Jutro (${notificationDate.toLocaleDateString('pl-PL')}) wygasają umowy następującym pracownikom:</p>
-        <ul>
-            ${expiringContractsEmployees.map(emp => `<li><strong>${emp.fullName}</strong> (Dział: ${emp.department}, Stanowisko: ${emp.jobTitle})</li>`).join('')}
-        </ul>
+        <h1>Codzienne przypomnienie o wygasających umowach</h1>
+        <p>Poniżej znajduje się lista umów, które wkrótce wygasną:</p>
+        ${emailBodyParts.join('')}
         <p>Proszę podjąć odpowiednie działania.</p>
     `;
 
     const emailResult = await sendEmail({ subject: emailSubject, body: emailBody });
     if(emailResult.success) {
-        console.log(`Email sent successfully for ${expiringContractsEmployees.length} employees.`);
+        console.log(`Email sent successfully for ${totalExpiring} employees.`);
     } else {
         console.error(`Failed to send email: ${emailResult.message}`);
     }
