@@ -26,6 +26,8 @@ import {
   Trash2,
   Shirt,
   PackagePlus,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import type { ActiveView, AppNotification } from '@/lib/types';
@@ -38,6 +40,8 @@ import { db } from '@/lib/firebase';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { checkExpiringContractsAndNotify } from '@/ai/flows/check-expiring-contracts';
+import { useToast } from '@/hooks/use-toast';
 
 
 const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
@@ -47,6 +51,8 @@ const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { i
 
 const Notifications = () => {
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
+    const [isChecking, setIsChecking] = useState(false);
+    const { toast } = useToast();
     
     useEffect(() => {
         const notificationsRef = ref(db, 'notifications');
@@ -71,6 +77,26 @@ const Notifications = () => {
             remove(notifsRef);
         }
     }
+
+    const handleManualCheck = async () => {
+        setIsChecking(true);
+        try {
+            const result = await checkExpiringContractsAndNotify();
+            toast({
+                title: 'Sprawdzanie zakończone',
+                description: `Utworzono ${result.notificationsCreated} nowych powiadomień. Wysłano ${result.emailsSent} e-maili.`,
+            });
+        } catch (error) {
+            console.error(error);
+            toast({
+                variant: 'destructive',
+                title: 'Błąd',
+                description: 'Nie udało się uruchomić sprawdzania kontraktów.',
+            });
+        } finally {
+            setIsChecking(false);
+        }
+    };
     
     return (
        <Popover>
@@ -107,17 +133,23 @@ const Notifications = () => {
                         </div>
                     )}
                 </ScrollArea>
-                 {notifications.length > 0 && (
-                    <>
-                        <Separator />
-                        <div className="p-2">
-                            <Button variant="ghost" size="sm" className="w-full" onClick={handleClearAll}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Wyczyść wszystkie
-                            </Button>
-                        </div>
-                    </>
-                )}
+                 <Separator />
+                 <div className="p-2 space-y-1">
+                    <Button variant="ghost" size="sm" className="w-full" onClick={handleManualCheck} disabled={isChecking}>
+                        {isChecking ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                        )}
+                        Sprawdź kontrakty
+                    </Button>
+                    {notifications.length > 0 && (
+                        <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive" onClick={handleClearAll}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Wyczyść wszystkie
+                        </Button>
+                    )}
+                </div>
             </PopoverContent>
         </Popover>
     )
