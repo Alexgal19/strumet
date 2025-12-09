@@ -7,7 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown } from 'lucide-react';
 import { Employee, Order } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { StatisticsExcelExportButton } from '@/components/statistics-excel-export-button';
 
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-1) / 0.7)", "hsl(var(--chart-2) / 0.7)"];
@@ -82,6 +83,7 @@ const ReportTab = () => {
         const totalManagers = managers.size > 0 ? managers.size : 1;
 
         return {
+            totalActiveEmployees: totalActiveEmployees,
             totalDepartments: departments.size,
             averageEmployeesPerManager: (totalActiveEmployees / totalManagers).toFixed(1),
         };
@@ -319,6 +321,15 @@ const ReportTab = () => {
 
     return (
         <div className="space-y-6">
+             <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold">Raport ogólny</h3>
+                <StatisticsExcelExportButton
+                    stats={stats}
+                    departmentData={departmentData}
+                    nationalityData={nationalityData}
+                    jobTitleData={jobTitleData}
+                />
+            </div>
              {employees.length === 0 ? (
                 <div className="text-center text-muted-foreground py-10">
                     Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
