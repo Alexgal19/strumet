@@ -48,6 +48,7 @@ export function formatDateTime(
 
 /**
  * Parses a value into a Date object or null if invalid.
+ * This function now reliably handles 'yyyy-MM-dd' strings.
  * @param input - The value to parse.
  * @returns A Date object or null.
  */
@@ -59,7 +60,9 @@ export function parseMaybeDate(
     return isValid(input) ? input : null;
   }
   
-  const date = typeof input === 'string' ? parseISO(input) : new Date(input);
+  // Using `new Date()` is more robust for `yyyy-MM-dd` and other formats
+  // than the strict `parseISO`.
+  const date = new Date(input);
   
   return isValid(date) ? date : null;
 }
