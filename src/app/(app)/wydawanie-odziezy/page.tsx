@@ -143,7 +143,7 @@ export default function ClothingIssuancePage() {
           description="Rejestruj i drukuj potwierdzenia wydania odzieży roboczej."
         />
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-8">
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
