@@ -82,12 +82,12 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
               <div className="flex justify-between items-end">
                   <div className="text-center w-2/5">
                       <div className="border-t border-dotted border-black pt-1">
-                           <p className="text-xs">(data i podpis pracownika / date and employee signature)</p>
+                           <p className="text-xs">(data i podpis pracownika)</p>
                       </div>
                   </div>
                   <div className="text-center w-2/5">
                       <div className="border-t border-dotted border-black pt-1">
-                           <p className="text-xs">(podpis osoby wydającej / issuer's signature)</p>
+                           <p className="text-xs">(podpis osoby wydającej)</p>
                       </div>
                   </div>
               </div>
