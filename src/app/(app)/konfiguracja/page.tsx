@@ -56,12 +56,12 @@ const JobTitleClothingSetsTab = () => {
     };
 
     return (
-        <Card>
+        <Card className="h-full flex flex-col">
             <CardHeader>
                 <CardTitle>Zestawy odzieży dla stanowisk</CardTitle>
                 <CardDescription>Przypisz domyślne zestawy odzieży do poszczególnych stanowisk.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-y-auto">
                 <Accordion type="multiple" className="w-full">
                     {jobTitles.map((jobTitle) => (
                         <AccordionItem value={jobTitle.id} key={jobTitle.id}>
@@ -162,13 +162,13 @@ export default function ConfigurationPage() {
   };
 
   const renderConfigList = (configType: ConfigType, items: ConfigItem[]) => (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>{configLabels[configType as Exclude<ConfigView, 'jobTitleClothingSets'>]}</CardTitle>
         <CardDescription>Zarządzaj listą dostępnych {configLabels[configType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase()}.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="flex-grow flex flex-col overflow-y-auto">
+        <div className="space-y-3 flex-grow">
           {items.map((item) => (
             <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
               <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
