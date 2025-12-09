@@ -46,10 +46,10 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="rounded-lg border bg-background/80 backdrop-blur-sm p-2 shadow-sm">
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col space-y-1">
-            <span className="text-[0.70rem] uppercase text-muted-foreground">
+            <span className="text-base uppercase text-muted-foreground">
               {data.name}
             </span>
-            <span className="font-bold text-muted-foreground">
+            <span className="font-bold text-lg text-muted-foreground">
               {data.value} ({data.percentage.toFixed(1)}%)
             </span>
           </div>
@@ -220,11 +220,11 @@ const ReportTab = () => {
     const renderPieChart = (data: any[], title: string, description: string, type: 'department' | 'nationality' | 'jobTitle') => (
         <Card className="flex flex-col">
             <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
+                <CardTitle className="text-2xl">{title}</CardTitle>
+                <CardDescription className="text-base">{description}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex items-center justify-center">
-                <ChartContainer config={{}} className="h-[250px] w-full">
+                <ChartContainer config={{}} className="h-[450px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Tooltip content={<CustomTooltip />} />
@@ -234,8 +234,8 @@ const ReportTab = () => {
                                 nameKey="name"
                                 cx="50%"
                                 cy="50%"
-                                outerRadius={80}
-                                innerRadius={60}
+                                outerRadius={160}
+                                innerRadius={120}
                                 paddingAngle={2}
                                 labelLine={false}
                                 onClick={(data) => handleChartClick(data.name, type)}
@@ -249,11 +249,11 @@ const ReportTab = () => {
                                 layout="vertical"
                                 verticalAlign="middle"
                                 align="right"
-                                iconSize={8}
-                                wrapperStyle={{ lineHeight: '1.5em' }}
+                                iconSize={12}
+                                wrapperStyle={{ lineHeight: '2em' }}
                                 onClick={(d) => handleChartClick(d.value, type)}
                                 formatter={(value, entry) => (
-                                    <span className="text-muted-foreground text-xs pl-1 cursor-pointer hover:text-foreground">
+                                    <span className="text-muted-foreground text-base pl-2 cursor-pointer hover:text-foreground">
                                     {value} <span className="font-bold">({entry.payload?.value})</span>
                                     </span>
                                 )}
@@ -322,7 +322,7 @@ const ReportTab = () => {
     return (
         <div className="flex flex-col space-y-6 flex-grow">
              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Raport ogólny</h3>
+                <h3 className="text-2xl font-bold">Raport ogólny</h3>
                 <StatisticsExcelExportButton
                     stats={stats}
                     departmentData={departmentData}
@@ -340,32 +340,32 @@ const ReportTab = () => {
                 <div className="grid gap-4 md:grid-cols-3">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Aktywni pracownicy</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-xl font-medium">Aktywni pracownicy</CardTitle>
+                            <Users className="h-6 w-6 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{totalActiveEmployees}</div>
-                            <p className="text-xs text-muted-foreground">Całkowita liczba pracowników</p>
+                            <div className="text-4xl font-bold">{totalActiveEmployees}</div>
+                            <p className="text-base text-muted-foreground">Całkowita liczba pracowników</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Liczba działów</CardTitle>
-                            <Building className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-xl font-medium">Liczba działów</CardTitle>
+                            <Building className="h-6 w-6 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{stats.totalDepartments}</div>
-                            <p className="text-xs text-muted-foreground">Aktywne działy w firmie</p>
+                            <div className="text-4xl font-bold">{stats.totalDepartments}</div>
+                            <p className="text-base text-muted-foreground">Aktywne działy w firmie</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Pracownicy / Kierownik</CardTitle>
-                            <Briefcase className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-xl font-medium">Pracownicy / Kierownik</CardTitle>
+                            <Briefcase className="h-6 w-6 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{stats.averageEmployeesPerManager}</div>
-                            <p className="text-xs text-muted-foreground">Średnia liczba pracowników na kierownika</p>
+                            <div className="text-4xl font-bold">{stats.averageEmployeesPerManager}</div>
+                            <p className="text-base text-muted-foreground">Średnia liczba pracowników na kierownika</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -580,3 +580,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
