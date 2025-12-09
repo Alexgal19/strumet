@@ -17,8 +17,18 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
         return <div ref={ref} />;
     }
 
-    // Check if we are printing a full set description or a list of items
     const isFullSetDescription = issuance.items.length === 1 && issuance.items[0].id === 'full-set';
+    
+    let itemsToRender: { name: string; quantity: number }[] = [];
+
+    if (isFullSetDescription) {
+        // If it's a full set, split the description by newlines to create individual items.
+        const description = issuance.items[0].name || '';
+        itemsToRender = description.split('\n').map(line => line.trim()).filter(line => line).map(name => ({ name, quantity: 1 }));
+    } else {
+        itemsToRender = issuance.items;
+    }
+
 
     return (
       <div ref={ref} className="text-black bg-white font-serif">
@@ -58,32 +68,20 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
 
                 <section className="mb-6">
                     <p className="font-bold text-sm mb-2">Wydane elementy / Issued Items:</p>
-                    {isFullSetDescription ? (
-                         <div className="border border-black p-4 text-sm min-h-[100px] whitespace-pre-wrap">
-                            {issuance.items[0].name}
-                         </div>
-                    ) : (
-                        <table className="w-full border-collapse border border-black text-sm">
-                            <thead>
-                                <tr className="bg-gray-100">
-                                    <th className="border border-black p-2 w-1/12 text-center">Lp.</th>
-                                    <th className="border border-black p-2 text-left">Nazwa elementu / Item Name</th>
-                                    <th className="border border-black p-2 w-1/6 text-center">Ilość / Quantity</th>
-                                    <th className="border border-black p-2 w-1/4 text-center">Podpis pracownika /<br/>Employee Signature</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {issuance.items.map((item, index) => (
-                                    <tr key={item.id}>
-                                        <td className="border border-black p-2 text-center">{index + 1}.</td>
-                                        <td className="border border-black p-2">{item.name}</td>
-                                        <td className="border border-black p-2 text-center">{item.quantity}</td>
-                                        <td className="border border-black p-2 h-16"></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
+                    <div className="border border-black p-2 text-sm min-h-[140px]">
+                      {itemsToRender.map((item, index) => (
+                          <div key={index} className="flex items-center justify-between border-b border-dotted border-gray-300 py-1.5 last:border-b-0">
+                              <div className="flex items-center">
+                                  <span className="w-8">{index + 1}.</span>
+                                  <span>{item.name}</span>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                  <span className="text-xs">(x{item.quantity})</span>
+                                  <div className="h-5 w-5 border border-black"></div>
+                              </div>
+                          </div>
+                      ))}
+                    </div>
                 </section>
             </div>
             
