@@ -201,36 +201,14 @@ export default function ConfigurationPage() {
         description="Zarządzaj opcjami dostępnymi w systemie."
       />
       
-      <Tabs defaultValue="departments" className="flex h-full w-full flex-col">
-        <div className="flex justify-center">
-            <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="departments">Działy</TabsTrigger>
-            <TabsTrigger value="jobTitles">Stanowiska</TabsTrigger>
-            <TabsTrigger value="managers">Kierownicy</TabsTrigger>
-            <TabsTrigger value="nationalities">Narodowości</TabsTrigger>
-            <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
-            <TabsTrigger value="jobTitleClothingSets">Zestawy odzieży</TabsTrigger>
-            </TabsList>
-        </div>
-        <TabsContent value="departments" className="flex-grow">
-          {renderConfigList('departments', config.departments)}
-        </TabsContent>
-        <TabsContent value="jobTitles" className="flex-grow">
-          {renderConfigList('jobTitles', config.jobTitles)}
-        </TabsContent>
-        <TabsContent value="managers" className="flex-grow">
-          {renderConfigList('managers', config.managers)}
-        </TabsContent>
-        <TabsContent value="nationalities" className="flex-grow">
-          {renderConfigList('nationalities', config.nationalities)}
-        </TabsContent>
-         <TabsContent value="clothingItems" className="flex-grow">
-          {renderConfigList('clothingItems', config.clothingItems)}
-        </TabsContent>
-        <TabsContent value="jobTitleClothingSets" className="flex-grow">
-          <JobTitleClothingSetsTab />
-        </TabsContent>
-      </Tabs>
+       <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {renderConfigList('departments', config.departments)}
+        {renderConfigList('jobTitles', config.jobTitles)}
+        {renderConfigList('managers', config.managers)}
+        {renderConfigList('nationalities', config.nationalities)}
+        {renderConfigList('clothingItems', config.clothingItems)}
+        <JobTitleClothingSetsTab />
+      </div>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
