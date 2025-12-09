@@ -6,7 +6,7 @@ import { Resend } from 'resend';
 import { db } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 
-const NOTIFICATION_EMAIL = 'sanyagal191919@gmail.com';
+const NOTIFICATION_EMAIL = 'o.holiadynets@smartwork.pl';
 
 const SendEmailInputSchema = z.object({
     subject: z.string().describe('The subject of the email.'),
