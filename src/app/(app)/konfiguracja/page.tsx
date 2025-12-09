@@ -32,26 +32,21 @@ const configLabels: Record<ConfigView, string> = {
 
 const JobTitleClothingSetsTab = () => {
     const { config, handleSaveJobTitleClothingSet } = useAppContext();
-    const { jobTitles, jobTitleClothingSets, clothingItems } = config;
+    const { jobTitles, jobTitleClothingSets } = config;
 
-    const [selectedClothing, setSelectedClothing] = useState<Record<string, string[]>>({});
+    const [descriptions, setDescriptions] = useState<Record<string, string>>({});
 
     useEffect(() => {
-        const initialSelection: Record<string, string[]> = {};
+        const initialDescriptions: Record<string, string> = {};
         jobTitles.forEach(jt => {
             const set = jobTitleClothingSets.find(s => s.id === jt.id);
-            initialSelection[jt.id] = set ? set.clothingItemIds : [];
+            initialDescriptions[jt.id] = set ? set.description : '';
         });
-        setSelectedClothing(initialSelection);
+        setDescriptions(initialDescriptions);
     }, [jobTitles, jobTitleClothingSets]);
 
-    const clothingOptions = useMemo<OptionType[]>(() => 
-        clothingItems.map(item => ({ value: item.id, label: item.name })),
-        [clothingItems]
-    );
-
     const handleSave = async (jobTitleId: string) => {
-        await handleSaveJobTitleClothingSet(jobTitleId, selectedClothing[jobTitleId] || []);
+        await handleSaveJobTitleClothingSet(jobTitleId, descriptions[jobTitleId] || '');
     };
 
     return (
@@ -67,14 +62,13 @@ const JobTitleClothingSetsTab = () => {
                             <AccordionTrigger className="lg:text-lg">{jobTitle.name}</AccordionTrigger>
                             <AccordionContent>
                                 <div className="space-y-4 p-2">
-                                    <MultiSelect
-                                        title="Wybierz odzież..."
-                                        options={clothingOptions}
-                                        selected={selectedClothing[jobTitle.id] || []}
-                                        onChange={(selectedIds) => {
-                                            setSelectedClothing(prev => ({ ...prev, [jobTitle.id]: selectedIds }));
+                                     <Textarea
+                                        placeholder="Wpisz pełny komplet odzieży, np. Spodnie, koszula, buty (rozmiar 42)..."
+                                        value={descriptions[jobTitle.id] || ''}
+                                        onChange={(e) => {
+                                            setDescriptions(prev => ({ ...prev, [jobTitle.id]: e.target.value }));
                                         }}
-                                        className="lg:text-base"
+                                        className="min-h-[100px] lg:text-base"
                                     />
                                     <Button onClick={() => handleSave(jobTitle.id)} className="lg:h-11 lg:px-6">
                                         <Save className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />

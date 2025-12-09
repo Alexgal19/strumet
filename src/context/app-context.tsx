@@ -45,7 +45,7 @@ interface AppContextType {
     addConfigItems: (configType: ConfigType, items: string[]) => Promise<void>;
     updateConfigItem: (configType: ConfigType, itemId: string, newName: string) => Promise<void>;
     removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
-    handleSaveJobTitleClothingSet: (jobTitleId: string, clothingItemIds: string[]) => Promise<void>;
+    handleSaveJobTitleClothingSet: (jobTitleId: string, description: string) => Promise<void>;
     addAbsenceRecord: (record: Omit<AbsenceRecord, 'id'>) => Promise<void>;
     deleteAbsenceRecord: (recordId: string) => Promise<void>;
     addCirculationCard: (employeeId: string, employeeFullName: string) => Promise<CirculationCard | null>;
@@ -218,11 +218,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: "Sukces", description: "Element został usunięty."});
     }, [toast]);
     
-    const handleSaveJobTitleClothingSet = useCallback(async (jobTitleId: string, clothingItemIds: string[]) => {
+    const handleSaveJobTitleClothingSet = useCallback(async (jobTitleId: string, description: string) => {
         try {
             await set(ref(db, `config/jobTitleClothingSets/${jobTitleId}`), {
                 id: jobTitleId,
-                clothingItemIds: clothingItemIds
+                description: description
             });
             toast({ title: "Sukces", description: "Zestaw odzieży dla stanowiska został zaktualizowany."});
         } catch(error) {

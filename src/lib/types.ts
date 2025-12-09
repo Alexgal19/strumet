@@ -46,7 +46,7 @@ export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationaliti
 
 export interface JobTitleClothingSet {
     id: string; // Corresponds to jobTitleId
-    clothingItemIds: string[];
+    description: string;
 }
 
 export interface AllConfig {
