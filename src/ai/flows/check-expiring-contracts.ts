@@ -52,10 +52,10 @@ const checkExpiringContractsFlow = ai.defineFlow(
       .map(emp => {
         if (!emp.contractEndDate) return null;
         
-        const contractEndDate = emp.contractEndDate ? startOfDay(new Date(emp.contractEndDate + 'T00:00:00')) : null;
+        const contractEndDate = parseMaybeDate(emp.contractEndDate);
         if (!contractEndDate) return null;
         
-        const daysRemaining = differenceInDays(contractEndDate, today);
+        const daysRemaining = differenceInDays(startOfDay(contractEndDate), today);
         
         if (daysRemaining >= 0 && daysRemaining <= 7) {
           return { ...emp, daysRemaining };

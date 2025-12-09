@@ -59,12 +59,30 @@ export function parseMaybeDate(
   if (input instanceof Date) {
     return isValid(input) ? input : null;
   }
+  if (typeof input === 'number') {
+      const date = new Date(input);
+      return isValid(date) ? date : null;
+  }
+  if (typeof input === 'string') {
+      // Handle 'YYYY-MM-DD' format by forcing local time zone interpretation
+      if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+          const date = new Date(input + 'T00:00:00');
+          return isValid(date) ? date : null;
+      }
+      // Handle 'DD.MM.YYYY' format
+      const parts = input.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (parts) {
+          const [, day, month, year] = parts;
+          // month is 0-indexed in JS Date
+          const date = new Date(Number(year), Number(month) - 1, Number(day));
+          return isValid(date) ? date : null;
+      }
+      // Fallback for other string formats (like full ISO strings)
+      const date = parseISO(input);
+      return isValid(date) ? date : null;
+  }
   
-  // Using `new Date()` is more robust for `yyyy-MM-dd` and other formats
-  // than the strict `parseISO`.
-  const date = new Date(input);
-  
-  return isValid(date) ? date : null;
+  return null;
 }
 
 
