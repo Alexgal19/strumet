@@ -46,10 +46,10 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="rounded-lg border bg-background/80 backdrop-blur-sm p-2 shadow-sm">
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col space-y-1">
-            <span className="text-base uppercase text-muted-foreground">
+            <span className="text-sm uppercase text-muted-foreground">
               {data.name}
             </span>
-            <span className="font-bold text-lg text-muted-foreground">
+            <span className="font-bold text-base text-muted-foreground">
               {data.value} ({data.percentage.toFixed(1)}%)
             </span>
           </div>
@@ -220,11 +220,11 @@ const ReportTab = () => {
     const renderPieChart = (data: any[], title: string, description: string, type: 'department' | 'nationality' | 'jobTitle') => (
         <Card className="flex flex-col">
             <CardHeader>
-                <CardTitle className="text-2xl">{title}</CardTitle>
-                <CardDescription className="text-base">{description}</CardDescription>
+                <CardTitle>{title}</CardTitle>
+                <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex items-center justify-center">
-                <ChartContainer config={{}} className="h-[450px] w-full">
+                <ChartContainer config={{}} className="h-[350px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Tooltip content={<CustomTooltip />} />
@@ -234,8 +234,8 @@ const ReportTab = () => {
                                 nameKey="name"
                                 cx="50%"
                                 cy="50%"
-                                outerRadius={160}
-                                innerRadius={120}
+                                outerRadius={120}
+                                innerRadius={90}
                                 paddingAngle={2}
                                 labelLine={false}
                                 onClick={(data) => handleChartClick(data.name, type)}
@@ -249,11 +249,11 @@ const ReportTab = () => {
                                 layout="vertical"
                                 verticalAlign="middle"
                                 align="right"
-                                iconSize={12}
-                                wrapperStyle={{ lineHeight: '2em' }}
+                                iconSize={10}
+                                wrapperStyle={{ lineHeight: '1.8em' }}
                                 onClick={(d) => handleChartClick(d.value, type)}
                                 formatter={(value, entry) => (
-                                    <span className="text-muted-foreground text-base pl-2 cursor-pointer hover:text-foreground">
+                                    <span className="text-muted-foreground text-sm pl-2 cursor-pointer hover:text-foreground">
                                     {value} <span className="font-bold">({entry.payload?.value})</span>
                                     </span>
                                 )}
@@ -274,17 +274,17 @@ const ReportTab = () => {
             <Accordion type="multiple" className="w-full">
                 {Object.entries(hierarchy).map(([manager, jobTitles]) => (
                     <AccordionItem value={manager} key={manager}>
-                        <AccordionTrigger className="hover:no-underline text-base">
+                        <AccordionTrigger className="hover:no-underline text-sm">
                             <div className="flex justify-between w-full pr-2">
                             <span className="font-semibold">{manager}</span>
-                            <span className="text-muted-foreground">{Object.values(jobTitles).flat().length} os.</span>
+                            <span className="text-muted-foreground text-xs">{Object.values(jobTitles).flat().length} os.</span>
                             </div>
                         </AccordionTrigger>
                         <AccordionContent>
                             <Accordion type="multiple" className="w-full pl-4">
                                 {Object.entries(jobTitles).map(([jobTitle, emps]) => (
                                     <AccordionItem value={jobTitle} key={jobTitle}>
-                                        <AccordionTrigger className="hover:no-underline text-sm">
+                                        <AccordionTrigger className="hover:no-underline text-xs">
                                             <div className="flex justify-between w-full pr-2">
                                                 <span className="font-medium text-muted-foreground">{jobTitle}</span>
                                                 <span className="text-muted-foreground">{emps.length} os.</span>
@@ -293,7 +293,7 @@ const ReportTab = () => {
                                         <AccordionContent>
                                             <div className="pl-4 border-l-2 border-border ml-2">
                                                 {emps.map(employee => (
-                                                    <div key={employee.id} className="flex items-center justify-between text-sm p-1.5 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
+                                                    <div key={employee.id} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
                                                         <span>{employee.fullName}</span>
                                                         <span className="text-xs text-muted-foreground">{employee.cardNumber}</span>
                                                     </div>
@@ -314,7 +314,7 @@ const ReportTab = () => {
         return employeesToShow.map(employee => (
             <div key={employee.id} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
                 <span className="font-medium">{employee.fullName}</span>
-                <span className="text-muted-foreground">{employee.cardNumber}</span>
+                <span className="text-muted-foreground text-xs">{employee.cardNumber}</span>
             </div>
         ));
     };
@@ -322,7 +322,7 @@ const ReportTab = () => {
     return (
         <div className="flex flex-col space-y-6 flex-grow">
              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold">Raport ogólny</h3>
+                <h3 className="text-xl font-bold">Raport ogólny</h3>
                 <StatisticsExcelExportButton
                     stats={stats}
                     departmentData={departmentData}
@@ -340,32 +340,32 @@ const ReportTab = () => {
                 <div className="grid gap-4 md:grid-cols-3">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-xl font-medium">Aktywni pracownicy</CardTitle>
-                            <Users className="h-6 w-6 text-muted-foreground" />
+                            <CardTitle className="text-base font-medium">Aktywni pracownicy</CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-bold">{totalActiveEmployees}</div>
-                            <p className="text-base text-muted-foreground">Całkowita liczba pracowników</p>
+                            <div className="text-2xl font-bold">{totalActiveEmployees}</div>
+                            <p className="text-xs text-muted-foreground">Całkowita liczba pracowników</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-xl font-medium">Liczba działów</CardTitle>
-                            <Building className="h-6 w-6 text-muted-foreground" />
+                            <CardTitle className="text-base font-medium">Liczba działów</CardTitle>
+                            <Building className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-bold">{stats.totalDepartments}</div>
-                            <p className="text-base text-muted-foreground">Aktywne działy w firmie</p>
+                            <div className="text-2xl font-bold">{stats.totalDepartments}</div>
+                            <p className="text-xs text-muted-foreground">Aktywne działy w firmie</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-xl font-medium">Pracownicy / Kierownik</CardTitle>
-                            <Briefcase className="h-6 w-6 text-muted-foreground" />
+                            <CardTitle className="text-base font-medium">Pracownicy / Kierownik</CardTitle>
+                            <Briefcase className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-bold">{stats.averageEmployeesPerManager}</div>
-                            <p className="text-base text-muted-foreground">Średnia liczba pracowników na kierownika</p>
+                            <div className="text-2xl font-bold">{stats.averageEmployeesPerManager}</div>
+                            <p className="text-xs text-muted-foreground">Średnia liczba pracowników na kierownika</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -379,14 +379,14 @@ const ReportTab = () => {
             </>
             )}
              <Dialog open={isStatDialogOpen} onOpenChange={setIsStatDialogOpen}>
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>{dialogContent?.title}</DialogTitle>
                         <DialogDescription>
                                 Znaleziono {dialogContent?.total} pracowników.
                             </DialogDescription>
                     </DialogHeader>
-                    <ScrollArea className="max-h-96 my-4">
+                    <ScrollArea className="max-h-80 my-4">
                         <div className="space-y-1 pr-4">
                             {renderDialogContent()}
                         </div>
@@ -463,40 +463,40 @@ const OrdersTab = () => {
             <div className="lg:col-span-1">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-2xl">Nowe zamówienie</CardTitle>
-                        <CardDescription className="text-base">Dodaj nowe zapotrzebowanie na pracowników.</CardDescription>
+                        <CardTitle className="text-xl">Nowe zamówienie</CardTitle>
+                        <CardDescription className="text-sm">Dodaj nowe zapotrzebowanie na pracowników.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <Label className="text-base">Dział</Label>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-1">
+                            <Label className="text-sm">Dział</Label>
                             <Select value={department} onValueChange={setDepartment}>
-                                <SelectTrigger className="h-12 text-base"><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                                <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
                                 <SelectContent>
-                                    {config.departments.map(d => <SelectItem key={d.id} value={d.name} className="text-base">{d.name}</SelectItem>)}
+                                    {config.departments.map(d => <SelectItem key={d.id} value={d.name} className="text-sm">{d.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
-                         <div className="space-y-2">
-                            <Label className="text-base">Stanowisko</Label>
+                         <div className="space-y-1">
+                            <Label className="text-sm">Stanowisko</Label>
                             <Select value={jobTitle} onValueChange={setJobTitle}>
-                                <SelectTrigger className="h-12 text-base"><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                                <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
                                 <SelectContent>
-                                    {config.jobTitles.map(j => <SelectItem key={j.id} value={j.name} className="text-base">{j.name}</SelectItem>)}
+                                    {config.jobTitles.map(j => <SelectItem key={j.id} value={j.name} className="text-sm">{j.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
-                         <div className="space-y-2">
-                            <Label className="text-base">Ilość</Label>
+                         <div className="space-y-1">
+                            <Label className="text-sm">Ilość</Label>
                             <Input 
                                 type="number"
                                 value={quantity}
                                 onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
                                 min="1"
-                                className="h-12 text-base"
+                                className="h-10 text-sm"
                             />
                         </div>
-                        <Button onClick={handleAddOrder} className="w-full h-12 text-base">
-                            <PlusCircle className="mr-2 h-5 w-5" />
+                        <Button onClick={handleAddOrder} className="w-full h-10 text-sm">
+                            <PlusCircle className="mr-2 h-4 w-4" />
                             Dodaj zamówienie
                         </Button>
                     </CardContent>
@@ -505,18 +505,18 @@ const OrdersTab = () => {
             <div className="lg:col-span-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-2xl">Aktywne zamówienia</CardTitle>
-                        <CardDescription className="text-base">Lista aktualnych zapotrzebowań na personel.</CardDescription>
+                        <CardTitle className="text-xl">Aktywne zamówienia</CardTitle>
+                        <CardDescription className="text-sm">Lista aktualnych zapotrzebowań na personel.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {Object.keys(groupedOrders).length > 0 ? (
                            <Accordion type="multiple" className="w-full">
                                {Object.entries(groupedOrders).map(([dept, orderList]) => (
                                    <AccordionItem value={dept} key={dept}>
-                                       <AccordionTrigger className="text-lg">
+                                       <AccordionTrigger className="text-base">
                                             <div className='flex justify-between w-full pr-4'>
                                                 <span className='font-bold'>{dept}</span>
-                                                <span className='text-muted-foreground'>
+                                                <span className='text-muted-foreground text-sm'>
                                                     {orderList.reduce((sum, o) => sum + o.quantity, 0)} os.
                                                 </span>
                                             </div>
@@ -524,13 +524,13 @@ const OrdersTab = () => {
                                        <AccordionContent>
                                             <div className="space-y-2 pl-4">
                                                 {orderList.map(order => (
-                                                    <div key={order.id} className="flex items-center justify-between p-3 rounded-md border text-base">
+                                                    <div key={order.id} className="flex items-center justify-between p-2 rounded-md border text-sm">
                                                         <div>
                                                             <p className="font-medium">{order.jobTitle}</p>
-                                                            <p className="text-sm text-muted-foreground">Ilość: {order.quantity}</p>
+                                                            <p className="text-xs text-muted-foreground">Ilość: {order.quantity}</p>
                                                         </div>
                                                         <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
-                                                            <Trash2 className="h-5 w-5 text-destructive" />
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
                                                         </Button>
                                                     </div>
                                                 ))}
@@ -540,7 +540,7 @@ const OrdersTab = () => {
                                ))}
                            </Accordion>
                         ) : (
-                            <p className="text-center text-muted-foreground py-10 text-base">Brak aktywnych zamówień.</p>
+                            <p className="text-center text-muted-foreground py-10 text-sm">Brak aktywnych zamówień.</p>
                         )}
                     </CardContent>
                 </Card>
