@@ -6,6 +6,7 @@ export type ActiveView =
   | 'planowanie'
   | 'statystyki'
   | 'wydawanie-odziezy'
+  | 'wydawanie-odziezy-nowi'
   | 'karty-obiegowe'
   | 'odciski-palcow'
   | 'brak-logowania'
@@ -43,12 +44,18 @@ export type ClothingItem = ConfigItem;
 
 export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
+export interface JobTitleClothingSet {
+    id: string; // Corresponds to jobTitle id
+    clothingItemIds: string[];
+}
+
 export interface AllConfig {
   departments: Department[];
   jobTitles: JobTitle[];
   managers: Manager[];
   nationalities: Nationality[];
   clothingItems: ClothingItem[];
+  jobTitleClothingSets: JobTitleClothingSet[];
 }
 
 export interface CirculationCard {

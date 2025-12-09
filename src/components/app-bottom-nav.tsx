@@ -12,6 +12,7 @@ import {
   Shirt,
   BarChart3,
   LogOut,
+  PackagePlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
@@ -36,9 +37,9 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const menuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
     { view: 'zwolnieni', icon: UserX, label: 'Zwolnieni' },
+    { view: 'wydawanie-odziezy-nowi', icon: PackagePlus, label: 'Nowi' },
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
-    { href: '/login', icon: LogOut, label: 'Wyloguj' },
   ];
   
   if (!hasMounted || !isMobile) {

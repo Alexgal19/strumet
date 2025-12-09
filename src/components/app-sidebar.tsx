@@ -25,6 +25,7 @@ import {
   Bell,
   Trash2,
   Shirt,
+  PackagePlus,
 } from 'lucide-react';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import type { ActiveView, AppNotification } from '@/lib/types';
@@ -137,6 +138,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
     { view: 'planowanie', icon: <CalendarClock />, label: 'Planowanie' },
     { view: 'statystyki', icon: <BarChart3 />, label: 'Statystyki' },
     { view: 'wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
+    { view: 'wydawanie-odziezy-nowi', icon: <PackagePlus />, label: 'Wydawanie dla nowych'},
     { view: 'karty-obiegowe', icon: <FileText />, label: 'Karty obiegowe' },
     { view: 'odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
     { view: 'brak-logowania', icon: <FileText />, label: 'Brak logowania' },

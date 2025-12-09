@@ -21,6 +21,7 @@ const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   'brak-logowania': dynamic(() => import('@/app/(app)/brak-logowania/page'), { loading: () => <LoadingComponent /> }),
   konfiguracja: dynamic(() => import('@/app/(app)/konfiguracja/page'), { loading: () => <LoadingComponent /> }),
   'wydawanie-odziezy': dynamic(() => import('@/app/(app)/wydawanie-odziezy/page'), { loading: () => <LoadingComponent /> }),
+  'wydawanie-odziezy-nowi': dynamic(() => import('@/app/(app)/wydawanie-odziezy-nowi/page'), { loading: () => <LoadingComponent /> }),
 };
 
 const LoadingComponent = () => (

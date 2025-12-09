@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Trash2, Loader2, Edit } from 'lucide-react';
-import type { ConfigItem, ConfigType, Employee } from '@/lib/types';
+import { PlusCircle, Trash2, Loader2, Edit, Save } from 'lucide-react';
+import type { ConfigItem, ConfigType, Employee, JobTitle, JobTitleClothingSet } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,9 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useHasMounted } from '@/hooks/use-mobile';
 import { useAppContext } from '@/context/app-context';
+import { MultiSelect, OptionType } from '@/components/ui/multi-select';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 type ConfigView = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
@@ -26,13 +29,71 @@ const configLabels: Record<ConfigView, string> = {
   clothingItems: 'Odzież',
 };
 
-const configTypeToEmployeeField: Record<ConfigType, keyof Employee> = {
-  departments: 'department',
-  jobTitles: 'jobTitle',
-  managers: 'manager',
-  nationalities: 'nationality',
-  clothingItems: 'fullName', // Not directly linked to an employee field
-};
+const ClothingSetsTab = () => {
+  const { config, handleSaveJobTitleClothingSet } = useAppContext();
+  const [selectedClothing, setSelectedClothing] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    const initialSelection: Record<string, string[]> = {};
+    config.jobTitleClothingSets.forEach(set => {
+      initialSelection[set.id] = set.clothingItemIds;
+    });
+    config.jobTitles.forEach(jt => {
+      if (!initialSelection[jt.id]) {
+        initialSelection[jt.id] = [];
+      }
+    });
+    setSelectedClothing(initialSelection);
+  }, [config.jobTitleClothingSets, config.jobTitles]);
+
+  const clothingOptions = useMemo<OptionType[]>(() => 
+    config.clothingItems.map(item => ({ value: item.id, label: item.name })),
+    [config.clothingItems]
+  );
+  
+  const handleSave = async (jobTitleId: string) => {
+    await handleSaveJobTitleClothingSet(jobTitleId, selectedClothing[jobTitleId] || []);
+  };
+  
+  return (
+     <div className="max-w-2xl">
+      <Card>
+        <CardHeader>
+          <CardTitle>Domyślne zestawy odzieży</CardTitle>
+          <CardDescription>Przypisz domyślne elementy odzieży do każdego stanowiska.</CardDescription>
+        </CardHeader>
+        <CardContent>
+           <Accordion type="multiple" className="w-full">
+            {config.jobTitles.map((jobTitle) => (
+              <AccordionItem value={jobTitle.id} key={jobTitle.id}>
+                <AccordionTrigger>{jobTitle.name}</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4 p-2">
+                    <MultiSelect
+                      title="Wybierz odzież..."
+                      options={clothingOptions}
+                      selected={selectedClothing[jobTitle.id] || []}
+                      onChange={(selectedIds) => {
+                        setSelectedClothing(prev => ({
+                          ...prev,
+                          [jobTitle.id]: selectedIds
+                        }));
+                      }}
+                    />
+                    <Button onClick={() => handleSave(jobTitle.id)} size="sm">
+                      <Save className="mr-2 h-4 w-4" />
+                      Zapisz zestaw
+                    </Button>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 export default function ConfigurationPage() {
   const { config, employees, isLoading, addConfigItems, updateConfigItem, removeConfigItem } = useAppContext();
@@ -154,6 +215,7 @@ export default function ConfigurationPage() {
             <TabsTrigger value="managers">Kierownicy</TabsTrigger>
             <TabsTrigger value="nationalities">Narodowości</TabsTrigger>
             <TabsTrigger value="clothingItems">Odzież</TabsTrigger>
+            <TabsTrigger value="clothingSets">Zestawy odzieży</TabsTrigger>
             </TabsList>
         </div>
         <TabsContent value="departments" className="flex-grow">
@@ -170,6 +232,9 @@ export default function ConfigurationPage() {
         </TabsContent>
          <TabsContent value="clothingItems" className="flex-grow">
           {renderConfigList('clothingItems', config.clothingItems)}
+        </TabsContent>
+        <TabsContent value="clothingSets" className="flex-grow">
+          <ClothingSetsTab />
         </TabsContent>
       </Tabs>
 
