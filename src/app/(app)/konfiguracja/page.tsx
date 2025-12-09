@@ -56,39 +56,37 @@ const JobTitleClothingSetsTab = () => {
     };
 
     return (
-        <div className="max-w-2xl">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Zestawy odzieży dla stanowisk</CardTitle>
-                    <CardDescription>Przypisz domyślne zestawy odzieży do poszczególnych stanowisk.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Accordion type="multiple" className="w-full">
-                        {jobTitles.map((jobTitle) => (
-                            <AccordionItem value={jobTitle.id} key={jobTitle.id}>
-                                <AccordionTrigger>{jobTitle.name}</AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="space-y-4 p-2">
-                                        <MultiSelect
-                                            title="Wybierz odzież..."
-                                            options={clothingOptions}
-                                            selected={selectedClothing[jobTitle.id] || []}
-                                            onChange={(selectedIds) => {
-                                                setSelectedClothing(prev => ({ ...prev, [jobTitle.id]: selectedIds }));
-                                            }}
-                                        />
-                                        <Button onClick={() => handleSave(jobTitle.id)} size="sm">
-                                            <Save className="mr-2 h-4 w-4" />
-                                            Zapisz zestaw
-                                        </Button>
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        ))}
-                    </Accordion>
-                </CardContent>
-            </Card>
-        </div>
+        <Card>
+            <CardHeader>
+                <CardTitle>Zestawy odzieży dla stanowisk</CardTitle>
+                <CardDescription>Przypisz domyślne zestawy odzieży do poszczególnych stanowisk.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Accordion type="multiple" className="w-full">
+                    {jobTitles.map((jobTitle) => (
+                        <AccordionItem value={jobTitle.id} key={jobTitle.id}>
+                            <AccordionTrigger>{jobTitle.name}</AccordionTrigger>
+                            <AccordionContent>
+                                <div className="space-y-4 p-2">
+                                    <MultiSelect
+                                        title="Wybierz odzież..."
+                                        options={clothingOptions}
+                                        selected={selectedClothing[jobTitle.id] || []}
+                                        onChange={(selectedIds) => {
+                                            setSelectedClothing(prev => ({ ...prev, [jobTitle.id]: selectedIds }));
+                                        }}
+                                    />
+                                    <Button onClick={() => handleSave(jobTitle.id)} size="sm">
+                                        <Save className="mr-2 h-4 w-4" />
+                                        Zapisz zestaw
+                                    </Button>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -164,36 +162,34 @@ export default function ConfigurationPage() {
   };
 
   const renderConfigList = (configType: ConfigType, items: ConfigItem[]) => (
-    <div className="max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>{configLabels[configType as Exclude<ConfigView, 'jobTitleClothingSets'>]}</CardTitle>
-          <CardDescription>Zarządzaj listą dostępnych {configLabels[configType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase()}.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
-                <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
-                <div className="flex items-center gap-2 shrink-0">
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(configType, item)}>
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleRemoveItem(configType, item.id)}>
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{configLabels[configType as Exclude<ConfigView, 'jobTitleClothingSets'>]}</CardTitle>
+        <CardDescription>Zarządzaj listą dostępnych {configLabels[configType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase()}.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
+              <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(configType, item)}>
+                      <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleRemoveItem(configType, item.id)}>
+                      <Trash2 className="h-4 w-4" />
+                  </Button>
               </div>
-            ))}
-            {items.length === 0 && <p className="text-sm text-muted-foreground">Brak zdefiniowanych elementów.</p>}
-          </div>
-          <Button className="mt-4" onClick={() => openAddDialog(configType)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Dodaj nowe
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+          ))}
+          {items.length === 0 && <p className="text-sm text-muted-foreground">Brak zdefiniowanych elementów.</p>}
+        </div>
+        <Button className="mt-4" onClick={() => openAddDialog(configType)}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Dodaj nowe
+        </Button>
+      </CardContent>
+    </Card>
   );
   
   if (isLoading || !hasMounted) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;

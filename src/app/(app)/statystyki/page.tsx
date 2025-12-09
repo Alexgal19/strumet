@@ -560,20 +560,20 @@ export default function StatisticsPage() {
   }
 
   return (
-    <div>
+    <div className="h-full flex flex-col">
       <PageHeader
         title="Statystyki"
         description="Kluczowe wskaźniki i planowanie dotyczące struktury personelu."
       />
-      <Tabs defaultValue="report">
+      <Tabs defaultValue="report" className="flex-grow flex flex-col">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="report">Raport</TabsTrigger>
           <TabsTrigger value="orders">Zamówienia</TabsTrigger>
         </TabsList>
-        <TabsContent value="report">
+        <TabsContent value="report" className="flex-grow">
             <ReportTab />
         </TabsContent>
-        <TabsContent value="orders">
+        <TabsContent value="orders" className="flex-grow">
             <OrdersTab />
         </TabsContent>
       </Tabs>

@@ -32,7 +32,7 @@ const LoadingComponent = () => (
 
 const ViewTransitionWrapper = ({ children, viewKey }: { children: React.ReactNode, viewKey: string }) => {
   return (
-    <div key={viewKey} className="animate-fade-in">
+    <div key={viewKey} className="animate-fade-in h-full">
         {children}
     </div>
   );
