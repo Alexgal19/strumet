@@ -6,3 +6,9 @@ runConfig:
   # more instances in response to increased traffic.
   cpu: 1
   memoryMiB: 512
+
+scheduledJobs:
+- schedule: "0 8 * * *"
+  timeZone: "Europe/Warsaw"
+  httpTarget:
+    uri: "/api/cron/check-contracts"
