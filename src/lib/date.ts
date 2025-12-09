@@ -1,5 +1,4 @@
 
-'use client';
 
 import { format as formatFns, parseISO, isValid } from 'date-fns';
 import { pl } from 'date-fns/locale';
