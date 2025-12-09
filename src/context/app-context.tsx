@@ -18,7 +18,7 @@ import type {
     ActiveView,
     ConfigType,
     Order,
-    JobTitleClothingSet
+    ClothingSet
 } from '@/lib/types';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -45,7 +45,7 @@ interface AppContextType {
     addConfigItems: (configType: ConfigType, items: string[]) => Promise<void>;
     updateConfigItem: (configType: ConfigType, itemId: string, newName: string) => Promise<void>;
     removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
-    handleSaveJobTitleClothingSet: (jobTitleId: string, clothingItemIds: string[]) => Promise<void>;
+    updateClothingSet: (setId: string, clothingItemIds: string[]) => Promise<void>;
     addAbsenceRecord: (record: Omit<AbsenceRecord, 'id'>) => Promise<void>;
     deleteAbsenceRecord: (recordId: string) => Promise<void>;
     addCirculationCard: (employeeId: string, employeeFullName: string) => Promise<CirculationCard | null>;
@@ -64,7 +64,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [activeView, setActiveView] = useState<ActiveView>('aktywni');
     
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [] });
+    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], clothingSets: [] });
     const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
     const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
     const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
@@ -84,7 +84,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 managers: objectToArray(data.config?.managers),
                 nationalities: objectToArray(data.config?.nationalities),
                 clothingItems: objectToArray(data.config?.clothingItems),
-                jobTitleClothingSets: objectToArray(data.config?.jobTitleClothingSets)
+                clothingSets: objectToArray(data.config?.clothingSets)
             });
             setAbsenceRecords(objectToArray(data.absenceRecords));
             setCirculationCards(objectToArray(data.circulationCards));
@@ -177,10 +177,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // --- Config Actions ---
     const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
         const configRef = ref(db, `config/${configType}`);
+        const updates: Record<string, any> = {};
         items.forEach(itemName => {
             const newItemRef = push(configRef);
-            set(newItemRef, { name: itemName });
+            updates[newItemRef.key!] = { name: itemName };
         });
+         await update(configRef, updates);
     }, []);
 
     const updateConfigItem = useCallback(async (configType: ConfigType, itemId: string, newName: string) => {
@@ -210,23 +212,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zaktualizować elementu."});
         }
     }, [config, employees, toast]);
+    
+    const updateClothingSet = useCallback(async (setId: string, clothingItemIds: string[]) => {
+        try {
+            await update(ref(db, `config/clothingSets/${setId}`), {
+                clothingItemIds: clothingItemIds
+            });
+            toast({ title: "Sukces", description: "Zestaw odzieży został zaktualizowany."});
+        } catch (error) {
+            console.error("Error updating clothing set:", error);
+            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zaktualizować zestawu."});
+        }
+    }, [toast]);
 
     const removeConfigItem = useCallback(async (configType: ConfigType, itemId: string) => {
         await remove(ref(db, `config/${configType}/${itemId}`));
         toast({ title: "Sukces", description: "Element został usunięty."});
-    }, [toast]);
-    
-    const handleSaveJobTitleClothingSet = useCallback(async (jobTitleId: string, clothingItemIds: string[]) => {
-        try {
-            await set(ref(db, `config/jobTitleClothingSets/${jobTitleId}`), {
-                id: jobTitleId,
-                clothingItemIds
-            });
-            toast({ title: "Sukces", description: "Zestaw odzieży dla stanowiska został zapisany." });
-        } catch (error) {
-            console.error("Error saving clothing set:", error);
-            toast({ variant: "destructive", title: "Błąd", description: "Nie udało się zapisać zestawu odzieży." });
-        }
     }, [toast]);
 
     // --- Other Actions ---
@@ -347,7 +348,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addConfigItems,
         updateConfigItem,
         removeConfigItem,
-        handleSaveJobTitleClothingSet,
+        updateClothingSet,
         addAbsenceRecord,
         deleteAbsenceRecord,
         addCirculationCard,

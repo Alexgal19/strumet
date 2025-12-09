@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Trash2, Loader2, Edit, Save } from 'lucide-react';
-import type { ConfigItem, ConfigType, Employee, JobTitle, JobTitleClothingSet } from '@/lib/types';
+import type { ConfigItem, ConfigType, ClothingSet } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -19,7 +19,7 @@ import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
-type ConfigView = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
+type ConfigView = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems' | 'clothingSets';
 
 const configLabels: Record<ConfigView, string> = {
   departments: 'Działy',
@@ -27,60 +27,108 @@ const configLabels: Record<ConfigView, string> = {
   managers: 'Kierownicy',
   nationalities: 'Narodowości',
   clothingItems: 'Odzież',
+  clothingSets: 'Zestawy odzieży'
 };
 
 const ClothingSetsTab = () => {
-  const { config, handleSaveJobTitleClothingSet } = useAppContext();
+  const { config, addConfigItems, updateConfigItem, removeConfigItem, updateClothingSet } = useAppContext();
+  const clothingSets = config.clothingSets;
+  const { toast } = useToast();
+  
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingSet, setEditingSet] = useState<ClothingSet | null>(null);
+
+  const [newItemName, setNewItemName] = useState('');
+  const [editedName, setEditedName] = useState('');
+
   const [selectedClothing, setSelectedClothing] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     const initialSelection: Record<string, string[]> = {};
-    config.jobTitleClothingSets.forEach(set => {
-      initialSelection[set.id] = set.clothingItemIds;
-    });
-    config.jobTitles.forEach(jt => {
-      if (!initialSelection[jt.id]) {
-        initialSelection[jt.id] = [];
-      }
+    clothingSets.forEach(set => {
+      initialSelection[set.id] = set.clothingItemIds || [];
     });
     setSelectedClothing(initialSelection);
-  }, [config.jobTitleClothingSets, config.jobTitles]);
+  }, [clothingSets]);
 
   const clothingOptions = useMemo<OptionType[]>(() => 
     config.clothingItems.map(item => ({ value: item.id, label: item.name })),
     [config.clothingItems]
   );
   
-  const handleSave = async (jobTitleId: string) => {
-    await handleSaveJobTitleClothingSet(jobTitleId, selectedClothing[jobTitleId] || []);
+  const handleOpenAddDialog = () => {
+    setNewItemName('');
+    setIsAddDialogOpen(true);
   };
+  
+  const handleOpenEditDialog = (set: ClothingSet) => {
+    setEditingSet(set);
+    setEditedName(set.name);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleAddSet = async () => {
+    if (!newItemName.trim()) {
+        toast({ variant: 'destructive', title: 'Błąd', description: 'Nazwa zestawu nie może być pusta.' });
+        return;
+    }
+    await addConfigItems('clothingSets', [newItemName.trim()]);
+    toast({ title: 'Sukces', description: 'Nowy zestaw odzieży został dodany.'});
+    setIsAddDialogOpen(false);
+  };
+
+  const handleUpdateSetName = async () => {
+    if (!editingSet || !editedName.trim()) return;
+    await updateConfigItem('clothingSets', editingSet.id, editedName.trim());
+    setIsEditDialogOpen(false);
+  };
+  
+  const handleUpdateSetItems = async (setId: string) => {
+    await updateClothingSet(setId, selectedClothing[setId] || []);
+  };
+  
+  const handleRemoveSet = (setId: string) => {
+      if (window.confirm('Czy na pewno chcesz usunąć ten zestaw odzieży?')) {
+        removeConfigItem('clothingSets', setId);
+      }
+  }
   
   return (
      <div className="max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle>Domyślne zestawy odzieży</CardTitle>
-          <CardDescription>Przypisz domyślne elementy odzieży do każdego stanowiska.</CardDescription>
+          <CardTitle>Zestawy odzieży</CardTitle>
+          <CardDescription>Twórz i zarządzaj szablonami odzieży dla nowych pracowników.</CardDescription>
         </CardHeader>
         <CardContent>
            <Accordion type="multiple" className="w-full">
-            {config.jobTitles.map((jobTitle) => (
-              <AccordionItem value={jobTitle.id} key={jobTitle.id}>
-                <AccordionTrigger>{jobTitle.name}</AccordionTrigger>
+            {clothingSets.map((set) => (
+              <AccordionItem value={set.id} key={set.id}>
+                <AccordionTrigger>
+                  <div className="flex justify-between items-center w-full pr-2">
+                    <span className="font-medium text-base">{set.name}</span>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={(e) => {e.stopPropagation(); handleOpenEditDialog(set);}}>
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={(e) => {e.stopPropagation(); handleRemoveSet(set.id)}}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                  </div>
+                </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-4 p-2">
                     <MultiSelect
                       title="Wybierz odzież..."
                       options={clothingOptions}
-                      selected={selectedClothing[jobTitle.id] || []}
+                      selected={selectedClothing[set.id] || []}
                       onChange={(selectedIds) => {
-                        setSelectedClothing(prev => ({
-                          ...prev,
-                          [jobTitle.id]: selectedIds
-                        }));
+                        setSelectedClothing(prev => ({ ...prev, [set.id]: selectedIds }));
                       }}
                     />
-                    <Button onClick={() => handleSave(jobTitle.id)} size="sm">
+                    <Button onClick={() => handleUpdateSetItems(set.id)} size="sm">
                       <Save className="mr-2 h-4 w-4" />
                       Zapisz zestaw
                     </Button>
@@ -89,8 +137,44 @@ const ClothingSetsTab = () => {
               </AccordionItem>
             ))}
           </Accordion>
+           <Button className="mt-4" onClick={handleOpenAddDialog}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Dodaj nowy zestaw
+          </Button>
         </CardContent>
       </Card>
+      
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dodaj nowy zestaw odzieży</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="new-set-name">Nazwa zestawu</Label>
+            <Input id="new-set-name" value={newItemName} onChange={e => setNewItemName(e.target.value)} placeholder="Np. Zestaw dla spawacza" />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button type="button" variant="secondary">Anuluj</Button></DialogClose>
+            <Button onClick={handleAddSet}>Dodaj</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edytuj nazwę zestawu</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+             <Label htmlFor="edit-set-name">Nowa nazwa</Label>
+             <Input id="edit-set-name" value={editedName} onChange={e => setEditedName(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button type="button" variant="secondary">Anuluj</Button></DialogClose>
+            <Button onClick={handleUpdateSetName}>Zapisz</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
