@@ -23,7 +23,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Loader2, ChevronsUpDown, CheckIcon, Printer, User, Briefcase, Building2, CreditCard, Package, CalendarIcon } from 'lucide-react';
+import { Loader2, ChevronsUpDown, CheckIcon, Printer, User, Briefcase, Building2, CalendarIcon, Package } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Employee, ClothingIssuance } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -48,25 +48,30 @@ export default function NewHireClothingIssuancePage() {
   }, [selectedEmployeeId, activeEmployees]);
   
   const clothingSetForEmployee = useMemo(() => {
-    if (!selectedEmployee || !config.jobTitleClothingSets || !config.clothingItems) {
-        return [];
+    if (!selectedEmployee || !config.jobTitleClothingSets || !selectedEmployee.jobTitle) {
+      return null;
     }
-    const jobTitleSet = config.jobTitleClothingSets.find(set => set.id === selectedEmployee.jobTitle);
-    if (!jobTitleSet) return [];
-    
-    return jobTitleSet.clothingItemIds.map(itemId => {
-        const itemDetails = config.clothingItems.find(ci => ci.id === itemId);
-        return {
-            id: itemId,
-            name: itemDetails?.name || 'Nieznany przedmiot',
-            quantity: 1
-        };
-    }).filter(item => item.name !== 'Nieznany przedmiot');
+    // The employee's jobTitle stores the NAME of the job. We need to find the ID.
+    const jobTitleObject = config.jobTitles.find(jt => jt.name === selectedEmployee.jobTitle);
+    if (!jobTitleObject) return null;
 
-  }, [selectedEmployee, config]);
+    const jobTitleSet = config.jobTitleClothingSets.find(set => set.id === jobTitleObject.id);
+    
+    if (!jobTitleSet || !jobTitleSet.description) {
+      return null;
+    }
+
+    // Return the description as a single item in the clothing set array
+    return [{
+      id: 'full-set',
+      name: jobTitleSet.description,
+      quantity: 1
+    }];
+  }, [selectedEmployee, config.jobTitleClothingSets, config.jobTitles]);
+
 
   const handlePrint = async () => {
-    if (!selectedEmployee || clothingSetForEmployee.length === 0) return;
+    if (!selectedEmployee || !clothingSetForEmployee || clothingSetForEmployee.length === 0) return;
     
     const issuanceToPrint: ClothingIssuance = {
         id: `print-temp-${Date.now()}`,
@@ -169,14 +174,12 @@ export default function NewHireClothingIssuancePage() {
                                     <span>Data wydania: {formatDate(new Date(), 'dd.MM.yyyy')}</span>
                                 </div>
                                 
-                                {clothingSetForEmployee.length > 0 ? (
+                                {clothingSetForEmployee && clothingSetForEmployee.length > 0 ? (
                                     <div className="pt-4">
                                         <h5 className="font-semibold text-md mb-2 flex items-center"><Package className="mr-2 h-5 w-5 text-muted-foreground"/> Zestaw odzieży:</h5>
-                                        <ul className="list-disc list-inside space-y-1 pl-2 text-base">
-                                            {clothingSetForEmployee.map(item => (
-                                                <li key={item.id}>{item.name} <span className="text-muted-foreground">(x{item.quantity})</span></li>
-                                            ))}
-                                        </ul>
+                                        <div className="whitespace-pre-wrap rounded-md border border-dashed p-3 bg-background text-sm">
+                                            {clothingSetForEmployee[0].name}
+                                        </div>
                                     </div>
                                 ) : (
                                     <p className="text-sm text-center text-orange-600 pt-4">Brak przypisanego zestawu odzieży dla tego stanowiska w konfiguracji.</p>
@@ -184,7 +187,7 @@ export default function NewHireClothingIssuancePage() {
                             </div>
                         )}
 
-                        <Button onClick={handlePrint} disabled={!selectedEmployee || clothingSetForEmployee.length === 0} className="w-full">
+                        <Button onClick={handlePrint} disabled={!selectedEmployee || !clothingSetForEmployee || clothingSetForEmployee.length === 0} className="w-full">
                             <Printer className="mr-2 h-4 w-4" />
                             Drukuj potwierdzenie
                         </Button>

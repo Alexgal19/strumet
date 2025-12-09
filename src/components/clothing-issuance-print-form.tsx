@@ -17,6 +17,9 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
         return <div ref={ref} />;
     }
 
+    // Check if we are printing a full set description or a list of items
+    const isFullSetDescription = issuance.items.length === 1 && issuance.items[0].id === 'full-set';
+
     return (
       <div ref={ref} className="text-black bg-white font-serif">
          <style type="text/css" media="print">
@@ -55,31 +58,37 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
 
                 <section className="mb-6">
                     <p className="font-bold text-sm mb-2">Wydane elementy / Issued Items:</p>
-                    <table className="w-full border-collapse border border-black text-sm">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="border border-black p-2 w-1/12 text-center">Lp.</th>
-                                <th className="border border-black p-2 text-left">Nazwa elementu / Item Name</th>
-                                <th className="border border-black p-2 w-1/6 text-center">Ilość / Quantity</th>
-                                <th className="border border-black p-2 w-1/4 text-center">Podpis pracownika /<br/>Employee Signature</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {issuance.items.map((item, index) => (
-                                <tr key={item.id}>
-                                    <td className="border border-black p-2 text-center">{index + 1}.</td>
-                                    <td className="border border-black p-2">{item.name}</td>
-                                    <td className="border border-black p-2 text-center">{item.quantity}</td>
-                                    <td className="border border-black p-2 h-16"></td>
+                    {isFullSetDescription ? (
+                         <div className="border border-black p-4 text-sm min-h-[100px] whitespace-pre-wrap">
+                            {issuance.items[0].name}
+                         </div>
+                    ) : (
+                        <table className="w-full border-collapse border border-black text-sm">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="border border-black p-2 w-1/12 text-center">Lp.</th>
+                                    <th className="border border-black p-2 text-left">Nazwa elementu / Item Name</th>
+                                    <th className="border border-black p-2 w-1/6 text-center">Ilość / Quantity</th>
+                                    <th className="border border-black p-2 w-1/4 text-center">Podpis pracownika /<br/>Employee Signature</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {issuance.items.map((item, index) => (
+                                    <tr key={item.id}>
+                                        <td className="border border-black p-2 text-center">{index + 1}.</td>
+                                        <td className="border border-black p-2">{item.name}</td>
+                                        <td className="border border-black p-2 text-center">{item.quantity}</td>
+                                        <td className="border border-black p-2 h-16"></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </section>
             </div>
             
             <footer className="text-sm mt-auto">
-              <div className="flex justify-between items-end">
+              <div className="flex justify-between items-end pt-16">
                   <div className="text-center w-2/5">
                       <div className="border-t border-dotted border-black pt-1">
                            <p className="text-xs">(data i podpis pracownika)</p>
