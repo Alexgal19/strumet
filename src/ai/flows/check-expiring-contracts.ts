@@ -50,8 +50,6 @@ const checkExpiringContractsFlow = ai.defineFlow(
 
     const expiringContractsEmployees = activeEmployees
       .map(emp => {
-        if (!emp.contractEndDate) return null;
-        
         const contractEndDate = parseMaybeDate(emp.contractEndDate);
         if (!contractEndDate) return null;
         
