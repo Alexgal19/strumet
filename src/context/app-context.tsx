@@ -106,16 +106,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
         try {
             const { id, ...dataToSave } = employeeData;
-            Object.keys(dataToSave).forEach(key => {
-                if ((dataToSave as any)[key] === undefined) { (dataToSave as any)[key] = null; }
-            });
+            
+            // Ensure undefined values are converted to null for Firebase
+            const finalData: { [key: string]: any } = {};
+            for (const key in dataToSave) {
+                const typedKey = key as keyof typeof dataToSave;
+                finalData[key] = dataToSave[typedKey] === undefined ? null : dataToSave[typedKey];
+            }
 
             if (id) {
-                await update(ref(db, `employees/${id}`), dataToSave);
+                await update(ref(db, `employees/${id}`), finalData);
                 toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
             } else {
                 const newEmployeeRef = push(ref(db, 'employees'));
-                await set(newEmployeeRef, { ...dataToSave, status: 'aktywny', id: newEmployeeRef.key });
+                await set(newEmployeeRef, { ...finalData, status: 'aktywny', id: newEmployeeRef.key });
                 toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
             }
         } catch (error) {
