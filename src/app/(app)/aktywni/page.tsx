@@ -60,6 +60,7 @@ const EmployeeSummary = dynamic(() => import('@/components/employee-summary').th
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
   { key: 'hireDate' as keyof Employee, name: 'Data zatrudnienia' },
+  { key: 'contractEndDate' as keyof Employee, name: 'Umowa do' },
   { key: 'jobTitle' as keyof Employee, name: 'Stanowisko' },
   { key: 'department' as keyof Employee, name: 'Dział' },
   { key: 'manager' as keyof Employee, name: 'Kierownik' },
@@ -206,6 +207,7 @@ export default function AktywniPage() {
         }
     },
     { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'dd.MM.yyyy') },
+    { accessorKey: "contractEndDate", header: "Umowa do", cell: ({row}) => formatDate(row.original.contractEndDate, 'dd.MM.yyyy') },
     { accessorKey: "jobTitle", header: "Stanowisko" },
     { accessorKey: "department", header: "Dział" },
     { accessorKey: "manager", header: "Kierownik" },

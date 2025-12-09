@@ -39,6 +39,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             plannedTerminationDate: employee.plannedTerminationDate,
             vacationStartDate: employee.vacationStartDate,
             vacationEndDate: employee.vacationEndDate,
+            contractEndDate: employee.contractEndDate,
         };
     }
     return {
@@ -55,6 +56,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
         plannedTerminationDate: undefined,
         vacationStartDate: undefined,
         vacationEndDate: undefined,
+        contractEndDate: undefined,
     };
 };
 
@@ -156,6 +158,14 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                             value={formData.hireDate} 
                             onChange={(date) => handleChange('hireDate', date)}
                             placeholder="Wybierz datę"
+                        />
+                    </div>
+                    <div>
+                        <Label>Umowa do</Label>
+                        <DatePickerInput 
+                            value={formData.contractEndDate} 
+                            onChange={(date) => handleChange('contractEndDate', date)}
+                            placeholder="Data końcowa umowy"
                         />
                     </div>
                     <div>

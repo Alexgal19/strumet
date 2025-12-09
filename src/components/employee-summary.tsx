@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, cloneElement } from "react";
@@ -43,6 +44,7 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
         lockerNumber: employee.lockerNumber,
         departmentLockerNumber: employee.departmentLockerNumber,
         sealNumber: employee.sealNumber,
+        contractEndDate: employee.contractEndDate,
       });
       setSummary(result.summary);
     } catch (e) {

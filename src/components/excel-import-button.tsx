@@ -26,6 +26,7 @@ const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status
   'planowanaDataZwolnienia': 'plannedTerminationDate',
   'urlopPoczątek': 'vacationStartDate',
   'urlopKoniec': 'vacationEndDate',
+  'Umowa do': 'contractEndDate',
 };
 
 export function ExcelImportButton() {
@@ -94,6 +95,7 @@ export function ExcelImportButton() {
             plannedTerminationDate: formatDateString(englishItem.plannedTerminationDate) || undefined,
             vacationStartDate: formatDateString(englishItem.vacationStartDate) || undefined,
             vacationEndDate: formatDateString(englishItem.vacationEndDate) || undefined,
+            contractEndDate: formatDateString(englishItem.contractEndDate) || undefined,
           };
           
           if(!employee.fullName) {

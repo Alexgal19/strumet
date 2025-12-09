@@ -22,7 +22,7 @@ export function ExcelExportButton({ employees, fileName = 'pracownicy', columns 
       columns.forEach(col => {
         let value = emp[col.key] as string | undefined | null;
         // Use our centralized date formatter for date fields
-        if ((col.key === 'hireDate' || col.key === 'terminationDate') && value) {
+        if ((col.key === 'hireDate' || col.key === 'terminationDate' || col.key === 'contractEndDate') && value) {
             value = formatDate(value, 'dd.MM.yyyy');
         }
         polishEmp[col.name] = value || '';

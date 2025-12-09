@@ -1,3 +1,4 @@
+
 // This file is machine-generated - edit with care!
 'use server';
 /**
@@ -14,6 +15,7 @@ import {z} from 'genkit';
 const GenerateEmployeeSummaryInputSchema = z.object({
   fullName: z.string().describe("The full name of the employee."),
   hireDate: z.string().describe('The hire date of the employee.'),
+  contractEndDate: z.string().optional().describe('The contract end date of the employee.'),
   jobTitle: z.string().describe('The job title of the employee.'),
   department: z.string().describe('The department of the employee.'),
   manager: z.string().describe('The manager of the employee.'),
@@ -43,6 +45,7 @@ const prompt = ai.definePrompt({
 Employee Information:
 Name: {{fullName}}
 Hire Date: {{hireDate}}
+Contract End Date: {{contractEndDate}}
 Job Title: {{jobTitle}}
 Department: {{department}}
 Manager: {{manager}}
