@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -25,20 +26,18 @@ import {
 } from '@/components/ui/command';
 import { Loader2, ChevronsUpDown, CheckIcon, Printer, Trash2, UserX } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { Employee, ClothingIssuance, ClothingSet } from '@/lib/types';
+import { Employee, ClothingIssuance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { Input } from '@/components/ui/input';
 import { useAppContext } from '@/context/app-context';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+
 
 export default function NewHireClothingIssuancePage() {
   const { employees, config, addClothingIssuance, isLoading } = useAppContext();
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-  const [selectedSetId, setSelectedSetId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
   const [currentItems, setCurrentItems] = useState<{ id: string; name: string; quantity: number }[]>([]);
@@ -54,27 +53,27 @@ export default function NewHireClothingIssuancePage() {
     return activeEmployees.find(e => e.id === selectedEmployeeId) ?? null;
   }, [selectedEmployeeId, activeEmployees]);
 
+  const selectedEmployeeJobTitle = useMemo(() => {
+    if (!selectedEmployee) return null;
+    return config.jobTitles.find(jt => jt.name === selectedEmployee.jobTitle);
+  }, [selectedEmployee, config.jobTitles])
+
   useEffect(() => {
-    if (selectedSetId) {
-        const clothingSet = config.clothingSets.find(set => set.id === selectedSetId);
-        if (clothingSet && clothingSet.clothingItemIds) {
-            const items = clothingSet.clothingItemIds.map(itemId => {
-                const clothingItem = config.clothingItems.find(ci => ci.id === itemId);
-                return clothingItem ? { ...clothingItem, quantity: 1 } : null;
-            }).filter(Boolean) as { id: string; name: string; quantity: number }[];
-            setCurrentItems(items);
-        } else {
-            setCurrentItems([]);
-        }
-    } else {
+    if (selectedEmployeeJobTitle) {
+      const clothingSet = config.jobTitleClothingSets.find(set => set.id === selectedEmployeeJobTitle.id);
+      if (clothingSet && clothingSet.clothingItemIds) {
+        const items = clothingSet.clothingItemIds.map(itemId => {
+          const clothingItem = config.clothingItems.find(ci => ci.id === itemId);
+          return clothingItem ? { ...clothingItem, quantity: 1 } : null;
+        }).filter(Boolean) as { id: string; name: string; quantity: number }[];
+        setCurrentItems(items);
+      } else {
         setCurrentItems([]);
+      }
+    } else {
+      setCurrentItems([]);
     }
-  }, [selectedSetId, config.clothingSets, config.clothingItems]);
-  
-  useEffect(() => {
-    // Reset selected set when employee changes
-    setSelectedSetId('');
-  }, [selectedEmployeeId])
+  }, [selectedEmployeeJobTitle, config.jobTitleClothingSets, config.clothingItems]);
 
 
   const handleRemoveItem = (itemId: string) => {
@@ -90,7 +89,7 @@ export default function NewHireClothingIssuancePage() {
       toast({
         variant: 'destructive',
         title: 'Błąd',
-        description: 'Proszę wybrać pracownika i zestaw odzieży.',
+        description: 'Proszę wybrać pracownika. Zestaw odzieży musi być zdefiniowany dla jego stanowiska.',
       });
       return;
     }
@@ -134,11 +133,11 @@ export default function NewHireClothingIssuancePage() {
                  <Card>
                     <CardHeader>
                         <CardTitle>Nowe wydanie</CardTitle>
-                        <CardDescription>Wybierz pracownika, a następnie zastosuj zdefiniowany zestaw odzieży.</CardDescription>
+                        <CardDescription>Wybierz pracownika, aby automatycznie załadować zestaw odzieży przypisany do jego stanowiska.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                        <Label>Pracownik</Label>
+                        <label className="text-sm font-medium">Pracownik</label>
                         <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                             <PopoverTrigger asChild>
                             <Button
@@ -177,33 +176,17 @@ export default function NewHireClothingIssuancePage() {
                         </Popover>
                         </div>
                         
-                        {selectedEmployee && (
-                           <div className="space-y-2">
-                                <Label>Zastosuj zestaw odzieży</Label>
-                                <Select value={selectedSetId} onValueChange={setSelectedSetId} disabled={!selectedEmployee}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Wybierz zestaw..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {config.clothingSets.map((set) => (
-                                            <SelectItem key={set.id} value={set.id}>{set.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                           </div>
-                        )}
-
-                        {selectedEmployee && selectedSetId && currentItems.length === 0 && (
+                        {selectedEmployee && currentItems.length === 0 && (
                              <div className="text-center text-muted-foreground p-4 border rounded-md bg-muted/50">
                                 <UserX className="mx-auto h-8 w-8 mb-2"/>
-                                <p className="font-semibold">Pusty zestaw</p>
-                                <p className="text-sm">Wybrany zestaw nie zawiera żadnych elementów odzieży. Możesz je dodać w zakładce Konfiguracja &gt; Zestawy odzieży.</p>
+                                <p className="font-semibold">Brak zestawu odzieży</p>
+                                <p className="text-sm">Dla stanowiska "{selectedEmployee.jobTitle}" nie zdefiniowano zestawu odzieży. Możesz to zrobić w zakładce Konfiguracja &gt; Zestawy odzieży.</p>
                             </div>
                         )}
 
                         {currentItems.length > 0 && (
                             <div className="space-y-3 rounded-md border p-4">
-                                <h4 className="font-medium">Wybrane elementy: <span className="text-primary">{config.clothingSets.find(s=>s.id === selectedSetId)?.name}</span></h4>
+                                <h4 className="font-medium">Zestaw dla stanowiska: <span className="text-primary">{selectedEmployee?.jobTitle}</span></h4>
                                 {currentItems.map(item => (
                                     <div key={item.id} className="flex items-center justify-between">
                                         <span className="text-sm">{item.name}</span>

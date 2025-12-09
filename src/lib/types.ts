@@ -42,9 +42,10 @@ export type Manager = ConfigItem;
 export type Nationality = ConfigItem;
 export type ClothingItem = ConfigItem;
 
-export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems' | 'clothingSets';
+export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
-export interface ClothingSet extends ConfigItem {
+export interface JobTitleClothingSet {
+    id: string; // Corresponds to jobTitleId
     clothingItemIds: string[];
 }
 
@@ -54,7 +55,7 @@ export interface AllConfig {
   managers: Manager[];
   nationalities: Nationality[];
   clothingItems: ClothingItem[];
-  clothingSets: ClothingSet[];
+  jobTitleClothingSets: JobTitleClothingSet[];
 }
 
 export interface CirculationCard {
