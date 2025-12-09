@@ -4,6 +4,7 @@
 import React from 'react';
 import { Employee, CirculationCard } from '@/lib/types';
 import { formatDate } from '@/lib/date';
+import { Checkbox } from './ui/checkbox';
 
 interface CirculationCardPrintFormProps {
   employee: Employee | null;
@@ -17,13 +18,12 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
         return <div ref={ref} />;
     }
 
-    const sections = [
-        { title: "Dział Kadr", manager: "Kierownik Działu Kadr" },
-        { title: "Dział Produkcji", manager: "Kierownik Produkcji" },
-        { title: "Dział Logistyki", manager: "Kierownik Logistyki" },
-        { title: "Dział Jakości", manager: "Kierownik Jakości" },
-        { title: "Bezpieczeństwo i Higiena Pracy", manager: "Specjalista ds. BHP" },
-    ];
+    const LabeledCheckbox = ({ label }: { label: string }) => (
+        <div className="flex items-center space-x-2">
+            <div className="w-5 h-5 border border-black" />
+            <span className="text-sm">{label}</span>
+        </div>
+    );
 
     return (
       <div ref={ref} className="bg-white text-black font-serif">
@@ -39,63 +39,51 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
               margin: 0;
               padding: 0;
               font-family: 'Times New Roman', Times, serif;
-              font-size: 11pt;
+              font-size: 12pt;
             }
           `}
         </style>
-        <div className="p-4">
-            <header className="text-center mb-8">
+        <div className="p-8 h-full flex flex-col">
+            <header className="text-center mb-10">
                 <h1 className="text-xl font-bold">KARTA OBIEGOWA PRACOWNIKA</h1>
-                <p className="text-sm">(Employee Clearance Form)</p>
             </header>
 
-            <div className="text-right mb-6">
+            <div className="text-right mb-8">
                 <p>Data: {formatDate(card.date, 'dd.MM.yyyy')}</p>
             </div>
             
-            <section className="space-y-2 mb-6 text-sm">
-                <p><strong>Dane Pracownika / Employee Details:</strong></p>
-                <div className="grid grid-cols-[180px_1fr] gap-x-2 gap-y-1">
-                    <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
-                    <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
+            <section className="space-y-3 mb-10 text-base">
+                <div className="grid grid-cols-[200px_1fr] gap-x-4">
+                    <p>Nazwisko i imię:</p> <p className="font-bold">{employee.fullName}</p>
                     <p>Dział:</p>          <p className="font-semibold">{employee.department}</p>
-                    <p>Data zatrudnienia:</p> <p className="font-semibold">{formatDate(employee.hireDate, 'dd.MM.yyyy') || '________________'}</p>
-                    <p>Data zwolnienia:</p> <p className="font-semibold">{formatDate(employee.terminationDate, 'dd.MM.yyyy') || '________________'}</p>
+                    <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
+                    <p>Numer karty:</p>   <p className="font-bold">{employee.cardNumber}</p>
                 </div>
             </section>
 
-            <table className="w-full border-collapse border border-black text-sm mb-8">
-                <thead>
-                    <tr className="bg-gray-100">
-                        <th className="border border-black p-2 w-1/3">Dział / Department</th>
-                        <th className="border border-black p-2 w-1/3">Podpis i data / Signature and Date</th>
-                        <th className="border border-black p-2 w-1/3">Uwagi / Comments</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {sections.map(section => (
-                        <tr key={section.title}>
-                            <td className="border border-black p-2">
-                                <p className="font-bold">{section.title}</p>
-                                <p className="text-xs text-gray-600">({section.manager})</p>
-                            </td>
-                            <td className="border border-black p-2 h-16"></td>
-                            <td className="border border-black p-2"></td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <section className="space-y-6 mb-12 text-base">
+                 <div className="flex items-center space-x-6">
+                    <p className="w-64">Odzież - zwrócona:</p>
+                    <div className="flex items-center space-x-4">
+                        <LabeledCheckbox label="Tak" />
+                        <LabeledCheckbox label="Nie" />
+                    </div>
+                </div>
+                 <div className="flex items-center space-x-6">
+                    <p className="w-64">Środki ochrony indywidualnej - zwrócone:</p>
+                    <div className="flex items-center space-x-4">
+                        <LabeledCheckbox label="Tak" />
+                        <LabeledCheckbox label="Nie" />
+                    </div>
+                </div>
+            </section>
+
             
-            <footer className="pt-12 text-sm">
-              <div className="flex justify-between">
+            <footer className="pt-24 mt-auto">
+              <div className="flex justify-end">
                   <div className="text-center w-2/5">
-                      <div className="border-t border-dotted border-black pt-1">
-                           <p className="text-xs">(podpis pracownika / employee signature)</p>
-                      </div>
-                  </div>
-                  <div className="text-center w-2/5">
-                      <div className="border-t border-dotted border-black pt-1">
-                           <p className="text-xs">(podpis osoby upoważnionej / authorized person)</p>
+                      <div className="border-t border-dotted border-black pt-2">
+                           <p className="text-sm">(Podpis pracownika Magazynu)</p>
                       </div>
                   </div>
               </div>
@@ -107,3 +95,4 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
 );
 
 CirculationCardPrintForm.displayName = 'CirculationCardPrintForm';
+
