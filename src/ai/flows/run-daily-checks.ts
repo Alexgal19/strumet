@@ -8,9 +8,11 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { getDay } from 'date-fns';
 import { checkExpiringContractsAndNotify } from './check-expiring-contracts';
 import { checkAppointmentsAndNotify } from './check-fingerprint-appointments';
 import { checkPlannedTerminations } from './check-planned-terminations';
+import { createStatsSnapshot } from './create-stats-snapshot';
 
 const DailyCheckOutputSchema = z.object({
   contractsResult: z.object({
@@ -25,6 +27,10 @@ const DailyCheckOutputSchema = z.object({
     processedCount: z.number(),
     notificationsCreated: z.number(),
   }),
+  snapshotResult: z.object({
+    snapshotId: z.string().optional(),
+    error: z.string().optional(),
+  }).optional(),
   totalNotifications: z.number(),
   totalEmails: z.number(),
 });
@@ -47,6 +53,21 @@ const runDailyChecksFlow = ai.defineFlow(
         checkAppointmentsAndNotify(),
         checkPlannedTerminations(),
     ]);
+
+    let snapshotResult: { snapshotId?: string, error?: string } | undefined = undefined;
+    const today = new Date();
+    // 1 is Monday
+    if (getDay(today) === 1) {
+        console.log("It's Monday! Creating weekly statistics snapshot.");
+        try {
+            const result = await createStatsSnapshot();
+            snapshotResult = { snapshotId: result.snapshotId };
+            console.log(`Snapshot created: ${result.snapshotId}`);
+        } catch (error) {
+            console.error("Failed to create statistics snapshot:", error);
+            snapshotResult = { error: (error as Error).message };
+        }
+    }
     
     const totalNotifications = contractsResult.notificationsCreated + appointmentsResult.notificationsCreated + terminationsResult.notificationsCreated;
     const totalEmails = contractsResult.emailsSent + appointmentsResult.emailsSent;
@@ -55,12 +76,16 @@ const runDailyChecksFlow = ai.defineFlow(
     console.log(`Contracts - Notifications: ${contractsResult.notificationsCreated}, Emails: ${contractsResult.emailsSent}`);
     console.log(`Appointments - Notifications: ${appointmentsResult.notificationsCreated}, Emails: ${appointmentsResult.emailsSent}`);
     console.log(`Terminations - Processed: ${terminationsResult.processedCount}, Notifications: ${terminationsResult.notificationsCreated}`);
+    if (snapshotResult) {
+        console.log(`Snapshot - ${snapshotResult.snapshotId ? `ID: ${snapshotResult.snapshotId}` : `Error: ${snapshotResult.error}`}`);
+    }
     console.log(`Total - Notifications: ${totalNotifications}, Emails: ${totalEmails}`);
     
     return {
       contractsResult,
       appointmentsResult,
       terminationsResult,
+      snapshotResult,
       totalNotifications,
       totalEmails,
     };

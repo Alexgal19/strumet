@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -20,6 +21,7 @@ import type {
     ConfigType,
     Order,
     JobTitleClothingSet,
+    StatsSnapshot,
 } from '@/lib/types';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -30,7 +32,9 @@ interface AppContextType {
     employees: Employee[];
     config: AllConfig;
     notifications: AppNotification[];
+    statsHistory: StatsSnapshot[];
     isLoading: boolean;
+    isHistoryLoading: boolean;
     activeView: ActiveView;
     setActiveView: (view: ActiveView) => void;
     handleSaveEmployee: (employeeData: Employee) => Promise<void>;
@@ -66,7 +70,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
+    const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
     useEffect(() => {
         const dataRef = ref(db);
@@ -83,10 +89,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 resendApiKey: data.config?.resendApiKey || '',
             });
             setNotifications(objectToArray(data.notifications));
+            setStatsHistory(objectToArray(data.statisticsHistory).sort((a,b) => new Date(b.id).getTime() - new Date(a.id).getTime()));
             setIsLoading(false);
+            setIsHistoryLoading(false);
         }, (error) => {
             console.error("Firebase read failed: ", error);
             setIsLoading(false);
+            setIsHistoryLoading(false);
             toast({ variant: 'destructive', title: 'Błąd Bazy Danych', description: 'Nie udało się załadować danych.'});
         });
 
@@ -358,7 +367,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         employees,
         config,
         notifications,
+        statsHistory,
         isLoading,
+        isHistoryLoading,
         activeView,
         setActiveView,
         handleSaveEmployee,

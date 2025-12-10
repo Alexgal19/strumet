@@ -1,15 +1,16 @@
 
 
 
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit } from 'lucide-react';
-import { Employee, Order } from '@/lib/types';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Employee, Order, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,6 +26,8 @@ import { Label } from '@/components/ui/label';
 import { StatisticsExcelExportButton } from '@/components/statistics-excel-export-button';
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format, parseISO } from 'date-fns';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -50,27 +53,40 @@ interface DepartmentHierarchy {
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    return (
-      <div className="rounded-lg border bg-background/80 backdrop-blur-sm p-2 shadow-sm">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col space-y-1">
-            <span className="text-sm uppercase text-muted-foreground">
-              {data.name}
-            </span>
-            <span className="font-bold text-base text-muted-foreground">
-              {data.value} ({data.percentage.toFixed(1)}%)
-            </span>
-          </div>
-        </div>
-      </div>
-    );
+    const valueKey = payload[0].dataKey;
+
+    if (data[valueKey] !== undefined) {
+         return (
+            <div className="rounded-lg border bg-background/80 backdrop-blur-sm p-2 shadow-sm">
+                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col space-y-1">
+                    <span className="text-sm uppercase text-muted-foreground">
+                    {data.name || payload[0].name}
+                    </span>
+                    <span className="font-bold text-base text-foreground">
+                    {data[valueKey]} ({data.percentage?.toFixed(1)}%)
+                    </span>
+                </div>
+                </div>
+            </div>
+        );
+    }
+    
+    if (data.totalActive) {
+         return (
+            <div className="rounded-lg border bg-background/80 backdrop-blur-sm p-2 shadow-sm">
+                <p className='font-bold'>{format(parseISO(data.id), 'dd.MM.yyyy')}</p>
+                <p className='text-sm text-muted-foreground'>Pracownicy: <span className='font-bold text-foreground'>{data.totalActive}</span></p>
+            </div>
+        );
+    }
   }
 
   return null;
 };
 
 const ReportTab = () => {
-    const { employees, config, handleSaveEmployee } = useAppContext();
+    const { employees, config, handleSaveEmployee, statsHistory, isHistoryLoading } = useAppContext();
     const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
     const [dialogContent, setDialogContent] = useState<DialogContentData | null>(null);
 
@@ -330,7 +346,7 @@ const ReportTab = () => {
     return (
         <div className="flex flex-col space-y-6 flex-grow">
              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Raport ogólny</h3>
+                <h3 className="text-xl font-bold">Raport bieżący</h3>
                 <StatisticsExcelExportButton
                     stats={stats}
                     departmentData={departmentData}
@@ -431,6 +447,210 @@ const ReportTab = () => {
         </div>
     )
 }
+
+const HistoryTab = () => {
+    const { statsHistory, isHistoryLoading } = useAppContext();
+    const [dateA, setDateA] = useState<string>('');
+    const [dateB, setDateB] = useState<string>('');
+
+    const comparisonData = useMemo(() => {
+        if (!dateA || !dateB || !statsHistory.length) return null;
+
+        const snapshotA = statsHistory.find(s => s.id === dateA);
+        const snapshotB = statsHistory.find(s => s.id === dateB);
+
+        if (!snapshotA || !snapshotB) return null;
+
+        const allKeys = new Set([
+            ...Object.keys(snapshotA.departments), ...Object.keys(snapshotB.departments),
+            ...Object.keys(snapshotA.jobTitles), ...Object.keys(snapshotB.jobTitles)
+        ]);
+
+        const compareCategory = (category: 'departments' | 'jobTitles') => {
+            const keys = new Set([...Object.keys(snapshotA[category]), ...Object.keys(snapshotB[category])]);
+            return Array.from(keys).map(key => {
+                const valA = snapshotA[category][key] || 0;
+                const valB = snapshotB[category][key] || 0;
+                const delta = valB - valA;
+                return { key, valA, valB, delta };
+            }).sort((a,b) => b.valB - a.valB);
+        };
+        
+        return {
+            total: {
+                valA: snapshotA.totalActive,
+                valB: snapshotB.totalActive,
+                delta: snapshotB.totalActive - snapshotA.totalActive
+            },
+            departments: compareCategory('departments'),
+            jobTitles: compareCategory('jobTitles'),
+        };
+
+    }, [dateA, dateB, statsHistory]);
+
+    useEffect(() => {
+        if (statsHistory.length >= 2) {
+            setDateA(statsHistory[1].id);
+            setDateB(statsHistory[0].id);
+        } else if (statsHistory.length === 1) {
+            setDateA(statsHistory[0].id);
+            setDateB(statsHistory[0].id);
+        }
+    }, [statsHistory]);
+    
+    if (isHistoryLoading) {
+        return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
+    
+    if (!statsHistory.length) {
+        return <div className="text-center text-muted-foreground py-10">Brak danych historycznych. Pierwszy zrzut statystyk zostanie utworzony w najbliższy poniedziałek.</div>;
+    }
+
+    const renderDelta = (delta: number) => {
+        if (delta > 0) return <span className="text-green-500 flex items-center gap-1"><TrendingUp size={16} /> +{delta}</span>;
+        if (delta < 0) return <span className="text-red-500 flex items-center gap-1"><TrendingDown size={16} /> {delta}</span>;
+        return <span className="text-muted-foreground flex items-center gap-1"><Minus size={16} /> 0</span>;
+    };
+    
+    const handleChartClick = (payload: any) => {
+        if (payload && payload.activePayload && payload.activePayload.length > 0) {
+            const snapshotId = payload.activePayload[0].payload.id;
+            // Cycle between dateA and dateB
+            if (!dateA || (dateA && dateB)) {
+                setDateA(snapshotId);
+                setDateB('');
+            } else {
+                // Ensure B is not earlier than A
+                if (new Date(snapshotId) < new Date(dateA)) {
+                    setDateB(dateA);
+                    setDateA(snapshotId);
+                } else {
+                    setDateB(snapshotId);
+                }
+            }
+        }
+    };
+
+    return (
+        <div className="flex flex-col space-y-6 flex-grow">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Dynamika liczby pracowników</CardTitle>
+                    <CardDescription>Wykres przedstawiający zmianę całkowitej liczby pracowników w czasie.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <ChartContainer config={{}} className="h-[250px] w-full">
+                        <ResponsiveContainer>
+                            <LineChart data={statsHistory} onClick={handleChartClick}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                                <XAxis 
+                                    dataKey="id" 
+                                    tickFormatter={(tick) => format(parseISO(tick), 'dd.MM')}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    className="text-xs"
+                                />
+                                <YAxis 
+                                    dataKey="totalActive"
+                                    allowDecimals={false}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    className="text-xs"
+                                    width={30}
+                                />
+                                <Tooltip content={<CustomTooltip />} cursor={{stroke: 'hsl(var(--primary))', strokeWidth: 2, strokeDasharray: "3 3"}} />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="totalActive" 
+                                    stroke="hsl(var(--primary))" 
+                                    strokeWidth={3} 
+                                    dot={{ r: 5, fill: "hsl(var(--primary))" }}
+                                    activeDot={{ r: 8, className: "shadow-md" }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Porównanie okresów</CardTitle>
+                    <CardDescription>Wybierz dwa okresy (poniedziałki), aby zobaczyć szczegółowe porównanie.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div className="space-y-1">
+                            <Label>Porównaj od</Label>
+                            <Select value={dateA} onValueChange={setDateA}>
+                                <SelectTrigger><SelectValue placeholder="Wybierz datę początkową" /></SelectTrigger>
+                                <SelectContent>
+                                    {statsHistory.map(s => <SelectItem key={s.id} value={s.id}>{format(parseISO(s.id), 'PPP', {locale: pl})}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>do</Label>
+                            <Select value={dateB} onValueChange={setDateB}>
+                                <SelectTrigger><SelectValue placeholder="Wybierz datę końcową" /></SelectTrigger>
+                                <SelectContent>
+                                    {statsHistory.map(s => <SelectItem key={s.id} value={s.id}>{format(parseISO(s.id), 'PPP', {locale: pl})}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                     </div>
+                     {comparisonData && (
+                        <div className='space-y-6 animate-fade-in'>
+                            <div className="rounded-lg border">
+                                 <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Wskaźnik</TableHead>
+                                            <TableHead className='text-right'>{format(parseISO(dateA), 'dd.MM.yy')}</TableHead>
+                                            <TableHead className='text-right'>{format(parseISO(dateB), 'dd.MM.yy')}</TableHead>
+                                            <TableHead className='text-right'>Różnica</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow className='font-bold bg-muted/50'>
+                                            <TableCell>Suma pracowników</TableCell>
+                                            <TableCell className='text-right'>{comparisonData.total.valA}</TableCell>
+                                            <TableCell className='text-right'>{comparisonData.total.valB}</TableCell>
+                                            <TableCell className='text-right'>{renderDelta(comparisonData.total.delta)}</TableCell>
+                                        </TableRow>
+                                        <TableRow className='font-semibold bg-muted/20'>
+                                            <TableCell colSpan={4}>Działy</TableCell>
+                                        </TableRow>
+                                        {comparisonData.departments.map(item => (
+                                             <TableRow key={item.key}>
+                                                <TableCell>{item.key}</TableCell>
+                                                <TableCell className='text-right'>{item.valA}</TableCell>
+                                                <TableCell className='text-right'>{item.valB}</TableCell>
+                                                <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        <TableRow className='font-semibold bg-muted/20'>
+                                            <TableCell colSpan={4}>Stanowiska</TableCell>
+                                        </TableRow>
+                                         {comparisonData.jobTitles.map(item => (
+                                             <TableRow key={item.key}>
+                                                <TableCell>{item.key}</TableCell>
+                                                <TableCell className='text-right'>{item.valA}</TableCell>
+                                                <TableCell className='text-right'>{item.valB}</TableCell>
+                                                <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                     )}
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
 
 const OrdersTab = () => {
     const { config, addOrder, deleteOrder, updateOrder } = useAppContext();
@@ -690,18 +910,22 @@ export default function StatisticsPage() {
   return (
     <div className="h-full flex flex-col w-full">
       <PageHeader
-        title="Statystyki"
-        description="Kluczowe wskaźniki i planowanie dotyczące struktury personelu."
+        title="Statystyki i Planowanie"
+        description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="report">Raport</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
+          <TabsTrigger value="history">Historia</TabsTrigger>
           <TabsTrigger value="orders">Zamówienia</TabsTrigger>
         </TabsList>
-        <TabsContent value="report" className="flex-grow h-full">
+        <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
         </TabsContent>
-        <TabsContent value="orders" className="flex-grow h-full">
+         <TabsContent value="history" className="flex-grow mt-6">
+            <HistoryTab />
+        </TabsContent>
+        <TabsContent value="orders" className="flex-grow mt-6">
             <OrdersTab />
         </TabsContent>
       </Tabs>

@@ -1,5 +1,6 @@
 
 
+
 export type ActiveView =
   | 'aktywni'
   | 'zwolnieni'
@@ -121,4 +122,12 @@ export interface Order {
   quantity: number;
   realizedQuantity: number;
   createdAt: string; // ISO String
+}
+
+export interface StatsSnapshot {
+    id: string; // date in YYYY-MM-DD format
+    totalActive: number;
+    departments: Record<string, number>;
+    jobTitles: Record<string, number>;
+    nationalities: Record<string, number>;
 }
