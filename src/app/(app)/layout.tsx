@@ -1,27 +1,39 @@
 'use client';
 
 import React from 'react';
-import dynamic from 'next/dynamic';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
 import type { ActiveView } from '@/lib/types';
 import { AppProvider, useAppContext } from '@/context/app-context';
-import { cn } from '@/lib/utils';
+
+// Static imports for ultra-fast navigation
+import AktywniPage from '@/app/(app)/aktywni/page';
+import ZwolnieniPage from '@/app/(app)/zwolnieni/page';
+import PlanowaniePage from '@/app/(app)/planowanie/page';
+import StatystykiPage from '@/app/(app)/statystyki/page';
+import KartyObiegowePage from '@/app/(app)/karty-obiegowe/page';
+import OdciskiPalcowPage from '@/app/(app)/odciski-palcow/page';
+import BrakLogowaniaPage from '@/app/(app)/brak-logowania/page';
+import KonfiguracjaPage from '@/app/(app)/konfiguracja/page';
+import WydawanieOdziezyPage from '@/app/(app)/wydawanie-odziezy/page';
+import WydawanieOdziezyNowiPage from '@/app/(app)/wydawanie-odziezy-nowi/page';
+import OdwiedzalnoscPage from '@/app/(app)/odwiedzalnosc/page';
+
 
 const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
-  aktywni: dynamic(() => import('@/app/(app)/aktywni/page'), { loading: () => <LoadingComponent /> }),
-  zwolnieni: dynamic(() => import('@/app/(app)/zwolnieni/page'), { loading: () => <LoadingComponent /> }),
-  planowanie: dynamic(() => import('@/app/(app)/planowanie/page'), { loading: () => <LoadingComponent /> }),
-  statystyki: dynamic(() => import('@/app/(app)/statystyki/page'), { loading: () => <LoadingComponent /> }),
-  'karty-obiegowe': dynamic(() => import('@/app/(app)/karty-obiegowe/page'), { loading: () => <LoadingComponent /> }),
-  'odciski-palcow': dynamic(() => import('@/app/(app)/odciski-palcow/page'), { loading: () => <LoadingComponent /> }),
-  'brak-logowania': dynamic(() => import('@/app/(app)/brak-logowania/page'), { loading: () => <LoadingComponent /> }),
-  konfiguracja: dynamic(() => import('@/app/(app)/konfiguracja/page'), { loading: () => <LoadingComponent /> }),
-  'wydawanie-odziezy': dynamic(() => import('@/app/(app)/wydawanie-odziezy/page'), { loading: () => <LoadingComponent /> }),
-  'wydawanie-odziezy-nowi': dynamic(() => import('@/app/(app)/wydawanie-odziezy-nowi/page'), { loading: () => <LoadingComponent /> }),
-  odwiedzalnosc: dynamic(() => import('@/app/(app)/odwiedzalnosc/page'), { loading: () => <LoadingComponent /> }),
+  aktywni: AktywniPage,
+  zwolnieni: ZwolnieniPage,
+  planowanie: PlanowaniePage,
+  statystyki: StatystykiPage,
+  'karty-obiegowe': KartyObiegowePage,
+  'odciski-palcow': OdciskiPalcowPage,
+  'brak-logowania': BrakLogowaniaPage,
+  konfiguracja: KonfiguracjaPage,
+  'wydawanie-odziezy': WydawanieOdziezyPage,
+  'wydawanie-odziezy-nowi': WydawanieOdziezyNowiPage,
+  odwiedzalnosc: OdwiedzalnoscPage,
 };
 
 const LoadingComponent = () => (
@@ -46,7 +58,7 @@ const AppContent = () => {
         <SidebarProvider>
             <div className="flex h-full flex-col md:flex-row bg-transparent">
                 <AppSidebar activeView={activeView} setActiveView={setActiveView} />
-                <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80 shadow-lg w-full backdrop-blur-lg">
+                <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg shadow-inner-border bg-card/80">
                     <React.Suspense fallback={<LoadingComponent />}>
                         {isLoading ? <LoadingComponent /> : (
                             <ViewTransitionWrapper viewKey={activeView}>
