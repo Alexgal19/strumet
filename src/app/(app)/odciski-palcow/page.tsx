@@ -248,7 +248,7 @@ export default function FingerprintAppointmentsPage() {
                       sortedAppointments.map((apt) => (
                         <TableRow key={apt.id}>
                           <TableCell className="font-medium text-base">{apt.employeeFullName}</TableCell>
-                          <TableCell className="text-base">{formatDate(apt.appointmentDate, "dd.MM.yyyy")}</TableCell>
+                          <TableCell className="text-base">{formatDate(apt.appointmentDate, "yyyy-MM-dd")}</TableCell>
                           <TableCell className="text-base">{formatDate(apt.appointmentDate, "HH:mm")}</TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => setDeletingId(apt.id)}>
