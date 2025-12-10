@@ -1,4 +1,3 @@
-
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -11,7 +10,8 @@ export default {
   theme: {
     extend: {
       boxShadow: {
-        'orange-soft': '0 4px 14px 0 rgba(255, 153, 0, 0.1)',
+        'clay-md': '4px 4px 8px hsl(var(--primary) / 0.1), -4px -4px 8px hsl(0 0% 100% / 0.8)',
+        'clay-md-inset': 'inset 4px 4px 8px hsl(var(--primary) / 0.1), inset -4px -4px 8px hsl(0 0% 100% / 0.8)',
         'grapefruit': '0 4px 14px 0 hsl(var(--grapefruit) / 0.2)',
       },
       fontFamily: {

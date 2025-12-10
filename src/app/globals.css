@@ -8,51 +8,51 @@ html, body, #__next__ {
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* White */
-    --foreground: 222 84% 5%; /* Deep Blue Text */
+    --background: 25 100% 98%; /* Very light, almost white orange */
+    --foreground: 25 95% 15%; /* Dark brown */
 
-    --card: 0 0% 100%; 
-    --card-foreground: 222 84% 5%;
+    --card: 25 100% 96%;
+    --card-foreground: 25 95% 15%;
     
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 84% 5%;
+    --popover: 25 100% 96%;
+    --popover-foreground: 25 95% 15%;
 
-    --primary: 222 70% 45%; /* Rich Blue */
-    --primary-foreground: 0 0% 100%;
+    --primary: 25 90% 50%; /* Bright Orange */
+    --primary-foreground: 25 95% 10%;
 
-    --secondary: 220 15% 96%; /* Light Gray */
-    --secondary-foreground: 222 84% 5%;
+    --secondary: 25 80% 90%; 
+    --secondary-foreground: 25 95% 15%;
     
-    --muted: 220 15% 96%;
-    --muted-foreground: 220 10% 40%;
+    --muted: 25 80% 92%;
+    --muted-foreground: 25 40% 40%;
 
-    --accent: 210 90% 55%; /* Sky Blue */
-    --accent-foreground: 222 84% 5%;
-    
-    --grapefruit: 34 100% 50%;
+    --accent: 35 95% 55%; /* Slightly more yellow-orange accent */
+    --accent-foreground: 25 95% 10%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 220 15% 90%;
-    --input: 220 15% 90%;
-    --ring: 222 70% 45%;
+    --border: 25 100% 96%; /* Same as card to make borders disappear */
+    --input: 25 80% 90%;   /* A slightly darker orange for input fields */
+    --ring: 25 90% 50%;   /* Bright orange for focus rings */
     --radius: 0.8rem;
     
-    --sidebar-background: 220 15% 98% / 0.8;
-    --sidebar-foreground: 222 84% 10%;
-    --sidebar-primary: 222 70% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 70% 45% / 0.1;
-    --sidebar-accent-foreground: 222 70% 45%;
-    --sidebar-border: 220 15% 88% / 0.5;
-    --sidebar-ring: 222 70% 45%;
+    /* Sidebar adapted to the orange theme */
+    --sidebar-background: 25 100% 94% / 0.8;
+    --sidebar-foreground: 25 95% 15%;
+    --sidebar-primary: 25 90% 50%;
+    --sidebar-primary-foreground: 25 95% 10%;
+    --sidebar-accent: 25 90% 50% / 0.1;
+    --sidebar-accent-foreground: 25 90% 50%;
+    --sidebar-border: 25 100% 94% / 0.5; /* Disappearing border */
+    --sidebar-ring: 25 90% 50%;
 
-    --chart-1: 222 70% 50%; 
-    --chart-2: 170 70% 40%; 
-    --chart-3: 350 80% 60%; 
-    --chart-4: 30 90% 55%; 
-    --chart-5: 280 75% 60%; 
+    /* Chart palette with shades of orange and complementary colors */
+    --chart-1: 25 90% 50%; 
+    --chart-2: 35 95% 55%; 
+    --chart-3: 15 85% 60%; 
+    --chart-4: 25 90% 70%; 
+    --chart-5: 40 90% 65%; 
   }
 }
 
@@ -63,8 +63,6 @@ html, body, #__next__ {
   body {
     @apply bg-background text-foreground;
     background-color: hsl(var(--background));
-    background-image: radial-gradient(circle at top left, hsl(var(--primary) / 0.05), transparent 40%),
-                      radial-gradient(circle at bottom right, hsl(var(--accent) / 0.05), transparent 40%);
   }
 }
 
