@@ -7,6 +7,7 @@ import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
 import type { ActiveView } from '@/lib/types';
 import { AppProvider, useAppContext } from '@/context/app-context';
+import { cn } from '@/lib/utils';
 
 // Static imports for ultra-fast navigation
 import AktywniPage from '@/app/(app)/aktywni/page';
@@ -36,10 +37,15 @@ const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   odwiedzalnosc: OdwiedzalnoscPage,
 };
 
-const LoadingComponent = () => (
-  <div className="flex h-full w-full items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin" />
-  </div>
+const CenteredLoader = ({ isLoading }: { isLoading: boolean }) => (
+    <div
+      className={cn(
+        'fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-300',
+        isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      )}
+    >
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>
 );
 
 const ViewTransitionWrapper = ({ children, viewKey }: { children: React.ReactNode, viewKey: string }) => {
@@ -58,13 +64,14 @@ const AppContent = () => {
         <SidebarProvider>
             <div className="flex h-full flex-col md:flex-row bg-transparent">
                 <AppSidebar activeView={activeView} setActiveView={setActiveView} />
-                <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg shadow-inner-border bg-card/80">
-                    <React.Suspense fallback={<LoadingComponent />}>
-                        {isLoading ? <LoadingComponent /> : (
+                <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80">
+                   <CenteredLoader isLoading={isLoading} />
+                    <React.Suspense fallback={<CenteredLoader isLoading={true} />}>
+                        <div className={cn('h-full', isLoading && 'opacity-0')}>
                             <ViewTransitionWrapper viewKey={activeView}>
                                 <ActiveViewComponent />
                             </ViewTransitionWrapper>
-                        )}
+                        </div>
                     </React.Suspense>
                 </SidebarInset>
                 <AppBottomNav activeView={activeView} setActiveView={setActiveView} />
