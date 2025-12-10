@@ -40,10 +40,20 @@ import { cn } from '@/lib/utils';
 import { CirculationCardPrintForm } from '@/components/circulation-card-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppContext } from '@/context/app-context';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
+
+
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 
 export default function CirculationCardsPage() {
-  const { employees, circulationCards, isLoading, addCirculationCard } = useAppContext();
+  const { employees, isLoading: isAppLoading, addCirculationCard } = useAppContext();
+  const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
+  const [isLoadingCards, setIsLoadingCards] = useState(true);
+
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
@@ -51,6 +61,15 @@ export default function CirculationCardsPage() {
   const printComponentRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    const cardsRef = ref(db, 'circulationCards');
+    const unsubscribe = onValue(cardsRef, (snapshot) => {
+      setCirculationCards(objectToArray(snapshot.val()));
+      setIsLoadingCards(false);
+    });
+    return () => unsubscribe();
+  }, []);
   
   const selectedEmployee = useMemo(() => {
     return employees.find(e => e.id === selectedEmployeeId) ?? null;
@@ -87,6 +106,8 @@ export default function CirculationCardsPage() {
         }, 100);
     }
   };
+
+  const isLoading = isAppLoading || isLoadingCards;
 
   if (isLoading) {
     return (

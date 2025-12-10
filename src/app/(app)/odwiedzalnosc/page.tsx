@@ -43,6 +43,13 @@ import {
 } from '@/components/ui/table';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
+
+
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 interface CalendarDay {
   dateString: string;
@@ -197,7 +204,10 @@ const EmployeeAttendanceCard = ({ employee, attendanceData, onToggleAbsence }: {
 
 
 export default function AttendancePage() {
-  const { employees, config, absences, addAbsence, deleteAbsence, isLoading } = useAppContext();
+  const { employees, config, addAbsence, deleteAbsence, isLoading: isAppLoading } = useAppContext();
+  const [absences, setAbsences] = useState<Absence[]>([]);
+  const [isLoadingAbsences, setIsLoadingAbsences] = useState(true);
+
   const isMobile = useIsMobile();
   const { toast } = useToast();
   
@@ -206,6 +216,15 @@ export default function AttendancePage() {
   const [searchTerm, setSearchTerm] = useState('');
   
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
+
+  useEffect(() => {
+    const absencesRef = ref(db, 'absences');
+    const unsubscribe = onValue(absencesRef, (snapshot) => {
+      setAbsences(objectToArray(snapshot.val()));
+      setIsLoadingAbsences(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const attendanceData = useMemo(() => {
     return getAttendanceDataForMonth(employees, absences, startOfMonth(currentDate), endOfMonth(currentDate));
@@ -253,6 +272,8 @@ export default function AttendancePage() {
         });
     }
   };
+
+  const isLoading = isAppLoading || isLoadingAbsences;
 
    if (isLoading) {
     return (

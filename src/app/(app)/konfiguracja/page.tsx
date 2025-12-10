@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Trash2, Loader2, Edit, Save, KeyRound } from 'lucide-react';
-import type { ConfigItem, ConfigType, JobTitle } from '@/lib/types';
+import type { ConfigItem, ConfigType, JobTitle, JobTitleClothingSet } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,12 @@ import { useHasMounted } from '@/hooks/use-mobile';
 import { useAppContext } from '@/context/app-context';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
+
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 
 type ConfigView = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems' | 'jobTitleClothingSets';
@@ -32,9 +38,20 @@ const configLabels: Record<ConfigView, string> = {
 
 const JobTitleClothingSetsTab = () => {
     const { config, handleSaveJobTitleClothingSet } = useAppContext();
-    const { jobTitles, jobTitleClothingSets } = config;
+    const { jobTitles } = config;
+    const [jobTitleClothingSets, setJobTitleClothingSets] = useState<JobTitleClothingSet[]>([]);
+    const [isLoadingSets, setIsLoadingSets] = useState(true);
 
     const [descriptions, setDescriptions] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+      const setsRef = ref(db, 'config/jobTitleClothingSets');
+      const unsubscribe = onValue(setsRef, (snapshot) => {
+        setJobTitleClothingSets(objectToArray(snapshot.val()));
+        setIsLoadingSets(false);
+      });
+      return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         const initialDescriptions: Record<string, string> = {};
@@ -48,6 +65,14 @@ const JobTitleClothingSetsTab = () => {
     const handleSave = async (jobTitleId: string) => {
         await handleSaveJobTitleClothingSet(jobTitleId, descriptions[jobTitleId] || '');
     };
+
+    if (isLoadingSets) {
+        return (
+            <Card className="h-full flex flex-col items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </Card>
+        );
+    }
 
     return (
         <Card className="h-full flex flex-col">

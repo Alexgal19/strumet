@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
@@ -22,6 +22,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatisticsExcelExportButton } from '@/components/statistics-excel-export-button';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
+
+
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-1) / 0.7)", "hsl(var(--chart-2) / 0.7)"];
@@ -425,12 +432,23 @@ const ReportTab = () => {
 }
 
 const OrdersTab = () => {
-    const { config, orders, addOrder, deleteOrder } = useAppContext();
+    const { config, addOrder, deleteOrder } = useAppContext();
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [isLoadingOrders, setIsLoadingOrders] = useState(true);
     const { toast } = useToast();
     
     const [department, setDepartment] = useState('');
     const [jobTitle, setJobTitle] = useState('');
     const [quantity, setQuantity] = useState(1);
+
+    useEffect(() => {
+      const ordersRef = ref(db, 'orders');
+      const unsubscribe = onValue(ordersRef, (snapshot) => {
+        setOrders(objectToArray(snapshot.val()));
+        setIsLoadingOrders(false);
+      });
+      return () => unsubscribe();
+    }, []);
     
     const handleAddOrder = async () => {
         if (!department || !jobTitle || quantity < 1) {
@@ -457,6 +475,9 @@ const OrdersTab = () => {
         }, {} as Record<string, Order[]>);
     }, [orders]);
 
+    if (isLoadingOrders) {
+      return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -585,5 +606,6 @@ export default function StatisticsPage() {
     
 
     
+
 
 

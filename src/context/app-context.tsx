@@ -28,13 +28,7 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 interface AppContextType {
     employees: Employee[];
     config: AllConfig;
-    absences: Absence[];
-    absenceRecords: AbsenceRecord[];
-    circulationCards: CirculationCard[];
-    fingerprintAppointments: FingerprintAppointment[];
-    clothingIssuances: ClothingIssuance[];
     notifications: AppNotification[];
-    orders: Order[];
     isLoading: boolean;
     activeView: ActiveView;
     setActiveView: (view: ActiveView) => void;
@@ -68,14 +62,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [activeView, setActiveView] = useState<ActiveView>('aktywni');
     
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
-    const [absences, setAbsences] = useState<Absence[]>([]);
-    const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
-    const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
-    const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
-    const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
+    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], resendApiKey: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
-    const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -89,16 +77,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 managers: objectToArray(data.config?.managers),
                 nationalities: objectToArray(data.config?.nationalities),
                 clothingItems: objectToArray(data.config?.clothingItems),
-                jobTitleClothingSets: objectToArray(data.config?.jobTitleClothingSets),
                 resendApiKey: data.config?.resendApiKey || '',
             });
-            setAbsences(objectToArray(data.absences));
-            setAbsenceRecords(objectToArray(data.absenceRecords));
-            setCirculationCards(objectToArray(data.circulationCards));
-            setFingerprintAppointments(objectToArray(data.fingerprintAppointments));
-            setClothingIssuances(objectToArray(data.clothingIssuances));
             setNotifications(objectToArray(data.notifications));
-            setOrders(objectToArray(data.orders));
             setIsLoading(false);
         }, (error) => {
             console.error("Firebase read failed: ", error);
@@ -363,13 +344,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const value = {
         employees,
         config,
-        absences,
-        absenceRecords,
-        circulationCards,
-        fingerprintAppointments,
-        clothingIssuances,
         notifications,
-        orders,
         isLoading,
         activeView,
         setActiveView,

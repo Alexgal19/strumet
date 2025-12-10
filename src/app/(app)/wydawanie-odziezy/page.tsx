@@ -42,11 +42,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
 import { useAppContext } from '@/context/app-context';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
 
+
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 export default function ClothingIssuancePage() {
-  const { employees, config, clothingIssuances, isLoading, addClothingIssuance, deleteClothingIssuance } = useAppContext();
-  const issuances = clothingIssuances;
+  const { employees, config, isLoading: isAppLoading, addClothingIssuance, deleteClothingIssuance } = useAppContext();
+  const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
+  const [isLoadingIssuances, setIsLoadingIssuances] = useState(true);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
@@ -58,16 +65,25 @@ export default function ClothingIssuancePage() {
   
   const { toast } = useToast();
 
+  useEffect(() => {
+    const issuancesRef = ref(db, 'clothingIssuances');
+    const unsubscribe = onValue(issuancesRef, (snapshot) => {
+      setClothingIssuances(objectToArray(snapshot.val()));
+      setIsLoadingIssuances(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const selectedEmployee = useMemo(() => {
     return employees.find(e => e.id === selectedEmployeeId) ?? null;
   }, [selectedEmployeeId, employees]);
 
   const employeeIssuanceHistory = useMemo(() => {
     if (!selectedEmployeeId) return [];
-    return issuances
+    return clothingIssuances
         .filter(issuance => issuance.employeeId === selectedEmployeeId)
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [issuances, selectedEmployeeId]);
+  }, [clothingIssuances, selectedEmployeeId]);
   
   const clothingOptions: OptionType[] = useMemo(() => config.clothingItems.map(c => ({ value: c.id, label: c.name })), [config.clothingItems]);
 
@@ -126,6 +142,8 @@ export default function ClothingIssuancePage() {
         await deleteClothingIssuance(issuanceId);
       }
   };
+
+  const isLoading = isAppLoading || isLoadingIssuances;
 
   if (isLoading) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;

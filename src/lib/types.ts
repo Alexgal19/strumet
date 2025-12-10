@@ -59,7 +59,6 @@ export interface AllConfig {
   managers: Manager[];
   nationalities: Nationality[];
   clothingItems: ClothingItem[];
-  jobTitleClothingSets: JobTitleClothingSet[];
   resendApiKey?: string;
 }
 

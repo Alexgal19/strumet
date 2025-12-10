@@ -56,10 +56,20 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AbsenceRecordPrintForm } from '@/components/absence-record-print-form';
 import { useAppContext } from '@/context/app-context';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
+
+
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 
 export default function NoLoginPage() {
-  const { employees, absenceRecords, isLoading, addAbsenceRecord, deleteAbsenceRecord } = useAppContext();
+  const { employees, isLoading: isAppLoading, addAbsenceRecord, deleteAbsenceRecord } = useAppContext();
+  const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
+  const [isLoadingRecords, setIsLoadingRecords] = useState(true);
+
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [incidentDate, setIncidentDate] = useState<Date | undefined>();
   const [hours, setHours] = useState<string>('');
@@ -74,13 +84,21 @@ export default function NoLoginPage() {
   const printComponentRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    const recordsRef = ref(db, 'absenceRecords');
+    const unsubscribe = onValue(recordsRef, (snapshot) => {
+      setAbsenceRecords(objectToArray(snapshot.val()));
+      setIsLoadingRecords(false);
+    });
+    return () => unsubscribe();
+  }, []);
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
-  const records = absenceRecords;
 
   const sortedRecords = useMemo(() => {
-    return [...records].sort((a, b) => new Date(b.incidentDate).getTime() - new Date(a.incidentDate).getTime());
-  }, [records]);
+    return [...absenceRecords].sort((a, b) => new Date(b.incidentDate).getTime() - new Date(a.incidentDate).getTime());
+  }, [absenceRecords]);
 
   const selectedEmployee = useMemo(() => {
     return activeEmployees.find(e => e.id === selectedEmployeeId) ?? null;
@@ -133,6 +151,8 @@ export default function NoLoginPage() {
     await deleteAbsenceRecord(recordId);
     setDeletingId(null);
   };
+
+  const isLoading = isAppLoading || isLoadingRecords;
 
   if (isLoading) {
     return (

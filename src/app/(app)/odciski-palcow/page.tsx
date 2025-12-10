@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -52,11 +52,19 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
+import { db } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
+
+
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 
 export default function FingerprintAppointmentsPage() {
-  const { employees, fingerprintAppointments, isLoading, addFingerprintAppointment, deleteFingerprintAppointment } = useAppContext();
-  const appointments = fingerprintAppointments;
+  const { employees, isLoading: isAppLoading, addFingerprintAppointment, deleteFingerprintAppointment } = useAppContext();
+  const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [appointmentDate, setAppointmentDate] = useState<Date | undefined>();
@@ -67,11 +75,20 @@ export default function FingerprintAppointmentsPage() {
 
   const { toast } = useToast();
 
+  useEffect(() => {
+    const appointmentsRef = ref(db, 'fingerprintAppointments');
+    const unsubscribe = onValue(appointmentsRef, (snapshot) => {
+      setFingerprintAppointments(objectToArray(snapshot.val()));
+      setIsLoadingAppointments(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const sortedAppointments = useMemo(() => {
-    return [...appointments].sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
-  }, [appointments]);
+    return [...fingerprintAppointments].sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+  }, [fingerprintAppointments]);
 
   const selectedEmployee = useMemo(() => {
     return activeEmployees.find(e => e.id === selectedEmployeeId) ?? null;
@@ -105,6 +122,8 @@ export default function FingerprintAppointmentsPage() {
     await deleteFingerprintAppointment(appointmentId);
     setDeletingId(null);
   };
+
+  const isLoading = isAppLoading || isLoadingAppointments;
 
   if (isLoading) {
     return (
