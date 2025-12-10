@@ -41,7 +41,7 @@ import { db } from '@/lib/firebase';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { checkExpiringContractsAndNotify } from '@/ai/flows/check-expiring-contracts';
+import { runDailyChecks } from '@/ai/flows/run-daily-checks';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -82,17 +82,17 @@ const Notifications = () => {
     const handleManualCheck = async () => {
         setIsChecking(true);
         try {
-            const result = await checkExpiringContractsAndNotify();
+            const result = await runDailyChecks();
             toast({
                 title: 'Sprawdzanie zakończone',
-                description: `Utworzono ${result.notificationsCreated} nowych powiadomień. Wysłano ${result.emailsSent} e-maili.`,
+                description: `Utworzono ${result.totalNotifications} nowych powiadomień. Wysłano ${result.totalEmails} e-maili.`,
             });
         } catch (error) {
             console.error(error);
             toast({
                 variant: 'destructive',
                 title: 'Błąd',
-                description: 'Nie udało się uruchomić sprawdzania kontraktów.',
+                description: 'Nie udało się uruchomić sprawdzania.',
             });
         } finally {
             setIsChecking(false);
@@ -142,7 +142,7 @@ const Notifications = () => {
                         ) : (
                             <RefreshCw className="mr-2 h-4 w-4" />
                         )}
-                        Sprawdź kontrakty
+                        Uruchom codzienne sprawdzanie
                     </Button>
                     {notifications.length > 0 && (
                         <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive" onClick={handleClearAll}>

@@ -1,3 +1,4 @@
+
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
@@ -11,8 +12,4 @@ scheduledJobs:
 - schedule: "0 8 * * *"
   timeZone: "Europe/Warsaw"
   httpTarget:
-    uri: "/api/cron/check-contracts"
-- schedule: "0 8 * * *"
-  timeZone: "Europe/Warsaw"
-  httpTarget:
-    uri: "/api/cron/check-appointments"
+    uri: "/api/cron/daily-checks"
