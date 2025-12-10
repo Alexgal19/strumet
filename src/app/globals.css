@@ -28,6 +28,8 @@ html, body, #__next__ {
 
     --accent: 210 90% 55%; /* Sky Blue */
     --accent-foreground: 222 84% 5%;
+    
+    --grapefruit: 350 90% 60%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;

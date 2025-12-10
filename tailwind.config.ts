@@ -12,6 +12,7 @@ export default {
     extend: {
       boxShadow: {
         'orange-soft': '0 4px 14px 0 rgba(255, 153, 0, 0.1)',
+        'grapefruit': '0 4px 14px 0 hsl(var(--grapefruit) / 0.2)',
       },
       fontFamily: {
         body: ['"Geist"', 'sans-serif'],
