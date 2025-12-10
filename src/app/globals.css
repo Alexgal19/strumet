@@ -27,7 +27,6 @@ html, body, #__next__ {
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-    --radius: 0.8rem;
 
     --chart-1: 222.2 47.4% 11.2%;
     --chart-2: 22 90% 50%;
@@ -39,12 +38,12 @@ html, body, #__next__ {
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 210 40% 98%;
-    --card: 240 4% 10% / 0.5; /* Semi-transparent for glass effect */
+    --card: 240 4% 10% / 0.8; 
     --card-foreground: 210 40% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 210 40% 98%;
     --primary: 25 95% 53%; /* Vibrant Orange */
-    --primary-foreground: 25 100% 15%;
+    --primary-foreground: 210 40% 98%;
     --secondary: 225 10% 15%;
     --secondary-foreground: 210 40% 98%;
     --muted: 225 10% 15%;
@@ -57,7 +56,7 @@ html, body, #__next__ {
     --input: 217.2 32.6% 17.5%;
     --ring: 25 95% 53%;
 
-    --sidebar-background: 240 4% 10% / 0.6; /* Glassmorphism for sidebar */
+    --sidebar-background: 240 4% 10% / 0.6;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 25 95% 53%;
     --sidebar-primary-foreground: 25 100% 15%;
