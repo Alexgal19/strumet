@@ -8,49 +8,49 @@ html, body, #__next__ {
 
 @layer base {
   .dark {
-    --background: 240 10% 10%; /* Energetic Amethyst */
+    --background: 222 84% 5%; /* Deep Ocean Blue */
     --foreground: 210 40% 98%;
 
-    --card: 240 10% 12%; 
+    --card: 222 84% 8%; 
     --card-foreground: 210 40% 98%;
     
-    --popover: 240 10% 4%;
+    --popover: 222 84% 4%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 260 70% 60%; /* Energetic Amethyst */
+    --primary: 170 80% 40%; /* Turquoise Accent */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 240 10% 17%;
+    --secondary: 222 84% 12%;
     --secondary-foreground: 210 40% 98%;
     
-    --muted: 240 10% 17%;
+    --muted: 222 84% 12%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 300 70% 65%; /* Energetic Amethyst */
+    --accent: 170 80% 40%; /* Turquoise Accent */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
     
-    --border: 240 10% 17%;
-    --input: 240 10% 25%;
-    --ring: 260 70% 60%;
+    --border: 222 84% 12%;
+    --input: 222 84% 15%;
+    --ring: 170 80% 50%;
     --radius: 0.8rem;
     
-    --sidebar-background: 240 10% 8%;
+    --sidebar-background: 222 84% 6%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 260 70% 60%;
+    --sidebar-primary: 170 80% 40%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 260 70% 60% / 0.15;
+    --sidebar-accent: 170 80% 40% / 0.15;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 240 10% 15%;
-    --sidebar-ring: 260 70% 60%;
+    --sidebar-border: 222 84% 10%;
+    --sidebar-ring: 170 80% 50%;
 
-    --chart-1: 260 70% 60%; 
-    --chart-2: 300 70% 65%; 
-    --chart-3: 210 80% 65%; 
-    --chart-4: 340 82% 60%; 
-    --chart-5: 280 70% 55%; 
+    --chart-1: 170 70% 45%; 
+    --chart-2: 210 80% 65%; 
+    --chart-3: 190 75% 55%; 
+    --chart-4: 200 82% 60%; 
+    --chart-5: 180 70% 50%; 
   }
 }
 
