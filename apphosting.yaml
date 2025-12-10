@@ -12,3 +12,7 @@ scheduledJobs:
   timeZone: "Europe/Warsaw"
   httpTarget:
     uri: "/api/cron/check-contracts"
+- schedule: "0 8 * * *"
+  timeZone: "Europe/Warsaw"
+  httpTarget:
+    uri: "/api/cron/check-appointments"
