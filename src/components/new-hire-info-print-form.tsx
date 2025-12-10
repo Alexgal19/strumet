@@ -40,16 +40,16 @@ export const NewHireInfoPrintForm = React.forwardRef<HTMLDivElement, NewHireInfo
                     <p className="font-bold">{employee.fullName}</p>
                 </div>
                 <div className="flex items-center border-b-2 border-dotted border-gray-400 pb-2">
+                    <p className="w-48 shrink-0 text-gray-600">Numer karty:</p>
+                    <p className="font-bold">{employee.cardNumber}</p>
+                </div>
+                <div className="flex items-center border-b-2 border-dotted border-gray-400 pb-2">
                     <p className="w-48 shrink-0 text-gray-600">Dział:</p>
                     <p className="font-semibold">{employee.department}</p>
                 </div>
                 <div className="flex items-center border-b-2 border-dotted border-gray-400 pb-2">
                     <p className="w-48 shrink-0 text-gray-600">Stanowisko:</p>
                     <p className="font-semibold">{employee.jobTitle}</p>
-                </div>
-                <div className="flex items-center border-b-2 border-dotted border-gray-400 pb-2">
-                    <p className="w-48 shrink-0 text-gray-600">Numer karty:</p>
-                    <p className="font-bold">{employee.cardNumber}</p>
                 </div>
             </section>
         </div>

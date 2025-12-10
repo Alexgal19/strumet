@@ -23,11 +23,12 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Loader2, ChevronsUpDown, CheckIcon, Printer, User, Briefcase, Building2, CalendarIcon, Package } from 'lucide-react';
+import { Loader2, ChevronsUpDown, CheckIcon, Printer, User, Briefcase, Building2, CalendarIcon, Package, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Employee, ClothingIssuance } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
+import { NewHireInfoPrintForm } from '@/components/new-hire-info-print-form';
 import { useAppContext } from '@/context/app-context';
 import { formatDate } from '@/lib/date';
 
@@ -39,6 +40,7 @@ export default function NewHireClothingIssuancePage() {
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
   const [printingIssuance, setPrintingIssuance] = useState<ClothingIssuance | null>(null);
+  const [printingInfoCard, setPrintingInfoCard] = useState<Employee | null>(null);
   const printComponentRef = useRef<HTMLDivElement>(null);
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
@@ -51,7 +53,6 @@ export default function NewHireClothingIssuancePage() {
     if (!selectedEmployee || !config.jobTitleClothingSets || !selectedEmployee.jobTitle) {
       return null;
     }
-    // The employee's jobTitle stores the NAME of the job. We need to find the ID.
     const jobTitleObject = config.jobTitles.find(jt => jt.name === selectedEmployee.jobTitle);
     if (!jobTitleObject) return null;
 
@@ -61,7 +62,6 @@ export default function NewHireClothingIssuancePage() {
       return null;
     }
 
-    // Return the description as a single item in the clothing set array
     return [{
       id: 'full-set',
       name: jobTitleSet.description,
@@ -70,7 +70,7 @@ export default function NewHireClothingIssuancePage() {
   }, [selectedEmployee, config.jobTitleClothingSets, config.jobTitles]);
 
 
-  const handlePrint = async () => {
+  const handlePrintIssuance = async () => {
     if (!selectedEmployee || !clothingSetForEmployee || clothingSetForEmployee.length === 0) return;
     
     const issuanceToPrint: ClothingIssuance = {
@@ -82,6 +82,7 @@ export default function NewHireClothingIssuancePage() {
     };
     
     setPrintingIssuance(issuanceToPrint);
+    setPrintingInfoCard(null);
     document.body.classList.add('printing');
     setTimeout(() => {
         window.print();
@@ -89,12 +90,26 @@ export default function NewHireClothingIssuancePage() {
         setPrintingIssuance(null);
     }, 100);
   };
+  
+  const handlePrintInfoCard = async () => {
+    if (!selectedEmployee) return;
+
+    setPrintingInfoCard(selectedEmployee);
+    setPrintingIssuance(null);
+    document.body.classList.add('printing');
+    setTimeout(() => {
+        window.print();
+        document.body.classList.remove('printing');
+        setPrintingInfoCard(null);
+    }, 100);
+  };
+
 
   if (isLoading) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
   
-  const selectedEmployeeForPrint = printingIssuance 
+  const selectedEmployeeForIssuancePrint = printingIssuance 
     ? employees.find(e => e.id === printingIssuance.employeeId) 
     : null;
 
@@ -102,8 +117,8 @@ export default function NewHireClothingIssuancePage() {
     <>
       <div className="main-content-container h-full flex-col flex">
         <PageHeader
-          title="Wydawanie odzieży dla nowych"
-          description="Wybierz pracownika, aby wygenerować potwierdzenie wydania standardowego kompletu odzieży."
+          title="Wydawanie odzieży / Info dla nowych"
+          description="Wybierz pracownika, aby wygenerować potwierdzenie wydania odzieży lub kartę informacyjną."
         />
 
         <div className="flex justify-center">
@@ -111,7 +126,7 @@ export default function NewHireClothingIssuancePage() {
                  <Card>
                     <CardHeader>
                         <CardTitle>Wybierz pracownika</CardTitle>
-                        <CardDescription>Automatycznie przypiszemy komplet odzieży na podstawie stanowiska.</CardDescription>
+                        <CardDescription>Wybierz pracownika z listy, aby zobaczyć podgląd danych do druku.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
@@ -161,6 +176,10 @@ export default function NewHireClothingIssuancePage() {
                                     <User className="mr-3 h-5 w-5 text-muted-foreground" />
                                     <span className="font-medium">{selectedEmployee.fullName}</span>
                                 </div>
+                                 <div className="flex items-center text-base">
+                                    <FileText className="mr-3 h-5 w-5 text-muted-foreground" />
+                                    <span>Numer karty: <span className="font-medium">{selectedEmployee.cardNumber}</span></span>
+                                </div>
                                 <div className="flex items-center text-base">
                                     <Building2 className="mr-3 h-5 w-5 text-muted-foreground" />
                                     <span>{selectedEmployee.department}</span>
@@ -186,22 +205,34 @@ export default function NewHireClothingIssuancePage() {
                                 )}
                             </div>
                         )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                            <Button onClick={handlePrintIssuance} disabled={!selectedEmployee || !clothingSetForEmployee || clothingSetForEmployee.length === 0}>
+                                <Printer className="mr-2 h-4 w-4" />
+                                Drukuj wydanie odzieży
+                            </Button>
+                             <Button onClick={handlePrintInfoCard} disabled={!selectedEmployee} variant="secondary">
+                                <Printer className="mr-2 h-4 w-4" />
+                                Drukuj kartę informacyjną
+                            </Button>
+                        </div>
 
-                        <Button onClick={handlePrint} disabled={!selectedEmployee || !clothingSetForEmployee || clothingSetForEmployee.length === 0} className="w-full">
-                            <Printer className="mr-2 h-4 w-4" />
-                            Drukuj potwierdzenie
-                        </Button>
                     </CardContent>
                 </Card>
             </div>
         </div>
       </div>
       <div className="print-only">
-        {printingIssuance && selectedEmployeeForPrint && (
+        {printingIssuance && selectedEmployeeForIssuancePrint && (
             <ClothingIssuancePrintForm 
                 ref={printComponentRef}
-                employee={selectedEmployeeForPrint}
+                employee={selectedEmployeeForIssuancePrint}
                 issuance={printingIssuance}
+            />
+        )}
+        {printingInfoCard && (
+            <NewHireInfoPrintForm
+                ref={printComponentRef}
+                employee={printingInfoCard}
             />
         )}
       </div>
