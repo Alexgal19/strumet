@@ -10,7 +10,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { ref, get, push, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { isSameDay, addDays, startOfDay, format } from 'date-fns';
+import { startOfDay, differenceInDays, format } from 'date-fns';
 import type { FingerprintAppointment, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 import { sendEmail } from '@/lib/email-tool';
@@ -46,22 +46,30 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     }
     
     const today = startOfDay(new Date());
-    const notificationDate = addDays(today, 3); // Check for 3 days in advance
 
-    const upcomingAppointments = appointments.filter(apt => {
-        const aptDate = parseMaybeDate(apt.appointmentDate);
-        if (!aptDate) return false;
-        return isSameDay(startOfDay(aptDate), notificationDate);
-    });
+    const upcomingAppointments = appointments
+        .map(apt => {
+            const aptDate = parseMaybeDate(apt.appointmentDate);
+            if (!aptDate) return null;
+            
+            const daysRemaining = differenceInDays(startOfDay(aptDate), today);
+            
+            if (daysRemaining >= 0 && daysRemaining <= 3) {
+                return { ...apt, daysRemaining };
+            }
+            return null;
+        })
+        .filter((apt): apt is FingerprintAppointment & { daysRemaining: number } => apt !== null);
 
-    console.log(`Found ${upcomingAppointments.length} appointments for ${notificationDate.toDateString()}.`);
+
+    console.log(`Found ${upcomingAppointments.length} upcoming appointments in the next 3 days.`);
 
     if (upcomingAppointments.length === 0) {
         return { notificationsCreated: 0, emailsSent: 0 };
     }
     
     const employeeNames = upcomingAppointments.map(apt => apt.employeeFullName).join(', ');
-    const title = `Przypomnienie: Odciski palców za 3 dni (${upcomingAppointments.length})`;
+    const title = `Przypomnienie: Nadchodzące terminy na odciski palców (${upcomingAppointments.length})`;
     const message = `Pamiętaj o nadchodzących terminach na pobranie odcisków palców dla następujących pracowników: ${employeeNames}.`;
     
     // 1. Create in-app notification
@@ -76,14 +84,20 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     console.log(`Created notification for ${upcomingAppointments.length} appointments.`);
 
     // 2. Send email notification
-    const emailSubject = `Przypomnienie: ${upcomingAppointments.length} terminów na odciski palców za 3 dni`;
+    const emailSubject = `Przypomnienie: ${upcomingAppointments.length} terminów na odciski palców wkrótce`;
     const employeeDetails = upcomingAppointments
-        .map(apt => `<li><strong>${apt.employeeFullName}</strong> - ${format(parseMaybeDate(apt.appointmentDate)!, 'dd.MM.yyyy HH:mm')}</li>`)
+        .sort((a, b) => a.daysRemaining - b.daysRemaining)
+        .map(apt => {
+            let dayText = `za ${apt.daysRemaining} dni`;
+            if (apt.daysRemaining === 1) dayText = 'jutro';
+            if (apt.daysRemaining === 0) dayText = 'dzisiaj';
+            return `<li><strong>${apt.employeeFullName}</strong> - ${format(parseMaybeDate(apt.appointmentDate)!, 'dd.MM.yyyy HH:mm')} (${dayText})</li>`
+        })
         .join('');
 
     const emailBody = `
         <h1>Przypomnienie o terminach na odciski palców</h1>
-        <p>Za 3 dni, dnia ${format(notificationDate, 'dd.MM.yyyy')}, następujący pracownicy mają umówione wizyty:</p>
+        <p>Poniżej znajduje się lista nadchodzących wizyt:</p>
         <ul>${employeeDetails}</ul>
         <p>Proszę upewnić się, że pracownicy są poinformowani.</p>
     `;
