@@ -21,7 +21,7 @@ const SendEmailOutputSchema = z.object({
 export async function sendEmail(
     input: z.infer<typeof SendEmailInputSchema>
 ): Promise<z.infer<typeof SendEmailOutputSchema>> {
-    let apiKey: string | undefined | null = process.env.RESEND_API_KEY;
+    let apiKey: string | undefined | null = 're_8JohdvBu_GXuno8rBM4pgeEJHUiX5ew37';
 
     try {
         const apiKeyRef = ref(db, 'config/resendApiKey');
