@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -63,7 +64,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [activeView, setActiveView] = useState<ActiveView>('aktywni');
     
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], resendApiKey: '' });
+    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -78,6 +79,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 managers: objectToArray(data.config?.managers),
                 nationalities: objectToArray(data.config?.nationalities),
                 clothingItems: objectToArray(data.config?.clothingItems),
+                jobTitleClothingSets: objectToArray(data.config?.jobTitleClothingSets),
                 resendApiKey: data.config?.resendApiKey || '',
             });
             setNotifications(objectToArray(data.notifications));
@@ -326,7 +328,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const addOrder = useCallback(async (order: Omit<Order, 'id' | 'createdAt'>) => {
         try {
             const newOrderRef = push(ref(db, 'orders'));
-            await set(newOrderRef, { ...order, createdAt: new Date().toISOString() });
+            await set(newOrderRef, { ...order, createdAt: new Date().toISOString(), realizedQuantity: order.realizedQuantity || 0 });
             toast({ title: 'Sukces', description: 'Nowe zamówienie zostało dodane.'});
         } catch(e) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zamówienia.'});

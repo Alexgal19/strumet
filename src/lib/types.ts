@@ -59,6 +59,7 @@ export interface AllConfig {
   managers: Manager[];
   nationalities: Nationality[];
   clothingItems: ClothingItem[];
+  jobTitleClothingSets: JobTitleClothingSet[];
   resendApiKey?: string;
 }
 
@@ -118,5 +119,6 @@ export interface Order {
   department: string;
   jobTitle: string;
   quantity: number;
+  realizedQuantity: number;
   createdAt: string; // ISO String
 }

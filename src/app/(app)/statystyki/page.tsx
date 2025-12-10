@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -443,7 +444,7 @@ const OrdersTab = () => {
     
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-    const [editFormData, setEditFormData] = useState<{ department: string; jobTitle: string; quantity: number } | null>(null);
+    const [editFormData, setEditFormData] = useState<{ department: string; jobTitle: string; quantity: number; realizedQuantity: number; } | null>(null);
 
     useEffect(() => {
       const ordersRef = ref(db, 'orders');
@@ -463,7 +464,7 @@ const OrdersTab = () => {
             });
             return;
         }
-        await addOrder({ department, jobTitle, quantity });
+        await addOrder({ department, jobTitle, quantity, realizedQuantity: 0 });
         setDepartment('');
         setJobTitle('');
         setQuantity(1);
@@ -471,13 +472,13 @@ const OrdersTab = () => {
 
     const handleOpenEditDialog = (order: Order) => {
         setEditingOrder(order);
-        setEditFormData({ department: order.department, jobTitle: order.jobTitle, quantity: order.quantity });
+        setEditFormData({ department: order.department, jobTitle: order.jobTitle, quantity: order.quantity, realizedQuantity: order.realizedQuantity || 0 });
         setIsEditDialogOpen(true);
     };
     
     const handleUpdateOrder = async () => {
         if (!editingOrder || !editFormData) return;
-        if (!editFormData.department || !editFormData.jobTitle || editFormData.quantity < 1) {
+        if (!editFormData.department || !editFormData.jobTitle || editFormData.quantity < 1 || editFormData.realizedQuantity < 0) {
             toast({
                 variant: 'destructive',
                 title: 'Błąd walidacji',
@@ -570,22 +571,30 @@ const OrdersTab = () => {
                                        </AccordionTrigger>
                                        <AccordionContent>
                                             <div className="space-y-2 pl-4">
-                                                {orderList.map(order => (
-                                                    <div key={order.id} className="flex items-center justify-between p-2 rounded-md border text-sm">
-                                                        <div>
-                                                            <p className="font-medium">{order.jobTitle}</p>
-                                                            <p className="text-xs text-muted-foreground">Ilość: {order.quantity}</p>
+                                                {orderList.map(order => {
+                                                    const realized = order.realizedQuantity || 0;
+                                                    const remaining = order.quantity - realized;
+                                                    return (
+                                                        <div key={order.id} className="flex items-start justify-between p-3 rounded-md border text-sm">
+                                                            <div>
+                                                                <p className="font-medium">{order.jobTitle}</p>
+                                                                <div className="text-xs text-muted-foreground space-y-1 mt-1">
+                                                                    <p>Ilość: <span className='font-semibold'>{order.quantity}</span></p>
+                                                                    <p>Zrealizowano: <span className='font-semibold text-green-500'>{realized}</span></p>
+                                                                    <p>Pozostało: <span className='font-semibold text-orange-500'>{remaining}</span></p>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(order)}>
+                                                                    <Edit className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
+                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                </Button>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(order)}>
-                                                                <Edit className="h-4 w-4" />
-                                                            </Button>
-                                                            <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
-                                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                    )
+                                                })}
                                             </div>
                                        </AccordionContent>
                                    </AccordionItem>
@@ -632,15 +641,27 @@ const OrdersTab = () => {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-1">
-                                <Label className="text-sm">Ilość</Label>
-                                <Input 
-                                    type="number"
-                                    value={editFormData.quantity}
-                                    onChange={(e) => setEditFormData(d => d ? {...d, quantity: Math.max(1, parseInt(e.target.value, 10) || 1)} : null)}
-                                    min="1"
-                                    className="h-10 text-sm"
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <Label className="text-sm">Ilość zamówiona</Label>
+                                    <Input 
+                                        type="number"
+                                        value={editFormData.quantity}
+                                        onChange={(e) => setEditFormData(d => d ? {...d, quantity: Math.max(1, parseInt(e.target.value, 10) || 1)} : null)}
+                                        min="1"
+                                        className="h-10 text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-sm">Ilość zrealizowano</Label>
+                                    <Input 
+                                        type="number"
+                                        value={editFormData.realizedQuantity}
+                                        onChange={(e) => setEditFormData(d => d ? {...d, realizedQuantity: Math.max(0, parseInt(e.target.value, 10) || 0)} : null)}
+                                        min="0"
+                                        className="h-10 text-sm"
+                                    />
+                                </div>
                             </div>
                        </div>
                     )}
