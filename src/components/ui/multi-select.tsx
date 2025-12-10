@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -65,7 +64,7 @@ function MultiSelect({
                 variant="outline"
                 role="combobox"
                 aria-expanded={open}
-                className={cn("w-full justify-between font-normal min-h-10 h-auto", className)}
+                className={cn("w-full justify-between font-normal min-h-10 h-auto rounded-md", className)}
                 onClick={() => setOpen(!open)}
             >
                 <div className="flex gap-1 flex-wrap">
@@ -74,7 +73,7 @@ function MultiSelect({
                         <Badge
                             key={option.value}
                             variant="secondary"
-                            className="mr-1 rounded-full"
+                            className="mr-1 rounded-md"
                         >
                             {option.label}
                             <div
@@ -111,7 +110,7 @@ function MultiSelect({
                 <CommandItem
                   key={option.value}
                   onSelect={() => handleSelect(option.value)}
-                  className="rounded-full"
+                  className="rounded-md"
                 >
                   <Check
                     className={cn(
