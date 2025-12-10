@@ -1,7 +1,31 @@
 
 
-import { format as formatFns, parseISO, isValid } from 'date-fns';
+import { format as formatFns, parseISO, isValid, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
+
+/**
+ * Converts an Excel serial number to a JavaScript Date object.
+ * @param serial The Excel serial number.
+ * @returns A Date object.
+ */
+function excelSerialToDate(serial: number): Date {
+  // Excel's epoch starts on 1900-01-01. JS's epoch is 1970-01-01.
+  // Excel has a bug where it thinks 1900 was a leap year.
+  const excelEpoch = new Date(1899, 11, 30);
+  const excelEpochAsNumber = excelEpoch.getTime();
+  const millisecondsInDay = 86400000;
+  
+  // Adjust for the leap year bug if the date is after Feb 28, 1900
+  const days = serial - (serial > 60 ? 1 : 0);
+
+  const date = new Date(excelEpochAsNumber + days * millisecondsInDay);
+  
+  // We need to account for the timezone offset, because creating a date from timestamp will be in UTC
+  // but we want the date to be interpreted in the local timezone.
+  const tzOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() + tzOffset);
+}
+
 
 /**
  * Formats a date into a string.
@@ -47,7 +71,8 @@ export function formatDateTime(
 
 /**
  * Parses a value into a Date object or null if invalid.
- * This function now reliably handles 'yyyy-MM-dd' strings.
+ * This function now reliably handles 'yyyy-MM-dd' strings, 'dd.MM.yyyy' strings,
+ * and Excel's numeric date format.
  * @param input - The value to parse.
  * @returns A Date object or null.
  */
@@ -58,27 +83,39 @@ export function parseMaybeDate(
   if (input instanceof Date) {
     return isValid(input) ? input : null;
   }
+  
   if (typeof input === 'number') {
-      const date = new Date(input);
-      return isValid(date) ? date : null;
+    // This is likely an Excel date serial number.
+    try {
+        const date = excelSerialToDate(input);
+        return isValid(date) ? date : null;
+    } catch(e) {
+        return null;
+    }
   }
+
   if (typeof input === 'string') {
-      // Handle 'YYYY-MM-DD' format by forcing local time zone interpretation
+      let date: Date | null = null;
+      
+      // Try parsing as ISO 8601 string first (e.g., "2023-12-31T00:00:00.000Z")
+      date = parseISO(input);
+      if (isValid(date)) return date;
+
+      // Try parsing 'yyyy-MM-dd'
       if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-          const date = new Date(input + 'T00:00:00');
-          return isValid(date) ? date : null;
+          date = parse(input, 'yyyy-MM-dd', new Date());
+          if(isValid(date)) return date;
       }
-      // Handle 'DD.MM.YYYY' format
-      const parts = input.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-      if (parts) {
-          const [, day, month, year] = parts;
-          // month is 0-indexed in JS Date
-          const date = new Date(Number(year), Number(month) - 1, Number(day));
-          return isValid(date) ? date : null;
+      
+      // Try parsing 'dd.MM.yyyy'
+      if (/^\d{2}\.\d{2}\.\d{4}$/.test(input)) {
+          date = parse(input, 'dd.MM.yyyy', new Date());
+          if(isValid(date)) return date;
       }
-      // Fallback for other string formats (like full ISO strings)
-      const date = parseISO(input);
-      return isValid(date) ? date : null;
+
+      // Add other common formats if needed
+      
+      return null;
   }
   
   return null;

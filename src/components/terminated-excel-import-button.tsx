@@ -11,6 +11,7 @@ import { ref, update } from "firebase/database";
 import type { Employee } from '@/lib/types';
 import { push } from 'firebase/database';
 import { format } from 'date-fns';
+import { parseMaybeDate } from '@/lib/date';
 
 const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status'>> = {
   'Nazwisko i imię': 'fullName',
@@ -62,38 +63,23 @@ export function TerminatedExcelImportButton() {
             }
           }
             
-           const formatDateString = (date: any): string | null => {
-            if (!date) return null;
-            if (date instanceof Date) {
-              return format(date, 'yyyy-MM-dd');
-            }
-            if (typeof date === 'string') {
-               if (/\d{4}-\d{2}-\d{2}/.test(date) || /\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{4}/.test(date)) {
-                try {
-                  return format(new Date(date), 'yyyy-MM-dd');
-                } catch(e) {
-                  return null;
-                }
-              }
-            }
-            return null;
+          const getFormattedDate = (dateInput: any): string | null => {
+            const parsedDate = parseMaybeDate(dateInput);
+            return parsedDate ? format(parsedDate, 'yyyy-MM-dd') : null;
           };
 
-          const hireDate = formatDateString(englishItem.hireDate);
-          const terminationDate = formatDateString(englishItem.terminationDate);
-
           const employee: Omit<Employee, 'id'> = {
-            fullName: String(englishItem.fullName || ''),
-            hireDate: hireDate || '',
-            terminationDate: terminationDate || undefined,
-            jobTitle: String(englishItem.jobTitle || ''),
-            department: String(englishItem.department || ''),
-            manager: String(englishItem.manager || ''),
-            cardNumber: String(englishItem.cardNumber || ''),
-            nationality: String(englishItem.nationality || ''),
-            lockerNumber: String(englishItem.lockerNumber || ''),
-            departmentLockerNumber: String(englishItem.departmentLockerNumber || ''),
-            sealNumber: String(englishItem.sealNumber || ''),
+            fullName: String(englishItem.fullName || '').trim(),
+            hireDate: getFormattedDate(englishItem.hireDate) || '',
+            terminationDate: getFormattedDate(englishItem.terminationDate) || undefined,
+            jobTitle: String(englishItem.jobTitle || '').trim(),
+            department: String(englishItem.department || '').trim(),
+            manager: String(englishItem.manager || '').trim(),
+            cardNumber: String(englishItem.cardNumber || '').trim(),
+            nationality: String(englishItem.nationality || '').trim(),
+            lockerNumber: String(englishItem.lockerNumber || '').trim(),
+            departmentLockerNumber: String(englishItem.departmentLockerNumber || '').trim(),
+            sealNumber: String(englishItem.sealNumber || '').trim(),
             status: 'zwolniony',
           };
           
