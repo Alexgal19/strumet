@@ -52,6 +52,7 @@ interface AppContextType {
     addClothingIssuance: (issuance: Omit<ClothingIssuance, 'id'>) => Promise<ClothingIssuance | null>;
     deleteClothingIssuance: (issuanceId: string) => Promise<void>;
     addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Promise<void>;
+    updateOrder: (order: Order) => Promise<void>;
     deleteOrder: (orderId: string) => Promise<void>;
 }
 
@@ -331,6 +332,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zamówienia.'});
         }
     }, [toast]);
+    
+    const updateOrder = useCallback(async (order: Order) => {
+        try {
+            const { id, ...dataToUpdate } = order;
+            await update(ref(db, `orders/${id}`), dataToUpdate);
+            toast({ title: 'Sukces', description: 'Zamówienie zostało zaktualizowane.'});
+        } catch(e) {
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować zamówienia.'});
+        }
+    }, [toast]);
 
     const deleteOrder = useCallback(async (orderId: string) => {
         try {
@@ -368,6 +379,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addClothingIssuance,
         deleteClothingIssuance,
         addOrder,
+        updateOrder,
         deleteOrder
     };
 

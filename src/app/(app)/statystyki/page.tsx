@@ -7,7 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit } from 'lucide-react';
 import { Employee, Order } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -432,7 +432,7 @@ const ReportTab = () => {
 }
 
 const OrdersTab = () => {
-    const { config, addOrder, deleteOrder } = useAppContext();
+    const { config, addOrder, deleteOrder, updateOrder } = useAppContext();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoadingOrders, setIsLoadingOrders] = useState(true);
     const { toast } = useToast();
@@ -440,6 +440,10 @@ const OrdersTab = () => {
     const [department, setDepartment] = useState('');
     const [jobTitle, setJobTitle] = useState('');
     const [quantity, setQuantity] = useState(1);
+    
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+    const [editFormData, setEditFormData] = useState<{ department: string; jobTitle: string; quantity: number } | null>(null);
 
     useEffect(() => {
       const ordersRef = ref(db, 'orders');
@@ -449,7 +453,7 @@ const OrdersTab = () => {
       });
       return () => unsubscribe();
     }, []);
-    
+
     const handleAddOrder = async () => {
         if (!department || !jobTitle || quantity < 1) {
             toast({
@@ -464,6 +468,28 @@ const OrdersTab = () => {
         setJobTitle('');
         setQuantity(1);
     };
+
+    const handleOpenEditDialog = (order: Order) => {
+        setEditingOrder(order);
+        setEditFormData({ department: order.department, jobTitle: order.jobTitle, quantity: order.quantity });
+        setIsEditDialogOpen(true);
+    };
+    
+    const handleUpdateOrder = async () => {
+        if (!editingOrder || !editFormData) return;
+        if (!editFormData.department || !editFormData.jobTitle || editFormData.quantity < 1) {
+            toast({
+                variant: 'destructive',
+                title: 'Błąd walidacji',
+                description: 'Wszystkie pola muszą być wypełnione prawidłowo.',
+            });
+            return;
+        }
+        await updateOrder({ ...editingOrder, ...editFormData });
+        setIsEditDialogOpen(false);
+        setEditingOrder(null);
+    };
+
 
     const groupedOrders = useMemo(() => {
         return orders.reduce((acc, order) => {
@@ -550,9 +576,14 @@ const OrdersTab = () => {
                                                             <p className="font-medium">{order.jobTitle}</p>
                                                             <p className="text-xs text-muted-foreground">Ilość: {order.quantity}</p>
                                                         </div>
-                                                        <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
+                                                        <div>
+                                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(order)}>
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
+                                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -566,6 +597,60 @@ const OrdersTab = () => {
                     </CardContent>
                 </Card>
             </div>
+            
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edytuj zamówienie</DialogTitle>
+                        <DialogDescription>
+                            Zmień dane dotyczące zapotrzebowania na personel.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {editFormData && (
+                       <div className="grid gap-4 py-4">
+                            <div className="space-y-1">
+                                <Label className="text-sm">Dział</Label>
+                                <Select 
+                                    value={editFormData.department} 
+                                    onValueChange={(value) => setEditFormData(d => d ? {...d, department: value} : null)}
+                                >
+                                    <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                                    <SelectContent>
+                                        {config.departments.map(d => <SelectItem key={d.id} value={d.name} className="text-sm">{d.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-sm">Stanowisko</Label>
+                                <Select 
+                                    value={editFormData.jobTitle} 
+                                    onValueChange={(value) => setEditFormData(d => d ? {...d, jobTitle: value} : null)}
+                                >
+                                    <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                                    <SelectContent>
+                                        {config.jobTitles.map(j => <SelectItem key={j.id} value={j.name} className="text-sm">{j.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-sm">Ilość</Label>
+                                <Input 
+                                    type="number"
+                                    value={editFormData.quantity}
+                                    onChange={(e) => setEditFormData(d => d ? {...d, quantity: Math.max(1, parseInt(e.target.value, 10) || 1)} : null)}
+                                    min="1"
+                                    className="h-10 text-sm"
+                                />
+                            </div>
+                       </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Anuluj</Button>
+                        <Button onClick={handleUpdateOrder}>Zapisz zmiany</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     )
 }
@@ -602,10 +687,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
-
-    
-
-
-
