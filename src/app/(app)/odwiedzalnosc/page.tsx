@@ -184,8 +184,8 @@ const EmployeeAttendanceCard = ({ employee, attendanceData, onToggleAbsence }: {
                                     "h-8 w-8 rounded-full text-sm font-medium transition-colors",
                                     !day.isWeekend && !day.isHoliday && isAbsent && 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
                                     !day.isWeekend && !day.isHoliday && !isAbsent && 'hover:bg-primary/10',
-                                    day.isHoliday && 'bg-yellow-500/20 text-yellow-700 hover:bg-yellow-500/30',
-                                    day.isWeekend && !day.isHoliday && 'bg-red-500/10 text-red-600 hover:bg-red-500/20',
+                                    day.isHoliday && 'bg-accent/20 text-accent-foreground hover:bg-accent/30',
+                                    day.isWeekend && !day.isHoliday && 'bg-destructive/10 text-destructive hover:bg-destructive/20',
                                     day.isToday && 'ring-2 ring-primary',
                                     (day.isWeekend || day.isHoliday) && 'cursor-not-allowed opacity-80',
                                 )}
@@ -348,8 +348,8 @@ export default function AttendancePage() {
                                                     "h-8 w-8 rounded-full text-xs font-medium transition-colors",
                                                     !day.isWeekend && !day.isHoliday && isAbsent && 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
                                                      !day.isWeekend && !day.isHoliday && !isAbsent && 'hover:bg-primary/10',
-                                                    day.isHoliday && 'bg-yellow-500/20 text-yellow-700',
-                                                    day.isWeekend && !day.isHoliday && 'bg-red-500/10 text-red-600',
+                                                    day.isHoliday && 'bg-accent/20 text-accent-foreground',
+                                                    day.isWeekend && !day.isHoliday && 'bg-destructive/10 text-destructive',
                                                     day.isToday && 'ring-2 ring-primary',
                                                     (day.isWeekend || day.isHoliday) && 'cursor-not-allowed opacity-70',
                                                 )}
