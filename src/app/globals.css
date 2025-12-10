@@ -29,7 +29,7 @@ html, body, #__next__ {
     --accent: 210 90% 55%; /* Sky Blue */
     --accent-foreground: 222 84% 5%;
     
-    --grapefruit: 350 90% 60%;
+    --grapefruit: 34 100% 50%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -39,13 +39,13 @@ html, body, #__next__ {
     --ring: 222 70% 45%;
     --radius: 0.8rem;
     
-    --sidebar-background: 220 15% 98%; /* Slightly off-white */
+    --sidebar-background: 220 15% 98% / 0.8;
     --sidebar-foreground: 222 84% 10%;
     --sidebar-primary: 222 70% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 70% 45% / 0.1;
     --sidebar-accent-foreground: 222 70% 45%;
-    --sidebar-border: 220 15% 88%;
+    --sidebar-border: 220 15% 88% / 0.5;
     --sidebar-ring: 222 70% 45%;
 
     --chart-1: 222 70% 50%; 
