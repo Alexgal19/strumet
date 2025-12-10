@@ -34,27 +34,36 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     outputSchema: CheckAppointmentsOutputSchema,
   },
   async () => {
-    console.log('Starting to check for fingerprint appointments...');
+    console.log('DEBUG: [checkAppointmentsAndNotifyFlow] Starting flow.');
     
     const appointmentsRef = ref(db, 'fingerprintAppointments');
     const snapshot = await get(appointmentsRef);
     const appointments = objectToArray<FingerprintAppointment>(snapshot.val());
 
+    console.log(`DEBUG: Found ${appointments.length} total appointments in Firebase.`);
+
     if (!appointments || appointments.length === 0) {
-      console.log('No fingerprint appointments found.');
+      console.log('DEBUG: No appointments found. Exiting flow.');
       return { notificationsCreated: 0, emailsSent: 0 };
     }
     
     const today = startOfDay(new Date());
+    console.log(`DEBUG: Today's date (start of day) is: ${today.toISOString()}`);
 
     const upcomingAppointments = appointments
         .map(apt => {
             const aptDate = parseMaybeDate(apt.appointmentDate);
-            if (!aptDate) return null;
+            if (!aptDate) {
+                console.log(`DEBUG: Skipping appointment ID ${apt.id} due to invalid date:`, apt.appointmentDate);
+                return null;
+            }
             
             const daysRemaining = differenceInDays(startOfDay(aptDate), today);
             
+            console.log(`DEBUG: Checking appointment for ${apt.employeeFullName} on ${apt.appointmentDate}. Days remaining: ${daysRemaining}`);
+
             if (daysRemaining >= 0 && daysRemaining <= 3) {
+                console.log(`DEBUG: MATCH FOUND for ${apt.employeeFullName}. Days remaining: ${daysRemaining}.`);
                 return { ...apt, daysRemaining };
             }
             return null;
@@ -62,9 +71,10 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
         .filter((apt): apt is FingerprintAppointment & { daysRemaining: number } => apt !== null);
 
 
-    console.log(`Found ${upcomingAppointments.length} upcoming appointments in the next 3 days.`);
+    console.log(`DEBUG: Found ${upcomingAppointments.length} upcoming appointments in the next 3 days.`);
 
     if (upcomingAppointments.length === 0) {
+        console.log('DEBUG: No upcoming appointments match the criteria. Exiting flow.');
         return { notificationsCreated: 0, emailsSent: 0 };
     }
     
@@ -73,6 +83,7 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     const message = `Pamiętaj o nadchodzących terminach na pobranie odcisków palców dla następujących pracowników: ${employeeNames}.`;
     
     // 1. Create in-app notification
+    console.log('DEBUG: Creating in-app notification...');
     const newNotificationRef = push(ref(db, 'notifications'));
     const newNotification: Omit<AppNotification, 'id'> = {
         title,
@@ -81,9 +92,10 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
         read: false,
     };
     await set(newNotificationRef, newNotification);
-    console.log(`Created notification for ${upcomingAppointments.length} appointments.`);
+    console.log(`DEBUG: Created notification for ${upcomingAppointments.length} appointments.`);
 
     // 2. Send email notification
+    console.log('DEBUG: Preparing email notification...');
     const emailSubject = `Przypomnienie: ${upcomingAppointments.length} terminów na odciski palców wkrótce`;
     const employeeDetails = upcomingAppointments
         .sort((a, b) => a.daysRemaining - b.daysRemaining)
@@ -101,15 +113,16 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
         <ul>${employeeDetails}</ul>
         <p>Proszę upewnić się, że pracownicy są poinformowani.</p>
     `;
-
+    
+    console.log('DEBUG: Sending email...');
     const emailResult = await sendEmail({ subject: emailSubject, body: emailBody });
 
     let emailsSentCount = 0;
     if(emailResult.success) {
-        console.log(`Email sent successfully for ${upcomingAppointments.length} appointments.`);
+        console.log(`DEBUG: Email sent successfully for ${upcomingAppointments.length} appointments.`);
         emailsSentCount = 1;
     } else {
-        console.error(`Failed to send email: ${emailResult.message}`);
+        console.error(`DEBUG: Failed to send email: ${emailResult.message}`);
         // Create an error notification in-app
         const errorNotificationRef = push(ref(db, 'notifications'));
         const errorNotification: Omit<AppNotification, 'id'> = {
