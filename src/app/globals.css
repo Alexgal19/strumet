@@ -8,52 +8,76 @@ html, body, #__next__ {
 
 @layer base {
   :root {
-    --background: 25 100% 98%; /* Very light, almost white orange */
-    --foreground: 25 95% 15%; /* Dark brown */
-
-    --card: 25 100% 96%;
-    --card-foreground: 25 95% 15%;
-    
-    --popover: 25 100% 96%;
-    --popover-foreground: 25 95% 15%;
-
-    --primary: 25 90% 50%; /* Bright Orange */
-    --primary-foreground: 25 95% 10%;
-
-    --secondary: 25 80% 90%; 
-    --secondary-foreground: 25 95% 15%;
-    
-    --muted: 25 80% 92%;
-    --muted-foreground: 25 40% 40%;
-
-    --accent: 35 95% 55%; /* Slightly more yellow-orange accent */
-    --accent-foreground: 25 95% 10%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 25 100% 96%; /* Same as card to make borders disappear */
-    --input: 25 80% 90%;   /* A slightly darker orange for input fields */
-    --ring: 25 90% 50%;   /* Bright orange for focus rings */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
     --radius: 0.8rem;
-    
-    /* Sidebar adapted to the orange theme */
-    --sidebar-background: 25 100% 94% / 0.8;
-    --sidebar-foreground: 25 95% 15%;
-    --sidebar-primary: 25 90% 50%;
-    --sidebar-primary-foreground: 25 95% 10%;
-    --sidebar-accent: 25 90% 50% / 0.1;
-    --sidebar-accent-foreground: 25 90% 50%;
-    --sidebar-border: 25 100% 94% / 0.5; /* Disappearing border */
-    --sidebar-ring: 25 90% 50%;
 
-    /* Chart palette with shades of orange and complementary colors */
-    --chart-1: 25 90% 50%; 
-    --chart-2: 35 95% 55%; 
-    --chart-3: 15 85% 60%; 
-    --chart-4: 25 90% 70%; 
-    --chart-5: 40 90% 65%; 
+    --chart-1: 222.2 47.4% 11.2%;
+    --chart-2: 22 90% 50%;
+    --chart-3: 170 80% 40%;
+    --chart-4: 210 90% 55%;
+    --chart-5: 330 100% 70%;
   }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 210 40% 98%;
+    --card: 240 4% 10% / 0.5; /* Semi-transparent for glass effect */
+    --card-foreground: 210 40% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 25 95% 53%; /* Vibrant Orange */
+    --primary-foreground: 25 100% 15%;
+    --secondary: 225 10% 15%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 225 10% 15%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+    --accent: 225 10% 15%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 25 95% 53%;
+
+    --sidebar-background: 240 4% 10% / 0.6; /* Glassmorphism for sidebar */
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 25 95% 53%;
+    --sidebar-primary-foreground: 25 100% 15%;
+    --sidebar-accent: 25 95% 53% / 0.1;
+    --sidebar-accent-foreground: 25 95% 53%;
+    --sidebar-border: 217.2 32.6% 17.5% / 0.5;
+    --sidebar-ring: 25 95% 53%;
+    
+    --chart-1: 25 95% 53%;
+    --chart-2: 210 90% 55%;
+    --chart-3: 170 80% 40%;
+    --chart-4: 330 100% 70%;
+    --chart-5: 45 100% 50%;
+  }
+}
+
+@keyframes move-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 @layer base {
@@ -62,7 +86,16 @@ html, body, #__next__ {
   }
   body {
     @apply bg-background text-foreground;
-    background-color: hsl(var(--background));
+  }
+
+  .dark body {
+     background-color: hsl(var(--background));
+     background-image: radial-gradient(at 20% 20%, hsl(var(--primary) / 0.15) 0px, transparent 50%),
+                       radial-gradient(at 80% 20%, hsl(210 90% 55% / 0.1) 0px, transparent 50%),
+                       radial-gradient(at 20% 80%, hsl(330 100% 70% / 0.15) 0px, transparent 50%),
+                       radial-gradient(at 80% 80%, hsl(170 80% 40% / 0.1) 0px, transparent 50%);
+    background-size: 200% 200%;
+    animation: move-gradient 15s ease-in-out infinite;
   }
 }
 
