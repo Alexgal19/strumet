@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
 
   return (
-    <html lang="pl" suppressHydrationWarning className="dark">
+    <html lang="pl" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-geist/latest/geist.css" />
         <link rel="manifest" href="/manifest.json" />

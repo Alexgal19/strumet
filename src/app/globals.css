@@ -7,50 +7,50 @@ html, body, #__next__ {
 }
 
 @layer base {
-  .dark {
-    --background: 222 84% 5%; /* Deep Ocean Blue */
-    --foreground: 210 40% 98%;
+  :root {
+    --background: 0 0% 100%; /* White */
+    --foreground: 222 84% 5%; /* Deep Blue Text */
 
-    --card: 222 84% 8%; 
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 100%; 
+    --card-foreground: 222 84% 5%;
     
-    --popover: 222 84% 4%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 84% 5%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 84% 10%;
+    --primary: 222 70% 45%; /* Rich Blue */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 84% 12%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 15% 96%; /* Light Gray */
+    --secondary-foreground: 222 84% 5%;
     
-    --muted: 222 84% 12%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 220 15% 96%;
+    --muted-foreground: 220 10% 40%;
 
-    --accent: 170 80% 40%; /* Turquoise Accent */
-    --accent-foreground: 210 40% 98%;
+    --accent: 210 90% 55%; /* Sky Blue */
+    --accent-foreground: 222 84% 5%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 222 84% 12%;
-    --input: 222 84% 15%;
-    --ring: 170 80% 50%;
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 222 70% 45%;
     --radius: 0.8rem;
     
-    --sidebar-background: 222 84% 6%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 170 80% 40%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 170 80% 40% / 0.15;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 84% 10%;
-    --sidebar-ring: 170 80% 50%;
+    --sidebar-background: 220 15% 98%; /* Slightly off-white */
+    --sidebar-foreground: 222 84% 10%;
+    --sidebar-primary: 222 70% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 70% 45% / 0.1;
+    --sidebar-accent-foreground: 222 70% 45%;
+    --sidebar-border: 220 15% 88%;
+    --sidebar-ring: 222 70% 45%;
 
-    --chart-1: 170 70% 45%; 
-    --chart-2: 210 80% 65%; 
-    --chart-3: 190 75% 55%; 
-    --chart-4: 200 82% 60%; 
-    --chart-5: 180 70% 50%; 
+    --chart-1: 222 70% 50%; 
+    --chart-2: 170 70% 40%; 
+    --chart-3: 350 80% 60%; 
+    --chart-4: 30 90% 55%; 
+    --chart-5: 280 75% 60%; 
   }
 }
 
@@ -59,10 +59,10 @@ html, body, #__next__ {
     @apply border-border;
   }
   body {
-    @apply text-foreground;
+    @apply bg-background text-foreground;
     background-color: hsl(var(--background));
-    background-image: radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 40%),
-                      radial-gradient(circle at bottom right, hsl(var(--accent) / 0.1), transparent 40%);
+    background-image: radial-gradient(circle at top left, hsl(var(--primary) / 0.05), transparent 40%),
+                      radial-gradient(circle at bottom right, hsl(var(--accent) / 0.05), transparent 40%);
   }
 }
 

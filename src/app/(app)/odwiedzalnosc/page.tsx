@@ -299,7 +299,7 @@ export default function AttendancePage() {
               <span className="text-sm uppercase text-muted-foreground">
                 {data.name}
               </span>
-              <span className="font-bold text-base text-muted-foreground">
+              <span className="font-bold text-base text-foreground">
                 {data.absences} ({data.percentage.toFixed(1)}%)
               </span>
             </div>
@@ -471,8 +471,8 @@ export default function AttendancePage() {
                                             innerRadius={60}
                                             outerRadius={80}
                                             paddingAngle={5}
-                                            stroke="hsl(var(--card))"
                                             strokeWidth={2}
+                                            stroke="hsl(var(--background))"
                                         >
                                             {attendanceData.stats.departmentAbsenceData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.fill} />
