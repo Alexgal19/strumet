@@ -74,7 +74,7 @@ function MultiSelect({
                         <Badge
                             key={option.value}
                             variant="secondary"
-                            className="mr-1"
+                            className="mr-1 rounded-full"
                         >
                             {option.label}
                             <div
@@ -111,6 +111,7 @@ function MultiSelect({
                 <CommandItem
                   key={option.value}
                   onSelect={() => handleSelect(option.value)}
+                  className="rounded-full"
                 >
                   <Check
                     className={cn(
