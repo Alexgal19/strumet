@@ -1,6 +1,7 @@
 
 
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -42,6 +43,7 @@ interface AppContextType {
     handleRestoreEmployee: (id: string) => Promise<void>;
     handleDeleteAllHireDates: () => Promise<void>;
     handleDeleteAllEmployees: () => Promise<void>;
+    handleRestoreAllTerminatedEmployees: () => Promise<void>;
     addConfigItems: (configType: ConfigType, items: string[]) => Promise<void>;
     updateConfigItem: (configType: ConfigType, itemId: string, newName: string) => Promise<void>;
     removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
@@ -177,6 +179,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracowników.' });
         }
     }, [toast]);
+
+    const handleRestoreAllTerminatedEmployees = useCallback(async () => {
+        try {
+            const updates: Record<string, any> = {};
+            const terminatedEmployees = employees.filter(e => e.status === 'zwolniony');
+            if (terminatedEmployees.length === 0) {
+                toast({ title: 'Informacja', description: 'Brak zwolnionych pracowników do przywrócenia.' });
+                return;
+            }
+
+            terminatedEmployees.forEach(employee => {
+                updates[`/employees/${employee.id}/status`] = 'aktywny';
+                updates[`/employees/${employee.id}/terminationDate`] = null;
+            });
+            await update(ref(db), updates);
+            toast({ title: 'Sukces', description: `Przywrócono ${terminatedEmployees.length} pracowników.` });
+        } catch (error) {
+            console.error("Error restoring all terminated employees: ", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracowników.' });
+        }
+    }, [employees, toast]);
 
     // --- Config Actions ---
     const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
@@ -377,6 +400,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         handleRestoreEmployee,
         handleDeleteAllHireDates,
         handleDeleteAllEmployees,
+        handleRestoreAllTerminatedEmployees,
         addConfigItems,
         updateConfigItem,
         removeConfigItem,
@@ -406,3 +430,5 @@ export const useAppContext = () => {
     }
     return context;
 };
+
+    

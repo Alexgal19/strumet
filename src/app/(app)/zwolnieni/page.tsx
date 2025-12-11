@@ -61,7 +61,7 @@ const exportColumns = [
 
 
 export default function ZwolnieniPage() {
-  const { employees, config, isLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees } = useAppContext();
+  const { employees, config, isLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees } = useAppContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -295,22 +295,22 @@ export default function ZwolnieniPage() {
             <TerminatedExcelImportButton />
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Usuń daty
+                <Button variant="secondary">
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Przywróć wszystkich
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                    dat zatrudnienia dla wszystkich pracowników (aktywnych i zwolnionych).
+                    Tej akcji nie można cofnąć. Spowoduje to przywrócenie wszystkich zwolnionych
+                    pracowników do listy aktywnych.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
+                  <AlertDialogAction onClick={handleRestoreAllTerminatedEmployees}>Kontynuuj</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -325,7 +325,7 @@ export default function ZwolnieniPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                    Tej akcji не można cofnąć. Spowoduje to trwałe usunięcie wszystkich
                     pracowników (aktywnych i zwolnionych) z bazy danych.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -423,3 +423,5 @@ export default function ZwolnieniPage() {
     </div>
   );
 }
+
+    
