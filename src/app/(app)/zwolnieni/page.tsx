@@ -41,6 +41,8 @@ import { useAppContext } from '@/context/app-context';
 import { EmployeeCard } from '@/components/employee-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDate, parseMaybeDate } from '@/lib/date';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
 
 
 const exportColumns = [
@@ -66,7 +68,7 @@ export default function ZwolnieniPage() {
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([]);
   const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
-  const [selectedTerminationYears, setSelectedTerminationYears] = useState<string[]>([]);
+  const [selectedTerminationPeriods, setSelectedTerminationPeriods] = useState<string[]>([]);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -80,20 +82,27 @@ export default function ZwolnieniPage() {
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
-  const terminationYearOptions = useMemo(() => {
-    const years = new Set<string>();
+  const terminationPeriodOptions = useMemo(() => {
+    const periods = new Set<string>();
     let hasBlankDate = false;
     terminatedEmployees.forEach(emp => {
       const termDate = parseMaybeDate(emp.terminationDate);
       if (termDate) {
-        years.add(termDate.getFullYear().toString());
+        periods.add(format(termDate, 'yyyy-MM'));
       } else {
         hasBlankDate = true;
       }
     });
-    const sorted = Array.from(years).sort((a,b) => b.localeCompare(a));
-    if (hasBlankDate) sorted.unshift(BLANK_FILTER_VALUE);
-    return sorted.map(y => ({ value: y, label: y }));
+
+    const sortedPeriods = Array.from(periods).sort((a, b) => b.localeCompare(a));
+    const options = sortedPeriods.map(p => ({
+      value: p,
+      label: format(new Date(p), 'LLLL yyyy', { locale: pl }),
+    }));
+    if (hasBlankDate) {
+      options.unshift({ value: BLANK_FILTER_VALUE, label: BLANK_FILTER_VALUE });
+    }
+    return options;
   }, [terminatedEmployees]);
 
   const handleClearFilters = () => {
@@ -101,7 +110,7 @@ export default function ZwolnieniPage() {
     setSelectedDepartments([]);
     setSelectedJobTitles([]);
     setSelectedManagers([]);
-    setSelectedTerminationYears([]);
+    setSelectedTerminationPeriods([]);
     setRowSelection({});
   };
 
@@ -126,12 +135,13 @@ export default function ZwolnieniPage() {
         filtered = filtered.filter(employee => selectedJobTitles.includes(employee.jobTitle));
     }
 
-    if (selectedTerminationYears.length > 0) {
-        filtered = filtered.filter(employee => {
-            const termDate = parseMaybeDate(employee.terminationDate);
-            if (!termDate) return selectedTerminationYears.includes(BLANK_FILTER_VALUE);
-            return selectedTerminationYears.includes(termDate.getFullYear().toString());
-        });
+    if (selectedTerminationPeriods.length > 0) {
+      filtered = filtered.filter(employee => {
+        const termDate = parseMaybeDate(employee.terminationDate);
+        if (!termDate) return selectedTerminationPeriods.includes(BLANK_FILTER_VALUE);
+        const period = format(termDate, 'yyyy-MM');
+        return selectedTerminationPeriods.includes(period);
+      });
     }
     
     return filtered.filter(employee => {
@@ -139,7 +149,7 @@ export default function ZwolnieniPage() {
       return selectedEmployeeIds.includes(employee.id);
     });
 
-  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedTerminationYears, selectedEmployeeIds]);
+  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedTerminationPeriods, selectedEmployeeIds]);
 
   const onRestoreEmployee = async (employeeId: string) => {
     if (window.confirm('Czy na pewno chcesz przywrócić tego pracownika?')) {
@@ -364,7 +374,7 @@ export default function ZwolnieniPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          {(searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedTerminationYears.length > 0) && (
+          {(searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedTerminationPeriods.length > 0) && (
             <Button variant="outline" onClick={handleClearFilters}>
               <XCircle className="mr-2 h-4 w-4" />
               Wyczyść filtry
@@ -385,10 +395,10 @@ export default function ZwolnieniPage() {
               onChange={setSelectedJobTitles}
             />
             <MultiSelect
-              title="Rok zwolnienia"
-              options={terminationYearOptions}
-              selected={selectedTerminationYears}
-              onChange={setSelectedTerminationYears}
+              title="Okres zwolnienia"
+              options={terminationPeriodOptions}
+              selected={selectedTerminationPeriods}
+              onChange={setSelectedTerminationPeriods}
             />
         </div>
       </div>

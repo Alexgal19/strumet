@@ -49,6 +49,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { getStatusColor, legalizationStatuses } from '@/lib/legalization-statuses';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
 
 
 const EmployeeSummary = dynamic(() => import('@/components/employee-summary').then(mod => mod.EmployeeSummary), {
@@ -83,8 +85,8 @@ export default function AktywniPage() {
   const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([]);
   const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
   const [selectedNationalities, setSelectedNationalities] = useState<string[]>([]);
-  const [selectedHireYears, setSelectedHireYears] = useState<string[]>([]);
-  const [selectedContractYears, setSelectedContractYears] = useState<string[]>([]);
+  const [selectedHirePeriods, setSelectedHirePeriods] = useState<string[]>([]);
+  const [selectedContractPeriods, setSelectedContractPeriods] = useState<string[]>([]);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -94,39 +96,46 @@ export default function AktywniPage() {
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
-  const { hireYearOptions, contractYearOptions } = useMemo(() => {
-    const hireYears = new Set<string>();
-    const contractYears = new Set<string>();
+  const { hirePeriodOptions, contractPeriodOptions } = useMemo(() => {
+    const hirePeriods = new Set<string>();
+    const contractPeriods = new Set<string>();
     let hasBlankHireDate = false;
     let hasBlankContractDate = false;
 
     activeEmployees.forEach(emp => {
       const hireDate = parseMaybeDate(emp.hireDate);
       if (hireDate) {
-        hireYears.add(hireDate.getFullYear().toString());
+        hirePeriods.add(format(hireDate, 'yyyy-MM'));
       } else {
         hasBlankHireDate = true;
       }
       
       const contractDate = parseMaybeDate(emp.contractEndDate);
       if (contractDate) {
-        contractYears.add(contractDate.getFullYear().toString());
+        contractPeriods.add(format(contractDate, 'yyyy-MM'));
       } else {
         hasBlankContractDate = true;
       }
     });
 
-    const sortedHire = Array.from(hireYears).sort((a,b) => b.localeCompare(a));
-    const sortedContract = Array.from(contractYears).sort((a,b) => b.localeCompare(a));
-    
-    if (hasBlankHireDate) sortedHire.unshift(BLANK_FILTER_VALUE);
-    if (hasBlankContractDate) sortedContract.unshift(BLANK_FILTER_VALUE);
+    const createOptions = (periods: Set<string>, hasBlank: boolean): OptionType[] => {
+      const sortedPeriods = Array.from(periods).sort((a, b) => b.localeCompare(a));
+      const options = sortedPeriods.map(p => ({
+        value: p,
+        label: format(new Date(p), 'LLLL yyyy', { locale: pl }),
+      }));
+      if (hasBlank) {
+        options.unshift({ value: BLANK_FILTER_VALUE, label: BLANK_FILTER_VALUE });
+      }
+      return options;
+    };
 
     return {
-      hireYearOptions: sortedHire.map(y => ({ value: y, label: y })),
-      contractYearOptions: sortedContract.map(y => ({ value: y, label: y }))
+      hirePeriodOptions: createOptions(hirePeriods, hasBlankHireDate),
+      contractPeriodOptions: createOptions(contractPeriods, hasBlankContractDate),
     };
   }, [activeEmployees]);
+
 
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
@@ -139,8 +148,8 @@ export default function AktywniPage() {
     setSelectedJobTitles([]);
     setSelectedManagers([]);
     setSelectedNationalities([]);
-    setSelectedHireYears([]);
-    setSelectedContractYears([]);
+    setSelectedHirePeriods([]);
+    setSelectedContractPeriods([]);
     setRowSelection({});
   };
 
@@ -167,28 +176,31 @@ export default function AktywniPage() {
     if (selectedNationalities.length > 0) {
       filtered = filtered.filter(employee => selectedNationalities.includes(employee.nationality));
     }
-
-    if (selectedHireYears.length > 0) {
-        filtered = filtered.filter(employee => {
-            const hireDate = parseMaybeDate(employee.hireDate);
-            if (!hireDate) return selectedHireYears.includes(BLANK_FILTER_VALUE);
-            return selectedHireYears.includes(hireDate.getFullYear().toString());
-        });
+    
+    if (selectedHirePeriods.length > 0) {
+      filtered = filtered.filter(employee => {
+        const hireDate = parseMaybeDate(employee.hireDate);
+        if (!hireDate) return selectedHirePeriods.includes(BLANK_FILTER_VALUE);
+        const period = format(hireDate, 'yyyy-MM');
+        return selectedHirePeriods.includes(period);
+      });
     }
-
-    if (selectedContractYears.length > 0) {
-        filtered = filtered.filter(employee => {
-            const contractDate = parseMaybeDate(employee.contractEndDate);
-            if (!contractDate) return selectedContractYears.includes(BLANK_FILTER_VALUE);
-            return selectedContractYears.includes(contractDate.getFullYear().toString());
-        });
+    
+    if (selectedContractPeriods.length > 0) {
+      filtered = filtered.filter(employee => {
+        const contractDate = parseMaybeDate(employee.contractEndDate);
+        if (!contractDate) return selectedContractPeriods.includes(BLANK_FILTER_VALUE);
+        const period = format(contractDate, 'yyyy-MM');
+        return selectedContractPeriods.includes(period);
+      });
     }
 
     return filtered.filter(employee => {
       if (selectedEmployeeIds.length === 0) return true;
       return selectedEmployeeIds.includes(employee.id);
     });
-  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, selectedHireYears, selectedContractYears, selectedEmployeeIds]);
+  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, selectedHirePeriods, selectedContractPeriods, selectedEmployeeIds]);
+
 
   const onSave = async (employeeData: Employee) => {
     await handleSaveEmployee(employeeData);
@@ -358,7 +370,7 @@ export default function AktywniPage() {
     );
   };
 
-  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || selectedHireYears.length > 0 || selectedContractYears.length > 0;
+  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || selectedHirePeriods.length > 0 || selectedContractPeriods.length > 0;
 
   if (isLoading || !hasMounted) {
     return (
@@ -490,16 +502,16 @@ export default function AktywniPage() {
               onChange={setSelectedNationalities}
             />
             <MultiSelect
-              title="Rok zatrudnienia"
-              options={hireYearOptions}
-              selected={selectedHireYears}
-              onChange={setSelectedHireYears}
+              title="Okres zatrudnienia"
+              options={hirePeriodOptions}
+              selected={selectedHirePeriods}
+              onChange={setSelectedHirePeriods}
             />
             <MultiSelect
-              title="Rok umowy do"
-              options={contractYearOptions}
-              selected={selectedContractYears}
-              onChange={setSelectedContractYears}
+              title="Okres umowy do"
+              options={contractPeriodOptions}
+              selected={selectedContractPeriods}
+              onChange={setSelectedContractPeriods}
             />
         </div>
       </div>
