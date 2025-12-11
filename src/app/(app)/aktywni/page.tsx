@@ -88,6 +88,8 @@ export default function AktywniPage() {
   const [selectedNationalities, setSelectedNationalities] = useState<string[]>([]);
   
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
+  const [contractDateRange, setContractDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   
@@ -108,6 +110,7 @@ export default function AktywniPage() {
     setSelectedManagers([]);
     setSelectedNationalities([]);
     setDateRange({ from: undefined, to: undefined });
+    setContractDateRange({ from: undefined, to: undefined });
     setRowSelection({});
   };
 
@@ -150,14 +153,33 @@ export default function AktywniPage() {
       });
     }
 
+    if (contractDateRange.from || contractDateRange.to) {
+        filtered = filtered.filter(employee => {
+            const contractEndDate = parseMaybeDate(employee.contractEndDate);
+            if (!contractEndDate) return false;
+
+            const from = contractDateRange.from ? startOfDay(contractDateRange.from) : undefined;
+            const to = contractDateRange.to ? endOfDay(contractDateRange.to) : undefined;
+            
+            if (from && to) return isWithinInterval(contractEndDate, { start: from, end: to });
+            if (from) return contractEndDate >= from;
+            if (to) return contractEndDate <= to;
+            return true;
+        });
+    }
+
     return filtered.filter(employee => {
       if (selectedEmployeeIds.length === 0) return true;
       return selectedEmployeeIds.includes(employee.id);
     });
-  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange, selectedEmployeeIds]);
+  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange, contractDateRange, selectedEmployeeIds]);
   
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
     setDateRange(prev => ({ ...prev, [type]: date }));
+  };
+
+  const handleContractDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
+    setContractDateRange(prev => ({ ...prev, [type]: date }));
   };
 
   const onSave = async (employeeData: Employee) => {
@@ -328,8 +350,14 @@ export default function AktywniPage() {
     );
   };
 
+  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || dateRange.from || dateRange.to || contractDateRange.from || contractDateRange.to;
+
   if (isLoading || !hasMounted) {
-    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-300 opacity-100">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
   }
 
   return (
@@ -421,14 +449,14 @@ export default function AktywniPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-           {(searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || dateRange.from || dateRange.to) && (
+           {hasActiveFilters && (
              <Button variant="outline" onClick={handleClearFilters}>
                 <XCircle className="mr-2 h-4 w-4" />
                 Wyczyść filtry
               </Button>
            )}
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             <MultiSelect
               title="Dział"
               options={departmentOptions}
@@ -473,6 +501,28 @@ export default function AktywniPage() {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
+              </PopoverContent>
+            </Popover>
+             <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !contractDateRange.from && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {contractDateRange.from ? format(contractDateRange.from, "PPP", { locale: pl }) : <span>Umowa ważna od</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={contractDateRange.from} onSelect={handleContractDateChange('from')} locale={pl} />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !contractDateRange.to && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {contractDateRange.to ? format(contractDateRange.to, "PPP", { locale: pl }) : <span>Umowa ważna do</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={contractDateRange.to} onSelect={handleContractDateChange('to')} locale={pl} />
               </PopoverContent>
             </Popover>
         </div>
