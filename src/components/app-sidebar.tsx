@@ -41,7 +41,7 @@ import { db } from '@/lib/firebase';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { runDailyChecks } from '@/ai/flows/run-daily-checks';
+import { runManualChecks } from '@/ai/flows/run-manual-checks';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -82,13 +82,8 @@ const Notifications = () => {
     const handleManualCheck = async () => {
         setIsChecking(true);
         try {
-            const result = await runDailyChecks();
+            const result = await runManualChecks();
             let description = `Utworzono ${result.totalNotifications} nowych powiadomień. Wysłano ${result.totalEmails} e-maili.`;
-            if (result.snapshotResult?.snapshotId) {
-                description += ` Utworzono zrzut statystyk.`;
-            } else if (result.snapshotResult?.error) {
-                description += ` Błąd tworzenia zrzutu statystyk.`;
-            }
 
             toast({
                 title: 'Sprawdzanie zakończone',
@@ -149,7 +144,7 @@ const Notifications = () => {
                         ) : (
                             <RefreshCw className="mr-2 h-4 w-4" />
                         )}
-                        Uruchom codzienne sprawdzanie
+                        Uruchom sprawdzanie
                     </Button>
                     {notifications.length > 0 && (
                         <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive" onClick={handleClearAll}>

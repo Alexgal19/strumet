@@ -8,6 +8,7 @@ import '@/ai/flows/check-expiring-contracts.ts';
 import '@/ai/flows/check-planned-terminations.ts';
 import '@/ai/flows/generate-avatar.ts';
 import '@/ai/flows/run-daily-checks.ts';
+import '@/ai/flows/run-manual-checks.ts';
 import '@/ai/flows/create-stats-snapshot.ts';
 
 // This is a dev-only file that is used to run the Genkit flows locally.
