@@ -83,9 +83,16 @@ const Notifications = () => {
         setIsChecking(true);
         try {
             const result = await runDailyChecks();
+            let description = `Utworzono ${result.totalNotifications} nowych powiadomień. Wysłano ${result.totalEmails} e-maili.`;
+            if (result.snapshotResult?.snapshotId) {
+                description += ` Utworzono zrzut statystyk.`;
+            } else if (result.snapshotResult?.error) {
+                description += ` Błąd tworzenia zrzutu statystyk.`;
+            }
+
             toast({
                 title: 'Sprawdzanie zakończone',
-                description: `Utworzono ${result.totalNotifications} nowych powiadomień. Wysłano ${result.totalEmails} e-maili.`,
+                description: description,
             });
         } catch (error) {
             console.error(error);
