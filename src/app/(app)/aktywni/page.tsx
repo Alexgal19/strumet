@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from '@/components/excel-import-button';
 import { ExcelExportButton } from '@/components/excel-export-button';
-import { MultiSelect, OptionType } from '@/components/ui/multi-select';
+import { MultiSelect, OptionType, GroupedOptionType } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { EmployeeForm } from '@/components/employee-form';
 import { DataTable } from '@/components/data-table';
@@ -97,42 +97,48 @@ export default function AktywniPage() {
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const { hirePeriodOptions, contractPeriodOptions } = useMemo(() => {
-    const hirePeriods = new Set<string>();
-    const contractPeriods = new Set<string>();
-    let hasBlankHireDate = false;
-    let hasBlankContractDate = false;
-
-    activeEmployees.forEach(emp => {
-      const hireDate = parseMaybeDate(emp.hireDate);
-      if (hireDate) {
-        hirePeriods.add(format(hireDate, 'yyyy-MM'));
-      } else {
-        hasBlankHireDate = true;
-      }
+    const createGroupedOptions = (dateField: 'hireDate' | 'contractEndDate'): GroupedOptionType => {
+      const periods: Record<string, Set<string>> = {};
+      let hasBlank = false;
+  
+      activeEmployees.forEach(emp => {
+        const date = parseMaybeDate(emp[dateField]);
+        if (date) {
+          const year = format(date, 'yyyy');
+          const month = format(date, 'yyyy-MM');
+          if (!periods[year]) {
+            periods[year] = new Set();
+          }
+          periods[year].add(month);
+        } else {
+          hasBlank = true;
+        }
+      });
+  
+      const groupedOptions: GroupedOptionType = {};
       
-      const contractDate = parseMaybeDate(emp.contractEndDate);
-      if (contractDate) {
-        contractPeriods.add(format(contractDate, 'yyyy-MM'));
-      } else {
-        hasBlankContractDate = true;
-      }
-    });
-
-    const createOptions = (periods: Set<string>, hasBlank: boolean): OptionType[] => {
-      const sortedPeriods = Array.from(periods).sort((a, b) => b.localeCompare(a));
-      const options = sortedPeriods.map(p => ({
-        value: p,
-        label: format(new Date(p), 'LLLL yyyy', { locale: pl }),
-      }));
+      // Add blank option first if it exists
       if (hasBlank) {
-        options.unshift({ value: BLANK_FILTER_VALUE, label: BLANK_FILTER_VALUE });
+        groupedOptions[BLANK_FILTER_VALUE] = [{ value: BLANK_FILTER_VALUE, label: BLANK_FILTER_VALUE }];
       }
-      return options;
-    };
 
+      // Sort years descending
+      const sortedYears = Object.keys(periods).sort((a, b) => b.localeCompare(a));
+  
+      sortedYears.forEach(year => {
+        const sortedMonths = Array.from(periods[year]).sort();
+        groupedOptions[year] = sortedMonths.map(month => ({
+          value: month,
+          label: format(new Date(month), 'LLLL', { locale: pl }),
+        }));
+      });
+  
+      return groupedOptions;
+    };
+  
     return {
-      hirePeriodOptions: createOptions(hirePeriods, hasBlankHireDate),
-      contractPeriodOptions: createOptions(contractPeriods, hasBlankContractDate),
+      hirePeriodOptions: createGroupedOptions('hireDate'),
+      contractPeriodOptions: createGroupedOptions('contractEndDate'),
     };
   }, [activeEmployees]);
 

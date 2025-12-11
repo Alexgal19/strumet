@@ -25,8 +25,13 @@ export interface OptionType {
   value: string;
 }
 
+export interface GroupedOptionType {
+  [groupLabel: string]: OptionType[];
+}
+
+
 interface MultiSelectProps {
-  options: OptionType[];
+  options: OptionType[] | GroupedOptionType;
   selected: string[];
   onChange: React.Dispatch<React.SetStateAction<string[]>>;
   className?: string;
@@ -42,7 +47,15 @@ function MultiSelect({
   ...props
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
-  const selectedOptions = options.filter(option => selected.includes(option.value));
+  
+  const allOptions = React.useMemo(() => {
+    if (Array.isArray(options)) {
+      return options;
+    }
+    return Object.values(options).flat();
+  }, [options]);
+
+  const selectedOptions = allOptions.filter(option => selected.includes(option.value));
 
   const handleUnselect = (value: string) => {
     onChange(selected.filter((s) => s !== value));
@@ -55,6 +68,8 @@ function MultiSelect({
         : [...selected, value]
     );
   };
+
+  const isGrouped = !Array.isArray(options);
 
   return (
     <Popover open={open} onOpenChange={setOpen} {...props}>
@@ -105,23 +120,45 @@ function MultiSelect({
           <CommandInput placeholder={`Szukaj ${title?.toLowerCase() ?? 'opcji'}...`} />
           <CommandList>
             <CommandEmpty>Brak wyników.</CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  onSelect={() => handleSelect(option.value)}
-                  className="rounded-md"
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {isGrouped ? (
+              Object.entries(options).map(([groupLabel, groupOptions]) => (
+                <CommandGroup key={groupLabel} heading={groupLabel}>
+                  {groupOptions.map((option) => (
+                    <CommandItem
+                      key={option.value}
+                      onSelect={() => handleSelect(option.value)}
+                      className="rounded-md"
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {option.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))
+            ) : (
+              <CommandGroup>
+                {(options as OptionType[]).map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    onSelect={() => handleSelect(option.value)}
+                    className="rounded-md"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {option.label}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

@@ -31,7 +31,7 @@ import { TerminatedExcelImportButton } from '@/components/terminated-excel-impor
 import { ExcelExportButton } from '@/components/excel-export-button';
 import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
-import { MultiSelect, OptionType } from '@/components/ui/multi-select';
+import { MultiSelect, OptionType, GroupedOptionType } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { UserX } from 'lucide-react';
 import { DataTable } from '@/components/data-table';
@@ -83,26 +83,40 @@ export default function ZwolnieniPage() {
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
   const terminationPeriodOptions = useMemo(() => {
-    const periods = new Set<string>();
-    let hasBlankDate = false;
+    const periods: Record<string, Set<string>> = {};
+    let hasBlank = false;
+
     terminatedEmployees.forEach(emp => {
-      const termDate = parseMaybeDate(emp.terminationDate);
-      if (termDate) {
-        periods.add(format(termDate, 'yyyy-MM'));
+      const date = parseMaybeDate(emp.terminationDate);
+      if (date) {
+        const year = format(date, 'yyyy');
+        const month = format(date, 'yyyy-MM');
+        if (!periods[year]) {
+          periods[year] = new Set();
+        }
+        periods[year].add(month);
       } else {
-        hasBlankDate = true;
+        hasBlank = true;
       }
     });
 
-    const sortedPeriods = Array.from(periods).sort((a, b) => b.localeCompare(a));
-    const options = sortedPeriods.map(p => ({
-      value: p,
-      label: format(new Date(p), 'LLLL yyyy', { locale: pl }),
-    }));
-    if (hasBlankDate) {
-      options.unshift({ value: BLANK_FILTER_VALUE, label: BLANK_FILTER_VALUE });
+    const groupedOptions: GroupedOptionType = {};
+    
+    if (hasBlank) {
+      groupedOptions[BLANK_FILTER_VALUE] = [{ value: BLANK_FILTER_VALUE, label: BLANK_FILTER_VALUE }];
     }
-    return options;
+
+    const sortedYears = Object.keys(periods).sort((a, b) => b.localeCompare(a));
+
+    sortedYears.forEach(year => {
+      const sortedMonths = Array.from(periods[year]).sort();
+      groupedOptions[year] = sortedMonths.map(month => ({
+        value: month,
+        label: format(new Date(month), 'LLLL', { locale: pl }),
+      }));
+    });
+
+    return groupedOptions;
   }, [terminatedEmployees]);
 
   const handleClearFilters = () => {
