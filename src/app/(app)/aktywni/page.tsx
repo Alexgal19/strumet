@@ -117,13 +117,11 @@ export default function AktywniPage() {
   
       const groupedOptions: GroupedOptionType = {};
       
-      // Add blank option first if it exists
+      const sortedYears = Object.keys(periods).sort((a, b) => b.localeCompare(a));
+      
       if (hasBlank) {
         groupedOptions[BLANK_FILTER_VALUE] = [{ value: BLANK_FILTER_VALUE, label: BLANK_FILTER_VALUE }];
       }
-
-      // Sort years descending
-      const sortedYears = Object.keys(periods).sort((a, b) => b.localeCompare(a));
   
       sortedYears.forEach(year => {
         const sortedMonths = Array.from(periods[year]).sort();
@@ -201,11 +199,49 @@ export default function AktywniPage() {
       });
     }
 
-    return filtered.filter(employee => {
-      if (selectedEmployeeIds.length === 0) return true;
-      return selectedEmployeeIds.includes(employee.id);
+    return filtered;
+  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, selectedHirePeriods, selectedContractPeriods]);
+
+  const displayedEmployees = useMemo(() => {
+     if (selectedEmployeeIds.length === 0) return filteredEmployees;
+     return filteredEmployees.filter(employee => selectedEmployeeIds.includes(employee.id));
+  }, [filteredEmployees, selectedEmployeeIds]);
+
+  const dateSummary = useMemo(() => {
+    if (selectedHirePeriods.length === 0 && selectedContractPeriods.length === 0) {
+      return null;
+    }
+    
+    const dateField = selectedHirePeriods.length > 0 ? 'hireDate' : 'contractEndDate';
+    const summary: Record<string, number> = {};
+
+    filteredEmployees.forEach(emp => {
+      const dateStr = emp[dateField];
+      if (dateStr) {
+        const formatted = formatDate(dateStr, 'dd.MM.yyyy');
+        if (formatted) {
+          summary[formatted] = (summary[formatted] || 0) + 1;
+        }
+      }
     });
-  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, selectedHirePeriods, selectedContractPeriods, selectedEmployeeIds]);
+
+    return Object.entries(summary).sort(([dateA], [dateB]) => {
+        const [dayA, monthA, yearA] = dateA.split('.');
+        const [dayB, monthB, yearB] = dateB.split('.');
+        return new Date(`${yearA}-${monthA}-${dayA}`).getTime() - new Date(`${yearB}-${monthB}-${dayB}`).getTime();
+    });
+  }, [filteredEmployees, selectedHirePeriods, selectedContractPeriods]);
+
+  const handleDateSummaryClick = (date: string) => {
+    const dateField = selectedHirePeriods.length > 0 ? 'hireDate' : 'contractEndDate';
+    const idsToSelect: Record<string, boolean> = {};
+    filteredEmployees.forEach(emp => {
+      if (formatDate(emp[dateField], 'dd.MM.yyyy') === date) {
+        idsToSelect[emp.id] = true;
+      }
+    });
+    setRowSelection(idsToSelect);
+  };
 
 
   const onSave = async (employeeData: Employee) => {
@@ -322,14 +358,14 @@ export default function AktywniPage() {
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
-    count: filteredEmployees.length,
+    count: displayedEmployees.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 170, // Approximate height of a card
     overscan: 5,
   });
 
   const renderMobileView = () => {
-    if (filteredEmployees.length === 0) {
+    if (displayedEmployees.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
@@ -349,7 +385,7 @@ export default function AktywniPage() {
           }}
         >
           {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-            const employee = filteredEmployees[virtualItem.index];
+            const employee = displayedEmployees[virtualItem.index];
             return (
                <div
                 key={employee.id}
@@ -393,7 +429,7 @@ export default function AktywniPage() {
         description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
       >
         <div className="hidden md:flex shrink-0 items-center space-x-2">
-            <ExcelExportButton employees={filteredEmployees} fileName="aktywni_pracownicy" columns={exportColumns} />
+            <ExcelExportButton employees={displayedEmployees} fileName="aktywni_pracownicy" columns={exportColumns} />
             <ExcelImportButton />
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -511,15 +547,52 @@ export default function AktywniPage() {
               title="Okres zatrudnienia"
               options={hirePeriodOptions}
               selected={selectedHirePeriods}
-              onChange={setSelectedHirePeriods}
+              onChange={(value) => {
+                  setSelectedHirePeriods(value);
+                  setSelectedContractPeriods([]); // Reset other date filter
+                  setRowSelection({});
+              }}
             />
             <MultiSelect
               title="Okres umowy do"
               options={contractPeriodOptions}
               selected={selectedContractPeriods}
-              onChange={setSelectedContractPeriods}
+              onChange={(value) => {
+                  setSelectedContractPeriods(value);
+                  setSelectedHirePeriods([]); // Reset other date filter
+                  setRowSelection({});
+              }}
             />
         </div>
+        {dateSummary && (
+          <div className="rounded-lg border bg-muted/50 p-3">
+              <h4 className="text-sm font-semibold mb-2">Podsumowanie zaznaczenia ({filteredEmployees.length})</h4>
+              <div className="flex flex-wrap gap-2">
+                {dateSummary.map(([date, count]) => (
+                  <Button 
+                    key={date}
+                    variant="secondary"
+                    size="sm"
+                    className="h-7"
+                    onClick={() => handleDateSummaryClick(date)}
+                  >
+                    {date} <Badge className="ml-2">{count}</Badge>
+                  </Button>
+                ))}
+                {selectedEmployeeIds.length > 0 && (
+                   <Button 
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-destructive hover:text-destructive"
+                    onClick={() => setRowSelection({})}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Wyczyść zaznaczenie
+                  </Button>
+                )}
+              </div>
+          </div>
+        )}
       </div>
 
        <div className="flex flex-col flex-grow">
@@ -527,7 +600,7 @@ export default function AktywniPage() {
           ? renderMobileView() 
           : <DataTable 
               columns={columns} 
-              data={filteredEmployees} 
+              data={displayedEmployees} 
               onRowClick={handleEditEmployee}
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
@@ -543,3 +616,6 @@ export default function AktywniPage() {
     </div>
   );
 }
+
+
+    
