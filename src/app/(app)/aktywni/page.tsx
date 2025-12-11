@@ -616,6 +616,3 @@ export default function AktywniPage() {
     </div>
   );
 }
-
-
-    
