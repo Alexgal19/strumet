@@ -49,7 +49,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { getStatusColor, legalizationStatuses } from '@/lib/legalization-statuses';
 import { Badge } from '@/components/ui/badge';
-import { format, getYear, getMonth, getDate } from 'date-fns';
+import { format, getYear } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 
@@ -119,9 +119,13 @@ export default function AktywniPage() {
       const options: HierarchicalOption[] = Object.keys(hierarchy).sort((a,b) => b.localeCompare(a)).map(year => ({
           label: year,
           value: year,
-          children: Object.keys(hierarchy[year]).map(month => ({
+          children: Object.keys(hierarchy[year]).sort((a, b) => {
+              const monthA = pl.localize!.month(pl.localize!.match.months.exec(a)!.index as any, {});
+              const monthB = pl.localize!.month(pl.localize!.match.months.exec(b)!.index as any, {});
+              return new Date(2000, pl.locale.match(/styczeń|luty|marzec|kwiecień|maj|czerwiec|lipiec|sierpień|wrzesień|październik|listopad|grudzień/i)!.exec(monthA)!.index).getMonth() - new Date(2000, pl.locale.match(/styczeń|luty|marzec|kwiecień|maj|czerwiec|lipiec|sierpień|wrzesień|październik|listopad|grudzień/i)!.exec(monthB)!.index).getMonth();
+          }).map(month => ({
               label: month,
-              value: `${year}-${format(new Date(2000, pl.localize!.month(pl.localize!.match.months.exec(month)!.index as any, {}).toLowerCase()), 'MM')}`,
+              value: `${year}-${format(new Date(Date.parse(`01 ${month} 2000`)), 'MM')}`,
               children: Array.from(hierarchy[year][month]).map(day => ({
                   label: day,
                   value: day

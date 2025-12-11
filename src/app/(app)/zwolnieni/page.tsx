@@ -41,7 +41,7 @@ import { useAppContext } from '@/context/app-context';
 import { EmployeeCard } from '@/components/employee-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDate, parseMaybeDate } from '@/lib/date';
-import { format, getYear, getMonth } from 'date-fns';
+import { format, getYear } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 
@@ -82,42 +82,49 @@ export default function ZwolnieniPage() {
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
-  const terminationPeriodOptions = useMemo(() => {
+  const terminationPeriodOptions: HierarchicalOption[] = useMemo(() => {
     const hierarchy: Record<string, Record<string, Set<string>>> = {};
     let hasBlank = false;
-
+  
     terminatedEmployees.forEach(emp => {
-        const date = parseMaybeDate(emp.terminationDate);
-        if (date) {
-            const year = getYear(date).toString();
-            const month = format(date, 'LLLL', { locale: pl });
-            const day = format(date, 'dd.MM.yyyy');
-
-            if (!hierarchy[year]) hierarchy[year] = {};
-            if (!hierarchy[year][month]) hierarchy[year][month] = new Set();
-            hierarchy[year][month].add(day);
-        } else {
-            hasBlank = true;
-        }
+      const date = parseMaybeDate(emp.terminationDate);
+      if (date) {
+        const year = getYear(date).toString();
+        const month = format(date, 'LLLL', { locale: pl });
+        const day = format(date, 'dd.MM.yyyy');
+  
+        if (!hierarchy[year]) hierarchy[year] = {};
+        if (!hierarchy[year][month]) hierarchy[year][month] = new Set();
+        hierarchy[year][month].add(day);
+      } else {
+        hasBlank = true;
+      }
     });
-      
-    const options: HierarchicalOption[] = Object.keys(hierarchy).sort((a,b) => b.localeCompare(a)).map(year => ({
+  
+    const options: HierarchicalOption[] = Object.keys(hierarchy)
+      .sort((a, b) => b.localeCompare(a))
+      .map(year => ({
         label: year,
         value: year,
-        children: Object.keys(hierarchy[year]).map(month => ({
+        children: Object.keys(hierarchy[year])
+          .sort((a, b) => {
+            // This is a simplified sort, a more robust solution would be needed for perfect month order
+            return new Date(Date.parse(`01 ${a} 2000`)).getMonth() - new Date(Date.parse(`01 ${b} 2000`)).getMonth();
+          })
+          .map(month => ({
             label: month,
-            value: `${year}-${format(new Date(2000, pl.localize!.month(pl.localize!.match.months.exec(month)!.index as any, {}).toLowerCase()), 'MM')}`,
+            value: `${year}-${format(new Date(Date.parse(`01 ${month} 2000`)), 'MM')}`,
             children: Array.from(hierarchy[year][month]).map(day => ({
-                label: day,
-                value: day
-            }))
-        }))
-    }));
-
-    if(hasBlank) {
-        options.push({ label: BLANK_FILTER_VALUE, value: BLANK_FILTER_VALUE });
+              label: day,
+              value: day,
+            })),
+          })),
+      }));
+  
+    if (hasBlank) {
+      options.push({ label: BLANK_FILTER_VALUE, value: BLANK_FILTER_VALUE });
     }
-
+  
     return options;
   }, [terminatedEmployees]);
 
