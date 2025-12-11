@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from '@/components/excel-import-button';
 import { ExcelExportButton } from '@/components/excel-export-button';
-import { MultiSelect, OptionType } from '@/components/ui/multi-select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { EmployeeForm } from '@/components/employee-form';
 import { DataTable } from '@/components/data-table';
@@ -105,12 +105,12 @@ export default function AktywniPage() {
         const date = parseMaybeDate(emp[dateField]);
         if (date) {
           const year = getYear(date).toString();
-          const month = format(date, 'LLLL', { locale: pl });
+          const monthKey = format(date, 'MM-LLLL', { locale: pl }); // e.g., "07-Lipiec"
           const day = format(date, 'dd.MM.yyyy');
 
           if (!hierarchy[year]) hierarchy[year] = {};
-          if (!hierarchy[year][month]) hierarchy[year][month] = new Set();
-          hierarchy[year][month].add(day);
+          if (!hierarchy[year][monthKey]) hierarchy[year][monthKey] = new Set();
+          hierarchy[year][monthKey].add(day);
         } else {
           hasBlank = true;
         }
@@ -119,18 +119,17 @@ export default function AktywniPage() {
       const options: HierarchicalOption[] = Object.keys(hierarchy).sort((a,b) => b.localeCompare(a)).map(year => ({
           label: year,
           value: year,
-          children: Object.keys(hierarchy[year]).sort((a, b) => {
-              const monthA = pl.localize!.month(pl.localize!.match.months.exec(a)!.index as any, {});
-              const monthB = pl.localize!.month(pl.localize!.match.months.exec(b)!.index as any, {});
-              return new Date(2000, pl.locale.match(/styczeń|luty|marzec|kwiecień|maj|czerwiec|lipiec|sierpień|wrzesień|październik|listopad|grudzień/i)!.exec(monthA)!.index).getMonth() - new Date(2000, pl.locale.match(/styczeń|luty|marzec|kwiecień|maj|czerwiec|lipiec|sierpień|wrzesień|październik|listopad|grudzień/i)!.exec(monthB)!.index).getMonth();
-          }).map(month => ({
-              label: month,
-              value: `${year}-${format(new Date(Date.parse(`01 ${month} 2000`)), 'MM')}`,
-              children: Array.from(hierarchy[year][month]).map(day => ({
-                  label: day,
-                  value: day
-              }))
-          }))
+          children: Object.keys(hierarchy[year]).sort().map(monthKey => {
+              const [monthNum, monthName] = monthKey.split('-');
+              return {
+                  label: monthName,
+                  value: `${year}-${monthNum}`,
+                  children: Array.from(hierarchy[year][monthKey]).sort().map(day => ({
+                      label: day,
+                      value: day
+                  }))
+              }
+          })
       }));
 
       if(hasBlank) {
@@ -146,10 +145,10 @@ export default function AktywniPage() {
     };
   }, [activeEmployees]);
 
-  const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
-  const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
-  const managerOptions: OptionType[] = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
-  const nationalityOptions: OptionType[] = useMemo(() => config.nationalities.map(n => ({ value: n.name, label: n.name })), [config.nationalities]);
+  const departmentOptions = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
+  const jobTitleOptions = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
+  const managerOptions = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
+  const nationalityOptions = useMemo(() => config.nationalities.map(n => ({ value: n.name, label: n.name })), [config.nationalities]);
 
   const handleClearFilters = () => {
     setSearchTerm('');

@@ -90,12 +90,12 @@ export default function ZwolnieniPage() {
       const date = parseMaybeDate(emp.terminationDate);
       if (date) {
         const year = getYear(date).toString();
-        const month = format(date, 'LLLL', { locale: pl });
+        const monthKey = format(date, 'MM-LLLL', { locale: pl }); // e.g., "07-Lipiec"
         const day = format(date, 'dd.MM.yyyy');
   
         if (!hierarchy[year]) hierarchy[year] = {};
-        if (!hierarchy[year][month]) hierarchy[year][month] = new Set();
-        hierarchy[year][month].add(day);
+        if (!hierarchy[year][monthKey]) hierarchy[year][monthKey] = new Set();
+        hierarchy[year][monthKey].add(day);
       } else {
         hasBlank = true;
       }
@@ -106,19 +106,17 @@ export default function ZwolnieniPage() {
       .map(year => ({
         label: year,
         value: year,
-        children: Object.keys(hierarchy[year])
-          .sort((a, b) => {
-            // This is a simplified sort, a more robust solution would be needed for perfect month order
-            return new Date(Date.parse(`01 ${a} 2000`)).getMonth() - new Date(Date.parse(`01 ${b} 2000`)).getMonth();
-          })
-          .map(month => ({
-            label: month,
-            value: `${year}-${format(new Date(Date.parse(`01 ${month} 2000`)), 'MM')}`,
-            children: Array.from(hierarchy[year][month]).map(day => ({
-              label: day,
-              value: day,
-            })),
-          })),
+        children: Object.keys(hierarchy[year]).sort().map(monthKey => {
+            const [monthNum, monthName] = monthKey.split('-');
+            return {
+                label: monthName,
+                value: `${year}-${monthNum}`,
+                children: Array.from(hierarchy[year][monthKey]).sort().map(day => ({
+                    label: day,
+                    value: day,
+                })),
+            }
+        }),
       }));
   
     if (hasBlank) {
