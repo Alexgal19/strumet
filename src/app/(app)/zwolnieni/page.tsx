@@ -23,14 +23,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, CalendarIcon, Trash2, XCircle, Copy } from 'lucide-react';
+import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, Trash2, XCircle, Copy } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-import { isWithinInterval, startOfDay, endOfDay, format } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
 import { ExcelExportButton } from '@/components/excel-export-button';
@@ -59,6 +54,7 @@ const exportColumns = [
   { key: 'nationality' as keyof Employee, name: 'Narodowość' },
 ];
 
+const BLANK_FILTER_VALUE = '(Puste)';
 
 export default function ZwolnieniPage() {
   const { employees, config, isLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees } = useAppContext();
@@ -70,8 +66,8 @@ export default function ZwolnieniPage() {
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([]);
   const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
+  const [selectedTerminationYears, setSelectedTerminationYears] = useState<string[]>([]);
   
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
@@ -84,12 +80,28 @@ export default function ZwolnieniPage() {
 
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
+  const terminationYearOptions = useMemo(() => {
+    const years = new Set<string>();
+    let hasBlankDate = false;
+    terminatedEmployees.forEach(emp => {
+      const termDate = parseMaybeDate(emp.terminationDate);
+      if (termDate) {
+        years.add(termDate.getFullYear().toString());
+      } else {
+        hasBlankDate = true;
+      }
+    });
+    const sorted = Array.from(years).sort((a,b) => b.localeCompare(a));
+    if (hasBlankDate) sorted.unshift(BLANK_FILTER_VALUE);
+    return sorted.map(y => ({ value: y, label: y }));
+  }, [terminatedEmployees]);
+
   const handleClearFilters = () => {
     setSearchTerm('');
     setSelectedDepartments([]);
     setSelectedJobTitles([]);
     setSelectedManagers([]);
-    setDateRange({ from: undefined, to: undefined });
+    setSelectedTerminationYears([]);
     setRowSelection({});
   };
 
@@ -114,18 +126,11 @@ export default function ZwolnieniPage() {
         filtered = filtered.filter(employee => selectedJobTitles.includes(employee.jobTitle));
     }
 
-    if (dateRange.from || dateRange.to) {
+    if (selectedTerminationYears.length > 0) {
         filtered = filtered.filter(employee => {
-            const terminationDate = parseMaybeDate(employee.terminationDate);
-            if (!terminationDate) return false;
-
-            const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
-            const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
-            
-            if (from && to) return isWithinInterval(terminationDate, { start: from, end: to });
-            if (from) return terminationDate >= from;
-            if (to) return terminationDate <= to;
-            return true;
+            const termDate = parseMaybeDate(employee.terminationDate);
+            if (!termDate) return selectedTerminationYears.includes(BLANK_FILTER_VALUE);
+            return selectedTerminationYears.includes(termDate.getFullYear().toString());
         });
     }
     
@@ -134,20 +139,7 @@ export default function ZwolnieniPage() {
       return selectedEmployeeIds.includes(employee.id);
     });
 
-  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, dateRange, selectedEmployeeIds]);
-
-    const defaultCalendarMonth = useMemo(() => {
-        const dates = terminatedEmployees
-            .map(e => parseMaybeDate(e.terminationDate))
-            .filter((d): d is Date => d !== null);
-        if (dates.length === 0) return new Date();
-        dates.sort((a, b) => a.getTime() - b.getTime());
-        return dates[0];
-    }, [terminatedEmployees]);
-
-  const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
-    setDateRange(prev => ({ ...prev, [type]: date }));
-  };
+  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedTerminationYears, selectedEmployeeIds]);
 
   const onRestoreEmployee = async (employeeId: string) => {
     if (window.confirm('Czy na pewno chcesz przywrócić tego pracownika?')) {
@@ -334,7 +326,7 @@ export default function ZwolnieniPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Tej akcji не można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
                     pracowników (aktywnych i zwolnionych) z bazy danych.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -372,7 +364,7 @@ export default function ZwolnieniPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          {(searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || dateRange.from || dateRange.to) && (
+          {(searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedTerminationYears.length > 0) && (
             <Button variant="outline" onClick={handleClearFilters}>
               <XCircle className="mr-2 h-4 w-4" />
               Wyczyść filtry
@@ -392,28 +384,12 @@ export default function ZwolnieniPage() {
               selected={selectedJobTitles}
               onChange={setSelectedJobTitles}
             />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zwolniony od</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} defaultMonth={defaultCalendarMonth} />
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.to && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zwolniony do</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} defaultMonth={defaultCalendarMonth} />
-              </PopoverContent>
-            </Popover>
+            <MultiSelect
+              title="Rok zwolnienia"
+              options={terminationYearOptions}
+              selected={selectedTerminationYears}
+              onChange={setSelectedTerminationYears}
+            />
         </div>
       </div>
 
@@ -432,5 +408,3 @@ export default function ZwolnieniPage() {
     </div>
   );
 }
-
-    

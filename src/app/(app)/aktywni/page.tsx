@@ -24,19 +24,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, CalendarIcon, Trash2, XCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, Trash2, XCircle } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-import { isWithinInterval, startOfDay, endOfDay, format } from 'date-fns';
-import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from '@/components/excel-import-button';
@@ -74,6 +70,7 @@ const exportColumns = [
   { key: 'sealNumber' as keyof Employee, name: 'Nr pieczęci' },
 ];
 
+const BLANK_FILTER_VALUE = '(Puste)';
 
 export default function AktywniPage() {
   const { employees, config, isLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees } = useAppContext();
@@ -86,9 +83,8 @@ export default function AktywniPage() {
   const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([]);
   const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
   const [selectedNationalities, setSelectedNationalities] = useState<string[]>([]);
-  
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
-  const [contractDateRange, setContractDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
+  const [selectedHireYears, setSelectedHireYears] = useState<string[]>([]);
+  const [selectedContractYears, setSelectedContractYears] = useState<string[]>([]);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -97,6 +93,40 @@ export default function AktywniPage() {
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+
+  const { hireYearOptions, contractYearOptions } = useMemo(() => {
+    const hireYears = new Set<string>();
+    const contractYears = new Set<string>();
+    let hasBlankHireDate = false;
+    let hasBlankContractDate = false;
+
+    activeEmployees.forEach(emp => {
+      const hireDate = parseMaybeDate(emp.hireDate);
+      if (hireDate) {
+        hireYears.add(hireDate.getFullYear().toString());
+      } else {
+        hasBlankHireDate = true;
+      }
+      
+      const contractDate = parseMaybeDate(emp.contractEndDate);
+      if (contractDate) {
+        contractYears.add(contractDate.getFullYear().toString());
+      } else {
+        hasBlankContractDate = true;
+      }
+    });
+
+    const sortedHire = Array.from(hireYears).sort((a,b) => b.localeCompare(a));
+    const sortedContract = Array.from(contractYears).sort((a,b) => b.localeCompare(a));
+    
+    if (hasBlankHireDate) sortedHire.unshift(BLANK_FILTER_VALUE);
+    if (hasBlankContractDate) sortedContract.unshift(BLANK_FILTER_VALUE);
+
+    return {
+      hireYearOptions: sortedHire.map(y => ({ value: y, label: y })),
+      contractYearOptions: sortedContract.map(y => ({ value: y, label: y }))
+    };
+  }, [activeEmployees]);
 
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
@@ -109,8 +139,8 @@ export default function AktywniPage() {
     setSelectedJobTitles([]);
     setSelectedManagers([]);
     setSelectedNationalities([]);
-    setDateRange({ from: undefined, to: undefined });
-    setContractDateRange({ from: undefined, to: undefined });
+    setSelectedHireYears([]);
+    setSelectedContractYears([]);
     setRowSelection({});
   };
 
@@ -138,33 +168,19 @@ export default function AktywniPage() {
       filtered = filtered.filter(employee => selectedNationalities.includes(employee.nationality));
     }
 
-    if (dateRange.from || dateRange.to) {
-      filtered = filtered.filter(employee => {
-        const hireDate = parseMaybeDate(employee.hireDate);
-        if (!hireDate) return false;
-
-        const from = dateRange.from ? startOfDay(dateRange.from) : undefined;
-        const to = dateRange.to ? endOfDay(dateRange.to) : undefined;
-        
-        if (from && to) return isWithinInterval(hireDate, { start: from, end: to });
-        if (from) return hireDate >= from;
-        if (to) return hireDate <= to;
-        return true;
-      });
+    if (selectedHireYears.length > 0) {
+        filtered = filtered.filter(employee => {
+            const hireDate = parseMaybeDate(employee.hireDate);
+            if (!hireDate) return selectedHireYears.includes(BLANK_FILTER_VALUE);
+            return selectedHireYears.includes(hireDate.getFullYear().toString());
+        });
     }
 
-    if (contractDateRange.from || contractDateRange.to) {
+    if (selectedContractYears.length > 0) {
         filtered = filtered.filter(employee => {
-            const contractEndDate = parseMaybeDate(employee.contractEndDate);
-            if (!contractEndDate) return false;
-
-            const from = contractDateRange.from ? startOfDay(contractDateRange.from) : undefined;
-            const to = contractDateRange.to ? endOfDay(contractDateRange.to) : undefined;
-            
-            if (from && to) return isWithinInterval(contractEndDate, { start: from, end: to });
-            if (from) return contractEndDate >= from;
-            if (to) return contractEndDate <= to;
-            return true;
+            const contractDate = parseMaybeDate(employee.contractEndDate);
+            if (!contractDate) return selectedContractYears.includes(BLANK_FILTER_VALUE);
+            return selectedContractYears.includes(contractDate.getFullYear().toString());
         });
     }
 
@@ -172,33 +188,7 @@ export default function AktywniPage() {
       if (selectedEmployeeIds.length === 0) return true;
       return selectedEmployeeIds.includes(employee.id);
     });
-  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange, contractDateRange, selectedEmployeeIds]);
-  
-    const defaultCalendarMonth = useMemo(() => {
-        const dates = activeEmployees
-            .map(e => parseMaybeDate(e.hireDate))
-            .filter((d): d is Date => d !== null);
-        if (dates.length === 0) return new Date();
-        dates.sort((a, b) => a.getTime() - b.getTime());
-        return dates[0];
-    }, [activeEmployees]);
-
-    const defaultContractCalendarMonth = useMemo(() => {
-        const dates = activeEmployees
-            .map(e => parseMaybeDate(e.contractEndDate))
-            .filter((d): d is Date => d !== null);
-        if (dates.length === 0) return new Date();
-        dates.sort((a, b) => a.getTime() - b.getTime());
-        return dates[0];
-    }, [activeEmployees]);
-
-  const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
-    setDateRange(prev => ({ ...prev, [type]: date }));
-  };
-
-  const handleContractDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
-    setContractDateRange(prev => ({ ...prev, [type]: date }));
-  };
+  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, selectedHireYears, selectedContractYears, selectedEmployeeIds]);
 
   const onSave = async (employeeData: Employee) => {
     await handleSaveEmployee(employeeData);
@@ -368,7 +358,7 @@ export default function AktywniPage() {
     );
   };
 
-  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || dateRange.from || dateRange.to || contractDateRange.from || contractDateRange.to;
+  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || selectedHireYears.length > 0 || selectedContractYears.length > 0;
 
   if (isLoading || !hasMounted) {
     return (
@@ -499,50 +489,18 @@ export default function AktywniPage() {
               selected={selectedNationalities}
               onChange={setSelectedNationalities}
             />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.from && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from ? format(dateRange.from, "PPP", { locale: pl }) : <span>Zatrudniony od</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} defaultMonth={defaultCalendarMonth} />
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange.to && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.to ? format(dateRange.to, "PPP", { locale: pl }) : <span>Zatrudniony do</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} defaultMonth={defaultCalendarMonth} />
-              </PopoverContent>
-            </Popover>
-             <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !contractDateRange.from && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {contractDateRange.from ? format(contractDateRange.from, "PPP", { locale: pl }) : <span>Umowa ważna od</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={contractDateRange.from} onSelect={handleContractDateChange('from')} locale={pl} defaultMonth={defaultContractCalendarMonth} />
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !contractDateRange.to && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {contractDateRange.to ? format(contractDateRange.to, "PPP", { locale: pl }) : <span>Umowa ważna do</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={contractDateRange.to} onSelect={handleContractDateChange('to')} locale={pl} defaultMonth={defaultContractCalendarMonth} />
-              </PopoverContent>
-            </Popover>
+            <MultiSelect
+              title="Rok zatrudnienia"
+              options={hireYearOptions}
+              selected={selectedHireYears}
+              onChange={setSelectedHireYears}
+            />
+            <MultiSelect
+              title="Rok umowy do"
+              options={contractYearOptions}
+              selected={selectedContractYears}
+              onChange={setSelectedContractYears}
+            />
         </div>
       </div>
 
