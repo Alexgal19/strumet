@@ -174,6 +174,24 @@ export default function AktywniPage() {
     });
   }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, dateRange, contractDateRange, selectedEmployeeIds]);
   
+    const defaultCalendarMonth = useMemo(() => {
+        const dates = activeEmployees
+            .map(e => parseMaybeDate(e.hireDate))
+            .filter((d): d is Date => d !== null);
+        if (dates.length === 0) return new Date();
+        dates.sort((a, b) => a.getTime() - b.getTime());
+        return dates[0];
+    }, [activeEmployees]);
+
+    const defaultContractCalendarMonth = useMemo(() => {
+        const dates = activeEmployees
+            .map(e => parseMaybeDate(e.contractEndDate))
+            .filter((d): d is Date => d !== null);
+        if (dates.length === 0) return new Date();
+        dates.sort((a, b) => a.getTime() - b.getTime());
+        return dates[0];
+    }, [activeEmployees]);
+
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
     setDateRange(prev => ({ ...prev, [type]: date }));
   };
@@ -489,7 +507,7 @@ export default function AktywniPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
+                <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} defaultMonth={defaultCalendarMonth} />
               </PopoverContent>
             </Popover>
             <Popover>
@@ -500,7 +518,7 @@ export default function AktywniPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
+                <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} defaultMonth={defaultCalendarMonth} />
               </PopoverContent>
             </Popover>
              <Popover>
@@ -511,7 +529,7 @@ export default function AktywniPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={contractDateRange.from} onSelect={handleContractDateChange('from')} locale={pl} />
+                <Calendar mode="single" selected={contractDateRange.from} onSelect={handleContractDateChange('from')} locale={pl} defaultMonth={defaultContractCalendarMonth} />
               </PopoverContent>
             </Popover>
             <Popover>
@@ -522,7 +540,7 @@ export default function AktywniPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={contractDateRange.to} onSelect={handleContractDateChange('to')} locale={pl} />
+                <Calendar mode="single" selected={contractDateRange.to} onSelect={handleContractDateChange('to')} locale={pl} defaultMonth={defaultContractCalendarMonth} />
               </PopoverContent>
             </Popover>
         </div>

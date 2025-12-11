@@ -136,6 +136,15 @@ export default function ZwolnieniPage() {
 
   }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, dateRange, selectedEmployeeIds]);
 
+    const defaultCalendarMonth = useMemo(() => {
+        const dates = terminatedEmployees
+            .map(e => parseMaybeDate(e.terminationDate))
+            .filter((d): d is Date => d !== null);
+        if (dates.length === 0) return new Date();
+        dates.sort((a, b) => a.getTime() - b.getTime());
+        return dates[0];
+    }, [terminatedEmployees]);
+
   const handleDateChange = (type: 'from' | 'to') => (date: Date | undefined) => {
     setDateRange(prev => ({ ...prev, [type]: date }));
   };
@@ -391,7 +400,7 @@ export default function ZwolnieniPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} />
+                <Calendar mode="single" selected={dateRange.from} onSelect={handleDateChange('from')} locale={pl} defaultMonth={defaultCalendarMonth} />
               </PopoverContent>
             </Popover>
             <Popover>
@@ -402,7 +411,7 @@ export default function ZwolnieniPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} />
+                <Calendar mode="single" selected={dateRange.to} onSelect={handleDateChange('to')} locale={pl} defaultMonth={defaultCalendarMonth} />
               </PopoverContent>
             </Popover>
         </div>
