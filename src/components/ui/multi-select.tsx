@@ -19,6 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "./badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./accordion";
 
 export interface OptionType {
   label: string;
@@ -121,25 +122,34 @@ function MultiSelect({
           <CommandList>
             <CommandEmpty>Brak wyników.</CommandEmpty>
             {isGrouped ? (
-              Object.entries(options).map(([groupLabel, groupOptions]) => (
-                <CommandGroup key={groupLabel} heading={groupLabel}>
-                  {groupOptions.map((option) => (
-                    <CommandItem
-                      key={option.value}
-                      onSelect={() => handleSelect(option.value)}
-                      className="rounded-md"
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {option.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ))
+              <Accordion type="multiple" className="w-full">
+                {Object.entries(options).map(([groupLabel, groupOptions]) => (
+                  <AccordionItem value={groupLabel} key={groupLabel}>
+                    <AccordionTrigger className="py-2 px-2 text-sm hover:no-underline [&[data-state=open]]:bg-accent">
+                      {groupLabel}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="flex flex-col space-y-1 pl-4 pt-1">
+                        {groupOptions.map((option) => (
+                           <CommandItem
+                            key={option.value}
+                            onSelect={() => handleSelect(option.value)}
+                            className="rounded-md"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {option.label}
+                          </CommandItem>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             ) : (
               <CommandGroup>
                 {(options as OptionType[]).map((option) => (
