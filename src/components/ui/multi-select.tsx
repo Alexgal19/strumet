@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -20,23 +21,62 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "./badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./accordion";
-
-export interface OptionType {
-  label: string;
-  value: string;
-}
-
-export interface GroupedOptionType {
-  [groupLabel: string]: OptionType[];
-}
+import type { HierarchicalOption, OptionType } from "@/lib/types";
 
 
 interface MultiSelectProps {
-  options: OptionType[] | GroupedOptionType;
+  options: OptionType[] | HierarchicalOption[];
   selected: string[];
   onChange: React.Dispatch<React.SetStateAction<string[]>>;
   className?: string;
   title?: string;
+}
+
+function isHierarchical(options: any[]): options is HierarchicalOption[] {
+    return options.length > 0 && 'children' in options[0];
+}
+
+
+const RecursiveAccordion = ({ items, selected, onSelect, level = 0 }: { items: HierarchicalOption[], selected: string[], onSelect: (value: string, children?: HierarchicalOption[]) => void, level?: number }) => {
+    return (
+        <Accordion type="multiple" className="w-full">
+            {items.map((item) => {
+                const isSelected = selected.includes(item.value);
+                const hasChildren = item.children && item.children.length > 0;
+
+                return hasChildren ? (
+                     <AccordionItem value={item.value} key={item.value} className={cn(level > 0 && "pl-4")}>
+                        <AccordionTrigger className="py-2 px-2 text-sm hover:no-underline [&[data-state=open]]:bg-accent">
+                             <div className="flex items-center gap-2">
+                                <Check
+                                    className={cn("h-4 w-4", isSelected ? "opacity-100" : "opacity-0")}
+                                    onClick={(e) => { e.stopPropagation(); onSelect(item.value, item.children); }}
+                                />
+                                <span onClick={(e) => { e.stopPropagation(); onSelect(item.value, item.children); }}>{item.label}</span>
+                             </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                           <RecursiveAccordion items={item.children!} selected={selected} onSelect={onSelect} level={level + 1} />
+                        </AccordionContent>
+                    </AccordionItem>
+                ) : (
+                    <CommandItem
+                        key={item.value}
+                        onSelect={() => onSelect(item.value)}
+                        className={cn("rounded-md", level > 0 && "pl-6")}
+                    >
+                        <Check
+                            className={cn(
+                                "mr-2 h-4 w-4",
+                                isSelected ? "opacity-100" : "opacity-0"
+                            )}
+                        />
+                        {item.label}
+                    </CommandItem>
+                )
+            })}
+        </Accordion>
+    )
 }
 
 function MultiSelect({
@@ -50,10 +90,16 @@ function MultiSelect({
   const [open, setOpen] = React.useState(false);
   
   const allOptions = React.useMemo(() => {
-    if (Array.isArray(options)) {
-      return options;
-    }
-    return Object.values(options).flat();
+     const flatten = (items: HierarchicalOption[]): OptionType[] => {
+        return items.reduce((acc, item) => {
+            acc.push({ label: item.label, value: item.value });
+            if (item.children) {
+                acc.push(...flatten(item.children));
+            }
+            return acc;
+        }, [] as OptionType[]);
+     }
+     return isHierarchical(options) ? flatten(options as HierarchicalOption[]) : (options as OptionType[]);
   }, [options]);
 
   const selectedOptions = allOptions.filter(option => selected.includes(option.value));
@@ -62,15 +108,20 @@ function MultiSelect({
     onChange(selected.filter((s) => s !== value));
   };
   
-  const handleSelect = (value: string) => {
-    onChange(
-      selected.includes(value)
-        ? selected.filter((item) => item !== value)
-        : [...selected, value]
-    );
+  const handleSelect = (value: string, children?: HierarchicalOption[]) => {
+    const allChildValues = children ? children.flatMap(child => [child.value, ...(child.children || []).map(c => c.value)]) : [];
+    const valuesToToggle = [value, ...allChildValues];
+    
+    const isCurrentlySelected = selected.includes(value);
+
+    if(isCurrentlySelected) {
+        onChange(selected.filter(item => !valuesToToggle.includes(item)));
+    } else {
+        onChange([...new Set([...selected, ...valuesToToggle])]);
+    }
   };
 
-  const isGrouped = !Array.isArray(options);
+  const isGrouped = isHierarchical(options);
 
   return (
     <Popover open={open} onOpenChange={setOpen} {...props}>
@@ -122,34 +173,11 @@ function MultiSelect({
           <CommandList>
             <CommandEmpty>Brak wyników.</CommandEmpty>
             {isGrouped ? (
-              <Accordion type="multiple" className="w-full">
-                {Object.entries(options).map(([groupLabel, groupOptions]) => (
-                  <AccordionItem value={groupLabel} key={groupLabel}>
-                    <AccordionTrigger className="py-2 px-2 text-sm hover:no-underline [&[data-state=open]]:bg-accent">
-                      {groupLabel}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="flex flex-col space-y-1 pl-4 pt-1">
-                        {groupOptions.map((option) => (
-                           <CommandItem
-                            key={option.value}
-                            onSelect={() => handleSelect(option.value)}
-                            className="rounded-md"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {option.label}
-                          </CommandItem>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+              <RecursiveAccordion 
+                items={options as HierarchicalOption[]}
+                selected={selected}
+                onSelect={handleSelect}
+              />
             ) : (
               <CommandGroup>
                 {(options as OptionType[]).map((option) => (

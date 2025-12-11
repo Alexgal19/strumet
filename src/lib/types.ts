@@ -1,6 +1,7 @@
 
 
 
+
 export type ActiveView =
   | 'aktywni'
   | 'zwolnieni'
@@ -130,4 +131,15 @@ export interface StatsSnapshot {
     departments: Record<string, number>;
     jobTitles: Record<string, number>;
     nationalities: Record<string, number>;
+}
+
+export interface OptionType {
+  label: string;
+  value: string;
+}
+
+export interface HierarchicalOption {
+    label: string;
+    value: string;
+    children?: HierarchicalOption[];
 }

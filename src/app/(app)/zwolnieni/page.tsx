@@ -24,14 +24,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, Trash2, XCircle, Copy } from 'lucide-react';
-import type { Employee } from '@/lib/types';
+import type { Employee, HierarchicalOption } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
 import { ExcelExportButton } from '@/components/excel-export-button';
 import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
-import { MultiSelect, OptionType, GroupedOptionType } from '@/components/ui/multi-select';
+import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { UserX } from 'lucide-react';
 import { DataTable } from '@/components/data-table';
@@ -41,7 +41,7 @@ import { useAppContext } from '@/context/app-context';
 import { EmployeeCard } from '@/components/employee-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDate, parseMaybeDate } from '@/lib/date';
-import { format } from 'date-fns';
+import { format, getYear, getMonth } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 
@@ -83,40 +83,42 @@ export default function ZwolnieniPage() {
   const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
 
   const terminationPeriodOptions = useMemo(() => {
-    const periods: Record<string, Set<string>> = {};
+    const hierarchy: Record<string, Record<string, Set<string>>> = {};
     let hasBlank = false;
 
     terminatedEmployees.forEach(emp => {
-      const date = parseMaybeDate(emp.terminationDate);
-      if (date) {
-        const year = format(date, 'yyyy');
-        const month = format(date, 'yyyy-MM');
-        if (!periods[year]) {
-          periods[year] = new Set();
-        }
-        periods[year].add(month);
-      } else {
-        hasBlank = true;
-      }
-    });
+        const date = parseMaybeDate(emp.terminationDate);
+        if (date) {
+            const year = getYear(date).toString();
+            const month = format(date, 'LLLL', { locale: pl });
+            const day = format(date, 'dd.MM.yyyy');
 
-    const groupedOptions: GroupedOptionType = {};
-    
-    if (hasBlank) {
-      groupedOptions[BLANK_FILTER_VALUE] = [{ value: BLANK_FILTER_VALUE, label: BLANK_FILTER_VALUE }];
+            if (!hierarchy[year]) hierarchy[year] = {};
+            if (!hierarchy[year][month]) hierarchy[year][month] = new Set();
+            hierarchy[year][month].add(day);
+        } else {
+            hasBlank = true;
+        }
+    });
+      
+    const options: HierarchicalOption[] = Object.keys(hierarchy).sort((a,b) => b.localeCompare(a)).map(year => ({
+        label: year,
+        value: year,
+        children: Object.keys(hierarchy[year]).map(month => ({
+            label: month,
+            value: `${year}-${format(new Date(2000, pl.localize!.month(pl.localize!.match.months.exec(month)!.index as any, {}).toLowerCase()), 'MM')}`,
+            children: Array.from(hierarchy[year][month]).map(day => ({
+                label: day,
+                value: day
+            }))
+        }))
+    }));
+
+    if(hasBlank) {
+        options.push({ label: BLANK_FILTER_VALUE, value: BLANK_FILTER_VALUE });
     }
 
-    const sortedYears = Object.keys(periods).sort((a, b) => b.localeCompare(a));
-
-    sortedYears.forEach(year => {
-      const sortedMonths = Array.from(periods[year]).sort();
-      groupedOptions[year] = sortedMonths.map(month => ({
-        value: month,
-        label: format(new Date(month), 'LLLL', { locale: pl }),
-      }));
-    });
-
-    return groupedOptions;
+    return options;
   }, [terminatedEmployees]);
 
   const handleClearFilters = () => {
@@ -149,14 +151,25 @@ export default function ZwolnieniPage() {
         filtered = filtered.filter(employee => selectedJobTitles.includes(employee.jobTitle));
     }
 
-    if (selectedTerminationPeriods.length > 0) {
-      filtered = filtered.filter(employee => {
-        const termDate = parseMaybeDate(employee.terminationDate);
-        if (!termDate) return selectedTerminationPeriods.includes(BLANK_FILTER_VALUE);
-        const period = format(termDate, 'yyyy-MM');
-        return selectedTerminationPeriods.includes(period);
-      });
-    }
+    const dateFilter = (employee: Employee, dateField: 'terminationDate', selectedPeriods: string[]) => {
+        if (selectedPeriods.length === 0) return true;
+        
+        const empDate = parseMaybeDate(employee[dateField]);
+        if (!empDate) return selectedPeriods.includes(BLANK_FILTER_VALUE);
+
+        const year = empDate.getFullYear().toString();
+        const monthYear = format(empDate, 'yyyy-MM');
+        const dayMonthYear = format(empDate, 'dd.MM.yyyy');
+        
+        return selectedPeriods.some(period => {
+            if (period.length === 4) return period === year; // Year
+            if (period.length === 7) return period === monthYear; // Month-Year
+            if (period.length === 10) return period === dayMonthYear; // Day-Month-Year
+            return false;
+        });
+    };
+    
+    filtered = filtered.filter(emp => dateFilter(emp, 'terminationDate', selectedTerminationPeriods));
     
     return filtered.filter(employee => {
       if (selectedEmployeeIds.length === 0) return true;

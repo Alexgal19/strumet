@@ -31,13 +31,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, Trash2, XCircle } from 'lucide-react';
-import type { Employee } from '@/lib/types';
+import type { Employee, HierarchicalOption } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from '@/components/excel-import-button';
 import { ExcelExportButton } from '@/components/excel-export-button';
-import { MultiSelect, OptionType, GroupedOptionType } from '@/components/ui/multi-select';
+import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { EmployeeForm } from '@/components/employee-form';
 import { DataTable } from '@/components/data-table';
@@ -49,7 +49,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { getStatusColor, legalizationStatuses } from '@/lib/legalization-statuses';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, getYear, getMonth, getDate } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 
@@ -95,51 +95,52 @@ export default function AktywniPage() {
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
-
-  const { hirePeriodOptions, contractPeriodOptions } = useMemo(() => {
-    const createGroupedOptions = (dateField: 'hireDate' | 'contractEndDate'): GroupedOptionType => {
-      const periods: Record<string, Set<string>> = {};
-      let hasBlank = false;
   
+  const { hirePeriodOptions, contractPeriodOptions } = useMemo(() => {
+    const createHierarchicalOptions = (dateField: 'hireDate' | 'contractEndDate'): HierarchicalOption[] => {
+      const hierarchy: Record<string, Record<string, Set<string>>> = {};
+      let hasBlank = false;
+
       activeEmployees.forEach(emp => {
         const date = parseMaybeDate(emp[dateField]);
         if (date) {
-          const year = format(date, 'yyyy');
-          const month = format(date, 'yyyy-MM');
-          if (!periods[year]) {
-            periods[year] = new Set();
-          }
-          periods[year].add(month);
+          const year = getYear(date).toString();
+          const month = format(date, 'LLLL', { locale: pl });
+          const day = format(date, 'dd.MM.yyyy');
+
+          if (!hierarchy[year]) hierarchy[year] = {};
+          if (!hierarchy[year][month]) hierarchy[year][month] = new Set();
+          hierarchy[year][month].add(day);
         } else {
           hasBlank = true;
         }
       });
-  
-      const groupedOptions: GroupedOptionType = {};
       
-      const sortedYears = Object.keys(periods).sort((a, b) => b.localeCompare(a));
-      
-      if (hasBlank) {
-        groupedOptions[BLANK_FILTER_VALUE] = [{ value: BLANK_FILTER_VALUE, label: BLANK_FILTER_VALUE }];
+      const options: HierarchicalOption[] = Object.keys(hierarchy).sort((a,b) => b.localeCompare(a)).map(year => ({
+          label: year,
+          value: year,
+          children: Object.keys(hierarchy[year]).map(month => ({
+              label: month,
+              value: `${year}-${format(new Date(2000, pl.localize!.month(pl.localize!.match.months.exec(month)!.index as any, {}).toLowerCase()), 'MM')}`,
+              children: Array.from(hierarchy[year][month]).map(day => ({
+                  label: day,
+                  value: day
+              }))
+          }))
+      }));
+
+      if(hasBlank) {
+        options.push({ label: BLANK_FILTER_VALUE, value: BLANK_FILTER_VALUE });
       }
-  
-      sortedYears.forEach(year => {
-        const sortedMonths = Array.from(periods[year]).sort();
-        groupedOptions[year] = sortedMonths.map(month => ({
-          value: month,
-          label: format(new Date(month), 'LLLL', { locale: pl }),
-        }));
-      });
-  
-      return groupedOptions;
+
+      return options;
     };
-  
+    
     return {
-      hirePeriodOptions: createGroupedOptions('hireDate'),
-      contractPeriodOptions: createGroupedOptions('contractEndDate'),
+        hirePeriodOptions: createHierarchicalOptions('hireDate'),
+        contractPeriodOptions: createHierarchicalOptions('contractEndDate')
     };
   }, [activeEmployees]);
-
 
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
@@ -181,24 +182,27 @@ export default function AktywniPage() {
       filtered = filtered.filter(employee => selectedNationalities.includes(employee.nationality));
     }
     
-    if (selectedHirePeriods.length > 0) {
-      filtered = filtered.filter(employee => {
-        const hireDate = parseMaybeDate(employee.hireDate);
-        if (!hireDate) return selectedHirePeriods.includes(BLANK_FILTER_VALUE);
-        const period = format(hireDate, 'yyyy-MM');
-        return selectedHirePeriods.includes(period);
-      });
-    }
-    
-    if (selectedContractPeriods.length > 0) {
-      filtered = filtered.filter(employee => {
-        const contractDate = parseMaybeDate(employee.contractEndDate);
-        if (!contractDate) return selectedContractPeriods.includes(BLANK_FILTER_VALUE);
-        const period = format(contractDate, 'yyyy-MM');
-        return selectedContractPeriods.includes(period);
-      });
-    }
+    const dateFilter = (employee: Employee, dateField: 'hireDate' | 'contractEndDate', selectedPeriods: string[]) => {
+        if (selectedPeriods.length === 0) return true;
+        
+        const empDate = parseMaybeDate(employee[dateField]);
+        if (!empDate) return selectedPeriods.includes(BLANK_FILTER_VALUE);
 
+        const year = empDate.getFullYear().toString();
+        const monthYear = format(empDate, 'yyyy-MM');
+        const dayMonthYear = format(empDate, 'dd.MM.yyyy');
+        
+        return selectedPeriods.some(period => {
+            if (period.length === 4) return period === year; // Year
+            if (period.length === 7) return period === monthYear; // Month-Year
+            if (period.length === 10) return period === dayMonthYear; // Day-Month-Year
+            return false;
+        });
+    };
+
+    filtered = filtered.filter(emp => dateFilter(emp, 'hireDate', selectedHirePeriods));
+    filtered = filtered.filter(emp => dateFilter(emp, 'contractEndDate', selectedContractPeriods));
+    
     return filtered;
   }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, selectedHirePeriods, selectedContractPeriods]);
 
@@ -206,43 +210,6 @@ export default function AktywniPage() {
      if (selectedEmployeeIds.length === 0) return filteredEmployees;
      return filteredEmployees.filter(employee => selectedEmployeeIds.includes(employee.id));
   }, [filteredEmployees, selectedEmployeeIds]);
-
-  const dateSummary = useMemo(() => {
-    if (selectedHirePeriods.length === 0 && selectedContractPeriods.length === 0) {
-      return null;
-    }
-    
-    const dateField = selectedHirePeriods.length > 0 ? 'hireDate' : 'contractEndDate';
-    const summary: Record<string, number> = {};
-
-    filteredEmployees.forEach(emp => {
-      const dateStr = emp[dateField];
-      if (dateStr) {
-        const formatted = formatDate(dateStr, 'dd.MM.yyyy');
-        if (formatted) {
-          summary[formatted] = (summary[formatted] || 0) + 1;
-        }
-      }
-    });
-
-    return Object.entries(summary).sort(([dateA], [dateB]) => {
-        const [dayA, monthA, yearA] = dateA.split('.');
-        const [dayB, monthB, yearB] = dateB.split('.');
-        return new Date(`${yearA}-${monthA}-${dayA}`).getTime() - new Date(`${yearB}-${monthB}-${dayB}`).getTime();
-    });
-  }, [filteredEmployees, selectedHirePeriods, selectedContractPeriods]);
-
-  const handleDateSummaryClick = (date: string) => {
-    const dateField = selectedHirePeriods.length > 0 ? 'hireDate' : 'contractEndDate';
-    const idsToSelect: Record<string, boolean> = {};
-    filteredEmployees.forEach(emp => {
-      if (formatDate(emp[dateField], 'dd.MM.yyyy') === date) {
-        idsToSelect[emp.id] = true;
-      }
-    });
-    setRowSelection(idsToSelect);
-  };
-
 
   const onSave = async (employeeData: Employee) => {
     await handleSaveEmployee(employeeData);
@@ -547,52 +514,15 @@ export default function AktywniPage() {
               title="Okres zatrudnienia"
               options={hirePeriodOptions}
               selected={selectedHirePeriods}
-              onChange={(value) => {
-                  setSelectedHirePeriods(value);
-                  setSelectedContractPeriods([]); // Reset other date filter
-                  setRowSelection({});
-              }}
+              onChange={setSelectedHirePeriods}
             />
             <MultiSelect
               title="Okres umowy do"
               options={contractPeriodOptions}
               selected={selectedContractPeriods}
-              onChange={(value) => {
-                  setSelectedContractPeriods(value);
-                  setSelectedHirePeriods([]); // Reset other date filter
-                  setRowSelection({});
-              }}
+              onChange={setSelectedContractPeriods}
             />
         </div>
-        {dateSummary && (
-          <div className="rounded-lg border bg-muted/50 p-3">
-              <h4 className="text-sm font-semibold mb-2">Podsumowanie zaznaczenia ({filteredEmployees.length})</h4>
-              <div className="flex flex-wrap gap-2">
-                {dateSummary.map(([date, count]) => (
-                  <Button 
-                    key={date}
-                    variant="secondary"
-                    size="sm"
-                    className="h-7"
-                    onClick={() => handleDateSummaryClick(date)}
-                  >
-                    {date} <Badge className="ml-2">{count}</Badge>
-                  </Button>
-                ))}
-                {selectedEmployeeIds.length > 0 && (
-                   <Button 
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-destructive hover:text-destructive"
-                    onClick={() => setRowSelection({})}
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Wyczyść zaznaczenie
-                  </Button>
-                )}
-              </div>
-          </div>
-        )}
       </div>
 
        <div className="flex flex-col flex-grow">
