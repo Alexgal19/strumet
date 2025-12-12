@@ -46,34 +46,33 @@ html, body, #__next__ {
   }
 
   .dark {
-    --background: 222 84% 4%;
-    --foreground: 210 40% 98%;
-    --card: 222 80% 8%; 
-    --card-foreground: 210 40% 98%;
-    --popover: 222 80% 8%;
-    --popover-foreground: 210 40% 98%;
+    --background: 220 8% 98%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
     --primary: 14 100% 59%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 14 100% 59%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 222 80% 15%;
-    --input: 222 80% 8%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
     --ring: 14 100% 59%;
-    --radius: 0.5rem;
-
-    --sidebar-background: 222 80% 8% / 0.6;
-    --sidebar-foreground: 210 40% 98%;
+    
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
     --sidebar-primary: 14 100% 59%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 222 80% 12%;
+    --sidebar-accent: 14 100% 59% / 0.1;
     --sidebar-accent-foreground: 14 100% 59%;
-    --sidebar-border: 217.2 32.6% 17.5% / 0.5;
+    --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 14 100% 59%;
     
     --chart-1: 14 100% 59%;
@@ -96,16 +95,6 @@ html, body, #__next__ {
   }
   body {
     @apply bg-background text-foreground;
-  }
-
-  .dark body {
-     background-color: hsl(var(--background));
-     background-image: radial-gradient(at 20% 20%, hsl(var(--primary) / 0.15) 0px, transparent 50%),
-                       radial-gradient(at 80% 20%, hsl(280 90% 55% / 0.1) 0px, transparent 50%),
-                       radial-gradient(at 20% 80%, hsl(330 100% 70% / 0.15) 0px, transparent 50%),
-                       radial-gradient(at 80% 80%, hsl(170 80% 40% / 0.1) 0px, transparent 50%);
-    background-size: 200% 200%;
-    animation: move-gradient 15s ease-in-out infinite;
   }
 }
 
