@@ -2,6 +2,7 @@
 
 
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -306,7 +307,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 employeeId, employeeFullName, date: new Date().toISOString(),
             };
             await set(newCardRef, newCard);
-            toast({ title: 'Sukces', description: 'Karta obiegowa została wygenerowana.' });
             return { ...newCard, id: newCardRef.key! };
         } catch (error) {
             console.error('Error saving circulation card:', error);
