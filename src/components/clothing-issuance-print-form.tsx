@@ -62,6 +62,7 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
                         <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
                         <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
                         <p>Dział:</p>          <p className="font-semibold">{employee.department}</p>
+                        <p>Numer karty:</p>   <p className="font-semibold">{employee.cardNumber}</p>
                     </div>
                 </section>
 
