@@ -28,10 +28,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  allowedDevOrigins: [
-    "https://*.google.com",
-    "https://*.cloudworkstations.dev"
-  ]
 };
 
 export default nextConfig;
+
