@@ -87,6 +87,7 @@ export default function AktywniPage() {
   const [selectedNationalities, setSelectedNationalities] = useState<string[]>([]);
   const [selectedHirePeriods, setSelectedHirePeriods] = useState<string[]>([]);
   const [selectedContractPeriods, setSelectedContractPeriods] = useState<string[]>([]);
+  const [selectedPlannedTerminationPeriods, setSelectedPlannedTerminationPeriods] = useState<string[]>([]);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -96,8 +97,8 @@ export default function AktywniPage() {
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
   
-  const { hirePeriodOptions, contractPeriodOptions } = useMemo(() => {
-    const createHierarchicalOptions = (dateField: 'hireDate' | 'contractEndDate'): HierarchicalOption[] => {
+  const { hirePeriodOptions, contractPeriodOptions, plannedTerminationPeriodOptions } = useMemo(() => {
+    const createHierarchicalOptions = (dateField: 'hireDate' | 'contractEndDate' | 'plannedTerminationDate'): HierarchicalOption[] => {
       const hierarchy: Record<string, Record<string, Set<string>>> = {};
       let hasBlank = false;
 
@@ -119,7 +120,7 @@ export default function AktywniPage() {
       const options: HierarchicalOption[] = Object.keys(hierarchy).sort((a,b) => b.localeCompare(a)).map(year => ({
           label: year,
           value: year,
-          children: Object.keys(hierarchy[year]).sort().map(monthKey => {
+          children: Object.keys(hierarchy[year]).sort((a, b) => a.localeCompare(b)).map(monthKey => {
               const [monthNum, monthName] = monthKey.split('-');
               return {
                   label: monthName,
@@ -141,7 +142,8 @@ export default function AktywniPage() {
     
     return {
         hirePeriodOptions: createHierarchicalOptions('hireDate'),
-        contractPeriodOptions: createHierarchicalOptions('contractEndDate')
+        contractPeriodOptions: createHierarchicalOptions('contractEndDate'),
+        plannedTerminationPeriodOptions: createHierarchicalOptions('plannedTerminationDate'),
     };
   }, [activeEmployees]);
 
@@ -158,6 +160,7 @@ export default function AktywniPage() {
     setSelectedNationalities([]);
     setSelectedHirePeriods([]);
     setSelectedContractPeriods([]);
+    setSelectedPlannedTerminationPeriods([]);
     setRowSelection({});
   };
 
@@ -185,7 +188,7 @@ export default function AktywniPage() {
       filtered = filtered.filter(employee => selectedNationalities.includes(employee.nationality));
     }
     
-    const dateFilter = (employee: Employee, dateField: 'hireDate' | 'contractEndDate', selectedPeriods: string[]) => {
+    const dateFilter = (employee: Employee, dateField: 'hireDate' | 'contractEndDate' | 'plannedTerminationDate', selectedPeriods: string[]) => {
         if (selectedPeriods.length === 0) return true;
         
         const empDate = parseMaybeDate(employee[dateField]);
@@ -205,9 +208,10 @@ export default function AktywniPage() {
 
     filtered = filtered.filter(emp => dateFilter(emp, 'hireDate', selectedHirePeriods));
     filtered = filtered.filter(emp => dateFilter(emp, 'contractEndDate', selectedContractPeriods));
+    filtered = filtered.filter(emp => dateFilter(emp, 'plannedTerminationDate', selectedPlannedTerminationPeriods));
     
     return filtered;
-  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, selectedHirePeriods, selectedContractPeriods]);
+  }, [activeEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedNationalities, selectedHirePeriods, selectedContractPeriods, selectedPlannedTerminationPeriods]);
 
   const displayedEmployees = useMemo(() => {
      if (selectedEmployeeIds.length === 0) return filteredEmployees;
@@ -382,7 +386,7 @@ export default function AktywniPage() {
     );
   };
 
-  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || selectedHirePeriods.length > 0 || selectedContractPeriods.length > 0;
+  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || selectedHirePeriods.length > 0 || selectedContractPeriods.length > 0 || selectedPlannedTerminationPeriods.length > 0;
 
   if (isLoading || !hasMounted) {
     return (
@@ -525,6 +529,12 @@ export default function AktywniPage() {
               selected={selectedContractPeriods}
               onChange={setSelectedContractPeriods}
             />
+            <MultiSelect
+              title="Planowana data zwolnienia"
+              options={plannedTerminationPeriodOptions}
+              selected={selectedPlannedTerminationPeriods}
+              onChange={setSelectedPlannedTerminationPeriods}
+            />
         </div>
       </div>
 
@@ -549,3 +559,5 @@ export default function AktywniPage() {
     </div>
   );
 }
+
+    
