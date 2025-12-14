@@ -921,9 +921,9 @@ const HiresAndFiresTab = () => {
         }
     };
 
-    const { newHires, terminations } = useMemo(() => {
+    const { newHires, terminations, hiresSummary, terminationsSummary } = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) {
-            return { newHires: [], terminations: [] };
+            return { newHires: [], terminations: [], hiresSummary: null, terminationsSummary: null };
         }
 
         const hires = employees.filter(emp => {
@@ -936,10 +936,51 @@ const HiresAndFiresTab = () => {
             return termDate && isWithinInterval(termDate, { start: dateRange.from!, end: dateRange.to! });
         }).sort((a,b) => new Date(b.terminationDate!).getTime() - new Date(a.terminationDate!).getTime());
 
-        return { newHires: hires, terminations: terms };
+        const createSummary = (employeeList: Employee[]) => {
+            const byDepartment = employeeList.reduce((acc, emp) => {
+                const key = emp.department || 'Brak działu';
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
+
+            const byJobTitle = employeeList.reduce((acc, emp) => {
+                const key = emp.jobTitle || 'Brak stanowiska';
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
+            
+            return {
+                byDepartment: Object.entries(byDepartment).map(([name, count]) => ({name, count})).sort((a,b) => b.count - a.count),
+                byJobTitle: Object.entries(byJobTitle).map(([name, count]) => ({name, count})).sort((a,b) => b.count - a.count),
+            }
+        };
+
+        return { 
+            newHires: hires, 
+            terminations: terms,
+            hiresSummary: createSummary(hires),
+            terminationsSummary: createSummary(terms),
+        };
 
     }, [employees, dateRange]);
-
+    
+    const SummaryTable = ({ title, data }: { title: string, data: {name: string, count: number}[] }) => (
+        <div className='space-y-2'>
+            <h4 className='font-semibold text-sm'>{title}</h4>
+            {data.length > 0 ? (
+                <Table>
+                    <TableBody>
+                        {data.map(item => (
+                            <TableRow key={item.name} className="text-xs">
+                                <TableCell className='py-1.5'>{item.name}</TableCell>
+                                <TableCell className='text-right font-bold py-1.5'>{item.count}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            ) : <p className='text-xs text-muted-foreground text-center py-4'>Brak danych</p>}
+        </div>
+    );
 
     return (
         <div className="flex flex-col space-y-6 flex-grow">
@@ -1000,10 +1041,59 @@ const HiresAndFiresTab = () => {
                 </CardHeader>
             </Card>
 
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {hiresSummary && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
+                                <AccordionItem value="departments">
+                                    <AccordionTrigger>Wg działów</AccordionTrigger>
+                                    <AccordionContent>
+                                        <SummaryTable title="" data={hiresSummary.byDepartment} />
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="job-titles">
+                                    <AccordionTrigger>Wg stanowisk</AccordionTrigger>
+                                    <AccordionContent>
+                                         <SummaryTable title="" data={hiresSummary.byJobTitle} />
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
+                        </CardContent>
+                    </Card>
+                )}
+                 {terminationsSummary && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                              <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
+                                <AccordionItem value="departments">
+                                    <AccordionTrigger>Wg działów</AccordionTrigger>
+                                    <AccordionContent>
+                                        <SummaryTable title="" data={terminationsSummary.byDepartment} />
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="job-titles">
+                                    <AccordionTrigger>Wg stanowisk</AccordionTrigger>
+                                    <AccordionContent>
+                                         <SummaryTable title="" data={terminationsSummary.byJobTitle} />
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
+                        </CardContent>
+                    </Card>
+                )}
+             </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Nowo zatrudnieni ({newHires.length})</CardTitle>
+                        <CardTitle>Lista nowo zatrudnionych ({newHires.length})</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="h-96">
@@ -1037,7 +1127,7 @@ const HiresAndFiresTab = () => {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Zwolnieni ({terminations.length})</CardTitle>
+                        <CardTitle>Lista zwolnionych ({terminations.length})</CardTitle>
                     </CardHeader>
                     <CardContent>
                          <ScrollArea className="h-96">
