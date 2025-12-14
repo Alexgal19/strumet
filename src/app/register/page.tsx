@@ -1,17 +1,26 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Database, Loader2 } from "lucide-react";
+import { Database, Loader2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: Array<string>;
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed',
+    platform: string
+  }>;
+  prompt(): Promise<void>;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -21,6 +30,18 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,9 +78,27 @@ export default function RegisterPage() {
     }
   };
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Nie można zainstalować aplikacji w tym momencie.',
+      });
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      toast({ title: 'Sukces', description: 'Aplikacja została zainstalowana.' });
+    }
+    setDeferredPrompt(null);
+  };
+
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm bg-background/80">
+      <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Database className="h-8 w-8" />
@@ -116,6 +155,14 @@ export default function RegisterPage() {
               Zaloguj się
             </Link>
           </div>
+           {deferredPrompt && (
+            <div className="mt-6 border-t pt-4">
+              <Button variant="outline" className="w-full" onClick={handleInstallClick}>
+                <Download className="mr-2 h-4 w-4" />
+                Zainstaluj aplikację
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

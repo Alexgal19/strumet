@@ -99,7 +99,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm bg-background/80">
+      <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Database className="h-8 w-8" />
@@ -147,7 +147,7 @@ export default function LoginPage() {
             </Link>
           </div>
           {deferredPrompt && (
-            <div className="mt-4">
+            <div className="mt-6 border-t pt-4">
               <Button variant="outline" className="w-full" onClick={handleInstallClick}>
                 <Download className="mr-2 h-4 w-4" />
                 Zainstaluj aplikację
