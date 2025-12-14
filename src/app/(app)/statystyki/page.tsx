@@ -1,7 +1,4 @@
 
-
-
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -9,7 +6,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, L
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon } from 'lucide-react';
 import { Employee, Order, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,7 +24,12 @@ import { StatisticsExcelExportButton } from '@/components/statistics-excel-expor
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfToday, isWithinInterval } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
+import { parseMaybeDate } from '@/lib/date';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -896,6 +898,182 @@ const OrdersTab = () => {
     )
 }
 
+const HiresAndFiresTab = () => {
+    const { employees } = useAppContext();
+    const today = endOfToday();
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({
+        from: startOfDay(subDays(today, 30)),
+        to: today,
+    });
+
+    const handlePresetChange = (value: string) => {
+        const now = startOfDay(new Date());
+        switch (value) {
+            case '7':
+                setDateRange({ from: subDays(now, 7), to: endOfToday() });
+                break;
+            case '30':
+                setDateRange({ from: subDays(now, 30), to: endOfToday() });
+                break;
+            case 'month':
+                setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
+                break;
+        }
+    };
+
+    const { newHires, terminations } = useMemo(() => {
+        if (!dateRange?.from || !dateRange?.to) {
+            return { newHires: [], terminations: [] };
+        }
+
+        const hires = employees.filter(emp => {
+            const hireDate = parseMaybeDate(emp.hireDate);
+            return hireDate && isWithinInterval(hireDate, { start: dateRange.from!, end: dateRange.to! });
+        }).sort((a,b) => new Date(b.hireDate).getTime() - new Date(a.hireDate).getTime());
+
+        const terms = employees.filter(emp => {
+            const termDate = parseMaybeDate(emp.terminationDate);
+            return termDate && isWithinInterval(termDate, { start: dateRange.from!, end: dateRange.to! });
+        }).sort((a,b) => new Date(b.terminationDate!).getTime() - new Date(a.terminationDate!).getTime());
+
+        return { newHires: hires, terminations: terms };
+
+    }, [employees, dateRange]);
+
+
+    return (
+        <div className="flex flex-col space-y-6 flex-grow">
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <CardTitle>Wybierz okres</CardTitle>
+                        <div className="flex flex-wrap items-center gap-2">
+                             <Select onValueChange={handlePresetChange} defaultValue='30'>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Wybierz okres" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="7">Ostatnie 7 dni</SelectItem>
+                                    <SelectItem value="30">Ostatnie 30 dni</SelectItem>
+                                    <SelectItem value="month">Ten miesiąc</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date"
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-[300px] justify-start text-left font-normal",
+                                            !dateRange && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (
+                                            dateRange.to ? (
+                                                <>
+                                                    {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
+                                                    {format(dateRange.to, "LLL dd, y", { locale: pl })}
+                                                </>
+                                            ) : (
+                                                format(dateRange.from, "LLL dd, y", { locale: pl })
+                                            )
+                                        ) : (
+                                            <span>Wybierz zakres dat</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        numberOfMonths={2}
+                                        locale={pl}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </div>
+                </CardHeader>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Nowo zatrudnieni ({newHires.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-96">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Pracownik</TableHead>
+                                        <TableHead>Data</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {newHires.length > 0 ? (
+                                        newHires.map(emp => (
+                                            <TableRow key={emp.id}>
+                                                <TableCell>
+                                                    <div className="font-medium">{emp.fullName}</div>
+                                                    <div className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</div>
+                                                </TableCell>
+                                                <TableCell>{format(parseMaybeDate(emp.hireDate)!, 'dd.MM.yyyy')}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={2} className="text-center h-24">Brak danych</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Zwolnieni ({terminations.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         <ScrollArea className="h-96">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Pracownik</TableHead>
+                                        <TableHead>Data</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {terminations.length > 0 ? (
+                                        terminations.map(emp => (
+                                            <TableRow key={emp.id}>
+                                                <TableCell>
+                                                    <div className="font-medium">{emp.fullName}</div>
+                                                    <div className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</div>
+                                                </TableCell>
+                                                <TableCell>{format(parseMaybeDate(emp.terminationDate)!, 'dd.MM.yyyy')}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={2} className="text-center h-24">Brak danych</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
+
 export default function StatisticsPage() {
   const { isLoading } = useAppContext();
   
@@ -914,13 +1092,17 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
+          <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
           <TabsTrigger value="history">Historia</TabsTrigger>
           <TabsTrigger value="orders">Zamówienia</TabsTrigger>
         </TabsList>
         <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
+        </TabsContent>
+         <TabsContent value="hires_and_fires" className="flex-grow mt-6">
+            <HiresAndFiresTab />
         </TabsContent>
          <TabsContent value="history" className="flex-grow mt-6">
             <HistoryTab />
