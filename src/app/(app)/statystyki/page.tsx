@@ -24,7 +24,7 @@ import { StatisticsExcelExportButton } from '@/components/statistics-excel-expor
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfToday, isWithinInterval } from 'date-fns';
+import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfToday, isWithinInterval, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -444,10 +444,23 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
     const { statsHistory, isHistoryLoading } = useAppContext();
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: statsHistory.length > 1 ? parseISO(statsHistory[1].id) : undefined,
-        to: statsHistory.length > 0 ? parseISO(statsHistory[0].id) : undefined,
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+        if (statsHistory.length > 1) {
+            return { from: parseISO(statsHistory[1].id), to: parseISO(statsHistory[0].id) };
+        }
+        if (statsHistory.length === 1) {
+            return { from: parseISO(statsHistory[0].id), to: parseISO(statsHistory[0].id) };
+        }
+        return undefined;
     });
+
+    useEffect(() => {
+        if (!dateRange && statsHistory.length > 0) {
+            const defaultFrom = statsHistory.length > 1 ? parseISO(statsHistory[1].id) : parseISO(statsHistory[0].id);
+            const defaultTo = parseISO(statsHistory[0].id);
+            setDateRange({ from: defaultFrom, to: defaultTo });
+        }
+    }, [statsHistory, dateRange]);
     
     const { comparisonData, snapshotA, snapshotB } = useMemo(() => {
         if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
