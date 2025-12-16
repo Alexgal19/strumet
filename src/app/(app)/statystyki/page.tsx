@@ -443,17 +443,64 @@ const ReportTab = () => {
 const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
     const { statsHistory, isHistoryLoading } = useAppContext();
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
+    
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({
+        from: statsHistory.length > 1 ? parseISO(statsHistory[1].id) : undefined,
+        to: statsHistory.length > 0 ? parseISO(statsHistory[0].id) : undefined,
+    });
+    
+    const { comparisonData, snapshotA, snapshotB } = useMemo(() => {
+        if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
+            return { comparisonData: null, snapshotA: null, snapshotB: null };
+        }
 
-    const chartData = useMemo(() => {
-        return statsHistory.map(snapshot => ({
-            date: format(parseISO(snapshot.id), 'dd.MM.yyyy'),
-            'Ilość ogólna': snapshot.totalActive,
-            'Nowozatrudnieni': snapshot.newHires,
-            'Zwolnieni': snapshot.terminations,
-        })).reverse(); // Reverse to show chronological order
-    }, [statsHistory]);
+        const findClosestSnapshot = (targetDate: Date) => {
+            return statsHistory.reduce((prev, curr) => {
+                const prevDiff = Math.abs(parseISO(prev.id).getTime() - targetDate.getTime());
+                const currDiff = Math.abs(parseISO(curr.id).getTime() - targetDate.getTime());
+                return currDiff < prevDiff ? curr : prev;
+            });
+        };
 
+        const snapA = findClosestSnapshot(dateRange.from);
+        const snapB = findClosestSnapshot(dateRange.to);
 
+        if (!snapA || !snapB || snapA.id === snapB.id) {
+            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB };
+        }
+
+        const allKeys = new Set([
+            ...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {}),
+            ...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})
+        ]);
+        
+        const departments = Array.from(new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]));
+        const jobTitles = Array.from(new Set([...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})]));
+
+        const departmentChanges = departments.map(name => {
+            const countA = snapA.departments?.[name] || 0;
+            const countB = snapB.departments?.[name] || 0;
+            return { name, countA, countB, delta: countB - countA };
+        }).sort((a,b) => b.delta - a.delta);
+        
+        const jobTitleChanges = jobTitles.map(name => {
+            const countA = snapA.jobTitles?.[name] || 0;
+            const countB = snapB.jobTitles?.[name] || 0;
+            return { name, countA, countB, delta: countB - countA };
+        }).sort((a,b) => b.delta - a.delta);
+
+        return {
+            comparisonData: {
+                totalDelta: snapB.totalActive - snapA.totalActive,
+                departmentChanges,
+                jobTitleChanges,
+            },
+            snapshotA: snapA,
+            snapshotB: snapB,
+        };
+
+    }, [dateRange, statsHistory]);
+    
     const handleCreateSnapshot = async () => {
         setIsCreatingSnapshot(true);
         try {
@@ -478,11 +525,21 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
     
+    const DeltaCell = ({ delta }: { delta: number }) => {
+        if (delta === 0) {
+            return <span className="text-muted-foreground font-medium flex items-center justify-end"><Minus className="h-4 w-4 mr-1" /> {delta}</span>;
+        }
+        if (delta > 0) {
+            return <span className="text-green-600 font-bold flex items-center justify-end"><TrendingUp className="h-4 w-4 mr-1" /> +{delta}</span>;
+        }
+        return <span className="text-red-600 font-bold flex items-center justify-end"><TrendingDown className="h-4 w-4 mr-1" /> {delta}</span>;
+    };
+
     if (!statsHistory.length) {
         return (
             <div className="text-center text-muted-foreground py-10 flex flex-col items-center gap-4">
                 <HistoryIcon className="w-12 h-12" />
-                <p className="max-w-md">Brak danych historycznych. Pierwszy automatyczny zrzut statystyk zostanie utworzony w najbliższy poniedziałek. Możesz też utworzyć go ręcznie.</p>
+                <p className="max-w-md">Brak danych historycznych. Pierwszy automatyczny zrzut statystyk zostanie utworzony wkrótce. Możesz też utworzyć go ręcznie.</p>
                  <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot}>
                     {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                     Utwórz zrzut teraz
@@ -494,29 +551,131 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
     return (
         <div className="flex flex-col space-y-6 flex-grow">
             <Card>
-                 <CardHeader className="flex-row items-start sm:items-center justify-between">
+                 <CardHeader className="flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                        <CardTitle>Historia zmian</CardTitle>
-                        <CardDescription>Dynamika zatrudnienia, zwolnień i ogólnej liczby pracowników w czasie.</CardDescription>
+                        <CardTitle>Porównanie historyczne</CardTitle>
+                        <CardDescription>Wybierz dwie daty, aby porównać stan zatrudnienia.</CardDescription>
                     </div>
-                     <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline" size="sm">
-                        {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                        Utwórz zrzut teraz
-                    </Button>
+                     <div className="flex items-center gap-2">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    id="date"
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-[300px] justify-start text-left font-normal",
+                                        !dateRange && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                            <>
+                                                {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
+                                                {format(dateRange.to, "LLL dd, y", { locale: pl })}
+                                            </>
+                                        ) : (
+                                            format(dateRange.from, "LLL dd, y", { locale: pl })
+                                        )
+                                    ) : (
+                                        <span>Wybierz zakres dat</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={2}
+                                    locale={pl}
+                                    disabled={(date) => !statsHistory.some(s => isSameDay(parseISO(s.id), date))}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                         <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline" size="sm">
+                            {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                            Nowy zrzut
+                        </Button>
+                     </div>
                 </CardHeader>
-                <CardContent className="h-[450px]">
-                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
-                            <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                            <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend />
-                            <Line type="monotone" dataKey="Ilość ogólna" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
-                            <Line type="monotone" dataKey="Nowozatrudnieni" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={false}/>
-                            <Line type="monotone" dataKey="Zwolnieni" stroke="hsl(var(--chart-5))" strokeWidth={2} dot={false} />
-                        </LineChart>
-                    </ResponsiveContainer>
+                <CardContent>
+                    {!comparisonData || !snapshotA || !snapshotB ? (
+                        <p className="text-center text-muted-foreground py-10">Wybierz dwie różne daty, aby zobaczyć porównanie.</p>
+                    ) : (
+                        <div className="space-y-8">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Podsumowanie ogólne</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-3 gap-4 text-center">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">{format(parseISO(snapshotA.id), "dd.MM.yyyy")}</p>
+                                        <p className="text-2xl font-bold">{snapshotA.totalActive}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Różnica</p>
+                                        <div className="text-2xl"><DeltaCell delta={comparisonData.totalDelta} /></div>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">{format(parseISO(snapshotB.id), "dd.MM.yyyy")}</p>
+                                        <p className="text-2xl font-bold">{snapshotB.totalActive}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <Card>
+                                    <CardHeader><CardTitle>Zmiany wg działów</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ScrollArea className="h-72">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Dział</TableHead>
+                                                        <TableHead className="text-right">Różnica</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {comparisonData.departmentChanges.map(c => (
+                                                        <TableRow key={c.name}>
+                                                            <TableCell>{c.name}</TableCell>
+                                                            <TableCell><DeltaCell delta={c.delta} /></TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                                 <Card>
+                                    <CardHeader><CardTitle>Zmiany wg stanowisk</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ScrollArea className="h-72">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Stanowisko</TableHead>
+                                                        <TableHead className="text-right">Różnica</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                     {comparisonData.jobTitleChanges.map(c => (
+                                                        <TableRow key={c.name}>
+                                                            <TableCell>{c.name}</TableCell>
+                                                            <TableCell><DeltaCell delta={c.delta} /></TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
