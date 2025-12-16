@@ -7,7 +7,7 @@ import { LineChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardUser } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon } from 'lucide-react';
 import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ import { parseMaybeDate } from '@/lib/date';
 import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { CheckIcon, ChevronsUpDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -376,20 +377,12 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
     const { statsHistory, isHistoryLoading } = useAppContext();
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
-        if (statsHistory.length > 1) {
-            return { from: parseISO(statsHistory[1].id), to: parseISO(statsHistory[0].id) };
-        }
-        if (statsHistory.length === 1) {
-            return { from: parseISO(statsHistory[0].id), to: parseISO(statsHistory[0].id) };
-        }
-        return undefined;
-    });
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
     useEffect(() => {
         if (!dateRange && statsHistory.length > 0) {
-            const defaultFrom = statsHistory.length > 1 ? parseISO(statsHistory[1].id) : parseISO(statsHistory[0].id);
             const defaultTo = parseISO(statsHistory[0].id);
+            const defaultFrom = statsHistory.length > 1 ? parseISO(statsHistory[1].id) : defaultTo;
             setDateRange({ from: defaultFrom, to: defaultTo });
         }
     }, [statsHistory, dateRange]);
@@ -398,15 +391,15 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         if (statsHistory.length < 1 || !dateRange?.from || !dateRange.to) {
             return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
         }
-
+        
         const snapshotsInRange = statsHistory.filter(s => {
             const sDate = parseISO(s.id);
-            return isWithinInterval(sDate, { start: dateRange.from!, end: dateRange.to! });
+            return isWithinInterval(sDate, { start: startOfDay(dateRange.from!), end: endOfToday() });
         });
-
+        
         const hiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
         const terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
-
+        
         const findClosestSnapshot = (targetDate: Date) => {
             return statsHistory.reduce((prev, curr) => {
                 const prevDiff = Math.abs(parseISO(prev.id).getTime() - targetDate.getTime());
@@ -419,7 +412,7 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         const snapB = findClosestSnapshot(dateRange.to);
 
         if (!snapA || !snapB || snapA.id === snapB.id) {
-            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange };
+            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange: terminationsInRange };
         }
 
         const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
@@ -907,17 +900,17 @@ const HiresAndFiresTab = () => {
 }
 
 const OrdersTab = () => {
-    const { config, employees, addOrder, updateOrder, deleteOrder, isLoading: isAppLoading } = useAppContext();
+    const { config, addOrder, updateOrder, deleteOrder, isLoading: isAppLoading } = useAppContext();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoadingOrders, setIsLoadingOrders] = useState(true);
     const { toast } = useToast();
     
-    // State for both forms
+    // Stan dla obu formularzy
     const [newOrderDepartment, setNewOrderDepartment] = useState('');
     const [newOrderJobTitle, setNewOrderJobTitle] = useState('');
     const [newOrderQuantity, setNewOrderQuantity] = useState(1);
 
-    // State for editing
+    // Stan do edycji
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState<Order | null>(null);
     const [editFormData, setEditFormData] = useState<{ department: string; jobTitle: string; quantity: number; realizedQuantity: number; } | null>(null);
@@ -1104,9 +1097,11 @@ const OrdersTab = () => {
                                                     return (
                                                         <div key={order.id} className="flex items-start justify-between p-3 rounded-md border">
                                                             <div>
-                                                                <p className="font-medium">{order.jobTitle}</p>
-                                                                <div className="text-xs text-muted-foreground mt-1">
-                                                                    <p>{order.type === 'replacement' ? 'Zastępstwo' : 'Nowe stanowisko'}</p>
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <p className="font-medium">{order.jobTitle}</p>
+                                                                    <Badge variant={order.type === 'replacement' ? 'destructive' : 'outline'} className={cn(order.type === 'replacement' && 'bg-orange-500/20 text-orange-700 border-orange-500/50')}>
+                                                                        {order.type === 'replacement' ? 'Zastępstwo' : 'Nowe'}
+                                                                    </Badge>
                                                                 </div>
                                                                 <div className="text-xs text-muted-foreground space-y-1 mt-2">
                                                                     <p>Ilość: <span className='font-semibold'>{order.quantity}</span></p>
@@ -1248,4 +1243,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
