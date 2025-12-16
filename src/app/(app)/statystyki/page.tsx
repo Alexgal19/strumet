@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef } from 'react';
@@ -394,11 +395,10 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
     }, [statsHistory, dateRange]);
     
     const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
-        if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
+        if (statsHistory.length < 1 || !dateRange?.from || !dateRange.to) {
             return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
         }
-        
-        // Obliczenie zatrudnionych i zwolnionych w wybranym zakresie
+
         const snapshotsInRange = statsHistory.filter(s => {
             const sDate = parseISO(s.id);
             return isWithinInterval(sDate, { start: dateRange.from!, end: dateRange.to! });
@@ -419,23 +419,23 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         const snapB = findClosestSnapshot(dateRange.to);
 
         if (!snapA || !snapB || snapA.id === snapB.id) {
-            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange: terminationsInRange };
+            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange };
         }
 
-        const departments = Array.from(new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]));
-        const jobTitles = Array.from(new Set([...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})]));
+        const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
+        const allJobTitleKeys = new Set([...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})]);
 
-        const departmentChanges = departments.map(name => {
+        const departmentChanges = Array.from(allDepartmentKeys).map(name => {
             const countA = snapA.departments?.[name] || 0;
             const countB = snapB.departments?.[name] || 0;
             return { name, countA, countB, delta: countB - countA };
-        }).sort((a,b) => b.delta - a.delta);
-        
-        const jobTitleChanges = jobTitles.map(name => {
+        }).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+        const jobTitleChanges = Array.from(allJobTitleKeys).map(name => {
             const countA = snapA.jobTitles?.[name] || 0;
             const countB = snapB.jobTitles?.[name] || 0;
             return { name, countA, countB, delta: countB - countA };
-        }).sort((a,b) => b.delta - a.delta);
+        }).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
         return {
             comparisonData: {
@@ -448,8 +448,8 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
             newHiresInRange: hiresInRange,
             terminationsInRange,
         };
-
     }, [dateRange, statsHistory]);
+
     
     const handleCreateSnapshot = async () => {
         setIsCreatingSnapshot(true);
@@ -912,14 +912,10 @@ const OrdersTab = () => {
     const [isLoadingOrders, setIsLoadingOrders] = useState(true);
     const { toast } = useToast();
     
-    // State for "New Employee" form
+    // State for both forms
     const [newOrderDepartment, setNewOrderDepartment] = useState('');
     const [newOrderJobTitle, setNewOrderJobTitle] = useState('');
     const [newOrderQuantity, setNewOrderQuantity] = useState(1);
-
-    // State for "Replacement" form
-    const [replacementEmployeeId, setReplacementEmployeeId] = useState('');
-    const [isComboboxOpen, setIsComboboxOpen] = useState(false);
 
     // State for editing
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -934,8 +930,14 @@ const OrdersTab = () => {
       });
       return () => unsubscribe();
     }, []);
+    
+    const resetForm = () => {
+        setNewOrderDepartment('');
+        setNewOrderJobTitle('');
+        setNewOrderQuantity(1);
+    }
 
-    const handleAddNewOrder = async () => {
+    const handleAddNewOrder = async (type: 'new' | 'replacement') => {
         if (!newOrderDepartment || !newOrderJobTitle || newOrderQuantity < 1) {
             toast({ variant: 'destructive', title: 'Błąd walidacji', description: 'Wszystkie pola muszą być wypełnione.'});
             return;
@@ -945,29 +947,9 @@ const OrdersTab = () => {
             jobTitle: newOrderJobTitle,
             quantity: newOrderQuantity,
             realizedQuantity: 0,
-            type: 'new',
+            type: type,
         });
-        setNewOrderDepartment('');
-        setNewOrderJobTitle('');
-        setNewOrderQuantity(1);
-    };
-
-    const handleAddReplacementOrder = async () => {
-        const employeeToReplace = employees.find(e => e.id === replacementEmployeeId);
-        if (!employeeToReplace) return;
-
-        await addOrder({
-            department: employeeToReplace.department,
-            jobTitle: employeeToReplace.jobTitle,
-            quantity: 1,
-            realizedQuantity: 0,
-            type: 'replacement',
-            replacesEmployeeInfo: {
-                id: employeeToReplace.id,
-                fullName: employeeToReplace.fullName
-            }
-        });
-        setReplacementEmployeeId('');
+        resetForm();
     };
 
     const handleOpenEditDialog = (order: Order) => {
@@ -1002,9 +984,6 @@ const OrdersTab = () => {
             </div>
         );
     }
-    
-    const selectedEmployeeForReplacement = employees.find(e => e.id === replacementEmployeeId);
-
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1048,7 +1027,7 @@ const OrdersTab = () => {
                                         min="1"
                                     />
                                 </div>
-                                <Button onClick={handleAddNewOrder} className="w-full">
+                                <Button onClick={() => handleAddNewOrder('new')} className="w-full">
                                     <PlusCircle className="mr-2 h-4 w-4" />
                                     Dodaj zamówienie
                                 </Button>
@@ -1056,55 +1035,42 @@ const OrdersTab = () => {
                         </Card>
                     </TabsContent>
                     <TabsContent value="replacement">
-                        <Card>
+                         <Card>
                             <CardHeader>
                                 <CardTitle>Zamówienie na zastępstwo</CardTitle>
-                                <CardDescription>Wybierz pracownika, którego ma dotyczyć zastępstwo.</CardDescription>
+                                <CardDescription>Wypełnij formularz, aby utworzyć zamówienie na zastępstwo.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                  <Label>Pracownik do zastąpienia</Label>
-                                  <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                      <Button variant="outline" role="combobox" aria-expanded={isComboboxOpen} className="w-full justify-between">
-                                        {selectedEmployeeForReplacement ? selectedEmployeeForReplacement.fullName : "Wybierz pracownika..."}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                      <Command>
-                                        <CommandInput placeholder="Szukaj pracownika..." />
-                                        <CommandList>
-                                            <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
-                                            <CommandGroup>
-                                                {employees.map((employee) => (
-                                                    <CommandItem
-                                                        key={employee.id}
-                                                        value={employee.fullName}
-                                                        onSelect={() => {
-                                                            setReplacementEmployeeId(employee.id);
-                                                            setIsComboboxOpen(false);
-                                                        }}
-                                                    >
-                                                        <CheckIcon className={cn("mr-2 h-4 w-4", replacementEmployeeId === employee.id ? "opacity-100" : "opacity-0")} />
-                                                        {employee.fullName}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                      </Command>
-                                    </PopoverContent>
-                                  </Popover>
+                                <div className="space-y-1">
+                                    <Label>Dział</Label>
+                                    <Select value={newOrderDepartment} onValueChange={setNewOrderDepartment}>
+                                        <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                                        <SelectContent>
+                                            {config.departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                                {selectedEmployeeForReplacement && (
-                                    <div className="text-sm text-muted-foreground p-2 border rounded-md">
-                                        <p><strong>Dział:</strong> {selectedEmployeeForReplacement.department}</p>
-                                        <p><strong>Stanowisko:</strong> {selectedEmployeeForReplacement.jobTitle}</p>
-                                    </div>
-                                )}
-                                <Button onClick={handleAddReplacementOrder} disabled={!replacementEmployeeId} className="w-full">
+                                <div className="space-y-1">
+                                    <Label>Stanowisko</Label>
+                                    <Select value={newOrderJobTitle} onValueChange={setNewOrderJobTitle}>
+                                        <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                                        <SelectContent>
+                                            {config.jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label>Ilość</Label>
+                                    <Input
+                                        type="number"
+                                        value={newOrderQuantity}
+                                        onChange={(e) => setNewOrderQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                        min="1"
+                                    />
+                                </div>
+                                <Button onClick={() => handleAddNewOrder('replacement')} className="w-full">
                                     <PlusCircle className="mr-2 h-4 w-4" />
-                                    Utwórz zastępstwo
+                                    Dodaj zastępstwo
                                 </Button>
                             </CardContent>
                         </Card>
@@ -1140,11 +1106,7 @@ const OrdersTab = () => {
                                                             <div>
                                                                 <p className="font-medium">{order.jobTitle}</p>
                                                                 <div className="text-xs text-muted-foreground mt-1">
-                                                                    {order.type === 'replacement' && order.replacesEmployeeInfo ? (
-                                                                        <p>Zastępstwo za: <span className="font-semibold">{order.replacesEmployeeInfo.fullName}</span></p>
-                                                                    ) : (
-                                                                        <p>Nowe stanowisko</p>
-                                                                    )}
+                                                                    <p>{order.type === 'replacement' ? 'Zastępstwo' : 'Nowe stanowisko'}</p>
                                                                 </div>
                                                                 <div className="text-xs text-muted-foreground space-y-1 mt-2">
                                                                     <p>Ilość: <span className='font-semibold'>{order.quantity}</span></p>
@@ -1286,3 +1248,4 @@ export default function StatisticsPage() {
     </div>
   );
 }
+

@@ -5,6 +5,7 @@
 
 
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -363,7 +364,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const addOrder = useCallback(async (order: Omit<Order, 'id' | 'createdAt'>) => {
         try {
             const newOrderRef = push(ref(db, 'orders'));
-            await set(newOrderRef, { ...order, createdAt: new Date().toISOString(), realizedQuantity: order.realizedQuantity || 0 });
+            const dataToSet: Omit<Order, 'id'> = {
+                ...order,
+                createdAt: new Date().toISOString(),
+                realizedQuantity: order.realizedQuantity || 0
+            };
+            if(order.type === 'new') {
+                delete dataToSet.replacesEmployeeInfo;
+            }
+            await set(newOrderRef, dataToSet);
             toast({ title: 'Sukces', description: 'Nowe zamówienie zostało dodane.'});
         } catch(e) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zamówienia.'});
@@ -434,3 +443,4 @@ export const useAppContext = () => {
     }
     return context;
 };
+
