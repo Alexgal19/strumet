@@ -96,13 +96,12 @@ const ReportTab = () => {
 
     const stats = useMemo(() => {
         const departments = new Set(activeEmployees.map(e => e.department).filter(Boolean));
-        const managers = new Set(activeEmployees.map(e => e.manager).filter(Boolean));
-        const totalManagers = managers.size > 0 ? managers.size : 1;
+        const jobTitles = new Set(activeEmployees.map(e => e.jobTitle).filter(Boolean));
 
         return {
             totalActiveEmployees: totalActiveEmployees,
             totalDepartments: departments.size,
-            averageEmployeesPerManager: (totalActiveEmployees / totalManagers).toFixed(1),
+            totalJobTitles: jobTitles.size,
         };
     }, [activeEmployees, totalActiveEmployees]);
 
@@ -377,12 +376,12 @@ const ReportTab = () => {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-base font-medium">Pracownicy / Kierownik</CardTitle>
+                            <CardTitle className="text-base font-medium">Liczba stanowisk</CardTitle>
                             <Briefcase className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{stats.averageEmployeesPerManager}</div>
-                            <p className="text-xs text-muted-foreground">Średnia liczba pracowników na kierownika</p>
+                            <div className="text-2xl font-bold">{stats.totalJobTitles}</div>
+                            <p className="text-xs text-muted-foreground">Liczba unikalnych stanowisk w firmie</p>
                         </CardContent>
                     </Card>
                 </div>
