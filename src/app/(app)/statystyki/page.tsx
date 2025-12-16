@@ -373,8 +373,9 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         </div>);
 })
 
-const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
+const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, ref) => {
     const { statsHistory, isHistoryLoading } = useAppContext();
+    const { toast } = props;
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -388,19 +389,22 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
     }, [statsHistory, dateRange]);
     
     const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
-        if (statsHistory.length < 1 || !dateRange?.from || !dateRange.to) {
+        if (statsHistory.length < 1 || !dateRange?.from) {
             return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
         }
         
+        const effectiveTo = dateRange.to || endOfToday();
+
         const snapshotsInRange = statsHistory.filter(s => {
             const sDate = parseISO(s.id);
-            return isWithinInterval(sDate, { start: startOfDay(dateRange.from!), end: endOfToday() });
+            return isWithinInterval(sDate, { start: startOfDay(dateRange.from!), end: effectiveTo });
         });
         
         const hiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
         const terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
         
         const findClosestSnapshot = (targetDate: Date) => {
+            if (statsHistory.length === 0) return null;
             return statsHistory.reduce((prev, curr) => {
                 const prevDiff = Math.abs(parseISO(prev.id).getTime() - targetDate.getTime());
                 const currDiff = Math.abs(parseISO(curr.id).getTime() - targetDate.getTime());
@@ -409,10 +413,10 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         };
 
         const snapA = findClosestSnapshot(dateRange.from);
-        const snapB = findClosestSnapshot(dateRange.to);
+        const snapB = findClosestSnapshot(effectiveTo);
 
         if (!snapA || !snapB || snapA.id === snapB.id) {
-            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange: terminationsInRange };
+            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange };
         }
 
         const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
@@ -631,7 +635,7 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
             </Card>
         </div>
     )
-}
+})
 
 const HiresAndFiresTab = () => {
     const { employees } = useAppContext();
@@ -1079,51 +1083,57 @@ const OrdersTab = () => {
                     <CardContent>
                         {Object.keys(groupedOrders).length > 0 ? (
                            <Accordion type="multiple" className="w-full">
-                               {Object.entries(groupedOrders).map(([dept, orderList]) => (
-                                   <AccordionItem value={dept} key={dept}>
-                                       <AccordionTrigger>
-                                            <div className='flex justify-between w-full pr-4 items-center'>
-                                                <span className='font-bold text-base'>{dept}</span>
-                                                <span className='text-muted-foreground text-sm font-normal'>
-                                                    {orderList.reduce((sum, o) => sum + o.quantity, 0)} os.
-                                                </span>
-                                            </div>
-                                       </AccordionTrigger>
-                                       <AccordionContent>
-                                            <div className="space-y-2 pl-4">
-                                                {orderList.map(order => {
-                                                    const realized = order.realizedQuantity || 0;
-                                                    const remaining = order.quantity - realized;
-                                                    return (
-                                                        <div key={order.id} className="flex items-start justify-between p-3 rounded-md border">
-                                                            <div>
-                                                                <div className="flex items-center gap-2 mb-1">
-                                                                    <p className="font-medium">{order.jobTitle}</p>
-                                                                    <Badge variant={order.type === 'replacement' ? 'destructive' : 'outline'} className={cn(order.type === 'replacement' && 'bg-orange-500/20 text-orange-700 border-orange-500/50')}>
-                                                                        {order.type === 'replacement' ? 'Zastępstwo' : 'Nowe'}
-                                                                    </Badge>
+                               {Object.entries(groupedOrders).map(([dept, orderList]) => {
+                                   const hasNewOrders = orderList.some(o => o.type === 'new');
+                                   const hasReplacementOrders = orderList.some(o => o.type === 'replacement');
+
+                                   return (
+                                       <AccordionItem value={dept} key={dept}>
+                                           <AccordionTrigger>
+                                                <div className='flex justify-between w-full pr-4 items-center'>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className='font-bold text-base'>{dept}</span>
+                                                        {hasNewOrders && <Badge variant="outline">Nowe</Badge>}
+                                                        {hasReplacementOrders && <Badge variant="outline" className="bg-orange-500/20 text-orange-700 border-orange-500/50">Zastępstwo</Badge>}
+                                                    </div>
+                                                    <span className='text-muted-foreground text-sm font-normal'>
+                                                        {orderList.reduce((sum, o) => sum + o.quantity, 0)} os.
+                                                    </span>
+                                                </div>
+                                           </AccordionTrigger>
+                                           <AccordionContent>
+                                                <div className="space-y-2 pl-4">
+                                                    {orderList.map(order => {
+                                                        const realized = order.realizedQuantity || 0;
+                                                        const remaining = order.quantity - realized;
+                                                        return (
+                                                            <div key={order.id} className="flex items-start justify-between p-3 rounded-md border">
+                                                                <div>
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <p className="font-medium">{order.jobTitle}</p>
+                                                                    </div>
+                                                                    <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                                                                        <p>Ilość: <span className='font-semibold'>{order.quantity}</span></p>
+                                                                        <p>Zrealizowano: <span className='font-semibold text-green-500'>{realized}</span></p>
+                                                                        <p>Pozostało: <span className='font-semibold text-orange-500'>{remaining}</span></p>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-xs text-muted-foreground space-y-1 mt-2">
-                                                                    <p>Ilość: <span className='font-semibold'>{order.quantity}</span></p>
-                                                                    <p>Zrealizowano: <span className='font-semibold text-green-500'>{realized}</span></p>
-                                                                    <p>Pozostało: <span className='font-semibold text-orange-500'>{remaining}</span></p>
+                                                                <div>
+                                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(order)}>
+                                                                        <Edit className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
+                                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                                    </Button>
                                                                 </div>
                                                             </div>
-                                                            <div>
-                                                                <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(order)}>
-                                                                    <Edit className="h-4 w-4" />
-                                                                </Button>
-                                                                <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
-                                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                       </AccordionContent>
-                                   </AccordionItem>
-                               ))}
+                                                        )
+                                                    })}
+                                                </div>
+                                           </AccordionContent>
+                                       </AccordionItem>
+                                   )
+                               })}
                            </Accordion>
                         ) : (
                             <p className="text-center text-muted-foreground py-10">Brak aktywnych zamówień.</p>
@@ -1243,5 +1253,6 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
 
