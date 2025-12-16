@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 // Static imports for ultra-fast navigation
 import AktywniPage from '@/app/(app)/aktywni/page';
 import ZwolnieniPage from '@/app/(app)/zwolnieni/page';
+import ZamowieniaPage from '@/app/(app)/zamowienia/page';
 import PlanowaniePage from '@/app/(app)/planowanie/page';
 import StatystykiPage from '@/app/(app)/statystyki/page';
 import KartyObiegowePage from '@/app/(app)/karty-obiegowe/page';
@@ -26,6 +28,7 @@ import OdwiedzalnoscPage from '@/app/(app)/odwiedzalnosc/page';
 const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
   aktywni: AktywniPage,
   zwolnieni: ZwolnieniPage,
+  zamowienia: ZamowieniaPage,
   planowanie: PlanowaniePage,
   statystyki: StatystykiPage,
   'karty-obiegowe': KartyObiegowePage,

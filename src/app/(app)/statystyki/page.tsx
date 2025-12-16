@@ -7,7 +7,7 @@ import { LineChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardUser } from 'lucide-react';
 import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -396,8 +396,8 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
             return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
         }
-
-        // Calculate hires and terminations within the selected range first
+        
+        // Obliczenie zatrudnionych i zwolnionych w wybranym zakresie
         const snapshotsInRange = statsHistory.filter(s => {
             const sDate = parseISO(s.id);
             return isWithinInterval(sDate, { start: dateRange.from!, end: dateRange.to! });
@@ -405,7 +405,7 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
 
         const hiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
         const terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
-        
+
         const findClosestSnapshot = (targetDate: Date) => {
             return statsHistory.reduce((prev, curr) => {
                 const prevDiff = Math.abs(parseISO(prev.id).getTime() - targetDate.getTime());
@@ -421,11 +421,6 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
             return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange: terminationsInRange };
         }
 
-        const allKeys = new Set([
-            ...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {}),
-            ...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})
-        ]);
-        
         const departments = Array.from(new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]));
         const jobTitles = Array.from(new Set([...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})]));
 
@@ -676,7 +671,7 @@ const OrdersTab = () => {
             });
             return;
         }
-        await addOrder({ department, jobTitle, quantity, realizedQuantity: 0 });
+        await addOrder({ department, jobTitle, quantity, realizedQuantity: 0, type: 'new' });
         setDepartment('');
         setJobTitle('');
         setQuantity(1);
@@ -1172,11 +1167,10 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
           <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
           <TabsTrigger value="history">Historia</TabsTrigger>
-          <TabsTrigger value="orders">Zamówienia</TabsTrigger>
         </TabsList>
         <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
@@ -1187,13 +1181,7 @@ export default function StatisticsPage() {
          <TabsContent value="history" className="flex-grow mt-6">
             <HistoryTab toast={toast} />
         </TabsContent>
-        <TabsContent value="orders" className="flex-grow mt-6">
-            <OrdersTab />
-        </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-
-    

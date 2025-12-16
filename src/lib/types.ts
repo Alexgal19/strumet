@@ -10,7 +10,8 @@ export type ActiveView =
   | 'karty-obiegowe'
   | 'odciski-palcow'
   | 'brak-logowania'
-  | 'konfiguracja';
+  | 'konfiguracja'
+  | 'zamowienia';
 
 export interface Employee {
   id: string;
@@ -120,6 +121,11 @@ export interface Order {
   quantity: number;
   realizedQuantity: number;
   createdAt: string; // ISO String
+  type: 'new' | 'replacement';
+  replacesEmployeeInfo?: {
+    id: string;
+    fullName: string;
+  };
 }
 
 export interface StatsSnapshot {
