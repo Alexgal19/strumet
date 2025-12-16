@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
@@ -64,7 +64,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           {payload.map((p: any) => (
             <React.Fragment key={p.dataKey}>
               <div className="flex items-center gap-1.5">
-                 <div className="w-2.5 h-2.5 rounded-full" style={{backgroundColor: p.stroke}} />
+                 <div className="w-2.5 h-2.5 rounded-full" style={{backgroundColor: p.stroke || p.payload.fill}} />
                  <span className="text-xs font-medium text-muted-foreground">{p.name}</span>
               </div>
               <span className="text-xs font-bold text-right text-foreground">{p.value}</span>
@@ -442,9 +442,10 @@ const ReportTab = () => {
 }
 
 const HistoryTab = () => {
-    const { statsHistory, isHistoryLoading } = useAppContext();
-    const { toast } = useToast();
+    const { statsHistory, isHistoryLoading, toast } = useAppContext();
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
+    
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
     const chartData = useMemo(() => {
         return statsHistory
@@ -456,6 +457,45 @@ const HistoryTab = () => {
             }))
             .reverse();
     }, [statsHistory]);
+
+    const comparisonData = useMemo(() => {
+        if (!dateRange || !dateRange.from || !dateRange.to || statsHistory.length < 2) {
+            return null;
+        }
+
+        const findSnapshot = (date: Date) => {
+            const dateString = format(date, 'yyyy-MM-dd');
+            return statsHistory.find(s => s.id === dateString);
+        }
+
+        const snapshotA = findSnapshot(dateRange.from);
+        const snapshotB = findSnapshot(dateRange.to);
+        
+        if (!snapshotA || !snapshotB) {
+            return { error: "Brak danych dla wybranych dat. Proszę wybrać daty, dla których istnieją zrzuty." };
+        }
+
+        const calculateDelta = (dataA: Record<string, number>, dataB: Record<string, number>) => {
+            const allKeys = new Set([...Object.keys(dataA), ...Object.keys(dataB)]);
+            const deltas: { name: string; valA: number; valB: number; delta: number }[] = [];
+
+            allKeys.forEach(key => {
+                const valA = dataA[key] || 0;
+                const valB = dataB[key] || 0;
+                if (valA !== valB) {
+                    deltas.push({ name: key, valA, valB, delta: valB - valA });
+                }
+            });
+            return deltas.sort((a,b) => b.delta - a.delta);
+        }
+        
+        return {
+            totalDelta: snapshotB.totalActive - snapshotA.totalActive,
+            departmentDeltas: calculateDelta(snapshotA.departments, snapshotB.departments),
+            jobTitleDeltas: calculateDelta(snapshotA.jobTitles, snapshotB.jobTitles)
+        };
+
+    }, [dateRange, statsHistory]);
 
 
     const handleCreateSnapshot = async () => {
@@ -773,7 +813,7 @@ const OrdersTab = () => {
 }
 
 const HiresAndFiresTab = () => {
-    const { employees } = useAppContext();
+    const { employees, useAppContext } = useAppContext();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: startOfDay(subDays(today, 30)),
@@ -1039,7 +1079,7 @@ const HiresAndFiresTab = () => {
 }
 
 export default function StatisticsPage() {
-  const { isLoading } = useAppContext();
+  const { isLoading, useAppContext } = useAppContext();
   
   if (isLoading) {
     return (
