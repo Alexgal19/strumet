@@ -452,33 +452,42 @@ const ReportTab = () => {
 
 const HistoryTab = () => {
     const { statsHistory, isHistoryLoading } = useAppContext();
-    const [dateA, setDateA] = useState<string>('');
-    const [dateB, setDateB] = useState<string>('');
+    const today = endOfToday();
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({
+        from: statsHistory.length > 1 ? parseISO(statsHistory[1].id) : (statsHistory.length > 0 ? parseISO(statsHistory[0].id) : subDays(today, 7)),
+        to: statsHistory.length > 0 ? parseISO(statsHistory[0].id) : today,
+    });
 
     const comparisonData = useMemo(() => {
-        if (!dateA || !dateB || !statsHistory.length) return null;
+        if (!dateRange?.from || !dateRange.to || !statsHistory.length) return null;
 
-        const snapshotA = statsHistory.find(s => s.id === dateA);
-        const snapshotB = statsHistory.find(s => s.id === dateB);
+        // Find closest available snapshot for 'from' and 'to' dates
+        const findClosestSnapshot = (targetDate: Date) => {
+            return statsHistory.reduce((prev, curr) => {
+                const prevDiff = Math.abs(new Date(prev.id).getTime() - targetDate.getTime());
+                const currDiff = Math.abs(new Date(curr.id).getTime() - targetDate.getTime());
+                return currDiff < prevDiff ? curr : prev;
+            });
+        };
 
-        if (!snapshotA || !snapshotB) return null;
+        const snapshotA = findClosestSnapshot(dateRange.from);
+        const snapshotB = findClosestSnapshot(dateRange.to);
 
-        const allKeys = new Set([
-            ...Object.keys(snapshotA.departments), ...Object.keys(snapshotB.departments),
-            ...Object.keys(snapshotA.jobTitles), ...Object.keys(snapshotB.jobTitles)
-        ]);
+        if (!snapshotA || !snapshotB || snapshotA.id === snapshotB.id) return null;
 
-        const compareCategory = (category: 'departments' | 'jobTitles') => {
-            const keys = new Set([...Object.keys(snapshotA[category]), ...Object.keys(snapshotB[category])]);
+        const compareCategory = (category: 'departments' | 'jobTitles' | 'nationalities') => {
+            const keys = new Set([...Object.keys(snapshotA[category] || {}), ...Object.keys(snapshotB[category] || {})]);
             return Array.from(keys).map(key => {
-                const valA = snapshotA[category][key] || 0;
-                const valB = snapshotB[category][key] || 0;
+                const valA = snapshotA[category]?.[key] || 0;
+                const valB = snapshotB[category]?.[key] || 0;
                 const delta = valB - valA;
                 return { key, valA, valB, delta };
             }).sort((a,b) => b.valB - a.valB);
         };
         
         return {
+            dateA: snapshotA.id,
+            dateB: snapshotB.id,
             total: {
                 valA: snapshotA.totalActive,
                 valB: snapshotB.totalActive,
@@ -486,19 +495,10 @@ const HistoryTab = () => {
             },
             departments: compareCategory('departments'),
             jobTitles: compareCategory('jobTitles'),
+            nationalities: compareCategory('nationalities'),
         };
 
-    }, [dateA, dateB, statsHistory]);
-
-    useEffect(() => {
-        if (statsHistory.length >= 2) {
-            setDateA(statsHistory[1].id);
-            setDateB(statsHistory[0].id);
-        } else if (statsHistory.length === 1) {
-            setDateA(statsHistory[0].id);
-            setDateB(statsHistory[0].id);
-        }
-    }, [statsHistory]);
+    }, [dateRange, statsHistory]);
     
     if (isHistoryLoading) {
         return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -514,141 +514,143 @@ const HistoryTab = () => {
         return <span className="text-muted-foreground flex items-center gap-1"><Minus size={16} /> 0</span>;
     };
     
-    const handleChartClick = (payload: any) => {
-        if (payload && payload.activePayload && payload.activePayload.length > 0) {
-            const snapshotId = payload.activePayload[0].payload.id;
-            // Cycle between dateA and dateB
-            if (!dateA || (dateA && dateB)) {
-                setDateA(snapshotId);
-                setDateB('');
-            } else {
-                // Ensure B is not earlier than A
-                if (new Date(snapshotId) < new Date(dateA)) {
-                    setDateB(dateA);
-                    setDateA(snapshotId);
-                } else {
-                    setDateB(snapshotId);
-                }
-            }
-        }
-    };
 
     return (
         <div className="flex flex-col space-y-6 flex-grow">
             <Card>
-                <CardHeader>
-                    <CardTitle>Dynamika liczby pracowników</CardTitle>
-                    <CardDescription>Wykres przedstawiający zmianę całkowitej liczby pracowników w czasie.</CardDescription>
+                 <CardHeader>
+                    <CardTitle>Porównanie okresów</CardTitle>
+                    <CardDescription>Wybierz zakres dat, aby zobaczyć szczegółowe porównanie. System automatycznie wybierze najbliższe dostępne zrzuty danych.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <ChartContainer config={{}} className="h-[250px] w-full">
-                        <ResponsiveContainer>
-                            <LineChart data={statsHistory} onClick={handleChartClick}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                                <XAxis 
-                                    dataKey="id" 
-                                    tickFormatter={(tick) => format(parseISO(tick), 'dd.MM')}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    className="text-xs"
-                                />
-                                <YAxis 
-                                    dataKey="totalActive"
-                                    allowDecimals={false}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    className="text-xs"
-                                    width={30}
-                                />
-                                <Tooltip content={<CustomTooltip />} cursor={{stroke: 'hsl(var(--primary))', strokeWidth: 2, strokeDasharray: "3 3"}} />
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="totalActive" 
-                                    stroke="hsl(var(--primary))" 
-                                    strokeWidth={3} 
-                                    dot={{ r: 5, fill: "hsl(var(--primary))" }}
-                                    activeDot={{ r: 8, className: "shadow-md" }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                    "w-[300px] justify-start text-left font-normal",
+                                    !dateRange && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateRange?.from ? (
+                                    dateRange.to ? (
+                                        <>
+                                            {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
+                                            {format(dateRange.to, "LLL dd, y", { locale: pl })}
+                                        </>
+                                    ) : (
+                                        format(dateRange.from, "LLL dd, y", { locale: pl })
+                                    )
+                                ) : (
+                                    <span>Wybierz zakres dat</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                numberOfMonths={2}
+                                locale={pl}
+                                disabled={(date) => date > new Date() || date < new Date("2023-01-01")}
+                            />
+                        </PopoverContent>
+                    </Popover>
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Porównanie okresów</CardTitle>
-                    <CardDescription>Wybierz dwa okresy (poniedziałki), aby zobaczyć szczegółowe porównanie.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                        <div className="space-y-1">
-                            <Label>Porównaj od</Label>
-                            <Select value={dateA} onValueChange={setDateA}>
-                                <SelectTrigger><SelectValue placeholder="Wybierz datę początkową" /></SelectTrigger>
-                                <SelectContent>
-                                    {statsHistory.map(s => <SelectItem key={s.id} value={s.id}>{format(parseISO(s.id), 'PPP', {locale: pl})}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+            {comparisonData ? (
+                <Card>
+                    <CardHeader>
+                         <CardTitle>Wyniki porównania</CardTitle>
+                         <CardDescription>
+                            Porównanie danych z {format(parseISO(comparisonData.dateA), 'dd.MM.yyyy')} do {format(parseISO(comparisonData.dateB), 'dd.MM.yyyy')}.
+                         </CardDescription>
+                    </CardHeader>
+                    <CardContent className='space-y-6 animate-fade-in'>
+                        <div className="rounded-lg border">
+                                <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Wskaźnik</TableHead>
+                                        <TableHead className='text-right'>{format(parseISO(comparisonData.dateA), 'dd.MM.yy')}</TableHead>
+                                        <TableHead className='text-right'>{format(parseISO(comparisonData.dateB), 'dd.MM.yy')}</TableHead>
+                                        <TableHead className='text-right'>Różnica</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow className='font-bold bg-muted/50'>
+                                        <TableCell>Suma pracowników</TableCell>
+                                        <TableCell className='text-right'>{comparisonData.total.valA}</TableCell>
+                                        <TableCell className='text-right'>{comparisonData.total.valB}</TableCell>
+                                        <TableCell className='text-right'>{renderDelta(comparisonData.total.delta)}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
                         </div>
-                        <div className="space-y-1">
-                            <Label>do</Label>
-                            <Select value={dateB} onValueChange={setDateB}>
-                                <SelectTrigger><SelectValue placeholder="Wybierz datę końcową" /></SelectTrigger>
-                                <SelectContent>
-                                    {statsHistory.map(s => <SelectItem key={s.id} value={s.id}>{format(parseISO(s.id), 'PPP', {locale: pl})}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                     </div>
-                     {comparisonData && (
-                        <div className='space-y-6 animate-fade-in'>
-                            <div className="rounded-lg border">
-                                 <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Wskaźnik</TableHead>
-                                            <TableHead className='text-right'>{format(parseISO(dateA), 'dd.MM.yy')}</TableHead>
-                                            <TableHead className='text-right'>{format(parseISO(dateB), 'dd.MM.yy')}</TableHead>
-                                            <TableHead className='text-right'>Różnica</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow className='font-bold bg-muted/50'>
-                                            <TableCell>Suma pracowników</TableCell>
-                                            <TableCell className='text-right'>{comparisonData.total.valA}</TableCell>
-                                            <TableCell className='text-right'>{comparisonData.total.valB}</TableCell>
-                                            <TableCell className='text-right'>{renderDelta(comparisonData.total.delta)}</TableCell>
-                                        </TableRow>
-                                        <TableRow className='font-semibold bg-muted/20'>
-                                            <TableCell colSpan={4}>Działy</TableCell>
-                                        </TableRow>
-                                        {comparisonData.departments.map(item => (
-                                             <TableRow key={item.key}>
-                                                <TableCell>{item.key}</TableCell>
-                                                <TableCell className='text-right'>{item.valA}</TableCell>
-                                                <TableCell className='text-right'>{item.valB}</TableCell>
-                                                <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                        <TableRow className='font-semibold bg-muted/20'>
-                                            <TableCell colSpan={4}>Stanowiska</TableCell>
-                                        </TableRow>
-                                         {comparisonData.jobTitles.map(item => (
-                                             <TableRow key={item.key}>
-                                                <TableCell>{item.key}</TableCell>
-                                                <TableCell className='text-right'>{item.valA}</TableCell>
-                                                <TableCell className='text-right'>{item.valB}</TableCell>
-                                                <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </div>
-                     )}
-                </CardContent>
-            </Card>
+                        <Accordion type="multiple" defaultValue={['departments']} className="w-full">
+                            <AccordionItem value="departments">
+                                <AccordionTrigger>Porównanie wg Działów</AccordionTrigger>
+                                <AccordionContent>
+                                     <Table>
+                                        <TableBody>
+                                            {comparisonData.departments.map(item => (
+                                                <TableRow key={item.key}>
+                                                    <TableCell>{item.key}</TableCell>
+                                                    <TableCell className='text-right'>{item.valA}</TableCell>
+                                                    <TableCell className='text-right'>{item.valB}</TableCell>
+                                                    <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </AccordionContent>
+                            </AccordionItem>
+                             <AccordionItem value="jobTitles">
+                                <AccordionTrigger>Porównanie wg Stanowisk</AccordionTrigger>
+                                <AccordionContent>
+                                     <Table>
+                                        <TableBody>
+                                            {comparisonData.jobTitles.map(item => (
+                                                <TableRow key={item.key}>
+                                                    <TableCell>{item.key}</TableCell>
+                                                    <TableCell className='text-right'>{item.valA}</TableCell>
+                                                    <TableCell className='text-right'>{item.valB}</TableCell>
+                                                    <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </AccordionContent>
+                            </AccordionItem>
+                             <AccordionItem value="nationalities">
+                                <AccordionTrigger>Porównanie wg Narodowości</AccordionTrigger>
+                                <AccordionContent>
+                                     <Table>
+                                        <TableBody>
+                                            {comparisonData.nationalities.map(item => (
+                                                <TableRow key={item.key}>
+                                                    <TableCell>{item.key}</TableCell>
+                                                    <TableCell className='text-right'>{item.valA}</TableCell>
+                                                    <TableCell className='text-right'>{item.valB}</TableCell>
+                                                    <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="text-center text-muted-foreground py-10">Wybierz inny zakres dat, aby zobaczyć porównanie.</div>
+            )}
         </div>
     )
 }
