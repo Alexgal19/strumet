@@ -7,7 +7,7 @@ import { LineChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList } from 'lucide-react';
 import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -416,7 +416,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
         const snapB = findClosestSnapshot(effectiveTo);
 
         if (!snapA || !snapB || snapA.id === snapB.id) {
-            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange };
+            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: 0, terminationsInRange: 0 };
         }
 
         const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
@@ -909,12 +909,10 @@ const OrdersTab = () => {
     const [isLoadingOrders, setIsLoadingOrders] = useState(true);
     const { toast } = useToast();
     
-    // Stan dla obu formularzy
     const [newOrderDepartment, setNewOrderDepartment] = useState('');
     const [newOrderJobTitle, setNewOrderJobTitle] = useState('');
     const [newOrderQuantity, setNewOrderQuantity] = useState(1);
 
-    // Stan do edycji
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState<Order | null>(null);
     const [editFormData, setEditFormData] = useState<{ department: string; jobTitle: string; quantity: number; realizedQuantity: number; } | null>(null);
@@ -1253,6 +1251,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
 
 
