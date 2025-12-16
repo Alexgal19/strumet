@@ -416,7 +416,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
         const snapB = findClosestSnapshot(effectiveTo);
 
         if (!snapA || !snapB || snapA.id === snapB.id) {
-            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: 0, terminationsInRange: 0 };
+            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange: terminationsInRange };
         }
 
         const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
@@ -780,124 +780,125 @@ const HiresAndFiresTab = () => {
                 </CardHeader>
             </Card>
 
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {hiresSummary && (
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <div className='space-y-6'>
+                    {hiresSummary && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
+                                    <AccordionItem value="departments">
+                                        <AccordionTrigger>Wg działów</AccordionTrigger>
+                                        <AccordionContent>
+                                            <SummaryTable title="" data={hiresSummary.byDepartment} />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                    <AccordionItem value="job-titles">
+                                        <AccordionTrigger>Wg stanowisk</AccordionTrigger>
+                                        <AccordionContent>
+                                            <SummaryTable title="" data={hiresSummary.byJobTitle} />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
+                            </CardContent>
+                        </Card>
+                    )}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
+                            <CardTitle>Lista nowo zatrudnionych ({newHires.length})</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
-                                <AccordionItem value="departments">
-                                    <AccordionTrigger>Wg działów</AccordionTrigger>
-                                    <AccordionContent>
-                                        <SummaryTable title="" data={hiresSummary.byDepartment} />
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="job-titles">
-                                    <AccordionTrigger>Wg stanowisk</AccordionTrigger>
-                                    <AccordionContent>
-                                         <SummaryTable title="" data={hiresSummary.byJobTitle} />
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </Accordion>
+                            <ScrollArea className="h-96">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Pracownik</TableHead>
+                                            <TableHead>Data</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {newHires.length > 0 ? (
+                                            newHires.map(emp => (
+                                                <TableRow key={emp.id}>
+                                                    <TableCell>
+                                                        <div className="font-medium">{emp.fullName}</div>
+                                                        <div className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</div>
+                                                    </TableCell>
+                                                    <TableCell>{format(parseMaybeDate(emp.hireDate)!, 'dd.MM.yyyy')}</TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={2} className="text-center h-24">Brak danych</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
                         </CardContent>
                     </Card>
-                )}
-                 {terminationsSummary && (
+                </div>
+                 <div className='space-y-6'>
+                    {terminationsSummary && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
+                                    <AccordionItem value="departments">
+                                        <AccordionTrigger>Wg działów</AccordionTrigger>
+                                        <AccordionContent>
+                                            <SummaryTable title="" data={terminationsSummary.byDepartment} />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                    <AccordionItem value="job-titles">
+                                        <AccordionTrigger>Wg stanowisk</AccordionTrigger>
+                                        <AccordionContent>
+                                            <SummaryTable title="" data={terminationsSummary.byJobTitle} />
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
+                            </CardContent>
+                        </Card>
+                    )}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
+                            <CardTitle>Lista zwolnionych ({terminations.length})</CardTitle>
                         </CardHeader>
                         <CardContent>
-                              <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
-                                <AccordionItem value="departments">
-                                    <AccordionTrigger>Wg działów</AccordionTrigger>
-                                    <AccordionContent>
-                                        <SummaryTable title="" data={terminationsSummary.byDepartment} />
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="job-titles">
-                                    <AccordionTrigger>Wg stanowisk</AccordionTrigger>
-                                    <AccordionContent>
-                                         <SummaryTable title="" data={terminationsSummary.byJobTitle} />
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </Accordion>
+                            <ScrollArea className="h-96">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Pracownik</TableHead>
+                                            <TableHead>Data</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {terminations.length > 0 ? (
+                                            terminations.map(emp => (
+                                                <TableRow key={emp.id}>
+                                                    <TableCell>
+                                                        <div className="font-medium">{emp.fullName}</div>
+                                                        <div className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</div>
+                                                    </TableCell>
+                                                    <TableCell>{format(parseMaybeDate(emp.terminationDate)!, 'dd.MM.yyyy')}</TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={2} className="text-center h-24">Brak danych</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
                         </CardContent>
                     </Card>
-                )}
-             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Lista nowo zatrudnionych ({newHires.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ScrollArea className="h-96">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Pracownik</TableHead>
-                                        <TableHead>Data</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {newHires.length > 0 ? (
-                                        newHires.map(emp => (
-                                            <TableRow key={emp.id}>
-                                                <TableCell>
-                                                    <div className="font-medium">{emp.fullName}</div>
-                                                    <div className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</div>
-                                                </TableCell>
-                                                <TableCell>{format(parseMaybeDate(emp.hireDate)!, 'dd.MM.yyyy')}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={2} className="text-center h-24">Brak danych</TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Lista zwolnionych ({terminations.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                         <ScrollArea className="h-96">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Pracownik</TableHead>
-                                        <TableHead>Data</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {terminations.length > 0 ? (
-                                        terminations.map(emp => (
-                                            <TableRow key={emp.id}>
-                                                <TableCell>
-                                                    <div className="font-medium">{emp.fullName}</div>
-                                                    <div className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</div>
-                                                </TableCell>
-                                                <TableCell>{format(parseMaybeDate(emp.terminationDate)!, 'dd.MM.yyyy')}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={2} className="text-center h-24">Brak danych</TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
+                </div>
             </div>
         </div>
     )
@@ -1035,7 +1036,7 @@ const OrdersTab = () => {
                                 <CardTitle>Zamówienie na zastępstwo</CardTitle>
                                 <CardDescription>Wypełnij formularz, aby utworzyć zamówienie na zastępstwo.</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                             <CardContent className="space-y-4">
                                 <div className="space-y-1">
                                     <Label>Dział</Label>
                                     <Select value={newOrderDepartment} onValueChange={setNewOrderDepartment}>
@@ -1251,6 +1252,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
 
 
