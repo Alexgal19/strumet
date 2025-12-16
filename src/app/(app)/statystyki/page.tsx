@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
@@ -53,36 +53,26 @@ interface DepartmentHierarchy {
     };
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    const valueKey = payload[0].dataKey;
-
-    if (data[valueKey] !== undefined) {
-         return (
-            <div className="rounded-lg border bg-background/80 backdrop-blur-sm p-2 shadow-sm">
-                <div className="grid grid-cols-2 gap-2">
-                <div className="flex flex-col space-y-1">
-                    <span className="text-sm uppercase text-muted-foreground">
-                    {data.name || payload[0].name}
-                    </span>
-                    <span className="font-bold text-base text-foreground">
-                    {data[valueKey]} ({data.percentage?.toFixed(1)}%)
-                    </span>
-                </div>
-                </div>
-            </div>
-        );
-    }
-    
-    if (data.totalActive) {
-         return (
-            <div className="rounded-lg border bg-background/80 backdrop-blur-sm p-2 shadow-sm">
-                <p className='font-bold'>{format(parseISO(data.id), 'dd.MM.yyyy')}</p>
-                <p className='text-sm text-muted-foreground'>Pracownicy: <span className='font-bold text-foreground'>{data.totalActive}</span></p>
-            </div>
-        );
-    }
+    return (
+      <div className="rounded-lg border bg-background/95 p-2 shadow-sm">
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
+          <div className="col-span-2">
+            <span className="text-sm font-bold text-foreground">{label}</span>
+          </div>
+          {payload.map((p: any) => (
+            <React.Fragment key={p.dataKey}>
+              <div className="flex items-center gap-1.5">
+                 <div className="w-2.5 h-2.5 rounded-full" style={{backgroundColor: p.stroke}} />
+                 <span className="text-xs font-medium text-muted-foreground">{p.name}</span>
+              </div>
+              <span className="text-xs font-bold text-right text-foreground">{p.value}</span>
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return null;
@@ -454,12 +444,19 @@ const ReportTab = () => {
 const HistoryTab = () => {
     const { statsHistory, isHistoryLoading } = useAppContext();
     const { toast } = useToast();
-    const today = endOfToday();
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: statsHistory.length > 1 ? parseISO(statsHistory[1].id) : (statsHistory.length > 0 ? parseISO(statsHistory[0].id) : subDays(today, 7)),
-        to: statsHistory.length > 0 ? parseISO(statsHistory[0].id) : today,
-    });
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
+
+    const chartData = useMemo(() => {
+        return statsHistory
+            .map(snapshot => ({
+                date: format(parseISO(snapshot.id), 'dd.MM'),
+                'Ilość ogólna': snapshot.totalActive,
+                'Nowozatrudnieni': snapshot.newHires || 0,
+                'Zwolnieni': snapshot.terminations || 0,
+            }))
+            .reverse();
+    }, [statsHistory]);
+
 
     const handleCreateSnapshot = async () => {
         setIsCreatingSnapshot(true);
@@ -480,49 +477,6 @@ const HistoryTab = () => {
             setIsCreatingSnapshot(false);
         }
     };
-
-
-    const comparisonData = useMemo(() => {
-        if (!dateRange?.from || !dateRange.to || !statsHistory.length) return null;
-
-        // Find closest available snapshot for 'from' and 'to' dates
-        const findClosestSnapshot = (targetDate: Date) => {
-            return statsHistory.reduce((prev, curr) => {
-                const prevDiff = Math.abs(new Date(prev.id).getTime() - targetDate.getTime());
-                const currDiff = Math.abs(new Date(curr.id).getTime() - targetDate.getTime());
-                return currDiff < prevDiff ? curr : prev;
-            });
-        };
-
-        const snapshotA = findClosestSnapshot(dateRange.from);
-        const snapshotB = findClosestSnapshot(dateRange.to);
-
-        if (!snapshotA || !snapshotB || snapshotA.id === snapshotB.id) return null;
-
-        const compareCategory = (category: 'departments' | 'jobTitles' | 'nationalities') => {
-            const keys = new Set([...Object.keys(snapshotA[category] || {}), ...Object.keys(snapshotB[category] || {})]);
-            return Array.from(keys).map(key => {
-                const valA = snapshotA[category]?.[key] || 0;
-                const valB = snapshotB[category]?.[key] || 0;
-                const delta = valB - valA;
-                return { key, valA, valB, delta };
-            }).sort((a,b) => b.valB - a.valB);
-        };
-        
-        return {
-            dateA: snapshotA.id,
-            dateB: snapshotB.id,
-            total: {
-                valA: snapshotA.totalActive,
-                valB: snapshotB.totalActive,
-                delta: snapshotB.totalActive - snapshotA.totalActive
-            },
-            departments: compareCategory('departments'),
-            jobTitles: compareCategory('jobTitles'),
-            nationalities: compareCategory('nationalities'),
-        };
-
-    }, [dateRange, statsHistory]);
     
     if (isHistoryLoading) {
         return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -540,156 +494,35 @@ const HistoryTab = () => {
             </div>
         );
     }
-
-    const renderDelta = (delta: number) => {
-        if (delta > 0) return <span className="text-green-500 flex items-center gap-1"><TrendingUp size={16} /> +{delta}</span>;
-        if (delta < 0) return <span className="text-red-500 flex items-center gap-1"><TrendingDown size={16} /> {delta}</span>;
-        return <span className="text-muted-foreground flex items-center gap-1"><Minus size={16} /> 0</span>;
-    };
     
-
     return (
         <div className="flex flex-col space-y-6 flex-grow">
             <Card>
-                 <CardHeader className="flex-row items-center justify-between">
+                 <CardHeader className="flex-row items-start sm:items-center justify-between">
                     <div>
-                        <CardTitle>Porównanie okresów</CardTitle>
-                        <CardDescription>Wybierz zakres dat, aby zobaczyć szczegółowe porównanie. System automatycznie wybierze najbliższe dostępne zrzuty danych.</CardDescription>
+                        <CardTitle>Historia zmian</CardTitle>
+                        <CardDescription>Dzienna dynamika liczby pracowników, zatrudnień i zwolnień.</CardDescription>
                     </div>
-                    <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline">
+                    <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline" size="sm">
                         {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                         Utwórz zrzut
                     </Button>
                 </CardHeader>
-                <CardContent>
-                     <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                id="date"
-                                variant={"outline"}
-                                className={cn(
-                                    "w-[300px] justify-start text-left font-normal",
-                                    !dateRange && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateRange?.from ? (
-                                    dateRange.to ? (
-                                        <>
-                                            {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
-                                            {format(dateRange.to, "LLL dd, y", { locale: pl })}
-                                        </>
-                                    ) : (
-                                        format(dateRange.from, "LLL dd, y", { locale: pl })
-                                    )
-                                ) : (
-                                    <span>Wybierz zakres dat</span>
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={dateRange?.from}
-                                selected={dateRange}
-                                onSelect={setDateRange}
-                                numberOfMonths={2}
-                                locale={pl}
-                                disabled={(date) => date > new Date() || date < new Date("2023-01-01")}
-                            />
-                        </PopoverContent>
-                    </Popover>
+                <CardContent className="h-[400px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
+                            <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={false} axisLine={{ stroke: 'hsl(var(--border))' }} />
+                            <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={false} axisLine={{ stroke: 'hsl(var(--border))' }} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{fontSize: "14px"}} />
+                            <Line type="monotone" dataKey="Ilość ogólna" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                            <Line type="monotone" dataKey="Nowozatrudnieni" stroke="hsl(var(--chart-2))" strokeWidth={2} />
+                            <Line type="monotone" dataKey="Zwolnieni" stroke="hsl(var(--destructive))" strokeWidth={2} />
+                        </LineChart>
+                    </ResponsiveContainer>
                 </CardContent>
             </Card>
-
-            {comparisonData ? (
-                <Card>
-                    <CardHeader>
-                         <CardTitle>Wyniki porównania</CardTitle>
-                         <CardDescription>
-                            Porównanie danych z {format(parseISO(comparisonData.dateA), 'dd.MM.yyyy')} do {format(parseISO(comparisonData.dateB), 'dd.MM.yyyy')}.
-                         </CardDescription>
-                    </CardHeader>
-                    <CardContent className='space-y-6 animate-fade-in'>
-                        <div className="rounded-lg border">
-                                <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Wskaźnik</TableHead>
-                                        <TableHead className='text-right'>{format(parseISO(comparisonData.dateA), 'dd.MM.yy')}</TableHead>
-                                        <TableHead className='text-right'>{format(parseISO(comparisonData.dateB), 'dd.MM.yy')}</TableHead>
-                                        <TableHead className='text-right'>Różnica</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow className='font-bold bg-muted/50'>
-                                        <TableCell>Suma pracowników</TableCell>
-                                        <TableCell className='text-right'>{comparisonData.total.valA}</TableCell>
-                                        <TableCell className='text-right'>{comparisonData.total.valB}</TableCell>
-                                        <TableCell className='text-right'>{renderDelta(comparisonData.total.delta)}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </div>
-                        <Accordion type="multiple" defaultValue={['departments']} className="w-full">
-                            <AccordionItem value="departments">
-                                <AccordionTrigger>Porównanie wg Działów</AccordionTrigger>
-                                <AccordionContent>
-                                     <Table>
-                                        <TableBody>
-                                            {comparisonData.departments.map(item => (
-                                                <TableRow key={item.key}>
-                                                    <TableCell>{item.key}</TableCell>
-                                                    <TableCell className='text-right'>{item.valA}</TableCell>
-                                                    <TableCell className='text-right'>{item.valB}</TableCell>
-                                                    <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </AccordionContent>
-                            </AccordionItem>
-                             <AccordionItem value="jobTitles">
-                                <AccordionTrigger>Porównanie wg Stanowisk</AccordionTrigger>
-                                <AccordionContent>
-                                     <Table>
-                                        <TableBody>
-                                            {comparisonData.jobTitles.map(item => (
-                                                <TableRow key={item.key}>
-                                                    <TableCell>{item.key}</TableCell>
-                                                    <TableCell className='text-right'>{item.valA}</TableCell>
-                                                    <TableCell className='text-right'>{item.valB}</TableCell>
-                                                    <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </AccordionContent>
-                            </AccordionItem>
-                             <AccordionItem value="nationalities">
-                                <AccordionTrigger>Porównanie wg Narodowości</AccordionTrigger>
-                                <AccordionContent>
-                                     <Table>
-                                        <TableBody>
-                                            {comparisonData.nationalities.map(item => (
-                                                <TableRow key={item.key}>
-                                                    <TableCell>{item.key}</TableCell>
-                                                    <TableCell className='text-right'>{item.valA}</TableCell>
-                                                    <TableCell className='text-right'>{item.valB}</TableCell>
-                                                    <TableCell className='text-right'>{renderDelta(item.delta)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    </CardContent>
-                </Card>
-            ) : (
-                <div className="text-center text-muted-foreground py-10">Wybierz inny zakres dat, aby zobaczyć porównanie.</div>
-            )}
         </div>
     )
 }

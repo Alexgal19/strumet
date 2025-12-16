@@ -2,6 +2,7 @@
 
 
 
+
 export type ActiveView =
   | 'aktywni'
   | 'zwolnieni'
@@ -131,6 +132,8 @@ export interface StatsSnapshot {
     departments: Record<string, number>;
     jobTitles: Record<string, number>;
     nationalities: Record<string, number>;
+    newHires: number;
+    terminations: number;
 }
 
 export interface OptionType {
