@@ -6,7 +6,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, L
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon } from 'lucide-react';
 import { Employee, Order, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { parseMaybeDate } from '@/lib/date';
+import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -452,11 +453,34 @@ const ReportTab = () => {
 
 const HistoryTab = () => {
     const { statsHistory, isHistoryLoading } = useAppContext();
+    const { toast } = useToast();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: statsHistory.length > 1 ? parseISO(statsHistory[1].id) : (statsHistory.length > 0 ? parseISO(statsHistory[0].id) : subDays(today, 7)),
         to: statsHistory.length > 0 ? parseISO(statsHistory[0].id) : today,
     });
+    const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
+
+    const handleCreateSnapshot = async () => {
+        setIsCreatingSnapshot(true);
+        try {
+            const result = await createStatsSnapshot();
+            toast({
+                title: "Sukces",
+                description: `Pomyślnie utworzono zrzut statystyk dla dnia ${result.snapshotId}.`,
+            });
+        } catch (error) {
+            console.error("Error creating snapshot:", error);
+            toast({
+                variant: 'destructive',
+                title: "Błąd",
+                description: "Nie udało się utworzyć zrzutu statystyk.",
+            });
+        } finally {
+            setIsCreatingSnapshot(false);
+        }
+    };
+
 
     const comparisonData = useMemo(() => {
         if (!dateRange?.from || !dateRange.to || !statsHistory.length) return null;
@@ -505,7 +529,16 @@ const HistoryTab = () => {
     }
     
     if (!statsHistory.length) {
-        return <div className="text-center text-muted-foreground py-10">Brak danych historycznych. Pierwszy zrzut statystyk zostanie utworzony w najbliższy poniedziałek.</div>;
+        return (
+            <div className="text-center text-muted-foreground py-10 flex flex-col items-center gap-4">
+                <HistoryIcon className="w-12 h-12" />
+                <p className="max-w-md">Brak danych historycznych. Pierwszy automatyczny zrzut statystyk zostanie utworzony w najbliższy poniedziałek. Możesz też utworzyć go ręcznie.</p>
+                 <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot}>
+                    {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                    Utwórz zrzut teraz
+                </Button>
+            </div>
+        );
     }
 
     const renderDelta = (delta: number) => {
@@ -518,9 +551,15 @@ const HistoryTab = () => {
     return (
         <div className="flex flex-col space-y-6 flex-grow">
             <Card>
-                 <CardHeader>
-                    <CardTitle>Porównanie okresów</CardTitle>
-                    <CardDescription>Wybierz zakres dat, aby zobaczyć szczegółowe porównanie. System automatycznie wybierze najbliższe dostępne zrzuty danych.</CardDescription>
+                 <CardHeader className="flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Porównanie okresów</CardTitle>
+                        <CardDescription>Wybierz zakres dat, aby zobaczyć szczegółowe porównanie. System automatycznie wybierze najbliższe dostępne zrzuty danych.</CardDescription>
+                    </div>
+                    <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline">
+                        {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                        Utwórz zrzut
+                    </Button>
                 </CardHeader>
                 <CardContent>
                      <Popover>
