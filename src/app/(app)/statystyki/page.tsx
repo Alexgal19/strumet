@@ -813,7 +813,7 @@ const OrdersTab = () => {
 }
 
 const HiresAndFiresTab = () => {
-    const { employees, useAppContext } = useAppContext();
+    const { employees } = useAppContext();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: startOfDay(subDays(today, 30)),
@@ -1079,7 +1079,7 @@ const HiresAndFiresTab = () => {
 }
 
 export default function StatisticsPage() {
-  const { isLoading, useAppContext } = useAppContext();
+  const { isLoading } = useAppContext();
   
   if (isLoading) {
     return (
