@@ -142,3 +142,9 @@ export interface HierarchicalOption {
     value: string;
     children?: HierarchicalOption[];
 }
+
+export interface Stats {
+    totalActiveEmployees: number;
+    totalDepartments: number;
+    totalJobTitles: number;
+}

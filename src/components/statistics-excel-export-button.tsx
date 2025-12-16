@@ -6,18 +6,12 @@ import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { FileDown } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Employee } from '@/lib/types';
+import type { Employee, Stats } from '@/lib/types';
 
 interface StatData {
     name: string;
     value: number;
     percentage: number;
-}
-
-interface Stats {
-    totalActiveEmployees: number;
-    totalDepartments: number;
-    averageEmployeesPerManager: string;
 }
 
 interface StatisticsExcelExportButtonProps {
@@ -43,7 +37,7 @@ export function StatisticsExcelExportButton({
         const summaryData = [
             { Wskaźnik: 'Aktywni pracownicy', Wartość: stats.totalActiveEmployees },
             { Wskaźnik: 'Liczba działów', Wartość: stats.totalDepartments },
-            { Wskaźnik: 'Średnia liczba pracowników na kierownika', Wartość: stats.averageEmployeesPerManager },
+            { Wskaźnik: 'Liczba stanowisk', Wartość: stats.totalJobTitles },
         ];
         const summaryWs = XLSX.utils.json_to_sheet(summaryData);
         summaryWs['!cols'] = [{ wch: 40 }, { wch: 15 }];

@@ -3,12 +3,12 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Pie, Cell } from 'recharts';
+import { LineChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon } from 'lucide-react';
-import { Employee, Order, StatsSnapshot, AllConfig } from '@/lib/types';
+import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -90,7 +90,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         return employees.filter(e => e.status === "aktywny");
     }, [employees]);
     const totalActiveEmployees = activeEmployees.length;
-    const stats = useMemo(() => {
+    const stats: Stats = useMemo(() => {
         const departments = new Set(activeEmployees.map(e => e.department).filter(Boolean));
         const jobTitles = new Set(activeEmployees.map(e => e.jobTitle).filter(Boolean));
         return {
