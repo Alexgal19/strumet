@@ -2,8 +2,8 @@
 
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import React, { useMemo, useState, useEffect, forwardRef } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
@@ -79,80 +79,78 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const ReportTab = () => {
-    const { employees, config, handleSaveEmployee, statsHistory, isHistoryLoading } = useAppContext();
+const ReportTab = forwardRef<unknown, {}>((_, ref) => {
+    const { employees, config, handleSaveEmployee } = useAppContext();
     const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
     const [dialogContent, setDialogContent] = useState<DialogContentData | null>(null);
-
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-    
     const { toast } = useToast();
-    
     const activeEmployees = useMemo(() => {
-        return employees.filter(e => e.status === 'aktywny');
+        return employees.filter(e => e.status === "aktywny");
     }, [employees]);
-    
     const totalActiveEmployees = activeEmployees.length;
-
     const stats = useMemo(() => {
         const departments = new Set(activeEmployees.map(e => e.department).filter(Boolean));
         const jobTitles = new Set(activeEmployees.map(e => e.jobTitle).filter(Boolean));
-
         return {
             totalActiveEmployees: totalActiveEmployees,
             totalDepartments: departments.size,
             totalJobTitles: jobTitles.size,
         };
     }, [activeEmployees, totalActiveEmployees]);
-
     const departmentData = useMemo(() => {
-        const counts: { [key: string]: number } = {};
+        const counts: {
+            [key: string]: number;
+        } = {};
         activeEmployees.forEach(employee => {
-        if(employee.department) counts[employee.department] = (counts[employee.department] || 0) + 1;
-        });
-        return Object.entries(counts).map(([name, value], index) => ({ 
-        name, 
-        value,
-        percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
-        fill: CHART_COLORS[index % CHART_COLORS.length] 
-        })).sort((a, b) => b.value - a.value);
-    }, [activeEmployees, totalActiveEmployees]);
-    
-    const nationalityData = useMemo(() => {
-        const counts: { [key: string]: number } = {};
-        activeEmployees.forEach(employee => {
-        if(employee.nationality) counts[employee.nationality] = (counts[employee.nationality] || 0) + 1;
-        });
-        return Object.entries(counts).map(([name, value], index) => ({ 
-        name, 
-        value,
-        percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
-        fill: CHART_COLORS[index % CHART_COLORS.length] 
-        })).sort((a, b) => b.value - a.value);
-    }, [activeEmployees, totalActiveEmployees]);
-
-    const jobTitleData = useMemo(() => {
-        const counts: { [key: string]: number } = {};
-        activeEmployees.forEach(employee => {
-        if(employee.jobTitle) counts[employee.jobTitle] = (counts[employee.jobTitle] || 0) + 1;
+            if (employee.department)
+                counts[employee.department] = (counts[employee.department] || 0) + 1;
         });
         return Object.entries(counts).map(([name, value], index) => ({
-        name,
-        value,
-        percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
-        fill: CHART_COLORS[index % CHART_COLORS.length]
+            name,
+            value,
+            percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
+            fill: CHART_COLORS[index % CHART_COLORS.length]
         })).sort((a, b) => b.value - a.value);
     }, [activeEmployees, totalActiveEmployees]);
-
-    const handleChartClick = (name: string, type: 'department' | 'nationality' | 'jobTitle') => {
-        if (type === 'department') {
+    const nationalityData = useMemo(() => {
+        const counts: {
+            [key: string]: number;
+        } = {};
+        activeEmployees.forEach(employee => {
+            if (employee.nationality)
+                counts[employee.nationality] = (counts[employee.nationality] || 0) + 1;
+        });
+        return Object.entries(counts).map(([name, value], index) => ({
+            name,
+            value,
+            percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
+            fill: CHART_COLORS[index % CHART_COLORS.length]
+        })).sort((a, b) => b.value - a.value);
+    }, [activeEmployees, totalActiveEmployees]);
+    const jobTitleData = useMemo(() => {
+        const counts: {
+            [key: string]: number;
+        } = {};
+        activeEmployees.forEach(employee => {
+            if (employee.jobTitle)
+                counts[employee.jobTitle] = (counts[employee.jobTitle] || 0) + 1;
+        });
+        return Object.entries(counts).map(([name, value], index) => ({
+            name,
+            value,
+            percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
+            fill: CHART_COLORS[index % CHART_COLORS.length]
+        })).sort((a, b) => b.value - a.value);
+    }, [activeEmployees, totalActiveEmployees]);
+    const handleChartClick = (name: string, type: "department" | "nationality" | "jobTitle") => {
+        if (type === "department") {
             const departmentEmployees = activeEmployees.filter(e => e.department === name);
             const hierarchy: DepartmentHierarchy = {};
-
             departmentEmployees.forEach(emp => {
-                const manager = emp.manager || 'Brak kierownika';
-                const jobTitle = emp.jobTitle || 'Brak stanowiska';
+                const manager = emp.manager || "Brak kierownika";
+                const jobTitle = emp.jobTitle || "Brak stanowiska";
                 if (!hierarchy[manager]) {
                     hierarchy[manager] = {};
                 }
@@ -161,53 +159,47 @@ const ReportTab = () => {
                 }
                 hierarchy[manager][jobTitle].push(emp);
             });
-
             setDialogContent({
                 title: `Struktura działu: ${name}`,
                 total: departmentEmployees.length,
-                type: 'hierarchy',
+                type: "hierarchy",
                 data: hierarchy
             });
-
-        } else {
-            const filtered = type === 'nationality'
+        }
+        else {
+            const filtered = type === "nationality"
                 ? activeEmployees.filter(e => e.nationality === name)
                 : activeEmployees.filter(e => e.jobTitle === name);
-            
-            const title = type === 'nationality'
+            const title = type === "nationality"
                 ? `Pracownicy narodowości: ${name}`
                 : `Pracownicy na stanowisku: ${name}`;
-
             setDialogContent({
                 title,
                 total: filtered.length,
-                type: 'list',
+                type: "list",
                 data: filtered
             });
         }
-        
         setIsStatDialogOpen(true);
     };
-  
     const handleEmployeeClick = (employee: Employee) => {
         setEditingEmployee(employee);
         setIsStatDialogOpen(false);
         setIsFormOpen(true);
     };
-
     const onSave = async (employeeData: Employee) => {
         await handleSaveEmployee(employeeData);
         setEditingEmployee(null);
         setIsFormOpen(false);
     };
-
     const handleCopyNames = () => {
-        if (!dialogContent || !dialogContent.data) return;
-
+        if (!dialogContent || !dialogContent.data)
+            return;
         let employeesToCopy: Employee[] = [];
-        if (dialogContent.type === 'list') {
+        if (dialogContent.type === "list") {
             employeesToCopy = dialogContent.data as Employee[];
-        } else {
+        }
+        else {
             const hierarchy = dialogContent.data as DepartmentHierarchy;
             Object.values(hierarchy).forEach(manager => {
                 Object.values(manager).forEach(jobTitleGroup => {
@@ -215,27 +207,24 @@ const ReportTab = () => {
                 });
             });
         }
-
-        if (employeesToCopy.length === 0) return;
-
-        const names = employeesToCopy.map(e => e.fullName).join('\n');
+        if (employeesToCopy.length === 0)
+            return;
+        const names = employeesToCopy.map(e => e.fullName).join("\n");
         navigator.clipboard.writeText(names).then(() => {
-        toast({
-            title: 'Skopiowano!',
-            description: 'Imiona i nazwiska zostały skopiowane do schowka.',
-        });
+            toast({
+                title: "Skopiowano!",
+                description: "Imiona i nazwiska zostały skopiowane do schowka.",
+            });
         }).catch(err => {
-        console.error('Could not copy text: ', err);
-        toast({
-            variant: 'destructive',
-            title: 'Błąd',
-            description: 'Nie udało się skopiować listy.',
-        });
+            console.error("Could not copy text: ", err);
+            toast({
+                variant: "destructive",
+                title: "Błąd",
+                description: "Nie udało się skopiować listy.",
+            });
         });
     };
-  
-    const renderPieChart = (data: any[], title: string, description: string, type: 'department' | 'nationality' | 'jobTitle') => (
-        <Card className="flex flex-col">
+    const renderPieChart = (data: any[], title: string, description: string, type: "department" | "nationality" | "jobTitle") => (<Card className="flex flex-col">
             <CardHeader>
                 <CardTitle className="text-xl">{title}</CardTitle>
                 <CardDescription className="text-sm">{description}</CardDescription>
@@ -244,53 +233,25 @@ const ReportTab = () => {
                 <ChartContainer config={{}} className="h-[350px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                            <Tooltip content={<CustomTooltip />} />
-                            <Pie
-                                data={data}
-                                dataKey="value"
-                                nameKey="name"
-                                cx="50%"
-                                cy="50%"
-                                outerRadius={120}
-                                innerRadius={90}
-                                paddingAngle={2}
-                                labelLine={false}
-                                onClick={(data) => handleChartClick(data.name, type)}
-                            >
-                                {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} stroke={"hsl(var(--card))"} className="cursor-pointer" />
-                                ))}
+                            <Tooltip content={<CustomTooltip />}/>
+                            <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} innerRadius={90} paddingAngle={2} labelLine={false} onClick={(data) => handleChartClick(data.name, type)}>
+                                {data.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.fill} stroke={"hsl(var(--card))"} className="cursor-pointer"/>))}
                             </Pie>
-                            <Legend
-                                iconType="circle"
-                                layout="vertical"
-                                verticalAlign="middle"
-                                align="right"
-                                iconSize={10}
-                                wrapperStyle={{ lineHeight: '1.8em' }}
-                                onClick={(d) => handleChartClick(d.value, type)}
-                                formatter={(value, entry) => (
-                                    <span className="text-muted-foreground text-sm pl-2 cursor-pointer hover:text-foreground">
+                            <Legend iconType="circle" layout="vertical" verticalAlign="middle" align="right" iconSize={10} wrapperStyle={{ lineHeight: "1.8em" }} onClick={(d) => handleChartClick(d.value, type)} formatter={(value, entry) => (<span className="text-muted-foreground text-sm pl-2 cursor-pointer hover:text-foreground">
                                     {value} <span className="font-bold">({entry.payload?.value})</span>
-                                    </span>
-                                )}
-                            />
+                                    </span>)}/>
                         </PieChart>
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
-        </Card>
-    );
-
+        </Card>);
     const renderDialogContent = () => {
-        if (!dialogContent) return null;
-
-        if (dialogContent.type === 'hierarchy') {
-        const hierarchy = dialogContent.data as DepartmentHierarchy;
-        return (
-            <Accordion type="multiple" className="w-full">
-                {Object.entries(hierarchy).map(([manager, jobTitles]) => (
-                    <AccordionItem value={manager} key={manager}>
+        if (!dialogContent)
+            return null;
+        if (dialogContent.type === "hierarchy") {
+            const hierarchy = dialogContent.data as DepartmentHierarchy;
+            return (<Accordion type="multiple" className="w-full">
+                {Object.entries(hierarchy).map(([manager, jobTitles]) => (<AccordionItem value={manager} key={manager}>
                         <AccordionTrigger className="hover:no-underline text-sm">
                             <div className="flex justify-between w-full pr-2">
                             <span className="font-semibold">{manager}</span>
@@ -299,8 +260,7 @@ const ReportTab = () => {
                         </AccordionTrigger>
                         <AccordionContent>
                             <Accordion type="multiple" className="w-full pl-4">
-                                {Object.entries(jobTitles).map(([jobTitle, emps]) => (
-                                    <AccordionItem value={jobTitle} key={jobTitle}>
+                                {Object.entries(jobTitles).map(([jobTitle, emps]) => (<AccordionItem value={jobTitle} key={jobTitle}>
                                         <AccordionTrigger className="hover:no-underline text-xs">
                                             <div className="flex justify-between w-full pr-2">
                                                 <span className="font-medium text-muted-foreground">{jobTitle}</span>
@@ -309,56 +269,37 @@ const ReportTab = () => {
                                         </AccordionTrigger>
                                         <AccordionContent>
                                             <div className="pl-4 border-l-2 border-border ml-2">
-                                                {emps.map(employee => (
-                                                    <div key={employee.id} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
+                                                {emps.map(employee => (<div key={employee.id} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
                                                         <span>{employee.fullName}</span>
                                                         <span className="text-xs text-muted-foreground">{employee.cardNumber}</span>
-                                                    </div>
-                                                ))}
+                                                    </div>))}
                                             </div>
                                         </AccordionContent>
-                                    </AccordionItem>
-                                ))}
+                                    </AccordionItem>))}
                             </Accordion>
                         </AccordionContent>
-                    </AccordionItem>
-                ))}
-            </Accordion>
-        )
+                    </AccordionItem>))}
+            </Accordion>);
         }
-
         const employeesToShow = dialogContent.data as Employee[];
-        return employeesToShow.map(employee => (
-            <div key={employee.id} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
+        return employeesToShow.map(employee => (<div key={employee.id} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
                 <span className="font-medium">{employee.fullName}</span>
                 <span className="text-muted-foreground text-xs">{employee.cardNumber}</span>
-            </div>
-        ));
+            </div>));
     };
-
-    return (
-        <div className="flex flex-col space-y-6 flex-grow">
+    return (<div className="flex flex-col space-y-6 flex-grow">
              <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold">Raport bieżący</h3>
-                <StatisticsExcelExportButton
-                    stats={stats}
-                    departmentData={departmentData}
-                    nationalityData={nationalityData}
-                    jobTitleData={jobTitleData}
-                    employees={activeEmployees}
-                />
+                <>{employees.length > 0 && <StatisticsExcelExportButton stats={stats} departmentData={departmentData} nationalityData={nationalityData} jobTitleData={jobTitleData} employees={activeEmployees}/>}</>
             </div>
-             {employees.length === 0 ? (
-                <div className="text-center text-muted-foreground py-10">
+             {employees.length === 0 ? (<div className="text-center text-muted-foreground py-10">
                     Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
-                </div>
-            ) : (
-            <>
+                </div>) : (<>
                 <div className="grid gap-4 md:grid-cols-3">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-base font-medium">Aktywni pracownicy</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <Users className="h-4 w-4 text-muted-foreground"/>
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{totalActiveEmployees}</div>
@@ -368,7 +309,7 @@ const ReportTab = () => {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-base font-medium">Liczba działów</CardTitle>
-                            <Building className="h-4 w-4 text-muted-foreground" />
+                            <Building className="h-4 w-4 text-muted-foreground"/>
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.totalDepartments}</div>
@@ -378,7 +319,7 @@ const ReportTab = () => {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-base font-medium">Liczba stanowisk</CardTitle>
-                            <Briefcase className="h-4 w-4 text-muted-foreground" />
+                            <Briefcase className="h-4 w-4 text-muted-foreground"/>
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.totalJobTitles}</div>
@@ -387,14 +328,13 @@ const ReportTab = () => {
                     </Card>
                 </div>
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    {renderPieChart(departmentData, 'Rozkład wg Działów', 'Liczba pracowników w poszczególnych działach.', 'department')}
-                    {renderPieChart(nationalityData, 'Rozkład wg Narodowości', 'Struktura pracowników z podziałem na narodowości.', 'nationality')}
+                    {renderPieChart(departmentData, "Rozkład wg Działów", "Liczba pracowników w poszczególnych działach.", "department")}
+                    {renderPieChart(nationalityData, "Rozkład wg Narodowości", "Struktura pracowników z podziałem na narodowości.", "nationality")}
                     <div className="lg:col-span-2">
-                    {renderPieChart(jobTitleData, 'Rozkład wg Stanowisk', 'Liczba pracowników na poszczególnych stanowiskach.', 'jobTitle')}
+                    {renderPieChart(jobTitleData, "Rozkład wg Stanowisk", "Liczba pracowników na poszczególnych stanowiskach.", "jobTitle")}
                     </div>
                 </div>
-            </>
-            )}
+            </>)}
              <Dialog open={isStatDialogOpen} onOpenChange={setIsStatDialogOpen}>
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
@@ -408,38 +348,27 @@ const ReportTab = () => {
                             {renderDialogContent()}
                         </div>
                     </ScrollArea>
-                    {dialogContent && dialogContent.total > 0 && (
-                        <DialogFooter>
+                    {dialogContent && dialogContent.total > 0 && (<DialogFooter>
                         <Button onClick={handleCopyNames}>
-                            <Copy className="mr-2 h-4 w-4" />
+                            <Copy className="mr-2 h-4 w-4"/>
                             Kopiuj imiona
                         </Button>
-                        </DialogFooter>
-                    )}
+                        </DialogFooter>)}
                 </DialogContent>
             </Dialog>
             
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent 
-                    onOpenAutoFocus={(e) => e.preventDefault()}
-                    className="sm:max-w-3xl max-h-[90vh] flex flex-col"
-                >
+                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-3xl max-h-[90vh] flex flex-col">
                 <DialogHeader className="flex-shrink-0">
                     <DialogTitle>Edytuj pracownika</DialogTitle>
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto -mr-6 pr-6">
-                    <EmployeeForm
-                    employee={editingEmployee}
-                    onSave={onSave}
-                    onCancel={() => setIsFormOpen(false)}
-                    config={config}
-                    />
+                    <EmployeeForm employee={editingEmployee} onSave={onSave} onCancel={() => setIsFormOpen(false)} config={config}/>
                 </div>
                 </DialogContent>
             </Dialog>
-        </div>
-    )
-}
+        </div>);
+})
 
 const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
     const { statsHistory, isHistoryLoading } = useAppContext();
