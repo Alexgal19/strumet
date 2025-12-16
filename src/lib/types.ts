@@ -1,8 +1,4 @@
 
-
-
-
-
 export type ActiveView =
   | 'aktywni'
   | 'zwolnieni'

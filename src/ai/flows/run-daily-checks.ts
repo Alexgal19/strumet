@@ -47,45 +47,47 @@ const runDailyChecksFlow = ai.defineFlow(
   async () => {
     console.log('Starting all daily checks...');
     
-    // Run checks in parallel
-    const [contractsResult, appointmentsResult, terminationsResult] = await Promise.all([
+    // Run all checks in parallel, including snapshot creation
+    const [contractsResult, appointmentsResult, terminationsResult, snapshotResult] = await Promise.allSettled([
         checkExpiringContractsAndNotify(),
         checkAppointmentsAndNotify(),
         checkPlannedTerminations(),
+        createStatsSnapshot(),
     ]);
 
-    let snapshotResult: { snapshotId?: string, error?: string } | undefined = undefined;
-    const today = new Date();
-    // 1 is Monday
-    if (getDay(today) === 1) {
-        console.log("It's Monday! Creating weekly statistics snapshot.");
-        try {
-            const result = await createStatsSnapshot();
-            snapshotResult = { snapshotId: result.snapshotId };
-            console.log(`Snapshot created: ${result.snapshotId}`);
-        } catch (error) {
-            console.error("Failed to create statistics snapshot:", error);
-            snapshotResult = { error: (error as Error).message };
-        }
+    const getResultValue = <T>(result: PromiseSettledResult<T>, defaultValue: T): T => {
+        return result.status === 'fulfilled' ? result.value : defaultValue;
+    };
+
+    const contractsRes = getResultValue(contractsResult, { notificationsCreated: 0, emailsSent: 0 });
+    const appointmentsRes = getResultValue(appointmentsResult, { notificationsCreated: 0, emailsSent: 0 });
+    const terminationsRes = getResultValue(terminationsResult, { processedCount: 0, notificationsCreated: 0 });
+    
+    let snapshotRes: { snapshotId?: string, error?: string } | undefined = undefined;
+    if (snapshotResult.status === 'fulfilled') {
+        snapshotRes = { snapshotId: snapshotResult.value.snapshotId };
+    } else {
+        console.error("Failed to create statistics snapshot:", snapshotResult.reason);
+        snapshotRes = { error: (snapshotResult.reason as Error).message };
     }
     
-    const totalNotifications = contractsResult.notificationsCreated + appointmentsResult.notificationsCreated + terminationsResult.notificationsCreated;
-    const totalEmails = contractsResult.emailsSent + appointmentsResult.emailsSent;
+    const totalNotifications = contractsRes.notificationsCreated + appointmentsRes.notificationsCreated + terminationsRes.notificationsCreated;
+    const totalEmails = contractsRes.emailsSent + appointmentsRes.emailsSent;
 
     console.log('All daily checks finished.');
-    console.log(`Contracts - Notifications: ${contractsResult.notificationsCreated}, Emails: ${contractsResult.emailsSent}`);
-    console.log(`Appointments - Notifications: ${appointmentsResult.notificationsCreated}, Emails: ${appointmentsResult.emailsSent}`);
-    console.log(`Terminations - Processed: ${terminationsResult.processedCount}, Notifications: ${terminationsResult.notificationsCreated}`);
-    if (snapshotResult) {
-        console.log(`Snapshot - ${snapshotResult.snapshotId ? `ID: ${snapshotResult.snapshotId}` : `Error: ${snapshotResult.error}`}`);
+    console.log(`Contracts - Notifications: ${contractsRes.notificationsCreated}, Emails: ${contractsRes.emailsSent}`);
+    console.log(`Appointments - Notifications: ${appointmentsRes.notificationsCreated}, Emails: ${appointmentsRes.emailsSent}`);
+    console.log(`Terminations - Processed: ${terminationsRes.processedCount}, Notifications: ${terminationsRes.notificationsCreated}`);
+    if (snapshotRes) {
+        console.log(`Snapshot - ${snapshotRes.snapshotId ? `ID: ${snapshotRes.snapshotId}` : `Error: ${snapshotRes.error}`}`);
     }
     console.log(`Total - Notifications: ${totalNotifications}, Emails: ${totalEmails}`);
     
     return {
-      contractsResult,
-      appointmentsResult,
-      terminationsResult,
-      snapshotResult,
+      contractsResult: contractsRes,
+      appointmentsResult: appointmentsRes,
+      terminationsResult: terminationsRes,
+      snapshotResult: snapshotRes,
       totalNotifications,
       totalEmails,
     };
