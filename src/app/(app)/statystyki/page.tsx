@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon } from 'lucide-react';
-import { Employee, Order, StatsSnapshot } from '@/lib/types';
+import { Employee, Order, StatsSnapshot, AllConfig } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -441,8 +441,8 @@ const ReportTab = () => {
     )
 }
 
-const HistoryTab = () => {
-    const { statsHistory, isHistoryLoading, toast } = useAppContext();
+const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
+    const { statsHistory, isHistoryLoading } = useAppContext();
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -1079,7 +1079,7 @@ const HiresAndFiresTab = () => {
 }
 
 export default function StatisticsPage() {
-  const { isLoading } = useAppContext();
+  const { isLoading, toast } = useAppContext();
   
   if (isLoading) {
     return (
@@ -1109,7 +1109,7 @@ export default function StatisticsPage() {
             <HiresAndFiresTab />
         </TabsContent>
          <TabsContent value="history" className="flex-grow mt-6">
-            <HistoryTab />
+            <HistoryTab toast={toast} />
         </TabsContent>
         <TabsContent value="orders" className="flex-grow mt-6">
             <OrdersTab />

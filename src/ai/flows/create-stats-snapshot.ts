@@ -16,6 +16,10 @@ const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { i
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
+// Function to sanitize keys for Firebase
+const sanitizeKey = (key: string) => key.replace(/[.#$/\[\]]/g, '-');
+
+
 const CreateSnapshotOutputSchema = z.object({
   snapshotId: z.string(),
   totalActive: z.number(),
@@ -59,13 +63,16 @@ const createStatsSnapshotFlow = ai.defineFlow(
 
     activeEmployees.forEach(emp => {
       if (emp.department) {
-        departmentCounts[emp.department] = (departmentCounts[emp.department] || 0) + 1;
+        const key = sanitizeKey(emp.department);
+        departmentCounts[key] = (departmentCounts[key] || 0) + 1;
       }
       if (emp.jobTitle) {
-        jobTitleCounts[emp.jobTitle] = (jobTitleCounts[emp.jobTitle] || 0) + 1;
+        const key = sanitizeKey(emp.jobTitle);
+        jobTitleCounts[key] = (jobTitleCounts[key] || 0) + 1;
       }
       if (emp.nationality) {
-        nationalityCounts[emp.nationality] = (nationalityCounts[emp.nationality] || 0) + 1;
+        const key = sanitizeKey(emp.nationality);
+        nationalityCounts[key] = (nationalityCounts[key] || 0) + 1;
       }
     });
 
