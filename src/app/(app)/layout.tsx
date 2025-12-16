@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import type { ActiveView } from '@/lib/types';
 import { AppProvider, useAppContext } from '@/context/app-context';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 // Static imports for ultra-fast navigation
 import AktywniPage from '@/app/(app)/aktywni/page';
@@ -58,8 +59,17 @@ const ViewTransitionWrapper = ({ children, viewKey }: { children: React.ReactNod
 };
 
 const AppContent = () => {
-    const { activeView, setActiveView, isLoading } = useAppContext();
-    const ActiveViewComponent = viewComponents[activeView] || viewComponents.aktywni;
+    const { activeView, setActiveView, isLoading, isAdmin } = useAppContext();
+    const router = useRouter();
+
+    useEffect(() => {
+        // If user is not an admin and tries to access a page other than 'statystyki', redirect them.
+        if (!isAdmin && activeView !== 'statystyki') {
+            setActiveView('statystyki');
+        }
+    }, [isAdmin, activeView, setActiveView]);
+
+    const ActiveViewComponent = viewComponents[activeView] || viewComponents.statystyki;
 
     return (
         <SidebarProvider>

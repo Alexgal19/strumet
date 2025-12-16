@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import type { ActiveView } from '@/lib/types';
+import { useAppContext } from '@/context/app-context';
 
 interface AppBottomNavProps {
   activeView: ActiveView;
@@ -34,13 +35,16 @@ interface MenuItem {
 const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
+  const { isAdmin } = useAppContext();
 
-  const menuItems: MenuItem[] = [
+  const allMenuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
     { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność'},
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];
+
+  const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => item.view === 'statystyki');
   
   if (!hasMounted || !isMobile) {
     return null;

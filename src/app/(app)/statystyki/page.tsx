@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef } from 'react';
@@ -83,7 +82,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const ReportTab = forwardRef<unknown, {}>((_, ref) => {
-    const { employees, config, handleSaveEmployee } = useAppContext();
+    const { employees, config, handleSaveEmployee, isAdmin } = useAppContext();
     const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
     const [dialogContent, setDialogContent] = useState<DialogContentData | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -186,6 +185,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         setIsStatDialogOpen(true);
     };
     const handleEmployeeClick = (employee: Employee) => {
+        if (!isAdmin) return;
         setEditingEmployee(employee);
         setIsStatDialogOpen(false);
         setIsFormOpen(true);
@@ -272,7 +272,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                         </AccordionTrigger>
                                         <AccordionContent>
                                             <div className="pl-4 border-l-2 border-border ml-2">
-                                                {emps.map(employee => (<div key={employee.id} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
+                                                {emps.map(employee => (<div key={employee.id} className={cn("flex items-center justify-between text-xs p-1.5 rounded-md", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={() => handleEmployeeClick(employee)}>
                                                         <span>{employee.fullName}</span>
                                                         <span className="text-xs text-muted-foreground">{employee.cardNumber}</span>
                                                     </div>))}
@@ -285,7 +285,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             </Accordion>);
         }
         const employeesToShow = dialogContent.data as Employee[];
-        return employeesToShow.map(employee => (<div key={employee.id} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleEmployeeClick(employee)}>
+        return employeesToShow.map(employee => (<div key={employee.id} className={cn("flex items-center justify-between text-sm p-2 rounded-md", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={() => handleEmployeeClick(employee)}>
                 <span className="font-medium">{employee.fullName}</span>
                 <span className="text-muted-foreground text-xs">{employee.cardNumber}</span>
             </div>));
@@ -351,12 +351,12 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                             {renderDialogContent()}
                         </div>
                     </ScrollArea>
-                    {dialogContent && dialogContent.total > 0 && (<DialogFooter>
-                        <Button onClick={handleCopyNames}>
-                            <Copy className="mr-2 h-4 w-4"/>
-                            Kopiuj imiona
-                        </Button>
-                        </DialogFooter>)}
+                    <DialogFooter className="sm:justify-between">
+                       {isAdmin && dialogContent && dialogContent.total > 0 && <Button onClick={handleCopyNames}>
+                           <Copy className="mr-2 h-4 w-4"/>
+                           Kopiuj imiona
+                       </Button>}
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
             
@@ -374,7 +374,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 })
 
 const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, ref) => {
-    const { statsHistory, isHistoryLoading } = useAppContext();
+    const { statsHistory, isHistoryLoading, isAdmin } = useAppContext();
     const { toast } = props;
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     
@@ -416,7 +416,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
         const snapB = findClosestSnapshot(effectiveTo);
 
         if (!snapA || !snapB || snapA.id === snapB.id) {
-             return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: 0, terminationsInRange: 0 };
+             return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange: terminationsInRange };
         }
 
         const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
@@ -488,10 +488,10 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             <div className="text-center text-muted-foreground py-10 flex flex-col items-center gap-4">
                 <HistoryIcon className="w-12 h-12" />
                 <p className="max-w-md">Brak danych historycznych. Pierwszy automatyczny zrzut statystyk zostanie utworzony wkrótce. Możesz też utworzyć go ręcznie.</p>
-                 <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot}>
+                 {isAdmin && <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot}>
                     {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                     Utwórz zrzut teraz
-                </Button>
+                </Button>}
             </div>
         );
     }
@@ -543,10 +543,10 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
                                 />
                             </PopoverContent>
                         </Popover>
-                         <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline" size="sm">
+                         {isAdmin && <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline" size="sm">
                             {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                             Nowy zrzut
-                        </Button>
+                        </Button>}
                      </div>
                 </CardHeader>
                 <CardContent>
@@ -638,7 +638,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
 })
 
 const HiresAndFiresTab = () => {
-    const { employees } = useAppContext();
+    const { employees, isAdmin } = useAppContext();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: startOfDay(subDays(today, 30)),
@@ -781,52 +781,48 @@ const HiresAndFiresTab = () => {
             </Card>
 
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                {hiresSummary && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
-                                <AccordionItem value="departments">
-                                    <AccordionTrigger>Wg działów</AccordionTrigger>
-                                    <AccordionContent>
-                                        <SummaryTable title="" data={hiresSummary.byDepartment} />
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="job-titles">
-                                    <AccordionTrigger>Wg stanowisk</AccordionTrigger>
-                                    <AccordionContent>
-                                        <SummaryTable title="" data={hiresSummary.byJobTitle} />
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </Accordion>
-                        </CardContent>
-                    </Card>
-                )}
-                {terminationsSummary && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
-                                <AccordionItem value="departments">
-                                    <AccordionTrigger>Wg działów</AccordionTrigger>
-                                    <AccordionContent>
-                                        <SummaryTable title="" data={terminationsSummary.byDepartment} />
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="job-titles">
-                                    <AccordionTrigger>Wg stanowisk</AccordionTrigger>
-                                    <AccordionContent>
-                                        <SummaryTable title="" data={terminationsSummary.byJobTitle} />
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </Accordion>
-                        </CardContent>
-                    </Card>
-                )}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
+                            <AccordionItem value="departments">
+                                <AccordionTrigger>Wg działów</AccordionTrigger>
+                                <AccordionContent>
+                                    {hiresSummary && <SummaryTable title="" data={hiresSummary.byDepartment} />}
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="job-titles">
+                                <AccordionTrigger>Wg stanowisk</AccordionTrigger>
+                                <AccordionContent>
+                                     {hiresSummary && <SummaryTable title="" data={hiresSummary.byJobTitle} />}
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
+                            <AccordionItem value="departments">
+                                <AccordionTrigger>Wg działów</AccordionTrigger>
+                                <AccordionContent>
+                                    {terminationsSummary && <SummaryTable title="" data={terminationsSummary.byDepartment} />}
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="job-titles">
+                                <AccordionTrigger>Wg stanowisk</AccordionTrigger>
+                                <AccordionContent>
+                                    {terminationsSummary && <SummaryTable title="" data={terminationsSummary.byJobTitle} />}
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    </CardContent>
+                </Card>
                 <Card>
                     <CardHeader>
                         <CardTitle>Lista nowo zatrudnionych ({newHires.length})</CardTitle>
@@ -901,7 +897,7 @@ const HiresAndFiresTab = () => {
 }
 
 const OrdersTab = () => {
-    const { config, addOrder, updateOrder, deleteOrder, isLoading: isAppLoading } = useAppContext();
+    const { config, addOrder, updateOrder, deleteOrder, isLoading: isAppLoading, isAdmin } = useAppContext();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoadingOrders, setIsLoadingOrders] = useState(true);
     const { toast } = useToast();
@@ -979,7 +975,7 @@ const OrdersTab = () => {
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
+            {isAdmin && <div className="lg:col-span-1">
                 <Tabs defaultValue="new" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="new">Nowy pracownik</TabsTrigger>
@@ -1068,8 +1064,8 @@ const OrdersTab = () => {
                         </Card>
                     </TabsContent>
                 </Tabs>
-            </div>
-            <div className="lg:col-span-2">
+            </div>}
+            <div className={isAdmin ? "lg:col-span-2" : "lg:col-span-3"}>
                 <Card>
                     <CardHeader>
                         <CardTitle>Aktywne zamówienia</CardTitle>
@@ -1113,14 +1109,14 @@ const OrdersTab = () => {
                                                                         <p>Pozostało: <span className='font-semibold text-orange-500'>{remaining}</span></p>
                                                                     </div>
                                                                 </div>
-                                                                <div>
+                                                                {isAdmin && <div>
                                                                     <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(order)}>
                                                                         <Edit className="h-4 w-4" />
                                                                     </Button>
                                                                     <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
                                                                         <Trash2 className="h-4 w-4 text-destructive" />
                                                                     </Button>
-                                                                </div>
+                                                                </div>}
                                                             </div>
                                                         )
                                                     })}
@@ -1209,7 +1205,7 @@ const OrdersTab = () => {
 }
 
 export default function StatisticsPage() {
-  const { isLoading, toast } = useAppContext();
+  const { isLoading, toast, isAdmin } = useAppContext();
   
   if (isLoading) {
     return (
@@ -1226,31 +1222,29 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-4" : "grid-cols-1")}>
           <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
-          <TabsTrigger value="orders">Zamówienia</TabsTrigger>
-          <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
-          <TabsTrigger value="history">Historia</TabsTrigger>
+          {isAdmin && <>
+            <TabsTrigger value="orders">Zamówienia</TabsTrigger>
+            <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
+            <TabsTrigger value="history">Historia</TabsTrigger>
+          </>}
         </TabsList>
         <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
         </TabsContent>
-        <TabsContent value="orders" className="flex-grow mt-6">
-            <OrdersTab />
-        </TabsContent>
-         <TabsContent value="hires_and_fires" className="flex-grow mt-6">
-            <HiresAndFiresTab />
-        </TabsContent>
-         <TabsContent value="history" className="flex-grow mt-6">
-            <HistoryTab toast={toast} />
-        </TabsContent>
+        {isAdmin && <>
+            <TabsContent value="orders" className="flex-grow mt-6">
+                <OrdersTab />
+            </TabsContent>
+            <TabsContent value="hires_and_fires" className="flex-grow mt-6">
+                <HiresAndFiresTab />
+            </TabsContent>
+            <TabsContent value="history" className="flex-grow mt-6">
+                <HistoryTab toast={toast} />
+            </TabsContent>
+        </>}
       </Tabs>
     </div>
   );
 }
-
-
-
-
-
-

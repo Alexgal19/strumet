@@ -1,6 +1,21 @@
+
 {
   "rules": {
-    ".read": true,
-    ".write": true
+    "users": {
+      "$uid": {
+        // Logged-in user can read their own data
+        ".read": "auth != null && auth.uid == $uid",
+        // Logged-in user can write to their own data, but cannot change their role
+        ".write": "auth != null && auth.uid == $uid",
+        "role": {
+          // Role can only be written if it doesn't exist yet (initial registration)
+          // or by an admin. Admin cannot change their own role.
+          ".write": "(!data.exists() && newData.val() == 'guest') || (root.child('users').child(auth.uid).child('role').val() == 'admin' && newData.val() != data.val())"
+        }
+      }
+    },
+    // For all other data...
+    ".read": "auth != null",
+    ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
   }
 }

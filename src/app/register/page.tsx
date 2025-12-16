@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Database, Loader2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { auth } from "@/lib/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, User } from "firebase/auth";
+import { ref, set, get } from "firebase/database";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -53,10 +54,24 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check if this is the first user
+      const usersRef = ref(db, 'users');
+      const snapshot = await get(usersRef);
+      const isFirstUser = !snapshot.exists() || snapshot.numChildren() === 0;
+      const role = isFirstUser ? 'admin' : 'guest';
+      
+      // Save user role in the database
+      await set(ref(db, `users/${user.uid}`), {
+          email: user.email,
+          role: role,
+      });
+
       toast({
         title: "Rejestracja pomyślna",
-        description: "Teraz możesz się zalogować.",
+        description: `Konto zostało utworzone z rolą: ${role}. Teraz możesz się zalogować.`,
       });
       router.push("/login");
     } catch (error: any) {

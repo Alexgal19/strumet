@@ -121,10 +121,6 @@ export interface Order {
   realizedQuantity: number;
   createdAt: string; // ISO String
   type: 'new' | 'replacement';
-  replacesEmployeeInfo?: {
-    id: string;
-    fullName: string;
-  };
 }
 
 export interface StatsSnapshot {
@@ -152,4 +148,12 @@ export interface Stats {
     totalActiveEmployees: number;
     totalDepartments: number;
     totalJobTitles: number;
+}
+
+export type UserRole = 'admin' | 'guest';
+
+export interface AuthUser {
+    uid: string;
+    email: string | null;
+    role: UserRole;
 }

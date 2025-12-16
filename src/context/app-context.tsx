@@ -1,16 +1,10 @@
 
-
-
-
-
-
-
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { ref, onValue, set, push, update, remove } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { ref, onValue, set, push, update, remove, get } from 'firebase/database';
+import { db, auth } from '@/lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { 
@@ -27,6 +21,8 @@ import type {
     Order,
     JobTitleClothingSet,
     StatsSnapshot,
+    AuthUser,
+    UserRole,
 } from '@/lib/types';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -66,13 +62,15 @@ interface AppContextType {
     addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Promise<void>;
     updateOrder: (order: Order) => Promise<void>;
     deleteOrder: (orderId: string) => Promise<void>;
+    currentUser: AuthUser | null;
+    isAdmin: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
-    const [activeView, setActiveView] = useState<ActiveView>('aktywni');
+    const [activeView, setActiveView] = useState<ActiveView>('statystyki');
     
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
@@ -80,10 +78,38 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+
+    const isAdmin = currentUser?.role === 'admin';
 
     useEffect(() => {
+        const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
+            if (user) {
+                const userRoleRef = ref(db, `users/${user.uid}/role`);
+                const roleSnapshot = await get(userRoleRef);
+                const role = roleSnapshot.val() as UserRole;
+                setCurrentUser({
+                    uid: user.uid,
+                    email: user.email,
+                    role: role || 'guest', // Default to guest if no role is found
+                });
+                
+                // For non-admin users, force the view to 'statystyki'
+                if (role !== 'admin') {
+                    setActiveView('statystyki');
+                } else if (activeView !== 'aktywni') {
+                    // Default view for admin
+                    setActiveView('aktywni');
+                }
+
+            } else {
+                setCurrentUser(null);
+            }
+            setIsLoading(false);
+        });
+
         const dataRef = ref(db);
-        const unsubscribe = onValue(dataRef, (snapshot) => {
+        const unsubscribeDb = onValue(dataRef, (snapshot) => {
             const data = snapshot.val() || {};
             setEmployees(objectToArray(data.employees));
             setConfig({
@@ -97,16 +123,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             });
             setNotifications(objectToArray(data.notifications));
             setStatsHistory(objectToArray(data.statisticsHistory).sort((a,b) => new Date(b.id).getTime() - new Date(a.id).getTime()));
-            setIsLoading(false);
             setIsHistoryLoading(false);
         }, (error) => {
             console.error("Firebase read failed: ", error);
-            setIsLoading(false);
             setIsHistoryLoading(false);
             toast({ variant: 'destructive', title: 'Błąd Bazy Danych', description: 'Nie udało się załadować danych.'});
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribeAuth();
+            unsubscribeDb();
+        };
     }, [toast]);
     
     // --- Employee Actions ---
@@ -369,9 +396,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 createdAt: new Date().toISOString(),
                 realizedQuantity: order.realizedQuantity || 0
             };
-            if(order.type === 'new') {
-                delete dataToSet.replacesEmployeeInfo;
-            }
             await set(newOrderRef, dataToSet);
             toast({ title: 'Sukces', description: 'Nowe zamówienie zostało dodane.'});
         } catch(e) {
@@ -430,7 +454,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         deleteClothingIssuance,
         addOrder,
         updateOrder,
-        deleteOrder
+        deleteOrder,
+        currentUser,
+        isAdmin,
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -443,4 +469,3 @@ export const useAppContext = () => {
     }
     return context;
 };
-
