@@ -466,8 +466,8 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         const snapshotA = findNearestSnapshot(dateRange.from);
         const snapshotB = findNearestSnapshot(dateRange.to);
         
-        if (!snapshotA || !snapshotB) {
-            return { error: "Brak danych dla wybranych dat. Proszę wybrać daty, dla których istnieją zrzuty." };
+        if (!snapshotA || !snapshotB || snapshotA.id === snapshotB.id) {
+            return { error: "Brak wystarczających danych dla wybranych dat. Wybierz inny zakres." };
         }
 
         const calculateDelta = (dataA: Record<string, number>, dataB: Record<string, number>) => {
