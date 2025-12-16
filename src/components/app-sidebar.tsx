@@ -171,7 +171,6 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
   const menuItems: { view: ActiveView, icon: React.ReactNode, label: string }[] = [
     { view: 'aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
     { view: 'zwolnieni', icon: <UserX />, label: 'Pracownicy zwolnieni' },
-    { view: 'zamowienia', icon: <ClipboardList />, label: 'Zamówienia' },
     { view: 'planowanie', icon: <CalendarClock />, label: 'Planowanie' },
     { view: 'odwiedzalnosc', icon: <CalendarCheck />, label: 'Odliczenia' },
     { view: 'statystyki', icon: <BarChart3 />, label: 'Statystyki' },

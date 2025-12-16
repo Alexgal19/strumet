@@ -37,7 +37,6 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
 
   const menuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
-    { view: 'zamowienia', icon: ClipboardList, label: 'Zamówienia' },
     { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność'},
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },

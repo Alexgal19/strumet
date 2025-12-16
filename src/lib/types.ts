@@ -10,8 +10,7 @@ export type ActiveView =
   | 'karty-obiegowe'
   | 'odciski-palcow'
   | 'brak-logowania'
-  | 'konfiguracja'
-  | 'zamowienia';
+  | 'konfiguracja';
 
 export interface Employee {
   id: string;
