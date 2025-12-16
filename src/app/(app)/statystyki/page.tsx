@@ -444,32 +444,27 @@ const ReportTab = () => {
 const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
     const { statsHistory, isHistoryLoading } = useAppContext();
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
-    
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-
-    const chartData = useMemo(() => {
-        return statsHistory
-            .map(snapshot => ({
-                date: format(parseISO(snapshot.id), 'dd.MM'),
-                'Ilość ogólna': snapshot.totalActive,
-                'Nowozatrudnieni': snapshot.newHires || 0,
-                'Zwolnieni': snapshot.terminations || 0,
-            }))
-            .reverse();
-    }, [statsHistory]);
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+        const today = startOfDay(new Date());
+        const yesterday = subDays(today, 1);
+        return { from: yesterday, to: today };
+    });
 
     const comparisonData = useMemo(() => {
-        if (!dateRange || !dateRange.from || !dateRange.to || statsHistory.length < 2) {
+        if (!dateRange || !dateRange.from || !dateRange.to || statsHistory.length < 1) {
             return null;
         }
 
-        const findSnapshot = (date: Date) => {
-            const dateString = format(date, 'yyyy-MM-dd');
-            return statsHistory.find(s => s.id === dateString);
+        const findNearestSnapshot = (targetDate: Date) => {
+            return statsHistory.reduce((prev, curr) => {
+                const prevDiff = Math.abs(new Date(prev.id).getTime() - targetDate.getTime());
+                const currDiff = Math.abs(new Date(curr.id).getTime() - targetDate.getTime());
+                return currDiff < prevDiff ? curr : prev;
+            });
         }
 
-        const snapshotA = findSnapshot(dateRange.from);
-        const snapshotB = findSnapshot(dateRange.to);
+        const snapshotA = findNearestSnapshot(dateRange.from);
+        const snapshotB = findNearestSnapshot(dateRange.to);
         
         if (!snapshotA || !snapshotB) {
             return { error: "Brak danych dla wybranych dat. Proszę wybrać daty, dla których istnieją zrzuty." };
@@ -482,17 +477,17 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
             allKeys.forEach(key => {
                 const valA = dataA[key] || 0;
                 const valB = dataB[key] || 0;
-                if (valA !== valB) {
-                    deltas.push({ name: key, valA, valB, delta: valB - valA });
-                }
+                deltas.push({ name: key, valA, valB, delta: valB - valA });
             });
             return deltas.sort((a,b) => b.delta - a.delta);
         }
         
         return {
+            snapshotA,
+            snapshotB,
             totalDelta: snapshotB.totalActive - snapshotA.totalActive,
-            departmentDeltas: calculateDelta(snapshotA.departments, snapshotB.departments),
-            jobTitleDeltas: calculateDelta(snapshotA.jobTitles, snapshotB.jobTitles)
+            departmentDeltas: calculateDelta(snapshotA.departments || {}, snapshotB.departments || {}),
+            jobTitleDeltas: calculateDelta(snapshotA.jobTitles || {}, snapshotB.jobTitles || {})
         };
 
     }, [dateRange, statsHistory]);
@@ -534,39 +529,158 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
             </div>
         );
     }
+
+    const renderDelta = (delta: number) => {
+        if (delta > 0) return <span className="flex items-center text-green-500 font-bold"><TrendingUp className="mr-1 h-4 w-4" /> +{delta}</span>;
+        if (delta < 0) return <span className="flex items-center text-destructive font-bold"><TrendingDown className="mr-1 h-4 w-4" /> {delta}</span>;
+        return <span className="flex items-center text-muted-foreground font-bold"><Minus className="mr-1 h-4 w-4" /> {delta}</span>;
+    };
     
     return (
         <div className="flex flex-col space-y-6 flex-grow">
             <Card>
                  <CardHeader className="flex-row items-start sm:items-center justify-between">
                     <div>
-                        <CardTitle>Historia zmian</CardTitle>
-                        <CardDescription>Dzienna dynamika liczby pracowników, zatrudnień i zwolnień.</CardDescription>
+                        <CardTitle>Porównanie historyczne</CardTitle>
+                        <CardDescription>Porównaj stan zatrudnienia między dwoma wybranymi dniami.</CardDescription>
                     </div>
-                    <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline" size="sm">
-                        {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                        Utwórz zrzut
-                    </Button>
+                     <div className="flex items-center gap-2">
+                          <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date"
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-[300px] justify-start text-left font-normal",
+                                            !dateRange && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (
+                                            dateRange.to ? (
+                                                <>
+                                                    {format(dateRange.from, "dd.MM.yyyy")} -{" "}
+                                                    {format(dateRange.to, "dd.MM.yyyy")}
+                                                </>
+                                            ) : (
+                                                format(dateRange.from, "dd.MM.yyyy")
+                                            )
+                                        ) : (
+                                            <span>Wybierz zakres dat</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        numberOfMonths={2}
+                                        locale={pl}
+                                        disabled={(date) => date > new Date() || date < new Date("2024-01-01")}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                         <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline" size="sm">
+                            {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                            Utwórz zrzut
+                        </Button>
+                     </div>
                 </CardHeader>
-                <CardContent className="h-[400px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
-                            <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={false} axisLine={{ stroke: 'hsl(var(--border))' }} />
-                            <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={false} axisLine={{ stroke: 'hsl(var(--border))' }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{fontSize: "14px"}} />
-                            <Line type="monotone" dataKey="Ilość ogólna" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                            <Line type="monotone" dataKey="Nowozatrudnieni" stroke="hsl(var(--chart-2))" strokeWidth={2} />
-                            <Line type="monotone" dataKey="Zwolnieni" stroke="hsl(var(--destructive))" strokeWidth={2} />
-                        </LineChart>
-                    </ResponsiveContainer>
+                <CardContent>
+                    {comparisonData ? (
+                        !comparisonData.error ? (
+                            <div className="space-y-6">
+                               <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base">Podsumowanie ogólne</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex justify-around items-center">
+                                        <div className="text-center">
+                                            <p className="text-sm text-muted-foreground">{format(new Date(comparisonData.snapshotA.id), 'dd.MM.yyyy')}</p>
+                                            <p className="text-3xl font-bold">{comparisonData.snapshotA.totalActive}</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-sm text-muted-foreground">Zmiana</p>
+                                            <p className="text-3xl">{renderDelta(comparisonData.totalDelta)}</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-sm text-muted-foreground">{format(new Date(comparisonData.snapshotB.id), 'dd.MM.yyyy')}</p>
+                                            <p className="text-3xl font-bold">{comparisonData.snapshotB.totalActive}</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <Card>
+                                        <CardHeader><CardTitle className="text-base">Zmiany wg działów</CardTitle></CardHeader>
+                                        <CardContent>
+                                            <ScrollArea className="h-72">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead>Dział</TableHead>
+                                                            <TableHead className="text-center">{format(new Date(comparisonData.snapshotA.id), 'dd.MM')}</TableHead>
+                                                            <TableHead className="text-center">{format(new Date(comparisonData.snapshotB.id), 'dd.MM')}</TableHead>
+                                                            <TableHead className="text-right">Zmiana</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {comparisonData.departmentDeltas.map(d => (
+                                                            <TableRow key={d.name}>
+                                                                <TableCell className="font-medium">{d.name}</TableCell>
+                                                                <TableCell className="text-center">{d.valA}</TableCell>
+                                                                <TableCell className="text-center">{d.valB}</TableCell>
+                                                                <TableCell className="text-right">{renderDelta(d.delta)}</TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </ScrollArea>
+                                        </CardContent>
+                                    </Card>
+                                     <Card>
+                                        <CardHeader><CardTitle className="text-base">Zmiany wg stanowisk</CardTitle></CardHeader>
+                                        <CardContent>
+                                            <ScrollArea className="h-72">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead>Stanowisko</TableHead>
+                                                            <TableHead className="text-center">{format(new Date(comparisonData.snapshotA.id), 'dd.MM')}</TableHead>
+                                                            <TableHead className="text-center">{format(new Date(comparisonData.snapshotB.id), 'dd.MM')}</TableHead>
+                                                            <TableHead className="text-right">Zmiana</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {comparisonData.jobTitleDeltas.map(d => (
+                                                            <TableRow key={d.name}>
+                                                                <TableCell className="font-medium">{d.name}</TableCell>
+                                                                <TableCell className="text-center">{d.valA}</TableCell>
+                                                                <TableCell className="text-center">{d.valB}</TableCell>
+                                                                <TableCell className="text-right">{renderDelta(d.delta)}</TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </ScrollArea>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+                        ) : (
+                             <p className="text-center text-destructive py-10">{comparisonData.error}</p>
+                        )
+                    ) : (
+                         <p className="text-center text-muted-foreground py-10">Wybierz zakres dat, aby zobaczyć porównanie.</p>
+                    )}
                 </CardContent>
             </Card>
         </div>
     )
 }
-
 
 const OrdersTab = () => {
     const { config, addOrder, deleteOrder, updateOrder } = useAppContext();
