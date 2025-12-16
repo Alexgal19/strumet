@@ -397,6 +397,15 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
             return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
         }
 
+        // Calculate hires and terminations within the selected range first
+        const snapshotsInRange = statsHistory.filter(s => {
+            const sDate = parseISO(s.id);
+            return isWithinInterval(sDate, { start: dateRange.from!, end: dateRange.to! });
+        });
+
+        const hiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
+        const terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
+        
         const findClosestSnapshot = (targetDate: Date) => {
             return statsHistory.reduce((prev, curr) => {
                 const prevDiff = Math.abs(parseISO(prev.id).getTime() - targetDate.getTime());
@@ -408,18 +417,8 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         const snapA = findClosestSnapshot(dateRange.from);
         const snapB = findClosestSnapshot(dateRange.to);
 
-        // Calculate hires and terminations within the selected range
-        const snapshotsInRange = statsHistory.filter(s => {
-            const sDate = parseISO(s.id);
-            return isWithinInterval(sDate, { start: dateRange.from!, end: dateRange.to! });
-        });
-
-        const hiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
-        const terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
-
-
         if (!snapA || !snapB || snapA.id === snapB.id) {
-            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
+            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange: terminationsInRange };
         }
 
         const allKeys = new Set([
@@ -450,7 +449,7 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
             },
             snapshotA: snapA,
             snapshotB: snapB,
-            newHiresInRange,
+            newHiresInRange: hiresInRange,
             terminationsInRange,
         };
 
