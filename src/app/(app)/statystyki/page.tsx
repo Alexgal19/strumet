@@ -392,9 +392,9 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         }
     }, [statsHistory, dateRange]);
     
-    const { comparisonData, snapshotA, snapshotB } = useMemo(() => {
+    const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
         if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
-            return { comparisonData: null, snapshotA: null, snapshotB: null };
+            return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
         }
 
         const findClosestSnapshot = (targetDate: Date) => {
@@ -408,8 +408,18 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         const snapA = findClosestSnapshot(dateRange.from);
         const snapB = findClosestSnapshot(dateRange.to);
 
+        // Calculate hires and terminations within the selected range
+        const snapshotsInRange = statsHistory.filter(s => {
+            const sDate = parseISO(s.id);
+            return isWithinInterval(sDate, { start: dateRange.from!, end: dateRange.to! });
+        });
+
+        const hiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
+        const terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
+
+
         if (!snapA || !snapB || snapA.id === snapB.id) {
-            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB };
+            return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
         }
 
         const allKeys = new Set([
@@ -440,6 +450,8 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
             },
             snapshotA: snapA,
             snapshotB: snapB,
+            newHiresInRange,
+            terminationsInRange,
         };
 
     }, [dateRange, statsHistory]);
@@ -468,14 +480,15 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
         return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
     
-    const DeltaCell = ({ delta }: { delta: number }) => {
+    const DeltaCell = ({ delta, className }: { delta: number, className?: string }) => {
+        const baseClasses = "font-bold flex items-center justify-end";
         if (delta === 0) {
-            return <span className="text-muted-foreground font-medium flex items-center justify-end"><Minus className="h-4 w-4 mr-1" /> {delta}</span>;
+            return <span className={cn(baseClasses, "text-muted-foreground", className)}><Minus className="h-4 w-4 mr-1" /> {delta}</span>;
         }
         if (delta > 0) {
-            return <span className="text-green-600 font-bold flex items-center justify-end"><TrendingUp className="h-4 w-4 mr-1" /> +{delta}</span>;
+            return <span className={cn(baseClasses, "text-green-600", className)}><TrendingUp className="h-4 w-4 mr-1" /> +{delta}</span>;
         }
-        return <span className="text-red-600 font-bold flex items-center justify-end"><TrendingDown className="h-4 w-4 mr-1" /> {delta}</span>;
+        return <span className={cn(baseClasses, "text-red-600", className)}><TrendingDown className="h-4 w-4 mr-1" /> {delta}</span>;
     };
 
     if (!statsHistory.length) {
@@ -553,18 +566,25 @@ const HistoryTab = ({ toast }: { toast: (props: any) => void }) => {
                                 <CardHeader>
                                     <CardTitle>Podsumowanie ogólne</CardTitle>
                                 </CardHeader>
-                                <CardContent className="grid grid-cols-3 gap-4 text-center">
+                                <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                                     <div>
-                                        <p className="text-sm text-muted-foreground">{format(parseISO(snapshotA.id), "dd.MM.yyyy")}</p>
+                                        <p className="text-sm text-muted-foreground">Stan na {format(parseISO(snapshotA.id), "dd.MM.yy")}</p>
                                         <p className="text-2xl font-bold">{snapshotA.totalActive}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Różnica</p>
-                                        <div className="text-2xl"><DeltaCell delta={comparisonData.totalDelta} /></div>
+                                        <p className="text-sm text-muted-foreground">Nowo zatrudnieni</p>
+                                        <p className="text-2xl font-bold text-green-600">+{newHiresInRange}</p>
+                                    </div>
+                                     <div>
+                                        <p className="text-sm text-muted-foreground">Zwolnieni</p>
+                                        <p className="text-2xl font-bold text-red-600">-{terminationsInRange}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-muted-foreground">{format(parseISO(snapshotB.id), "dd.MM.yyyy")}</p>
-                                        <p className="text-2xl font-bold">{snapshotB.totalActive}</p>
+                                        <p className="text-sm text-muted-foreground">Stan na {format(parseISO(snapshotB.id), "dd.MM.yy")}</p>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <p className="text-2xl font-bold">{snapshotB.totalActive}</p>
+                                            <DeltaCell delta={comparisonData.totalDelta} className="text-lg" />
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -1175,3 +1195,6 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+
+    
