@@ -3,6 +3,7 @@
 
 
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -38,6 +39,7 @@ interface AppContextType {
     isLoading: boolean;
     isHistoryLoading: boolean;
     activeView: ActiveView;
+    toast: (props: any) => void;
     setActiveView: (view: ActiveView) => void;
     handleSaveEmployee: (employeeData: Employee) => Promise<void>;
     handleTerminateEmployee: (id: string) => Promise<void>;
@@ -394,6 +396,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         isHistoryLoading,
         activeView,
+        toast,
         setActiveView,
         handleSaveEmployee,
         handleTerminateEmployee,
@@ -431,4 +434,5 @@ export const useAppContext = () => {
     return context;
 };
 
+    
     
