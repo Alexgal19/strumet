@@ -415,63 +415,72 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
         let newHiresInRange = 0;
         let terminationsInRange = 0;
 
+        let rangeStart: Date;
+        let rangeEnd: Date;
+        let snapA: StatsSnapshot | undefined;
+        let snapB: StatsSnapshot | undefined;
+
         if (mode === 'history') {
             if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
             }
-            
-            const snapshotsInRange = statsHistory.filter(s => {
-                const sDate = parseISO(s.id);
-                return isWithinInterval(sDate, { start: startOfDay(dateRange.from!), end: dateRange.to! });
-            });
-            newHiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
-            terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
+            rangeStart = startOfDay(dateRange.from);
+            rangeEnd = endOfToday();
             
             const findClosestSnapshot = (targetDate: Date) => statsHistory.reduce((prev, curr) => 
                 Math.abs(parseISO(curr.id).getTime() - targetDate.getTime()) < Math.abs(parseISO(prev.id).getTime() - targetDate.getTime()) ? curr : prev
             );
+            snapA = findClosestSnapshot(dateRange.from);
+            snapB = findClosestSnapshot(dateRange.to);
 
-            const snapA = findClosestSnapshot(dateRange.from);
-            const snapB = findClosestSnapshot(dateRange.to);
-
-            if (!snapA || !snapB || snapA.id === snapB.id) return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
+            if (!snapA || !snapB) return { comparisonData: null, snapshotA, snapshotB, newHiresInRange, terminationsInRange };
             
-             const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
-            const allJobTitleKeys = new Set([...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})]);
-
-            const departmentChanges = Array.from(allDepartmentKeys).map(name => ({ name, countA: snapA.departments?.[name] || 0, countB: snapB.departments?.[name] || 0, delta: (snapB.departments?.[name] || 0) - (snapA.departments?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-            const jobTitleChanges = Array.from(allJobTitleKeys).map(name => ({ name, countA: snapA.jobTitles?.[name] || 0, countB: snapB.jobTitles?.[name] || 0, delta: (snapB.jobTitles?.[name] || 0) - (snapA.jobTitles?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-
-            return { comparisonData: { totalDelta: snapB.totalActive - snapA.totalActive, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
-        } else { 
+        } else { // Dynamic mode
             if (!singleDate || statsHistory.length < 1) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
             }
-            
-            const snapA = statsHistory.reduce((prev, curr) => 
+            rangeStart = startOfDay(singleDate);
+            rangeEnd = endOfToday();
+            snapA = statsHistory.reduce((prev, curr) => 
                 Math.abs(parseISO(curr.id).getTime() - singleDate.getTime()) < Math.abs(parseISO(prev.id).getTime() - singleDate.getTime()) ? curr : prev
             );
-            const snapB = liveSnapshot;
+            snapB = liveSnapshot;
 
-            if (!snapA) return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
-
-            const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
-            const allJobTitleKeys = new Set([...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})]);
-
-            const departmentChanges = Array.from(allDepartmentKeys).map(name => ({ name, countA: snapA.departments?.[name] || 0, countB: snapB.departments?.[name] || 0, delta: (snapB.departments?.[name] || 0) - (snapA.departments?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-            const jobTitleChanges = Array.from(allJobTitleKeys).map(name => ({ name, countA: snapA.jobTitles?.[name] || 0, countB: snapB.jobTitles?.[name] || 0, delta: (snapB.jobTitles?.[name] || 0) - (snapA.jobTitles?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-            
-            const rangeStart = startOfDay(snapA ? parseISO(snapA.id) : new Date());
-            newHiresInRange = employeeEvents.filter(e => {
-                return e.type === 'hire' && isWithinInterval(parseISO(e.date), { start: rangeStart, end: endOfToday() });
-            }).length;
-            terminationsInRange = employeeEvents.filter(e => {
-                return e.type === 'termination' && isWithinInterval(parseISO(e.date), { start: rangeStart, end: endOfToday() });
-            }).length;
-
-
-            return { comparisonData: { totalDelta: snapB.totalActive - snapA.totalActive, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
+            if (!snapA) return { comparisonData: null, snapshotA, snapshotB, newHiresInRange, terminationsInRange };
         }
+
+        // Dynamic calculation based on events
+        const departmentChangesMap: Record<string, number> = {};
+        const jobTitleChangesMap: Record<string, number> = {};
+
+        const relevantEvents = employeeEvents.filter(event => 
+            isWithinInterval(parseISO(event.date), { start: rangeStart, end: rangeEnd })
+        );
+        
+        relevantEvents.forEach(event => {
+            const employee = employees.find(e => e.id === event.employeeId);
+            if (!employee) return;
+            
+            const delta = event.type === 'hire' ? 1 : -1;
+            
+            if (employee.department) {
+                departmentChangesMap[employee.department] = (departmentChangesMap[employee.department] || 0) + delta;
+            }
+            if (employee.jobTitle) {
+                jobTitleChangesMap[employee.jobTitle] = (jobTitleChangesMap[employee.jobTitle] || 0) + delta;
+            }
+        });
+        
+        newHiresInRange = relevantEvents.filter(e => e.type === 'hire').length;
+        terminationsInRange = relevantEvents.filter(e => e.type === 'termination').length;
+        
+        const departmentChanges = Object.entries(departmentChangesMap).map(([name, delta]) => ({ name, delta })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+        const jobTitleChanges = Object.entries(jobTitleChangesMap).map(([name, delta]) => ({ name, delta })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+        const totalDelta = newHiresInRange - terminationsInRange;
+
+        return { comparisonData: { totalDelta, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
+
     }, [dateRange, singleDate, mode, statsHistory, liveSnapshot, employeeEvents, employees]);
 
     const handleCreateSnapshot = async () => {
@@ -1301,6 +1310,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
 
 
