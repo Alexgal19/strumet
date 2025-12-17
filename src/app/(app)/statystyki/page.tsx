@@ -378,7 +378,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 })
 
 const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, ref) => {
-    const { employeeEvents, statsHistory, isHistoryLoading, isAdmin } = useAppContext();
+    const { employeeEvents, employees, statsHistory, isHistoryLoading, isAdmin } = useAppContext();
     const { toast } = props;
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     const [mode, setMode] = useState<'history' | 'dynamic'>('history');
@@ -387,7 +387,6 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
     const [singleDate, setSingleDate] = useState<Date | undefined>();
 
     const liveSnapshot: StatsSnapshot = useMemo(() => {
-        const { employees } = useAppContext();
         const activeEmployees = employees.filter(e => e.status === 'aktywny');
         const departmentCounts: Record<string, number> = {};
         const jobTitleCounts: Record<string, number> = {};
@@ -408,7 +407,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             newHires: 0, // Not calculated for live snapshot in this context
             terminations: 0,
         };
-    }, [useAppContext().employees]);
+    }, [employees]);
     
     useEffect(() => {
         if (!dateRange && statsHistory.length > 1) {
@@ -469,12 +468,13 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             const jobTitleChanges = Array.from(allJobTitleKeys).map(name => ({ name, countA: snapA.jobTitles?.[name] || 0, countB: snapB.jobTitles?.[name] || 0, delta: (snapB.jobTitles?.[name] || 0) - (snapA.jobTitles?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
             
             const rangeStart = startOfDay(snapA ? parseISO(snapA.id) : new Date());
-            newHiresInRange = employeeEvents.filter(e => {
+             newHiresInRange = employeeEvents.filter(e => {
                 return e.type === 'hire' && isWithinInterval(parseISO(e.date), { start: rangeStart, end: endOfToday() });
             }).length;
             terminationsInRange = employeeEvents.filter(e => {
                 return e.type === 'termination' && isWithinInterval(parseISO(e.date), { start: rangeStart, end: endOfToday() });
             }).length;
+
 
             return { comparisonData: { totalDelta: snapB.totalActive - snapA.totalActive, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
         }
@@ -874,7 +874,7 @@ const HiresAndFiresTab = () => {
                                                     <TableCell>
                                                         <div className="font-medium">{event.employeeFullName}</div>
                                                     </TableCell>
-                                                    <TableCell>{format(parseISO(event.date)!, 'dd.MM.yyyy HH:mm')}</TableCell>
+                                                    <TableCell>{format(parseISO(event.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                                     {isAdmin && <TableCell className="text-right">
                                                         <Button variant="ghost" size="icon" onClick={() => setEventToDelete(event)}>
                                                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -913,7 +913,7 @@ const HiresAndFiresTab = () => {
                                                     <TableCell>
                                                         <div className="font-medium">{event.employeeFullName}</div>
                                                     </TableCell>
-                                                    <TableCell>{format(parseISO(event.date)!, 'dd.MM.yyyy HH:mm')}</TableCell>
+                                                    <TableCell>{format(parseISO(event.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                                      {isAdmin && <TableCell className="text-right">
                                                         <Button variant="ghost" size="icon" onClick={() => setEventToDelete(event)}>
                                                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -1276,8 +1276,8 @@ export default function StatisticsPage() {
         title="Statystyki i Planowanie"
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
-      <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-4">
+       <Tabs defaultValue="report" className="flex-grow flex flex-col">
+        <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-4" : "grid-cols-4")}>
             <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
             <TabsTrigger value="orders">Zamówienia</TabsTrigger>
             <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
@@ -1299,4 +1299,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
