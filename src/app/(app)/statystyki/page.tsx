@@ -380,7 +380,7 @@ ReportTab.displayName = 'ReportTab';
 
 
 const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
-    const { employeeEvents, statsHistory, isHistoryLoading, isAdmin, employees } = useAppContext();
+    const { employeeEvents, statsHistory, isHistoryLoading, isAdmin, employees, deleteEmployeeEvent } = useAppContext();
     const { toast } = useToast();
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     const [mode, setMode] = useState<'history' | 'dynamic'>('dynamic');
@@ -1315,6 +1315,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
 
 
