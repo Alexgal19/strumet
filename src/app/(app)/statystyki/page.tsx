@@ -416,8 +416,16 @@ const HiresAndFiresTab = () => {
     const { employees, statsHistory, isHistoryLoading } = useAppContext();
     const [startDate, setStartDate] = useState<Date | undefined>(subDays(new Date(), 1));
     const [endDate, setEndDate] = useState<Date | undefined>();
+    const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
-    const { dailyReport, pointInTimeReport, comparisonReport } = useMemo(() => {
+    type PointInTimeReportType = 'is-today' | { date: Date; snapshot: StatsSnapshot } | null;
+    type ComparisonReportType = { start: StatsSnapshot; end: StatsSnapshot; deptChanges: any[]; jobChanges: any[] } | null;
+
+    const [pointInTimeReport, setPointInTimeReport] = useState<PointInTimeReportType>(null);
+    const [comparisonReport, setComparisonReport] = useState<ComparisonReportType>(null);
+
+
+    const dailyReport = useMemo(() => {
         const today = startOfDay(new Date());
 
         const hiresToday = employees.filter(e => {
@@ -440,29 +448,30 @@ const HiresAndFiresTab = () => {
              return true;
         }).length;
 
-        const dailyReportData = {
+        return {
             yesterdayTotal: activeYesterday,
             hiresToday: hiresToday,
             terminationsToday: terminationsToday,
             currentTotal: employees.filter(e => e.status === 'aktywny').length,
         };
-
-        let pointInTimeData: 'is-today' | { date: Date, snapshot: StatsSnapshot } | null = null;
-        let comparisonData = null;
+    }, [employees]);
+    
+    const generateReport = () => {
+        setPointInTimeReport(null);
+        setComparisonReport(null);
+        const today = startOfDay(new Date());
 
         if (statsHistory && startDate) {
-            if (!endDate || isSameDay(startDate, endDate)) {
-                if (isSameDay(startDate, today)) {
-                    pointInTimeData = 'is-today';
-                } else {
-                    const fromDateStr = format(startDate, 'yyyy-MM-dd');
-                    const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
-                    if (startSnapshot) {
-                        pointInTimeData = {
-                            date: startDate,
-                            snapshot: startSnapshot,
-                        };
-                    }
+             if (isSameDay(startDate, today) && (!endDate || isSameDay(startDate, endDate))) {
+                setPointInTimeReport('is-today');
+            } else if (!endDate || isSameDay(startDate, endDate)) {
+                const fromDateStr = format(startDate, 'yyyy-MM-dd');
+                const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
+                if (startSnapshot) {
+                    setPointInTimeReport({
+                        date: startDate,
+                        snapshot: startSnapshot,
+                    });
                 }
             } else { // Comparison Mode
                 const fromDateStr = format(startDate, 'yyyy-MM-dd');
@@ -474,7 +483,7 @@ const HiresAndFiresTab = () => {
                     const allDepts = Array.from(new Set([...Object.keys(startSnapshot.departments || {}), ...Object.keys(endSnapshot.departments || {})]));
                     const allJobs = Array.from(new Set([...Object.keys(startSnapshot.jobTitles || {}), ...Object.keys(endSnapshot.jobTitles || {})]));
 
-                    comparisonData = {
+                    setComparisonReport({
                         start: startSnapshot,
                         end: endSnapshot,
                         deptChanges: allDepts.map(dept => {
@@ -487,26 +496,12 @@ const HiresAndFiresTab = () => {
                              const endCount = endSnapshot.jobTitles?.[job] || 0;
                              return { name: job, start: startCount, end: endCount, diff: endCount - startCount };
                         }).filter(j => j.diff !== 0).sort((a,b) => b.diff - a.diff),
-                    }
+                    });
                 }
             }
         }
-
-        return {
-            dailyReport: dailyReportData,
-            pointInTimeReport: pointInTimeData,
-            comparisonReport: comparisonData,
-        };
-
-    }, [startDate, endDate, employees, statsHistory]);
-    
-    if (isHistoryLoading) {
-        return (
-             <div className="flex h-full w-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-        )
-    }
+        setIsReportDialogOpen(true);
+    };
 
     const DiffBadge = ({ diff }: { diff: number}) => {
         if (diff === 0) return null;
@@ -559,10 +554,10 @@ const HiresAndFiresTab = () => {
                                 <Button
                                     id="start-date"
                                     variant={"outline"}
-                                    className={cn("w-full sm:w-[260px] justify-start text-left font-normal", !startDate && "text-muted-foreground")}
+                                    className={cn("w-full sm:w-auto justify-start text-left font-normal", !startDate && "text-muted-foreground")}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {startDate ? format(startDate, "LLL dd, y", { locale: pl }) : <span>Data początkowa</span>}
+                                    {startDate ? format(startDate, "dd.MM.yyyy", { locale: pl }) : <span>Data początkowa</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
@@ -572,7 +567,6 @@ const HiresAndFiresTab = () => {
                                     selected={startDate}
                                     onSelect={setStartDate}
                                     locale={pl}
-                                    disabled={(date) => date >= new Date()}
                                 />
                             </PopoverContent>
                         </Popover>
@@ -581,10 +575,10 @@ const HiresAndFiresTab = () => {
                                 <Button
                                     id="end-date"
                                     variant={"outline"}
-                                    className={cn("w-full sm:w-[260px] justify-start text-left font-normal", !endDate && "text-muted-foreground")}
+                                    className={cn("w-full sm:w-auto justify-start text-left font-normal", !endDate && "text-muted-foreground")}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {endDate ? format(endDate, "LLL dd, y", { locale: pl }) : <span>Data końcowa (opcjonalnie)</span>}
+                                    {endDate ? format(endDate, "dd.MM.yyyy", { locale: pl }) : <span>Data końcowa</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
@@ -594,7 +588,7 @@ const HiresAndFiresTab = () => {
                                     selected={endDate}
                                     onSelect={setEndDate}
                                     locale={pl}
-                                    disabled={(date) => date >= new Date() || (startDate && date < startDate)}
+                                    disabled={(date) => (startDate && date < startDate)}
                                 />
                             </PopoverContent>
                         </Popover>
@@ -602,70 +596,92 @@ const HiresAndFiresTab = () => {
                             <Button variant="ghost" onClick={() => setEndDate(undefined)}>Wyczyść datę końcową</Button>
                         )}
                     </div>
-                    
-                    {pointInTimeReport === 'is-today' ? (
-                        <div className="text-muted-foreground text-center py-4 flex items-center justify-center gap-2">
-                           <Info className="h-4 w-4"/>
-                           <span>Dane dla dnia dzisiejszego są dostępne na żywo w "Dobowym Raporcie Zmian" powyżej.</span>
-                        </div>
-                    ) : pointInTimeReport && typeof pointInTimeReport === 'object' ? (
-                        <div>
-                            <h3 className="font-semibold mb-2">Stan na dzień {format(pointInTimeReport.date, 'dd.MM.yyyy')}</h3>
-                            <p className="text-4xl font-bold mb-4">{pointInTimeReport.snapshot.totalActive}</p>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                 <SummaryTable title="Wg działów" data={Object.entries(pointInTimeReport.snapshot.departments || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
-                                 <SummaryTable title="Wg stanowisk" data={Object.entries(pointInTimeReport.snapshot.jobTitles || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
-                                 <SummaryTable title="Wg narodowości" data={Object.entries(pointInTimeReport.snapshot.nationalities || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
-                            </div>
-                        </div>
-                    ) : comparisonReport ? (
-                         <div className="space-y-6">
-                            <div className="text-center">
-                                <h3 className="font-semibold">Porównanie całkowitego zatrudnienia</h3>
-                                <div className="flex items-center justify-center gap-4 text-2xl font-bold mt-2">
-                                    <span>{comparisonReport.start.totalActive}</span>
-                                    <ArrowRight className="h-6 w-6 text-muted-foreground" />
-                                    <span>{comparisonReport.end.totalActive}</span>
-                                    <DiffBadge diff={comparisonReport.end.totalActive - comparisonReport.start.totalActive} />
-                                </div>
-                            </div>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Card>
-                                    <CardHeader><CardTitle className="text-base">Zmiany w Działach</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <Table>
-                                            <TableHeader><TableRow><TableHead>Dział</TableHead><TableHead className="text-right">Zmiana</TableHead></TableRow></TableHeader>
-                                            <TableBody>
-                                                {comparisonReport.deptChanges.map(c => (
-                                                    <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell className="text-right"><DiffBadge diff={c.diff}/></TableCell></TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader><CardTitle className="text-base">Zmiany na Stanowiskach</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <Table>
-                                            <TableHeader><TableRow><TableHead>Stanowisko</TableHead><TableHead className="text-right">Zmiana</TableHead></TableRow></TableHeader>
-                                            <TableBody>
-                                                {comparisonReport.jobChanges.map(c => (
-                                                    <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell className="text-right"><DiffBadge diff={c.diff}/></TableCell></TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                         </div>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-4">
-                            Brak migawki dla wybranego dnia lub zakresu.
-                        </p>
-                    )}
-
+                    <Button onClick={generateReport} disabled={!startDate || isHistoryLoading}>
+                        {isHistoryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HistoryIcon className="mr-2 h-4 w-4" />}
+                        Generuj Raport
+                    </Button>
                 </CardContent>
             </Card>
+
+            <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                <DialogContent className="max-w-7xl h-screen flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl">Raport Historyczny</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-grow overflow-y-auto pr-6 -mr-6">
+                        {isHistoryLoading ? (
+                             <div className="flex h-full w-full items-center justify-center">
+                                <Loader2 className="h-8 w-8 animate-spin" />
+                            </div>
+                        ) : pointInTimeReport === 'is-today' ? (
+                            <div className="text-muted-foreground text-center py-10 flex items-center justify-center gap-2">
+                               <Info className="h-5 w-5"/>
+                               <span>Dane dla dnia dzisiejszego są dostępne na żywo w "Dobowym Raporcie Zmian".</span>
+                            </div>
+                        ) : pointInTimeReport && typeof pointInTimeReport === 'object' ? (
+                            <div className="space-y-6">
+                                <h3 className="font-semibold text-lg">Stan na dzień {format(pointInTimeReport.date, 'dd MMMM yyyy', { locale: pl })}</h3>
+                                <div className="flex items-baseline gap-2">
+                                  <p className="text-5xl font-bold">{pointInTimeReport.snapshot.totalActive}</p>
+                                  <span className="text-muted-foreground">aktywnych pracowników</span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                     <SummaryTable title="Wg działów" data={Object.entries(pointInTimeReport.snapshot.departments || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
+                                     <SummaryTable title="Wg stanowisk" data={Object.entries(pointInTimeReport.snapshot.jobTitles || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
+                                     <SummaryTable title="Wg narodowości" data={Object.entries(pointInTimeReport.snapshot.nationalities || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
+                                </div>
+                            </div>
+                        ) : comparisonReport ? (
+                             <div className="space-y-6">
+                                 <h3 className="font-semibold text-lg">
+                                    Porównanie od {format(comparisonReport.start.id, 'dd.MM.yyyy')} do {format(comparisonReport.end.id, 'dd.MM.yyyy')}
+                                 </h3>
+                                <div className="text-center bg-muted/50 p-6 rounded-lg">
+                                    <h3 className="font-semibold text-muted-foreground">Porównanie całkowitego zatrudnienia</h3>
+                                    <div className="flex items-center justify-center gap-4 text-3xl font-bold mt-2">
+                                        <span>{comparisonReport.start.totalActive}</span>
+                                        <ArrowRight className="h-8 w-8 text-muted-foreground" />
+                                        <span>{comparisonReport.end.totalActive}</span>
+                                        <DiffBadge diff={comparisonReport.end.totalActive - comparisonReport.start.totalActive} />
+                                    </div>
+                                </div>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Card>
+                                        <CardHeader><CardTitle className="text-lg">Zmiany w Działach</CardTitle></CardHeader>
+                                        <CardContent>
+                                            <Table>
+                                                <TableHeader><TableRow><TableHead>Dział</TableHead><TableHead className="text-right">Zmiana</TableHead></TableRow></TableHeader>
+                                                <TableBody>
+                                                    {comparisonReport.deptChanges.map(c => (
+                                                        <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell className="text-right"><DiffBadge diff={c.diff}/></TableCell></TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardHeader><CardTitle className="text-lg">Zmiany na Stanowiskach</CardTitle></CardHeader>
+                                        <CardContent>
+                                            <Table>
+                                                <TableHeader><TableRow><TableHead>Stanowisko</TableHead><TableHead className="text-right">Zmiana</TableHead></TableRow></TableHeader>
+                                                <TableBody>
+                                                    {comparisonReport.jobChanges.map(c => (
+                                                        <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell className="text-right"><DiffBadge diff={c.diff}/></TableCell></TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                             </div>
+                        ) : (
+                            <p className="text-muted-foreground text-center py-10">
+                                Brak danych migawkowych dla wybranego dnia lub zakresu.
+                            </p>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
@@ -1018,5 +1034,6 @@ export default function StatisticsPage() {
     
 
     
+
 
 
