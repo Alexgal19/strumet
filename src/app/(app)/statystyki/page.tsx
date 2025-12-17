@@ -414,7 +414,7 @@ ReportTab.displayName = 'ReportTab';
 const HiresAndFiresTab = () => {
     const { employees, statsHistory, isHistoryLoading } = useAppContext();
     const [date, setDate] = useState<DateRange | undefined>({
-        from: subDays(new Date(), 1),
+        from: subDays(new Date(), 2),
         to: subDays(new Date(), 1),
     });
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
@@ -543,7 +543,7 @@ const HiresAndFiresTab = () => {
     }
     
     const PeriodChangeCard = ({ title, data }: { title: string; data: { hires: number; terminations: number; netChange: number; }}) => {
-        const netChangeLabel = data.netChange > 0 ? "Przyrost" : "Spadek";
+        const netChangeLabel = data.netChange > 0 ? "Przyrost" : data.netChange < 0 ? "Spadek" : "Zmiana netto";
 
         return (
             <Card>
@@ -560,11 +560,10 @@ const HiresAndFiresTab = () => {
                         <p className="text-xl font-bold text-red-600">-{data.terminations}</p>
                     </div>
                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">{data.netChange !== 0 ? netChangeLabel : "Zmiana netto"}</p>
+                        <p className="text-sm text-muted-foreground">{netChangeLabel}</p>
                          <p className={cn("text-xl font-bold", data.netChange > 0 && "text-green-600", data.netChange < 0 && "text-red-600")}>
                            {data.netChange > 0 ? `+${data.netChange}` : data.netChange}
                         </p>
-                         <p className="text-xs text-muted-foreground">(zatrudnieni - zwolnieni)</p>
                     </div>
                 </CardContent>
             </Card>
@@ -617,34 +616,55 @@ const HiresAndFiresTab = () => {
                                 <Button
                                     id="date"
                                     variant={"outline"}
-                                    className={cn("w-full sm:w-[300px] justify-start text-left font-normal", !date && "text-muted-foreground")}
+                                    className={cn("w-full sm:w-auto justify-start text-left font-normal", !date && "text-muted-foreground")}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {date?.from ? (
-                                        date.to ? (
-                                            <>
-                                                {format(date.from, "dd.MM.yyyy")} - {format(date.to, "dd.MM.yyyy")}
-                                            </>
-                                        ) : (
-                                            format(date.from, "dd.MM.yyyy")
-                                        )
+                                        format(date.from, "dd.MM.yyyy")
                                     ) : (
-                                        <span>Wybierz datę lub zakres</span>
+                                        <span>Data początkowa</span>
                                     )}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                     initialFocus
-                                    mode="range"
+                                    mode="single"
                                     defaultMonth={date?.from}
-                                    selected={date}
-                                    onSelect={setDate}
-                                    numberOfMonths={2}
+                                    selected={date?.from}
+                                    onSelect={(day) => setDate(prev => ({...prev, from: day}))}
                                     locale={pl}
                                 />
                             </PopoverContent>
                         </Popover>
+
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    id="date-to"
+                                    variant={"outline"}
+                                    className={cn("w-full sm:w-auto justify-start text-left font-normal", !date?.to && "text-muted-foreground")}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {date?.to ? (
+                                        format(date.to, "dd.MM.yyyy")
+                                    ) : (
+                                        <span>Data końcowa</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="single"
+                                    defaultMonth={date?.to}
+                                    selected={date?.to}
+                                    onSelect={(day) => setDate(prev => ({...prev, to: day}))}
+                                    locale={pl}
+                                />
+                            </PopoverContent>
+                        </Popover>
+
                         <Button onClick={generateReport} disabled={!date?.from || isHistoryLoading}>
                             {isHistoryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HistoryIcon className="mr-2 h-4 w-4" />}
                             Generuj Raport
