@@ -165,16 +165,31 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             const { id, ...dataToSave } = employeeData;
             
-            const finalData: { [key: string]: any } = {};
-            for (const key in dataToSave) {
-                const typedKey = key as keyof typeof dataToSave;
-                finalData[key] = dataToSave[typedKey] === undefined ? null : dataToSave[typedKey];
-            }
-
             if (id) {
+                // For existing employees, ensure we don't lose the status field
+                const originalEmployee = employees.find(e => e.id === id) || {};
+                const dataWithPreservedStatus = Object.assign(originalEmployee, dataToSave);
+
+                const finalData: { [key: string]: any } = {};
+                for (const key in dataWithPreservedStatus) {
+                    // Don't save the 'id' field inside the object itself
+                    if (key === 'id') continue;
+                    
+                    const typedKey = key as keyof typeof dataWithPreservedStatus;
+                    finalData[key] = dataWithPreservedStatus[typedKey] === undefined ? null : dataWithPreservedStatus[typedKey];
+                }
+                
                 await update(ref(db, `employees/${id}`), finalData);
                 toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
+
             } else {
+                // For new employees
+                const finalData: { [key: string]: any } = {};
+                 for (const key in dataToSave) {
+                    const typedKey = key as keyof typeof dataToSave;
+                    finalData[key] = dataToSave[typedKey] === undefined ? null : dataToSave[typedKey];
+                }
+
                 const newEmployeeRef = push(ref(db, 'employees'));
                 await set(newEmployeeRef, { ...finalData, status: 'aktywny', id: newEmployeeRef.key });
                 await createEmployeeEvent(newEmployeeRef.key!, finalData.fullName, 'hire');
@@ -184,7 +199,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error saving employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
         }
-    }, [toast, createEmployeeEvent]);
+    }, [toast, createEmployeeEvent, employees]);
 
     const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
         try {
