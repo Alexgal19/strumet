@@ -383,7 +383,7 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
     const { employeeEvents, statsHistory, isHistoryLoading, isAdmin, employees } = useAppContext();
     const { toast } = useToast();
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
-    const [mode, setMode] = useState<'history' | 'dynamic'>('history');
+    const [mode, setMode] = useState<'history' | 'dynamic'>('dynamic');
     
     const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: new Date(2025, 11, 15), to: endOfToday() });
     const [singleDate, setSingleDate] = useState<Date | undefined>(new Date(2025, 11, 15));
@@ -419,6 +419,8 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
         let rangeEnd: Date;
         let snapA: StatsSnapshot | undefined;
         let snapB: StatsSnapshot | undefined;
+        
+        let relevantEvents: EmployeeEvent[] = [];
 
         if (mode === 'history') {
             if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
@@ -435,6 +437,10 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
 
             if (!snapA || !snapB) return { comparisonData: null, snapshotA, snapshotB, newHiresInRange, terminationsInRange };
             
+            relevantEvents = employeeEvents.filter(event => 
+                isWithinInterval(parseISO(event.date), { start: parseISO(snapA!.id), end: parseISO(snapB!.id) })
+            );
+
         } else { // Dynamic mode
             if (!singleDate || statsHistory.length < 1) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
@@ -447,16 +453,15 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
             snapB = liveSnapshot;
 
             if (!snapA) return { comparisonData: null, snapshotA, snapshotB, newHiresInRange, terminationsInRange };
+
+            relevantEvents = employeeEvents.filter(event => 
+                isWithinInterval(parseISO(event.date), { start: parseISO(snapA!.id), end: rangeEnd })
+            );
         }
 
-        // Dynamic calculation based on events
         const departmentChangesMap: Record<string, number> = {};
         const jobTitleChangesMap: Record<string, number> = {};
 
-        const relevantEvents = employeeEvents.filter(event => 
-            isWithinInterval(parseISO(event.date), { start: rangeStart, end: rangeEnd })
-        );
-        
         relevantEvents.forEach(event => {
             const employee = employees.find(e => e.id === event.employeeId);
             if (!employee) return;
@@ -540,7 +545,7 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
                         <CardDescription>Wybierz tryb i daty, aby porównać stan zatrudnienia.</CardDescription>
                     </div>
                      <div className="flex items-center gap-4">
-                         <RadioGroup defaultValue="history" onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-2 rounded-md bg-muted/50 p-1">
+                         <RadioGroup defaultValue="dynamic" onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-2 rounded-md bg-muted/50 p-1">
                               <RadioGroupItem value="history" id="r1" className="peer sr-only" />
                               <Label htmlFor="r1" className="cursor-pointer rounded-sm px-3 py-1.5 text-sm font-medium peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow-sm">Historyczne</Label>
                               <RadioGroupItem value="dynamic" id="r2" className="peer sr-only" />
@@ -1310,6 +1315,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
 
 
