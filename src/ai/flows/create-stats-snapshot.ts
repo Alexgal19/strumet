@@ -77,7 +77,8 @@ const createStatsSnapshotFlow = ai.defineFlow(
     });
 
 
-    const newSnapshot: Omit<StatsSnapshot, 'id'> = {
+    const newSnapshot: StatsSnapshot = {
+      id: snapshotId,
       totalActive: activeEmployees.length,
       departments: departmentCounts,
       jobTitles: jobTitleCounts,

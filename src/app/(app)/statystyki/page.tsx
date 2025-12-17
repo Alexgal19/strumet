@@ -26,16 +26,11 @@ import { StatisticsExcelExportButton } from '@/components/statistics-excel-expor
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfToday, isWithinInterval, isSameDay, getDay, endOfDay } from 'date-fns';
+import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfDay, isWithinInterval, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
-import { parseMaybeDate } from '@/lib/date';
-import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { CheckIcon, ChevronsUpDown } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "@/components/ui/tooltip"
 
@@ -380,116 +375,92 @@ ReportTab.displayName = 'ReportTab';
 
 
 const HiresAndFiresTab = () => {
-    const { employeeEvents, employees, isAdmin, deleteEmployeeEvent, statsHistory, isHistoryLoading } = useAppContext();
-    const today = endOfToday();
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: new Date(2025, 11, 15),
-        to: today,
-    });
+    const { employeeEvents, employees, isAdmin, deleteEmployeeEvent, statsHistory } = useAppContext();
     const [eventToDelete, setEventToDelete] = useState<EmployeeEvent | null>(null);
 
-    const liveSnapshot: StatsSnapshot = useMemo(() => {
-        const activeEmployees = employees.filter(e => e.status === 'aktywny');
-        const departmentCounts: Record<string, number> = {};
-        const jobTitleCounts: Record<string, number> = {};
-        const nationalityCounts: Record<string, number> = {};
+    const [singleDate, setSingleDate] = useState<Date | undefined>(new Date());
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: new Date(2025, 11, 15), to: endOfDay(new Date()) });
+    const [mode, setMode] = useState<'point-in-time' | 'range'>('point-in-time');
 
-        activeEmployees.forEach(emp => {
-            if (emp.department) departmentCounts[emp.department] = (departmentCounts[emp.department] || 0) + 1;
-            if (emp.jobTitle) jobTitleCounts[emp.jobTitle] = (jobTitleCounts[emp.jobTitle] || 0) + 1;
-            if (emp.nationality) nationalityCounts[emp.nationality] = (nationalityCounts[emp.nationality] || 0) + 1;
-        });
-
-        return {
-            id: 'live',
-            totalActive: activeEmployees.length,
-            departments: departmentCounts,
-            jobTitles: jobTitleCounts,
-            nationalities: nationalityCounts,
-            newHires: 0, 
-            terminations: 0,
-        };
-    }, [employees]);
-
-    const { newHires, terminations, hiresSummary, terminationsSummary, snapshotA, snapshotB, comparisonData } = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) {
-            return { newHires: [], terminations: [], hiresSummary: {byDepartment: [], byJobTitle: []}, terminationsSummary: {byDepartment: [], byJobTitle: []}, snapshotA: null, snapshotB: null, comparisonData: null };
-        }
-
-        const relevantEvents = employeeEvents.filter(event => 
-            isWithinInterval(parseISO(event.date), { start: dateRange.from!, end: dateRange.to! })
-        );
-
-        const hires = relevantEvents
-            .filter(event => event.type === 'hire')
-            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        const terms = relevantEvents
-            .filter(event => event.type === 'termination')
-            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const { 
+        dailyReport, 
+        pointInTimeReport, 
+        rangeReport 
+    } = useMemo(() => {
+        // --- Daily Report ---
+        const today = new Date();
+        const yesterday = subDays(today, 1);
+        const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
         
-        const createSummary = (events: EmployeeEvent[]) => {
-            const byDepartment: Record<string, number> = {};
-            const byJobTitle: Record<string, number> = {};
+        const yesterdaySnapshot = statsHistory.find(s => s.id === yesterdayStr);
 
-            events.forEach(event => {
+        const todaysEvents = employeeEvents.filter(event => isSameDay(parseISO(event.date), today));
+        const hiresToday = todaysEvents.filter(e => e.type === 'hire').length;
+        const termsToday = todaysEvents.filter(e => e.type === 'termination').length;
+        const currentTotal = employees.filter(e => e.status === 'aktywny').length;
+
+        const dailyReportData = {
+            yesterdayTotal: yesterdaySnapshot?.totalActive,
+            hiresToday,
+            terminationsToday: termsToday,
+            currentTotal,
+        };
+
+        // --- Point-in-Time Report ---
+        let pointInTimeReportData: { date: Date; snapshot: StatsSnapshot | null } | null = null;
+        if (mode === 'point-in-time' && singleDate) {
+            const snapshot = statsHistory.find(s => s.id === format(singleDate, 'yyyy-MM-dd')) || null;
+            pointInTimeReportData = { date: singleDate, snapshot };
+        }
+        
+        // --- Range Report ---
+        let rangeReportData: {
+            from: Date;
+            to: Date;
+            hires: EmployeeEvent[];
+            terminations: EmployeeEvent[];
+            departmentChanges: { name: string; delta: number }[];
+            jobTitleChanges: { name: string; delta: number }[];
+        } | null = null;
+
+        if (mode === 'range' && dateRange?.from && dateRange.to) {
+            const relevantEvents = employeeEvents.filter(event => 
+                isWithinInterval(parseISO(event.date), { start: dateRange.from!, end: dateRange.to! })
+            );
+            
+            const hires = relevantEvents.filter(event => event.type === 'hire');
+            const terms = relevantEvents.filter(event => event.type === 'termination');
+            
+            const departmentChangesMap: Record<string, number> = {};
+            const jobTitleChangesMap: Record<string, number> = {};
+
+            relevantEvents.forEach(event => {
                 const employee = employees.find(e => e.id === event.employeeId);
                 if (employee) {
-                    if(employee.department) {
-                        byDepartment[employee.department] = (byDepartment[employee.department] || 0) + 1;
+                    const change = event.type === 'hire' ? 1 : -1;
+                    if (employee.department) {
+                        departmentChangesMap[employee.department] = (departmentChangesMap[employee.department] || 0) + change;
                     }
-                    if(employee.jobTitle) {
-                        byJobTitle[employee.jobTitle] = (byJobTitle[employee.jobTitle] || 0) + 1;
+                    if (employee.jobTitle) {
+                        jobTitleChangesMap[employee.jobTitle] = (jobTitleChangesMap[employee.jobTitle] || 0) + change;
                     }
                 }
             });
-            return {
-                byDepartment: Object.entries(byDepartment).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count),
-                byJobTitle: Object.entries(byJobTitle).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count),
+
+            rangeReportData = {
+                from: dateRange.from,
+                to: dateRange.to,
+                hires: hires.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+                terminations: terms.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+                departmentChanges: Object.entries(departmentChangesMap).map(([name, delta]) => ({name, delta})).sort((a,b) => b.delta - a.delta),
+                jobTitleChanges: Object.entries(jobTitleChangesMap).map(([name, delta]) => ({name, delta})).sort((a,b) => b.delta - a.delta),
             };
-        };
-
-        const findClosestSnapshot = (targetDate: Date, history: StatsSnapshot[]) => {
-            if (history.length === 0) return null;
-            return history.reduce((prev, curr) => 
-                Math.abs(parseISO(curr.id).getTime() - targetDate.getTime()) < Math.abs(parseISO(prev.id).getTime() - targetDate.getTime()) ? curr : prev
-            );
         }
-        
-        const snapA = findClosestSnapshot(dateRange.from, statsHistory)
-        const snapB = dateRange.to.getTime() === endOfToday().getTime() ? liveSnapshot : findClosestSnapshot(dateRange.to, statsHistory);
 
-        const totalDelta = hires.length - terms.length;
-        
-        return { 
-            newHires: hires, 
-            terminations: terms,
-            hiresSummary: createSummary(hires),
-            terminationsSummary: createSummary(terms),
-            snapshotA: snapA,
-            snapshotB: snapB,
-            comparisonData: { totalDelta }
-        };
+        return { dailyReport: dailyReportData, pointInTimeReport: pointInTimeReportData, rangeReport: rangeReportData };
 
-    }, [employeeEvents, dateRange, employees, statsHistory, liveSnapshot]);
+    }, [mode, singleDate, dateRange, statsHistory, employeeEvents, employees]);
 
-    const handlePresetChange = (value: string) => {
-        const now = startOfDay(new Date());
-        switch (value) {
-            case '7':
-                setDateRange({ from: subDays(now, 7), to: endOfToday() });
-                break;
-            case '30':
-                setDateRange({ from: subDays(now, 30), to: endOfToday() });
-                break;
-            case 'month':
-                setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
-                break;
-            case 'custom':
-                 setDateRange({ from: new Date(2025, 11, 15), to: endOfToday() });
-                break;
-        }
-    };
     
     const handleDelete = () => {
         if (eventToDelete) {
@@ -497,226 +468,161 @@ const HiresAndFiresTab = () => {
             setEventToDelete(null);
         }
     };
-    
-    const SummaryTable = ({ title, data }: { title: string, data: {name: string, count: number}[] }) => (
-        <div className='space-y-2'>
-            <h4 className='font-semibold text-sm'>{title}</h4>
-            {data.length > 0 ? (
-                <Table>
-                    <TableBody>
-                        {data.map(item => (
-                            <TableRow key={item.name} className="text-xs">
-                                <TableCell className='py-1.5'>{item.name}</TableCell>
-                                <TableCell className='text-right font-bold py-1.5'>{item.count}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            ) : <p className='text-xs text-muted-foreground text-center py-4'>Brak danych</p>}
-        </div>
-    );
 
-    const DeltaCell = ({ delta, className }: { delta: number, className?: string }) => {
-        const baseClasses = "font-bold flex items-center justify-end";
-        if (delta === 0) {
-            return <span className={cn(baseClasses, "text-muted-foreground", className)}><Minus className="h-4 w-4 mr-1" /> {delta}</span>;
-        }
-        if (delta > 0) {
-            return <span className={cn(baseClasses, "text-green-600", className)}><TrendingUp className="h-4 w-4 mr-1" /> +{delta}</span>;
-        }
-        return <span className={cn(baseClasses, "text-red-600", className)}><TrendingDown className="h-4 w-4 mr-1" /> {delta}</span>;
+    const DeltaCell = ({ delta }: { delta: number }) => {
+        if (delta === 0) return <span className="text-muted-foreground flex items-center justify-end"><Minus className="h-4 w-4 mr-1" /> {delta}</span>;
+        if (delta > 0) return <span className="text-green-600 font-bold flex items-center justify-end"><TrendingUp className="h-4 w-4 mr-1" /> +{delta}</span>;
+        return <span className="text-red-600 font-bold flex items-center justify-end"><TrendingDown className="h-4 w-4 mr-1" /> {delta}</span>;
     };
-
+    
     return (
-        <>
-            <div className="flex flex-col space-y-6 flex-grow">
-                <Card>
-                    <CardHeader>
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <CardTitle>Wybierz okres</CardTitle>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Select onValueChange={handlePresetChange} defaultValue="custom">
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="Wybierz okres" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="custom">Od 15.12.2025</SelectItem>
-                                        <SelectItem value="7">Ostatnie 7 dni</SelectItem>
-                                        <SelectItem value="30">Ostatnie 30 dni</SelectItem>
-                                        <SelectItem value="month">Ten miesiąc</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            id="date"
-                                            variant={"outline"}
-                                            className={cn(
-                                                "w-[300px] justify-start text-left font-normal",
-                                                !dateRange && "text-muted-foreground"
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {dateRange?.from ? (
-                                                dateRange.to ? (
-                                                    <>
-                                                        {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
-                                                        {format(dateRange.to, "LLL dd, y", { locale: pl })}
-                                                    </>
-                                                ) : (
-                                                    format(dateRange.from, "LLL dd, y", { locale: pl })
-                                                )
-                                            ) : (
-                                                <span>Wybierz zakres dat</span>
-                                            )}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            initialFocus
-                                            mode="range"
-                                            defaultMonth={dateRange?.from}
-                                            selected={dateRange}
-                                            onSelect={setDateRange}
-                                            numberOfMonths={2}
-                                            locale={pl}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
+        <div className="flex flex-col space-y-6 flex-grow">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Dobowy Raport Zmian</CardTitle>
+                    <CardDescription>Podsumowanie stanu zatrudnienia w oparciu o dane z ostatniej doby.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {dailyReport.yesterdayTotal !== undefined ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Stan na wczoraj</p>
+                                <p className="text-2xl font-bold">{dailyReport.yesterdayTotal}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Nowo zatrudnieni (dziś)</p>
+                                <p className="text-2xl font-bold text-green-600">+{dailyReport.hiresToday}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Zwolnieni (dziś)</p>
+                                <p className="text-2xl font-bold text-red-600">-{dailyReport.terminationsToday}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Stan na teraz</p>
+                                <p className="text-2xl font-bold">{dailyReport.currentTotal}</p>
                             </div>
                         </div>
-                    </CardHeader>
-                </Card>
+                    ) : (
+                        <div className="text-center text-muted-foreground py-4">
+                            <p>Brak migawki z dnia wczorajszego.</p>
+                            <p className="text-xs">Poczekaj na automatyczne utworzenie lub uruchom ręcznie.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
-                {snapshotA && snapshotB && comparisonData && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Podsumowanie ogólne</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+            <Card>
+                <CardHeader>
+                     <CardTitle>Analiza Historyczna</CardTitle>
+                     <CardDescription>Wybierz tryb analizy: punkt w czasie lub zakres dat.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <RadioGroup defaultValue="point-in-time" onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="point-in-time" id="r1" />
+                            <Label htmlFor="r1">Punkt w czasie</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="range" id="r2" />
+                            <Label htmlFor="r2">Zakres dat</Label>
+                        </div>
+                    </RadioGroup>
+
+                    {mode === 'point-in-time' ? (
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !singleDate && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {singleDate ? format(singleDate, "PPP", { locale: pl }) : <span>Wybierz datę</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar initialFocus mode="single" selected={singleDate} onSelect={setSingleDate} locale={pl} />
+                            </PopoverContent>
+                        </Popover>
+                    ) : (
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button id="date-range" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd.MM.yy")} - ${format(dateRange.to, "dd.MM.yy")}` : format(dateRange.from, "dd.MM.yy")) : <span>Wybierz zakres</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} locale={pl} />
+                            </PopoverContent>
+                        </Popover>
+                    )}
+
+                    {mode === 'point-in-time' && pointInTimeReport && (
+                        pointInTimeReport.snapshot ? (
                             <div>
-                                <p className="text-sm text-muted-foreground">Stan na {format(parseISO(snapshotA.id), "dd.MM.yy")}</p>
-                                <p className="text-2xl font-bold">{snapshotA.totalActive}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Nowo zatrudnieni</p>
-                                <p className="text-2xl font-bold text-green-600">+{newHires.length}</p>
-                            </div>
-                                <div>
-                                <p className="text-sm text-muted-foreground">Zwolnieni</p>
-                                <p className="text-2xl font-bold text-red-600">-{terminations.length}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Stan na {snapshotB.id === 'live' ? 'teraz' : format(parseISO(snapshotB.id), "dd.MM.yy")}</p>
-                                <div className="flex items-center justify-center gap-2">
-                                    <p className="text-2xl font-bold">{snapshotB.totalActive}</p>
-                                    <DeltaCell delta={comparisonData.totalDelta} className="text-lg" />
+                                <h3 className="font-semibold mb-2">Stan na dzień {format(pointInTimeReport.date, 'dd.MM.yyyy')}</h3>
+                                <p className="text-4xl font-bold mb-4">{pointInTimeReport.snapshot.totalActive}</p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                     <SummaryTable title="Wg działów" data={Object.entries(pointInTimeReport.snapshot.departments || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
+                                     <SummaryTable title="Wg stanowisk" data={Object.entries(pointInTimeReport.snapshot.jobTitles || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
+                                     <SummaryTable title="Wg narodowości" data={Object.entries(pointInTimeReport.snapshot.nationalities || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
+                        ) : (
+                            <p className="text-muted-foreground text-center py-4">Brak migawki dla wybranego dnia.</p>
+                        )
+                    )}
 
+                    {mode === 'range' && rangeReport && (
+                        <div className="space-y-6">
+                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                                <Card>
+                                    <CardHeader><CardTitle>Zmiany wg działów</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <Table>
+                                            <TableBody>
+                                                {rangeReport.departmentChanges.map(item => <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell><DeltaCell delta={item.delta} /></TableCell></TableRow>)}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader><CardTitle>Zmiany wg stanowisk</CardTitle></CardHeader>
+                                    <CardContent>
+                                         <Table>
+                                            <TableBody>
+                                                {rangeReport.jobTitleChanges.map(item => <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell><DeltaCell delta={item.delta} /></TableCell></TableRow>)}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader><CardTitle>Zatrudnieni ({rangeReport.hires.length})</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ScrollArea className="h-60">
+                                            <Table>
+                                                <TableBody>
+                                                    {rangeReport.hires.map(e => <TableRow key={e.id}><TableCell>{e.employeeFullName}</TableCell><TableCell className="text-right">{format(parseISO(e.date), 'dd.MM.yy')}</TableCell></TableRow>)}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader><CardTitle>Zwolnieni ({rangeReport.terminations.length})</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ScrollArea className="h-60">
+                                            <Table>
+                                                <TableBody>
+                                                    {rangeReport.terminations.map(e => <TableRow key={e.id}><TableCell>{e.employeeFullName}</TableCell><TableCell className="text-right">{format(parseISO(e.date), 'dd.MM.yy')}</TableCell></TableRow>)}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                             </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <SummaryTable title="Wg działów" data={hiresSummary.byDepartment} />
-                            <SummaryTable title="Wg stanowisk" data={hiresSummary.byJobTitle} />
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <SummaryTable title="Wg działów" data={terminationsSummary.byDepartment} />
-                            <SummaryTable title="Wg stanowisk" data={terminationsSummary.byJobTitle} />
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Lista nowo zatrudnionych</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-96">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Pracownik</TableHead>
-                                            <TableHead>Data</TableHead>
-                                            {isAdmin && <TableHead className="text-right">Akcje</TableHead>}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {newHires.length > 0 ? (
-                                            newHires.map(event => (
-                                                <TableRow key={event.id}>
-                                                    <TableCell>
-                                                        <div className="font-medium">{event.employeeFullName}</div>
-                                                    </TableCell>
-                                                    <TableCell>{format(parseISO(event.date), 'dd.MM.yyyy HH:mm')}</TableCell>
-                                                    {isAdmin && <TableCell className="text-right">
-                                                        <Button variant="ghost" size="icon" onClick={() => setEventToDelete(event)}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
-                                                    </TableCell>}
-                                                </TableRow>
-                                            ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={isAdmin ? 3 : 2} className="text-center h-24">Brak danych</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Lista zwolnionych</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-96">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Pracownik</TableHead>
-                                            <TableHead>Data</TableHead>
-                                            {isAdmin && <TableHead className="text-right">Akcje</TableHead>}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {terminations.length > 0 ? (
-                                            terminations.map(event => (
-                                                <TableRow key={event.id}>
-                                                    <TableCell>
-                                                        <div className="font-medium">{event.employeeFullName}</div>
-                                                    </TableCell>
-                                                    <TableCell>{format(parseISO(event.date), 'dd.MM.yyyy HH:mm')}</TableCell>
-                                                     {isAdmin && <TableCell className="text-right">
-                                                        <Button variant="ghost" size="icon" onClick={() => setEventToDelete(event)}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
-                                                    </TableCell>}
-                                                </TableRow>
-                                            ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={isAdmin ? 3 : 2} className="text-center h-24">Brak danych</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
             <AlertDialog open={!!eventToDelete} onOpenChange={(open) => !open && setEventToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -733,7 +639,7 @@ const HiresAndFiresTab = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </>
+        </div>
     )
 }
 
@@ -1066,7 +972,7 @@ export default function StatisticsPage() {
         <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
             <TabsTrigger value="orders">Zamówienia</TabsTrigger>
-            <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
+            <TabsTrigger value="hires_fires">Analiza Historyczna</TabsTrigger>
         </TabsList>
         <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
@@ -1074,12 +980,10 @@ export default function StatisticsPage() {
         <TabsContent value="orders" className="flex-grow mt-6">
             <OrdersTab />
         </TabsContent>
-        <TabsContent value="hires_and_fires" className="flex-grow mt-6">
+        <TabsContent value="hires_fires" className="flex-grow mt-6">
             <HiresAndFiresTab />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-    
