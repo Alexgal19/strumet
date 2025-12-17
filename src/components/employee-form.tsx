@@ -92,6 +92,10 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
         if (!formData.manager) newErrors.manager = "Kierownik jest wymagany.";
         if (!formData.cardNumber.trim()) newErrors.cardNumber = "Numer karty jest wymagany.";
         if (!formData.nationality) newErrors.nationality = "Narodowość jest wymagana.";
+        if (!formData.hireDate) newErrors.hireDate = "Data zatrudnienia jest wymagana.";
+        if (!formData.contractEndDate) newErrors.contractEndDate = "Data końca umowy jest wymagana.";
+        if (!formData.legalizationStatus || formData.legalizationStatus === 'Brak') newErrors.legalizationStatus = "Status legalizacyjny jest wymagany.";
+
 
         if (formData.vacationStartDate && formData.vacationEndDate) {
             const startDate = parseMaybeDate(formData.vacationStartDate);
@@ -241,6 +245,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                                 onChange={(date) => handleChange('hireDate', date)}
                                 placeholder="Wybierz datę"
                             />
+                            {renderError('hireDate')}
                         </div>
                         <div>
                             <Label>Umowa do</Label>
@@ -249,6 +254,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                                 onChange={(date) => handleChange('contractEndDate', date)}
                                 placeholder="Data końcowa umowy"
                             />
+                            {renderError('contractEndDate')}
                         </div>
                         <div>
                             <Label>Stanowisko</Label>
@@ -321,6 +327,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                                     ))}
                                 </SelectContent>
                             </Select>
+                            {renderError('legalizationStatus')}
                         </div>
                     </div>
                 </div>
