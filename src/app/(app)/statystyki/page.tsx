@@ -418,8 +418,8 @@ const HiresAndFiresTab = () => {
     const [endDate, setEndDate] = useState<Date | undefined>();
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
-    type PointInTimeReportType = 'is-today' | { date: Date; snapshot: StatsSnapshot } | null;
-    type ComparisonReportType = { start: StatsSnapshot; end: StatsSnapshot; deptChanges: any[]; jobChanges: any[] } | null;
+    type PointInTimeReportType = { date: Date; snapshot: StatsSnapshot } | null;
+    type ComparisonReportType = { start: StatsSnapshot; end: StatsSnapshot; deptChanges: any[] } | null;
 
     const [pointInTimeReport, setPointInTimeReport] = useState<PointInTimeReportType>(null);
     const [comparisonReport, setComparisonReport] = useState<ComparisonReportType>(null);
@@ -439,13 +439,15 @@ const HiresAndFiresTab = () => {
         }).length;
         
         const activeYesterday = employees.filter(e => {
-             const hireDate = parseMaybeDate(e.hireDate);
-             if (!hireDate || hireDate > subDays(today, 1)) return false;
-
-             const termDate = parseMaybeDate(e.terminationDate);
-             if (termDate && termDate <= subDays(today, 1)) return false;
-
-             return true;
+            const hireDate = parseMaybeDate(e.hireDate);
+            // Employee must have been hired before or on yesterday
+            if (!hireDate || hireDate > endOfDay(subDays(today,1))) return false;
+        
+            const termDate = parseMaybeDate(e.terminationDate);
+            // If terminated, must be terminated today or later
+            if (termDate && termDate < today) return false;
+        
+            return true;
         }).length;
 
         return {
@@ -463,8 +465,11 @@ const HiresAndFiresTab = () => {
 
         if (statsHistory && startDate) {
              if (isSameDay(startDate, today) && (!endDate || isSameDay(startDate, endDate))) {
-                setPointInTimeReport('is-today');
-            } else if (!endDate || isSameDay(startDate, endDate)) {
+                 setIsReportDialogOpen(true);
+                 return;
+            } 
+            
+            if (!endDate || isSameDay(startDate, endDate)) {
                 const fromDateStr = format(startDate, 'yyyy-MM-dd');
                 const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
                 if (startSnapshot) {
@@ -481,7 +486,6 @@ const HiresAndFiresTab = () => {
 
                 if (startSnapshot && endSnapshot) {
                     const allDepts = Array.from(new Set([...Object.keys(startSnapshot.departments || {}), ...Object.keys(endSnapshot.departments || {})]));
-                    const allJobs = Array.from(new Set([...Object.keys(startSnapshot.jobTitles || {}), ...Object.keys(endSnapshot.jobTitles || {})]));
 
                     setComparisonReport({
                         start: startSnapshot,
@@ -490,12 +494,7 @@ const HiresAndFiresTab = () => {
                             const startCount = startSnapshot.departments?.[dept] || 0;
                             const endCount = endSnapshot.departments?.[dept] || 0;
                             return { name: dept, start: startCount, end: endCount, diff: endCount - startCount };
-                        }).filter(d => d.diff !== 0).sort((a,b) => b.diff - a.diff),
-                        jobChanges: allJobs.map(job => {
-                             const startCount = startSnapshot.jobTitles?.[job] || 0;
-                             const endCount = endSnapshot.jobTitles?.[job] || 0;
-                             return { name: job, start: startCount, end: endCount, diff: endCount - startCount };
-                        }).filter(j => j.diff !== 0).sort((a,b) => b.diff - a.diff),
+                        }).sort((a,b) => b.diff - a.diff),
                     });
                 }
             }
@@ -504,10 +503,10 @@ const HiresAndFiresTab = () => {
     };
 
     const DiffBadge = ({ diff }: { diff: number}) => {
-        if (diff === 0) return null;
+        if (diff === 0) return <span className="text-muted-foreground">-</span>;
         const isPositive = diff > 0;
         return (
-            <Badge variant={isPositive ? 'default' : 'destructive'} className={cn(isPositive && "bg-green-600 hover:bg-green-700")}>
+            <Badge variant={isPositive ? 'default' : 'destructive'} className={cn("font-bold", isPositive && "bg-green-600 hover:bg-green-700")}>
                 {isPositive ? `+${diff}`: diff}
             </Badge>
         );
@@ -613,21 +612,20 @@ const HiresAndFiresTab = () => {
                              <div className="flex h-full w-full items-center justify-center">
                                 <Loader2 className="h-8 w-8 animate-spin" />
                             </div>
-                        ) : pointInTimeReport === 'is-today' ? (
+                        ) : startDate && isSameDay(startDate, new Date()) && (!endDate || isSameDay(startDate, endDate)) ? (
                             <div className="text-muted-foreground text-center py-10 flex items-center justify-center gap-2">
                                <Info className="h-5 w-5"/>
                                <span>Dane dla dnia dzisiejszego są dostępne na żywo w "Dobowym Raporcie Zmian".</span>
                             </div>
-                        ) : pointInTimeReport && typeof pointInTimeReport === 'object' ? (
+                        ) : pointInTimeReport ? (
                             <div className="space-y-6">
                                 <h3 className="font-semibold text-lg">Stan na dzień {format(pointInTimeReport.date, 'dd MMMM yyyy', { locale: pl })}</h3>
                                 <div className="flex items-baseline gap-2">
                                   <p className="text-5xl font-bold">{pointInTimeReport.snapshot.totalActive}</p>
                                   <span className="text-muted-foreground">aktywnych pracowników</span>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                      <SummaryTable title="Wg działów" data={Object.entries(pointInTimeReport.snapshot.departments || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
-                                     <SummaryTable title="Wg stanowisk" data={Object.entries(pointInTimeReport.snapshot.jobTitles || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
                                      <SummaryTable title="Wg narodowości" data={Object.entries(pointInTimeReport.snapshot.nationalities || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
                                 </div>
                             </div>
@@ -645,28 +643,27 @@ const HiresAndFiresTab = () => {
                                         <DiffBadge diff={comparisonReport.end.totalActive - comparisonReport.start.totalActive} />
                                     </div>
                                 </div>
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                 <div className="grid grid-cols-1 gap-6">
                                     <Card>
                                         <CardHeader><CardTitle className="text-lg">Zmiany w Działach</CardTitle></CardHeader>
                                         <CardContent>
                                             <Table>
-                                                <TableHeader><TableRow><TableHead>Dział</TableHead><TableHead className="text-right">Zmiana</TableHead></TableRow></TableHeader>
+                                                <TableHeader>
+                                                  <TableRow>
+                                                    <TableHead>Dział</TableHead>
+                                                    <TableHead className="text-center">Stan początkowy</TableHead>
+                                                    <TableHead className="text-center">Stan końcowy</TableHead>
+                                                    <TableHead className="text-center">Zmiana</TableHead>
+                                                  </TableRow>
+                                                </TableHeader>
                                                 <TableBody>
                                                     {comparisonReport.deptChanges.map(c => (
-                                                        <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell className="text-right"><DiffBadge diff={c.diff}/></TableCell></TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </CardContent>
-                                    </Card>
-                                    <Card>
-                                        <CardHeader><CardTitle className="text-lg">Zmiany na Stanowiskach</CardTitle></CardHeader>
-                                        <CardContent>
-                                            <Table>
-                                                <TableHeader><TableRow><TableHead>Stanowisko</TableHead><TableHead className="text-right">Zmiana</TableHead></TableRow></TableHeader>
-                                                <TableBody>
-                                                    {comparisonReport.jobChanges.map(c => (
-                                                        <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell className="text-right"><DiffBadge diff={c.diff}/></TableCell></TableRow>
+                                                        <TableRow key={c.name}>
+                                                            <TableCell className="font-medium">{c.name}</TableCell>
+                                                            <TableCell className="text-center">{c.start}</TableCell>
+                                                            <TableCell className="text-center">{c.end}</TableCell>
+                                                            <TableCell className="text-center"><DiffBadge diff={c.diff}/></TableCell>
+                                                        </TableRow>
                                                     ))}
                                                 </TableBody>
                                             </Table>
@@ -676,7 +673,7 @@ const HiresAndFiresTab = () => {
                              </div>
                         ) : (
                             <p className="text-muted-foreground text-center py-10">
-                                Brak danych migawkowych dla wybranego dnia lub zakresu.
+                                Brak danych migawkowych dla wybranego dnia lub zakresu. Upewnij się, że migawki zostały utworzone dla obu wybranych dat.
                             </p>
                         )}
                     </div>
@@ -1034,6 +1031,7 @@ export default function StatisticsPage() {
     
 
     
+
 
 
 
