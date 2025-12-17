@@ -422,7 +422,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             let terminationsInRange = 0;
 
             if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
-                return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
+                return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange, terminationsInRange };
             }
              const snapshotsInRange = statsHistory.filter(s => {
                 const sDate = parseISO(s.id);
@@ -476,7 +476,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
 
             return { comparisonData: { totalDelta: snapB.totalActive - snapA.totalActive, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
         }
-    }, [dateRange, singleDate, mode, statsHistory, liveSnapshot, employeeEvents]);
+    }, [dateRange, singleDate, mode, statsHistory, liveSnapshot, employeeEvents, employees]);
 
     const handleCreateSnapshot = async () => {
         setIsCreatingSnapshot(true);
@@ -681,7 +681,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
 })
 
 const HiresAndFiresTab = () => {
-    const { employeeEvents, isAdmin } = useAppContext();
+    const { employeeEvents, employees, isAdmin } = useAppContext();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: startOfDay(subDays(today, 30)),
@@ -716,14 +716,35 @@ const HiresAndFiresTab = () => {
             .filter(event => event.type === 'termination' && isWithinInterval(parseISO(event.date), { start: dateRange.from!, end: dateRange.to! }))
             .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
+        const createSummary = (events: EmployeeEvent[]) => {
+            const byDepartment: Record<string, number> = {};
+            const byJobTitle: Record<string, number> = {};
+
+            events.forEach(event => {
+                const employee = employees.find(e => e.id === event.employeeId);
+                if (employee) {
+                    if(employee.department) {
+                        byDepartment[employee.department] = (byDepartment[employee.department] || 0) + 1;
+                    }
+                    if(employee.jobTitle) {
+                        byJobTitle[employee.jobTitle] = (byJobTitle[employee.jobTitle] || 0) + 1;
+                    }
+                }
+            });
+            return {
+                byDepartment: Object.entries(byDepartment).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count),
+                byJobTitle: Object.entries(byJobTitle).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count),
+            };
+        };
+        
         return { 
             newHires: hires, 
             terminations: terms,
-            hiresSummary: {byDepartment: [], byJobTitle: []},
-            terminationsSummary: {byDepartment: [], byJobTitle: []},
+            hiresSummary: createSummary(hires),
+            terminationsSummary: createSummary(terms),
         };
 
-    }, [employeeEvents, dateRange]);
+    }, [employeeEvents, dateRange, employees]);
     
     const SummaryTable = ({ title, data }: { title: string, data: {name: string, count: number}[] }) => (
         <div className='space-y-2'>
@@ -802,10 +823,28 @@ const HiresAndFiresTab = () => {
                 </CardHeader>
             </Card>
 
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <SummaryTable title="Wg działów" data={hiresSummary.byDepartment} />
+                        <SummaryTable title="Wg stanowisk" data={hiresSummary.byJobTitle} />
+                    </CardContent>
+                </Card>
                  <Card>
                     <CardHeader>
-                        <CardTitle>Zatrudnienia ({newHires.length})</CardTitle>
+                        <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <SummaryTable title="Wg działów" data={terminationsSummary.byDepartment} />
+                        <SummaryTable title="Wg stanowisk" data={terminationsSummary.byJobTitle} />
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Lista nowo zatrudnionych</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="h-96">
@@ -838,7 +877,7 @@ const HiresAndFiresTab = () => {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Zwolnienia ({terminations.length})</CardTitle>
+                        <CardTitle>Lista zwolnionych</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="h-96">
@@ -1199,7 +1238,7 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-4" : "grid-cols-4")}>
             <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
             <TabsTrigger value="orders">Zamówienia</TabsTrigger>
             <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
