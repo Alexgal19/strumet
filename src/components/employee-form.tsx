@@ -329,26 +329,22 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                  <Separator />
                 <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  {!isTerminated && (
-                    <div>
-                        <Label>Planowana data zwolnienia</Label>
-                        <DatePickerInput 
-                            value={formData.plannedTerminationDate} 
-                            onChange={(date) => handleChange('plannedTerminationDate', date)}
-                            placeholder="Wybierz planowaną datę"
-                        />
-                    </div>
-                  )}
-                  {isTerminated && (
-                    <div>
-                        <Label>Data zwolnienia</Label>
-                        <DatePickerInput 
-                            value={formData.terminationDate} 
-                            onChange={(date) => handleChange('terminationDate', date)}
-                            placeholder="Wybierz datę zwolnienia"
-                        />
-                    </div>
-                  )}
+                  <div>
+                      <Label>Planowana data zwolnienia</Label>
+                      <DatePickerInput 
+                          value={formData.plannedTerminationDate} 
+                          onChange={(date) => handleChange('plannedTerminationDate', date)}
+                          placeholder="Wybierz planowaną datę"
+                      />
+                  </div>
+                  <div>
+                      <Label>Data zwolnienia</Label>
+                      <DatePickerInput 
+                          value={formData.terminationDate} 
+                          onChange={(date) => handleChange('terminationDate', date)}
+                          placeholder="Wybierz datę zwolnienia"
+                      />
+                  </div>
                   <div>
                     <Label>Urlop od</Label>
                     <DatePickerInput 
