@@ -65,9 +65,9 @@ const AppContent = () => {
     useEffect(() => {
         // If user is not an admin and tries to access a page other than 'statystyki', redirect them.
         if (!isAdmin && activeView !== 'statystyki') {
-            setActiveView('statystyki');
+             router.replace('/statystyki');
         }
-    }, [isAdmin, activeView, setActiveView]);
+    }, [isAdmin, activeView, router]);
 
     const ActiveViewComponent = viewComponents[activeView] || viewComponents.statystyki;
 
