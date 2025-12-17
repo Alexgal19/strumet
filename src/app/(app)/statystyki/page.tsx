@@ -415,7 +415,7 @@ const HiresAndFiresTab = () => {
     const { employees, statsHistory, isHistoryLoading } = useAppContext();
     const [date, setDate] = useState<DateRange | undefined>({
         from: subDays(new Date(), 1),
-        to: undefined,
+        to: subDays(new Date(), 1),
     });
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
@@ -543,6 +543,8 @@ const HiresAndFiresTab = () => {
     }
     
     const PeriodChangeCard = ({ title, data }: { title: string; data: { hires: number; terminations: number; netChange: number; }}) => {
+        const netChangeLabel = data.netChange > 0 ? "Przyrost" : "Spadek";
+
         return (
             <Card>
                 <CardHeader className="pb-2">
@@ -558,7 +560,7 @@ const HiresAndFiresTab = () => {
                         <p className="text-xl font-bold text-red-600">-{data.terminations}</p>
                     </div>
                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Zmiana netto</p>
+                        <p className="text-sm text-muted-foreground">{data.netChange !== 0 ? netChangeLabel : "Zmiana netto"}</p>
                          <p className={cn("text-xl font-bold", data.netChange > 0 && "text-green-600", data.netChange < 0 && "text-red-600")}>
                            {data.netChange > 0 ? `+${data.netChange}` : data.netChange}
                         </p>
@@ -652,7 +654,7 @@ const HiresAndFiresTab = () => {
             </Card>
 
             <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-                <DialogContent className="max-w-7xl h-screen flex flex-col">
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="text-2xl">Raport Historyczny</DialogTitle>
                     </DialogHeader>
