@@ -378,13 +378,13 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 })
 
 const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, ref) => {
-    const { employeeEvents, employees, statsHistory, isHistoryLoading, isAdmin } = useAppContext();
+    const { employeeEvents, statsHistory, isHistoryLoading, isAdmin, employees } = useAppContext();
     const { toast } = props;
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     const [mode, setMode] = useState<'history' | 'dynamic'>('history');
     
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-    const [singleDate, setSingleDate] = useState<Date | undefined>();
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: startOfDay(new Date()), to: endOfToday() });
+    const [singleDate, setSingleDate] = useState<Date | undefined>(startOfDay(new Date()));
 
     const liveSnapshot: StatsSnapshot = useMemo(() => {
         const activeEmployees = employees.filter(e => e.status === 'aktywny');
@@ -404,23 +404,15 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             departments: departmentCounts,
             jobTitles: jobTitleCounts,
             nationalities: nationalityCounts,
-            newHires: 0, // Not calculated for live snapshot in this context
+            newHires: 0, 
             terminations: 0,
         };
     }, [employees]);
     
-    useEffect(() => {
-        if (!dateRange && statsHistory.length > 1) {
-             setDateRange({ from: parseISO(statsHistory[1].id), to: parseISO(statsHistory[0].id) });
-        } else if (!singleDate && statsHistory.length > 0) {
-            setSingleDate(parseISO(statsHistory[0].id));
-        }
-    }, [statsHistory, dateRange, singleDate]);
-    
     const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
         let newHiresInRange = 0;
         let terminationsInRange = 0;
-        
+
         if (mode === 'history') {
             if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
@@ -449,7 +441,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             const jobTitleChanges = Array.from(allJobTitleKeys).map(name => ({ name, countA: snapA.jobTitles?.[name] || 0, countB: snapB.jobTitles?.[name] || 0, delta: (snapB.jobTitles?.[name] || 0) - (snapA.jobTitles?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
             return { comparisonData: { totalDelta: snapB.totalActive - snapA.totalActive, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
-        } else { // Dynamic mode
+        } else { 
             if (!singleDate || statsHistory.length < 1) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
             }
@@ -478,7 +470,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
 
             return { comparisonData: { totalDelta: snapB.totalActive - snapA.totalActive, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
         }
-    }, [dateRange, singleDate, mode, statsHistory, liveSnapshot, employeeEvents]);
+    }, [dateRange, singleDate, mode, statsHistory, liveSnapshot, employeeEvents, employees]);
 
     const handleCreateSnapshot = async () => {
         setIsCreatingSnapshot(true);
@@ -1277,7 +1269,7 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
        <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-4" : "grid-cols-4")}>
+        <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
             <TabsTrigger value="orders">Zamówienia</TabsTrigger>
             <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
@@ -1299,5 +1291,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+
 
 
