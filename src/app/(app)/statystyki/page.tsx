@@ -414,7 +414,7 @@ ReportTab.displayName = 'ReportTab';
 const HiresAndFiresTab = () => {
     const { employees, statsHistory, isHistoryLoading } = useAppContext();
     const [date, setDate] = useState<DateRange | undefined>({
-        from: subDays(new Date(), 2),
+        from: subDays(new Date(), 1),
         to: subDays(new Date(), 1),
     });
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
@@ -606,7 +606,7 @@ const HiresAndFiresTab = () => {
 
             <Card>
                 <CardHeader>
-                     <CardTitle>Analiza Historyczna</CardTitle>
+                     <CardTitle>Analiza</CardTitle>
                      <CardDescription>Wybierz dzień, aby zobaczyć stan z przeszłości, lub dwa dni, aby je porównać. Migawki danych są tworzone automatycznie każdego dnia.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -616,7 +616,7 @@ const HiresAndFiresTab = () => {
                                 <Button
                                     id="date"
                                     variant={"outline"}
-                                    className={cn("w-full sm:w-auto justify-start text-left font-normal", !date && "text-muted-foreground")}
+                                    className={cn("w-full sm:w-auto justify-start text-left font-normal", !date?.from && "text-muted-foreground")}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {date?.from ? (
@@ -1083,7 +1083,7 @@ export default function StatisticsPage() {
         <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
             <TabsTrigger value="orders">Zamówienia</TabsTrigger>
-            <TabsTrigger value="hires_fires">Analiza Historyczna</TabsTrigger>
+            <TabsTrigger value="hires_fires">Analiza</TabsTrigger>
         </TabsList>
         <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
