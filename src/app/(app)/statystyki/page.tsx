@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef } from 'react';
@@ -425,37 +424,63 @@ const HiresAndFiresTab = () => {
     const [comparisonReport, setComparisonReport] = useState<ComparisonReportType>(null);
 
 
-    const dailyReport = useMemo(() => {
+    const periodReport = useMemo(() => {
         const today = startOfDay(new Date());
 
-        const hiresToday = employees.filter(e => {
-            const hireDate = parseMaybeDate(e.hireDate);
-            return hireDate && isSameDay(hireDate, today);
-        }).length;
+        const calculateChanges = (days: number) => {
+            const startDate = startOfDay(subDays(today, days));
+            const interval = { start: startDate, end: endOfDay(today) };
+            let hires = 0;
+            let terminations = 0;
 
-        const terminationsToday = employees.filter(e => {
-            const termDate = parseMaybeDate(e.terminationDate);
-            return e.status === 'zwolniony' && termDate && isSameDay(termDate, today);
-        }).length;
-        
-        const activeYesterday = employees.filter(e => {
-            const hireDate = parseMaybeDate(e.hireDate);
-            // Employee must have been hired before or on yesterday
-            if (!hireDate || hireDate > endOfDay(subDays(today,1))) return false;
-        
-            const termDate = parseMaybeDate(e.terminationDate);
-            // If terminated, must be terminated today or later
-            if (termDate && termDate < today) return false;
-        
-            return true;
-        }).length;
-
-        return {
-            yesterdayTotal: activeYesterday,
-            hiresToday: hiresToday,
-            terminationsToday: terminationsToday,
-            currentTotal: employees.filter(e => e.status === 'aktywny').length,
+            for (const e of employees) {
+                const hireDate = parseMaybeDate(e.hireDate);
+                if (hireDate && isWithinInterval(hireDate, interval)) {
+                    hires++;
+                }
+                const termDate = parseMaybeDate(e.terminationDate);
+                if (termDate && isWithinInterval(termDate, interval)) {
+                    terminations++;
+                }
+            }
+            return { hires, terminations, netChange: hires - terminations };
         };
+
+        const daily = (() => {
+            const hiresToday = employees.filter(e => {
+                const hireDate = parseMaybeDate(e.hireDate);
+                return hireDate && isSameDay(hireDate, today);
+            }).length;
+
+            const terminationsToday = employees.filter(e => {
+                const termDate = parseMaybeDate(e.terminationDate);
+                return e.status === 'zwolniony' && termDate && isSameDay(termDate, today);
+            }).length;
+
+            const activeYesterday = employees.filter(e => {
+                const hireDate = parseMaybeDate(e.hireDate);
+                if (!hireDate || hireDate >= today) return false;
+
+                const termDate = parseMaybeDate(e.terminationDate);
+                if (termDate && termDate < today) return false;
+                
+                return true;
+            }).length;
+
+            return {
+                yesterdayTotal: activeYesterday,
+                hiresToday: hiresToday,
+                terminationsToday: terminationsToday,
+                currentTotal: employees.filter(e => e.status === 'aktywny').length,
+            };
+        })();
+        
+        return {
+            daily,
+            last7days: calculateChanges(7),
+            last30days: calculateChanges(30),
+        };
+
     }, [employees]);
     
     const generateReport = () => {
@@ -512,6 +537,32 @@ const HiresAndFiresTab = () => {
         );
     }
     
+    const PeriodChangeCard = ({ title, data }: { title: string; data: { hires: number; terminations: number; netChange: number; }}) => {
+        return (
+            <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{title}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex justify-around items-center pt-2">
+                     <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Zatrudnieni</p>
+                        <p className="text-xl font-bold text-green-600">+{data.hires}</p>
+                    </div>
+                     <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Zwolnieni</p>
+                        <p className="text-xl font-bold text-red-600">-{data.terminations}</p>
+                    </div>
+                     <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Zmiana netto</p>
+                         <p className={cn("text-xl font-bold", data.netChange > 0 && "text-green-600", data.netChange < 0 && "text-red-600")}>
+                           {data.netChange > 0 ? `+${data.netChange}` : data.netChange}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
     return (
         <div className="flex flex-col space-y-6 flex-grow">
             <Card>
@@ -523,23 +574,28 @@ const HiresAndFiresTab = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                         <div>
                             <p className="text-sm text-muted-foreground">Stan na wczoraj</p>
-                            <p className="text-2xl font-bold">{dailyReport.yesterdayTotal}</p>
+                            <p className="text-2xl font-bold">{periodReport.daily.yesterdayTotal}</p>
                         </div>
                         <div>
                             <p className="text-sm text-muted-foreground">Zatrudnieni dzisiaj</p>
-                            <p className="text-2xl font-bold text-green-600">+{dailyReport.hiresToday}</p>
+                            <p className="text-2xl font-bold text-green-600">+{periodReport.daily.hiresToday}</p>
                         </div>
                         <div>
                             <p className="text-sm text-muted-foreground">Zwolnieni dzisiaj</p>
-                            <p className="text-2xl font-bold text-red-600">-{dailyReport.terminationsToday}</p>
+                            <p className="text-2xl font-bold text-red-600">-{periodReport.daily.terminationsToday}</p>
                         </div>
                         <div>
                             <p className="text-sm text-muted-foreground">Stan na teraz</p>
-                            <p className="text-2xl font-bold">{dailyReport.currentTotal}</p>
+                            <p className="text-2xl font-bold">{periodReport.daily.currentTotal}</p>
                         </div>
                     </div>
                 </CardContent>
             </Card>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PeriodChangeCard title="Raport za ostatnich 7 dni" data={periodReport.last7days} />
+                <PeriodChangeCard title="Raport za ostatnich 30 dni" data={periodReport.last30days} />
+            </div>
 
             <Card>
                 <CardHeader>
@@ -632,7 +688,7 @@ const HiresAndFiresTab = () => {
                         ) : comparisonReport ? (
                              <div className="space-y-6">
                                  <h3 className="font-semibold text-lg">
-                                    Porównanie od {format(comparisonReport.start.id, 'dd.MM.yyyy')} do {format(comparisonReport.end.id, 'dd.MM.yyyy')}
+                                    Porównanie od {format(parseISO(comparisonReport.start.id), 'dd.MM.yyyy')} do {format(parseISO(comparisonReport.end.id), 'dd.MM.yyyy')}
                                  </h3>
                                 <div className="text-center bg-muted/50 p-6 rounded-lg">
                                     <h3 className="font-semibold text-muted-foreground">Porównanie całkowitego zatrudnienia</h3>
@@ -1029,9 +1085,3 @@ export default function StatisticsPage() {
 }
 
     
-
-    
-
-
-
-
