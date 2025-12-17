@@ -423,7 +423,7 @@ const HiresAndFiresTab = () => {
         dailyReport,
         pointInTimeReport,
     } = useMemo(() => {
-        const today = new Date();
+        const today = startOfDay(new Date());
         const yesterday = subDays(today, 1);
         
         const hiresToday = employees.filter(e => {
