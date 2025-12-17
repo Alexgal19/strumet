@@ -64,6 +64,7 @@ interface AppContextType {
     addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Promise<void>;
     updateOrder: (order: Order) => Promise<void>;
     deleteOrder: (orderId: string) => Promise<void>;
+    deleteEmployeeEvent: (eventId: string) => Promise<void>;
     currentUser: AuthUser | null;
     isAdmin: boolean;
 }
@@ -148,6 +149,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         };
         await set(newEventRef, event);
     }, []);
+
+    const deleteEmployeeEvent = useCallback(async (eventId: string) => {
+        try {
+            await remove(ref(db, `employeeEvents/${eventId}`));
+            toast({ title: 'Sukces', description: 'Zdarzenie historyczne zostało usunięte.' });
+        } catch (error) {
+            console.error("Error deleting employee event: ", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zdarzenia.' });
+        }
+    }, [toast]);
 
     // --- Employee Actions ---
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
@@ -473,6 +484,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addOrder,
         updateOrder,
         deleteOrder,
+        deleteEmployeeEvent,
         currentUser,
         isAdmin,
     };

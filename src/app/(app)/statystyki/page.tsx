@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList, Info } from 'lucide-react';
 import { Employee, Order, StatsSnapshot, AllConfig, Stats, EmployeeEvent } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -681,12 +682,13 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
 })
 
 const HiresAndFiresTab = () => {
-    const { employeeEvents, employees, isAdmin } = useAppContext();
+    const { employeeEvents, employees, isAdmin, deleteEmployeeEvent } = useAppContext();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: startOfDay(subDays(today, 30)),
         to: today,
     });
+    const [eventToDelete, setEventToDelete] = useState<EmployeeEvent | null>(null);
 
     const handlePresetChange = (value: string) => {
         const now = startOfDay(new Date());
@@ -745,6 +747,13 @@ const HiresAndFiresTab = () => {
         };
 
     }, [employeeEvents, dateRange, employees]);
+
+    const handleDelete = () => {
+        if (eventToDelete) {
+            deleteEmployeeEvent(eventToDelete.id);
+            setEventToDelete(null);
+        }
+    };
     
     const SummaryTable = ({ title, data }: { title: string, data: {name: string, count: number}[] }) => (
         <div className='space-y-2'>
@@ -765,151 +774,181 @@ const HiresAndFiresTab = () => {
     );
 
     return (
-        <div className="flex flex-col space-y-6 flex-grow">
-            <Card>
-                <CardHeader>
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <CardTitle>Wybierz okres</CardTitle>
-                        <div className="flex flex-wrap items-center gap-2">
-                             <Select onValueChange={handlePresetChange} defaultValue='30'>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Wybierz okres" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="7">Ostatnie 7 dni</SelectItem>
-                                    <SelectItem value="30">Ostatnie 30 dni</SelectItem>
-                                    <SelectItem value="month">Ten miesiąc</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        id="date"
-                                        variant={"outline"}
-                                        className={cn(
-                                            "w-[300px] justify-start text-left font-normal",
-                                            !dateRange && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dateRange?.from ? (
-                                            dateRange.to ? (
-                                                <>
-                                                    {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
-                                                    {format(dateRange.to, "LLL dd, y", { locale: pl })}
-                                                </>
+        <>
+            <div className="flex flex-col space-y-6 flex-grow">
+                <Card>
+                    <CardHeader>
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <CardTitle>Wybierz okres</CardTitle>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Select onValueChange={handlePresetChange} defaultValue='30'>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Wybierz okres" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="7">Ostatnie 7 dni</SelectItem>
+                                        <SelectItem value="30">Ostatnie 30 dni</SelectItem>
+                                        <SelectItem value="month">Ten miesiąc</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            id="date"
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-[300px] justify-start text-left font-normal",
+                                                !dateRange && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {dateRange?.from ? (
+                                                dateRange.to ? (
+                                                    <>
+                                                        {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
+                                                        {format(dateRange.to, "LLL dd, y", { locale: pl })}
+                                                    </>
+                                                ) : (
+                                                    format(dateRange.from, "LLL dd, y", { locale: pl })
+                                                )
                                             ) : (
-                                                format(dateRange.from, "LLL dd, y", { locale: pl })
-                                            )
-                                        ) : (
-                                            <span>Wybierz zakres dat</span>
-                                        )}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={dateRange?.from}
-                                        selected={dateRange}
-                                        onSelect={setDateRange}
-                                        numberOfMonths={2}
-                                        locale={pl}
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                                                <span>Wybierz zakres dat</span>
+                                            )}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            initialFocus
+                                            mode="range"
+                                            defaultMonth={dateRange?.from}
+                                            selected={dateRange}
+                                            onSelect={setDateRange}
+                                            numberOfMonths={2}
+                                            locale={pl}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
-                    </div>
-                </CardHeader>
-            </Card>
+                    </CardHeader>
+                </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <SummaryTable title="Wg działów" data={hiresSummary.byDepartment} />
-                        <SummaryTable title="Wg stanowisk" data={hiresSummary.byJobTitle} />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <SummaryTable title="Wg działów" data={terminationsSummary.byDepartment} />
-                        <SummaryTable title="Wg stanowisk" data={terminationsSummary.byJobTitle} />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Lista nowo zatrudnionych</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ScrollArea className="h-96">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Pracownik</TableHead>
-                                        <TableHead>Data</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {newHires.length > 0 ? (
-                                        newHires.map(event => (
-                                            <TableRow key={event.id}>
-                                                <TableCell>
-                                                    <div className="font-medium">{event.employeeFullName}</div>
-                                                </TableCell>
-                                                <TableCell>{format(parseISO(event.date)!, 'dd.MM.yyyy HH:mm')}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <SummaryTable title="Wg działów" data={hiresSummary.byDepartment} />
+                            <SummaryTable title="Wg stanowisk" data={hiresSummary.byJobTitle} />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <SummaryTable title="Wg działów" data={terminationsSummary.byDepartment} />
+                            <SummaryTable title="Wg stanowisk" data={terminationsSummary.byJobTitle} />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Lista nowo zatrudnionych</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-96">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={2} className="text-center h-24">Brak danych</TableCell>
+                                            <TableHead>Pracownik</TableHead>
+                                            <TableHead>Data</TableHead>
+                                            {isAdmin && <TableHead className="text-right">Akcje</TableHead>}
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Lista zwolnionych</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ScrollArea className="h-96">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Pracownik</TableHead>
-                                        <TableHead>Data</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {terminations.length > 0 ? (
-                                        terminations.map(event => (
-                                            <TableRow key={event.id}>
-                                                <TableCell>
-                                                    <div className="font-medium">{event.employeeFullName}</div>
-                                                </TableCell>
-                                                <TableCell>{format(parseISO(event.date)!, 'dd.MM.yyyy HH:mm')}</TableCell>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {newHires.length > 0 ? (
+                                            newHires.map(event => (
+                                                <TableRow key={event.id}>
+                                                    <TableCell>
+                                                        <div className="font-medium">{event.employeeFullName}</div>
+                                                    </TableCell>
+                                                    <TableCell>{format(parseISO(event.date)!, 'dd.MM.yyyy HH:mm')}</TableCell>
+                                                    {isAdmin && <TableCell className="text-right">
+                                                        <Button variant="ghost" size="icon" onClick={() => setEventToDelete(event)}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    </TableCell>}
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={isAdmin ? 3 : 2} className="text-center h-24">Brak danych</TableCell>
                                             </TableRow>
-                                        ))
-                                    ) : (
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Lista zwolnionych</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-96">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={2} className="text-center h-24">Brak danych</TableCell>
+                                            <TableHead>Pracownik</TableHead>
+                                            <TableHead>Data</TableHead>
+                                            {isAdmin && <TableHead className="text-right">Akcje</TableHead>}
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-             </div>
-        </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {terminations.length > 0 ? (
+                                            terminations.map(event => (
+                                                <TableRow key={event.id}>
+                                                    <TableCell>
+                                                        <div className="font-medium">{event.employeeFullName}</div>
+                                                    </TableCell>
+                                                    <TableCell>{format(parseISO(event.date)!, 'dd.MM.yyyy HH:mm')}</TableCell>
+                                                     {isAdmin && <TableCell className="text-right">
+                                                        <Button variant="ghost" size="icon" onClick={() => setEventToDelete(event)}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    </TableCell>}
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={isAdmin ? 3 : 2} className="text-center h-24">Brak danych</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+            <AlertDialog open={!!eventToDelete} onOpenChange={(open) => !open && setEventToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie zdarzenia
+                            dla pracownika <span className="font-bold">{eventToDelete?.employeeFullName}</span> z dnia {' '}
+                            {eventToDelete && format(parseISO(eventToDelete.date), 'dd.MM.yyyy HH:mm')}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setEventToDelete(null)}>Anuluj</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Usuń</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     )
 }
 
@@ -1081,8 +1120,7 @@ const OrdersTab = () => {
                         </Card>
                     </TabsContent>
                 </Tabs>
-            </div>
-            }
+            </div>}
             <div className={isAdmin ? "lg:col-span-2" : "lg:col-span-3"}>
                 <Card>
                     <CardHeader>
@@ -1238,7 +1276,7 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-4" : "grid-cols-4")}>
             <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
             <TabsTrigger value="orders">Zamówienia</TabsTrigger>
             <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
@@ -1260,4 +1298,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
