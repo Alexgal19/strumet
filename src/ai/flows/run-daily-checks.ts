@@ -47,21 +47,12 @@ const runDailyChecksFlow = ai.defineFlow(
   async () => {
     console.log('Starting all daily checks...');
     
-    // Check if today is Monday (1 for Monday, 0 for Sunday)
-    const isMonday = getDay(new Date()) === 1;
-    
     const checksToRun: Promise<any>[] = [
         checkExpiringContractsAndNotify(),
         checkAppointmentsAndNotify(),
         checkPlannedTerminations(),
+        createStatsSnapshot(), // Snapshot is now created every day
     ];
-
-    if (isMonday) {
-        console.log('It is Monday. Adding statistics snapshot creation to the queue.');
-        checksToRun.push(createStatsSnapshot());
-    } else {
-        console.log('It is not Monday. Skipping statistics snapshot creation.');
-    }
 
     const results = await Promise.allSettled(checksToRun);
 
@@ -75,15 +66,13 @@ const runDailyChecksFlow = ai.defineFlow(
     const terminationsRes = getResultValue(results[2], { processedCount: 0, notificationsCreated: 0 });
     
     let snapshotRes: { snapshotId?: string, error?: string } | undefined = undefined;
-    if (isMonday) {
-        const snapshotResult = results[3];
-        if (snapshotResult && snapshotResult.status === 'fulfilled') {
-            snapshotRes = { snapshotId: (snapshotResult.value as any).snapshotId };
-        } else {
-            const reason = snapshotResult ? (snapshotResult as PromiseRejectedResult).reason : new Error("Unknown snapshot failure");
-            console.error("Failed to create statistics snapshot:", reason);
-            snapshotRes = { error: (reason as Error).message };
-        }
+    const snapshotResult = results[3];
+    if (snapshotResult && snapshotResult.status === 'fulfilled') {
+        snapshotRes = { snapshotId: (snapshotResult.value as any).snapshotId };
+    } else {
+        const reason = snapshotResult ? (snapshotResult as PromiseRejectedResult).reason : new Error("Unknown snapshot failure");
+        console.error("Failed to create statistics snapshot:", reason);
+        snapshotRes = { error: (reason as Error).message };
     }
     
     const totalNotifications = contractsRes.notificationsCreated + appointmentsRes.notificationsCreated + terminationsRes.notificationsCreated;
