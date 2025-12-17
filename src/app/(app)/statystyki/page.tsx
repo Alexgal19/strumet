@@ -414,7 +414,7 @@ ReportTab.displayName = 'ReportTab';
 
 const HiresAndFiresTab = () => {
     const { employees, statsHistory, isHistoryLoading } = useAppContext();
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: new Date(), to: new Date() });
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 1), to: subDays(new Date(), 1) });
 
     const { dailyReport, pointInTimeReport, comparisonReport } = useMemo(() => {
         const today = startOfDay(new Date());
@@ -451,16 +451,15 @@ const HiresAndFiresTab = () => {
         let comparisonData = null;
 
         if (statsHistory && dateRange?.from) {
-            const isTodaySelected = isSameDay(dateRange.from, new Date()) && !dateRange.to;
+            const isRange = dateRange.to && !isSameDay(dateRange.from, dateRange.to);
 
-            if (isTodaySelected) {
-                // If today is selected, we don't show snapshot data. We rely on the live daily report.
-                pointInTimeData = null;
+            if (!isRange && isSameDay(dateRange.from, today)) {
+                 pointInTimeData = 'is-today';
             } else {
                 const fromDateStr = format(dateRange.from, 'yyyy-MM-dd');
                 const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
                 
-                if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+                if (isRange && dateRange.to) {
                     // Comparison Mode
                     const toDateStr = format(dateRange.to, 'yyyy-MM-dd');
                     const endSnapshot = statsHistory.find(s => s.id === toDateStr);
@@ -554,7 +553,7 @@ const HiresAndFiresTab = () => {
             <Card>
                 <CardHeader>
                      <CardTitle>Analiza Historyczna</CardTitle>
-                     <CardDescription>Wybierz dzień, aby zobaczyć stan z przeszłości, lub dwa dni, aby je porównać. Dane są archiwizowane raz w tygodniu.</CardDescription>
+                     <CardDescription>Wybierz dzień, aby zobaczyć stan z przeszłości, lub dwa dni, aby je porównać. Migawki danych są tworzone automatycznie każdego dnia.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <Popover>
@@ -588,12 +587,16 @@ const HiresAndFiresTab = () => {
                                 onSelect={setDateRange}
                                 numberOfMonths={2}
                                 locale={pl}
-                                disabled={(date) => date > new Date() || date < new Date("2023-01-01")}
+                                disabled={(date) => date >= new Date()}
                             />
                         </PopoverContent>
                     </Popover>
                     
-                    {pointInTimeReport ? (
+                    {pointInTimeReport === 'is-today' ? (
+                        <p className="text-muted-foreground text-center py-4">
+                            Dane dla dnia dzisiejszego są dostępne na żywo w "Dobowym Raporcie Zmian" powyżej.
+                        </p>
+                    ) : pointInTimeReport && typeof pointInTimeReport === 'object' ? (
                         <div>
                             <h3 className="font-semibold mb-2">Stan na dzień {format(pointInTimeReport.date, 'dd.MM.yyyy')}</h3>
                             <p className="text-4xl font-bold mb-4">{pointInTimeReport.snapshot.totalActive}</p>
@@ -645,10 +648,7 @@ const HiresAndFiresTab = () => {
                          </div>
                     ) : (
                         <p className="text-muted-foreground text-center py-4">
-                            {dateRange?.from && isSameDay(dateRange.from, new Date()) && !dateRange.to
-                                ? "Dane dla dnia dzisiejszego są dostępne na żywo w raporcie dobowym powyżej."
-                                : "Brak migawki dla wybranego dnia lub zakresu."
-                            }
+                            Brak migawki dla wybranego dnia lub zakresu.
                         </p>
                     )}
 
@@ -1006,3 +1006,4 @@ export default function StatisticsPage() {
     
 
     
+
