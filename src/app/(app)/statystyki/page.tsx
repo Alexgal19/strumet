@@ -33,6 +33,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "@/components/ui/tooltip"
+import { Badge } from '@/components/ui/badge';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -413,94 +414,59 @@ ReportTab.displayName = 'ReportTab';
 
 
 const HiresAndFiresTab = () => {
-    const { employeeEvents, employees, isAdmin, deleteEmployeeEvent, statsHistory } = useAppContext();
+    const { employeeEvents, employees, isAdmin, deleteEmployeeEvent, statsHistory, isLoading: isAppLoading } = useAppContext();
     const [eventToDelete, setEventToDelete] = useState<EmployeeEvent | null>(null);
 
     const [singleDate, setSingleDate] = useState<Date | undefined>(new Date(2025, 11, 15));
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 30), to: endOfDay(new Date()) });
-    const [mode, setMode] = useState<'history' | 'dynamic'>('dynamic');
-
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 7), to: endOfDay(new Date()) });
+    
     const { 
-        dailyReport, 
+        dailyReport,
         pointInTimeReport,
-        rangeReport,
-        comparisonData,
     } = useMemo(() => {
-        const endOfToday = endOfDay(new Date());
-        
-        let snapshotA: StatsSnapshot;
-        let snapshotB: StatsSnapshot;
-
-        let hiresInRange = 0;
-        let terminationsInRange = 0;
-        
-        if (mode === 'dynamic') {
-             // Dynamic mode: Compare yesterday with today
-             const todayStr = format(new Date(), 'yyyy-MM-dd');
-             const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-             
-             const yesterdaySnapshot = statsHistory.find(s => s.id === yesterdayStr);
-             if (!yesterdaySnapshot) {
-                 return { dailyReport: null, pointInTimeReport: null, rangeReport: null, comparisonData: null };
-             }
-             snapshotA = yesterdaySnapshot;
-
-             const todaysEvents = employeeEvents.filter(event => isSameDay(parseISO(event.date), new Date()));
-             hiresInRange = todaysEvents.filter(e => e.type === 'hire').length;
-             terminationsInRange = todaysEvents.filter(e => e.type === 'termination').length;
-             
-             snapshotB = {
-                 id: todayStr,
-                 totalActive: employees.filter(e => e.status === 'aktywny').length,
-                 newHires: hiresInRange,
-                 terminations: terminationsInRange,
-                 departments: {}, jobTitles: {}, nationalities: {} // Not needed for this view
-             };
-        } else {
-             // History mode: Use dateRange
-             if (!dateRange?.from || !dateRange.to) {
-                 return { dailyReport: null, pointInTimeReport: null, rangeReport: null, comparisonData: null };
-             }
-             const fromStr = format(dateRange.from, 'yyyy-MM-dd');
-             const toStr = format(dateRange.to, 'yyyy-MM-dd');
-             
-             const snapA = statsHistory.find(s => s.id === fromStr);
-             const snapB = statsHistory.find(s => s.id === toStr);
-
-             if (!snapA || !snapB) {
-                 return { dailyReport: null, pointInTimeReport: null, rangeReport: null, comparisonData: null };
-             }
-             snapshotA = snapA;
-             snapshotB = snapB;
-             
-             const relevantEvents = employeeEvents.filter(event => 
-                isWithinInterval(parseISO(event.date), { start: startOfDay(dateRange.from!), end: endOfDay(dateRange.to!) })
-            );
-
-            hiresInRange = relevantEvents.filter(e => e.type === 'hire').length;
-            terminationsInRange = relevantEvents.filter(e => e.type === 'termination').length;
+        if (!statsHistory || statsHistory.length === 0) {
+            return { dailyReport: null, pointInTimeReport: null };
         }
 
-        const totalDelta = hiresInRange - terminationsInRange;
+        // Daily Report Logic
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+        
+        const yesterdaySnapshot = statsHistory.find(s => s.id === yesterdayStr);
+        const todaySnapshot = statsHistory.find(s => s.id === todayStr);
 
-        const comparisonDataResult = {
-            startDate: snapshotA.id,
-            endDate: snapshotB.id,
-            startTotal: snapshotA.totalActive,
-            endTotal: snapshotB.totalActive,
-            hires: hiresInRange,
-            terminations: terminationsInRange,
-            totalDelta: totalDelta
-        };
+        let dailyReportData = null;
+        if (yesterdaySnapshot) {
+            const todaysEvents = employeeEvents.filter(event => isSameDay(parseISO(event.date), new Date()));
+            const hiresToday = todaysEvents.filter(e => e.type === 'hire').length;
+            const terminationsToday = todaysEvents.filter(e => e.type === 'termination').length;
+            
+            dailyReportData = {
+                yesterdayTotal: yesterdaySnapshot.totalActive,
+                hiresToday: hiresToday,
+                terminationsToday: terminationsToday,
+                currentTotal: employees.filter(e => e.status === 'aktywny').length,
+            };
+        }
+        
+        // Point in Time Report Logic
+        let pointInTimeData = null;
+        if (singleDate) {
+            const pointInTimeSnapshot = statsHistory.find(s => s.id === format(singleDate, 'yyyy-MM-dd'));
+            if (pointInTimeSnapshot) {
+                pointInTimeData = {
+                    date: singleDate,
+                    snapshot: pointInTimeSnapshot,
+                };
+            }
+        }
 
         return {
-            dailyReport: null, // This is now handled by comparisonData in dynamic mode
-            pointInTimeReport: { date: singleDate!, snapshot: statsHistory.find(s => s.id === format(singleDate!, 'yyyy-MM-dd')) || null }, 
-            rangeReport: null, // This is also handled by comparisonData
-            comparisonData: comparisonDataResult,
+            dailyReport: dailyReportData,
+            pointInTimeReport: pointInTimeData,
         };
 
-    }, [mode, singleDate, dateRange, statsHistory, employeeEvents, employees]);
+    }, [singleDate, dateRange, statsHistory, employeeEvents, employees]);
     
     const handleDelete = () => {
         if (eventToDelete) {
@@ -509,46 +475,51 @@ const HiresAndFiresTab = () => {
         }
     };
     
+    if (isAppLoading) {
+        return (
+             <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
+    }
+    
     return (
         <div className="flex flex-col space-y-6 flex-grow">
-            {comparisonData ? (
+            {dailyReport ? (
                  <Card>
                     <CardHeader>
-                        <CardTitle>Podsumowanie ogólne</CardTitle>
+                        <CardTitle>Dobowy Raport Zmian</CardTitle>
                         <CardDescription>
-                            {mode === 'dynamic' 
-                                ? 'Automatyczne podsumowanie zmian z ostatniej doby.'
-                                : `Porównanie od ${format(parseISO(comparisonData.startDate), 'dd.MM.yyyy')} do ${format(parseISO(comparisonData.endDate), 'dd.MM.yyyy')}.`
-                            }
+                            Automatyczne podsumowanie zmian w stanie zatrudnienia z ostatniej doby.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div>
-                                <p className="text-sm text-muted-foreground">Stan na {format(parseISO(comparisonData.startDate), 'dd.MM.yy')}</p>
-                                <p className="text-2xl font-bold">{comparisonData.startTotal}</p>
+                                <p className="text-sm text-muted-foreground">Stan na wczoraj</p>
+                                <p className="text-2xl font-bold">{dailyReport.yesterdayTotal}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Nowo zatrudnieni</p>
-                                <p className="text-2xl font-bold text-green-600">+{comparisonData.hires}</p>
+                                <p className="text-sm text-muted-foreground">Zatrudnieni dzisiaj</p>
+                                <p className="text-2xl font-bold text-green-600">+{dailyReport.hiresToday}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Zwolnieni</p>
-                                <p className="text-2xl font-bold text-red-600">-{comparisonData.terminations}</p>
+                                <p className="text-sm text-muted-foreground">Zwolnieni dzisiaj</p>
+                                <p className="text-2xl font-bold text-red-600">-{dailyReport.terminationsToday}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Stan na {format(parseISO(comparisonData.endDate), 'dd.MM.yy')}</p>
-                                <p className="text-2xl font-bold">{comparisonData.endTotal}</p>
+                                <p className="text-sm text-muted-foreground">Stan na teraz</p>
+                                <p className="text-2xl font-bold">{dailyReport.currentTotal}</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
             ) : (
                  <Card>
-                    <CardHeader><CardTitle>Podsumowanie ogólne</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Dobowy Raport Zmian</CardTitle></CardHeader>
                     <CardContent className="text-center text-muted-foreground py-6">
-                        <p>Brak wystarczających danych do wygenerowania podsumowania.</p>
-                        <p className="text-xs">Poczekaj na utworzenie historycznych migawek lub wybierz inny zakres dat.</p>
+                        <p>Brak migawki z dnia wczorajszego.</p>
+                        <p className="text-xs">Poczekaj na utworzenie historycznych danych, aby zobaczyć raport.</p>
                     </CardContent>
                 </Card>
             )}
@@ -556,83 +527,38 @@ const HiresAndFiresTab = () => {
 
             <Card>
                 <CardHeader>
-                     <CardTitle>Analiza Historyczna</CardTitle>
-                     <CardDescription>Wybierz tryb analizy: dynamiczny (dobowy) lub historyczny (zakres dat).</CardDescription>
+                     <CardTitle>Analiza Punktowa w Czasie</CardTitle>
+                     <CardDescription>Wybierz dowolny dzień z przeszłości, aby zobaczyć stan zatrudnienia i rozkład w działach.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="dynamic" id="r1" />
-                            <Label htmlFor="r1">Dynamiczne (Dobowe)</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="history" id="r2" />
-                            <Label htmlFor="r2">Historyczne (Zakres)</Label>
-                        </div>
-                    </RadioGroup>
-
-                    {mode === 'history' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button id="date-range" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd.MM.yy")} - ${format(dateRange.to, "dd.MM.yy")}` : format(dateRange.from, "dd.MM.yy")) : <span>Wybierz zakres</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} locale={pl} />
-                                </PopoverContent>
-                            </Popover>
-                             <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !singleDate && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {singleDate ? format(singleDate, "PPP", { locale: pl }) : <span>Wybierz datę</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar initialFocus mode="single" selected={singleDate} onSelect={setSingleDate} locale={pl} />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                    )}
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <Button id="date" variant={"outline"} className={cn("w-full max-w-sm justify-start text-left font-normal", !singleDate && "text-muted-foreground")}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {singleDate ? format(singleDate, "PPP", { locale: pl }) : <span>Wybierz datę</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar initialFocus mode="single" selected={singleDate} onSelect={setSingleDate} locale={pl} disabled={(date) => date > new Date() || date < new Date("2023-01-01")} />
+                        </PopoverContent>
+                    </Popover>
                     
-                    {mode === 'history' && pointInTimeReport && (
-                        pointInTimeReport.snapshot ? (
-                            <div>
-                                <h3 className="font-semibold mb-2">Stan na dzień {format(pointInTimeReport.date, 'dd.MM.yyyy')}</h3>
-                                <p className="text-4xl font-bold mb-4">{pointInTimeReport.snapshot.totalActive}</p>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                     <SummaryTable title="Wg działów" data={Object.entries(pointInTimeReport.snapshot.departments || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
-                                     <SummaryTable title="Wg stanowisk" data={Object.entries(pointInTimeReport.snapshot.jobTitles || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
-                                     <SummaryTable title="Wg narodowości" data={Object.entries(pointInTimeReport.snapshot.nationalities || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
-                                </div>
+                    {pointInTimeReport ? (
+                        <div>
+                            <h3 className="font-semibold mb-2">Stan na dzień {format(pointInTimeReport.date, 'dd.MM.yyyy')}</h3>
+                            <p className="text-4xl font-bold mb-4">{pointInTimeReport.snapshot.totalActive}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                 <SummaryTable title="Wg działów" data={Object.entries(pointInTimeReport.snapshot.departments || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
+                                 <SummaryTable title="Wg stanowisk" data={Object.entries(pointInTimeReport.snapshot.jobTitles || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
+                                 <SummaryTable title="Wg narodowości" data={Object.entries(pointInTimeReport.snapshot.nationalities || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
                             </div>
-                        ) : (
-                            <p className="text-muted-foreground text-center py-4">Brak migawki dla wybranego dnia.</p>
-                        )
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-4">Brak migawki dla wybranego dnia.</p>
                     )}
 
                 </CardContent>
             </Card>
-
-            <AlertDialog open={!!eventToDelete} onOpenChange={(open) => !open && setEventToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie zdarzenia
-                            dla pracownika <span className="font-bold">{eventToDelete?.employeeFullName}</span> z dnia {' '}
-                            {eventToDelete && format(parseISO(eventToDelete.date), 'dd.MM.yyyy HH:mm')}.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setEventToDelete(null)}>Anuluj</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Usuń</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     )
 }
@@ -982,3 +908,4 @@ export default function StatisticsPage() {
   );
 }
 
+    
