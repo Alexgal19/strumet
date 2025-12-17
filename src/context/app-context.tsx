@@ -166,13 +166,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const { id, ...dataToSave } = employeeData;
             
             if (id) {
-                // For existing employees, ensure we don't lose the status field
                 const originalEmployee = employees.find(e => e.id === id) || {};
-                const dataWithPreservedStatus = Object.assign(originalEmployee, dataToSave);
+                
+                let dataWithPreservedStatus = Object.assign(originalEmployee, dataToSave);
+                
+                // If the employee is terminated, ensure the terminationDate is updated from the form,
+                // and plannedTerminationDate is cleared.
+                if (dataWithPreservedStatus.status === 'zwolniony') {
+                    dataWithPreservedStatus.terminationDate = dataToSave.terminationDate;
+                    dataWithPreservedStatus.plannedTerminationDate = undefined;
+                }
 
                 const finalData: { [key: string]: any } = {};
                 for (const key in dataWithPreservedStatus) {
-                    // Don't save the 'id' field inside the object itself
                     if (key === 'id') continue;
                     
                     const typedKey = key as keyof typeof dataWithPreservedStatus;
@@ -183,7 +189,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
 
             } else {
-                // For new employees
                 const finalData: { [key: string]: any } = {};
                  for (const key in dataToSave) {
                     const typedKey = key as keyof typeof dataToSave;

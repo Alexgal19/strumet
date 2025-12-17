@@ -29,6 +29,8 @@ interface EmployeeFormProps {
 
 const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
     if (employee) {
+        // If employee is terminated, the planned termination date field should reflect the actual termination date
+        const isTerminated = employee.status === 'zwolniony';
         return {
             fullName: employee.fullName || '',
             hireDate: employee.hireDate || '',
@@ -41,11 +43,12 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             departmentLockerNumber: employee.departmentLockerNumber || '',
             sealNumber: employee.sealNumber || '',
             avatarDataUri: employee.avatarDataUri,
-            plannedTerminationDate: employee.plannedTerminationDate,
+            plannedTerminationDate: isTerminated ? employee.terminationDate : employee.plannedTerminationDate,
             vacationStartDate: employee.vacationStartDate,
             vacationEndDate: employee.vacationEndDate,
             contractEndDate: employee.contractEndDate,
             legalizationStatus: employee.legalizationStatus || 'Brak',
+            terminationDate: employee.terminationDate,
         };
     }
     return {
@@ -104,8 +107,16 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validate()) {
+            let dataToSave = { ...formData };
+            // If the employee is terminated, the date from the 'plannedTerminationDate' field
+            // should actually update the 'terminationDate'.
+            if (employee?.status === 'zwolniony') {
+                dataToSave.terminationDate = dataToSave.plannedTerminationDate;
+                dataToSave.plannedTerminationDate = undefined;
+            }
+
             onSave({
-                ...formData,
+                ...dataToSave,
                 id: employee?.id || '',
                 status: employee?.status || 'aktywny',
             });
@@ -184,6 +195,8 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
     const renderError = (field: keyof typeof formData) => {
         return errors[field] && <p className="text-sm font-medium text-destructive">{errors[field]}</p>;
     };
+
+    const isTerminated = employee?.status === 'zwolniony';
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -317,11 +330,11 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                 <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   <div>
-                    <Label>Planowana data zwolnienia</Label>
+                    <Label>{isTerminated ? 'Data zwolnienia' : 'Planowana data zwolnienia'}</Label>
                     <DatePickerInput 
                         value={formData.plannedTerminationDate} 
                         onChange={(date) => handleChange('plannedTerminationDate', date)}
-                        placeholder="Wybierz datę zwolnienia"
+                        placeholder={isTerminated ? 'Wybierz datę zwolnienia' : 'Wybierz planowaną datę'}
                     />
                   </div>
                   <div>
