@@ -412,8 +412,6 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
     }, [employees]);
     
     const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
-        let newHiresInRange = 0;
-        let terminationsInRange = 0;
         let relevantEvents: EmployeeEvent[] = [];
         let snapA: StatsSnapshot | undefined;
         let snapB: StatsSnapshot | undefined;
@@ -448,7 +446,7 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
             snapB = liveSnapshot;
         }
 
-        if (!snapA || !snapB) return { comparisonData: null, snapshotA, snapshotB, newHiresInRange, terminationsInRange };
+        if (!snapA || !snapB) return { comparisonData: null, snapshotA, snapshotB, newHiresInRange: 0, terminationsInRange: 0 };
             
         const departmentChangesMap: Record<string, number> = {};
         const jobTitleChangesMap: Record<string, number> = {};
@@ -467,8 +465,8 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
             }
         });
         
-        newHiresInRange = relevantEvents.filter(e => e.type === 'hire').length;
-        terminationsInRange = relevantEvents.filter(e => e.type === 'termination').length;
+        const newHiresInRange = relevantEvents.filter(e => e.type === 'hire').length;
+        const terminationsInRange = relevantEvents.filter(e => e.type === 'termination').length;
         
         const departmentChanges = Object.entries(departmentChangesMap).map(([name, delta]) => ({ name, delta })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
         const jobTitleChanges = Object.entries(jobTitleChangesMap).map(([name, delta]) => ({ name, delta })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
@@ -618,7 +616,7 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
                                     <div>
                                         <p className="text-sm text-muted-foreground">Stan na {snapshotB.id === 'live' ? 'teraz' : format(parseISO(snapshotB.id), "dd.MM.yy")}</p>
                                         <div className="flex items-center justify-center gap-2">
-                                            <p className="text-2xl font-bold">{snapshotA.totalActive + comparisonData.totalDelta}</p>
+                                            <p className="text-2xl font-bold">{snapshotB.totalActive}</p>
                                             <DeltaCell delta={comparisonData.totalDelta} className="text-lg" />
                                         </div>
                                     </div>
@@ -1306,6 +1304,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
 
 
