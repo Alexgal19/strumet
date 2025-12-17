@@ -417,12 +417,12 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
     }, [statsHistory, dateRange, singleDate]);
     
     const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
-        if (mode === 'history') {
-            let newHiresInRange = 0;
-            let terminationsInRange = 0;
+        let newHiresInRange = 0;
+        let terminationsInRange = 0;
 
+        if (mode === 'history') {
             if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
-                return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange, terminationsInRange };
+                return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
             }
              const snapshotsInRange = statsHistory.filter(s => {
                 const sDate = parseISO(s.id);
@@ -467,10 +467,10 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             
             // Hires and terminations are calculated on-the-fly for dynamic mode
             const rangeStart = startOfDay(snapA ? parseISO(snapA.id) : new Date());
-            const hiresInRange = employeeEvents.filter(e => {
+            newHiresInRange = employeeEvents.filter(e => {
                 return e.type === 'hire' && isWithinInterval(parseISO(e.date), { start: rangeStart, end: endOfToday() });
             }).length;
-             const terminationsInRange = employeeEvents.filter(e => {
+             terminationsInRange = employeeEvents.filter(e => {
                 return e.type === 'termination' && isWithinInterval(parseISO(e.date), { start: rangeStart, end: endOfToday() });
             }).length;
 
@@ -1238,7 +1238,7 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-4" : "grid-cols-4")}>
+        <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
             <TabsTrigger value="orders">Zamówienia</TabsTrigger>
             <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
@@ -1260,3 +1260,4 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
