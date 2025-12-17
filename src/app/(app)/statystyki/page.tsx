@@ -80,6 +80,44 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const SummaryTable = ({ title, data }: { title: string; data: { name: string; count: number }[] }) => {
+    if (!data || data.length === 0) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base">{title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground text-center py-4">Brak danych.</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base">{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-60">
+                    <Table>
+                        <TableBody>
+                            {data.map(item => (
+                                <TableRow key={item.name}>
+                                    <TableCell>{item.name}</TableCell>
+                                    <TableCell className="text-right font-bold">{item.count}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
+            </CardContent>
+        </Card>
+    );
+};
+
+
 const ReportTab = forwardRef<unknown, {}>((_, ref) => {
     const { employees, config, handleSaveEmployee, isAdmin } = useAppContext();
     const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
@@ -378,89 +416,91 @@ const HiresAndFiresTab = () => {
     const { employeeEvents, employees, isAdmin, deleteEmployeeEvent, statsHistory } = useAppContext();
     const [eventToDelete, setEventToDelete] = useState<EmployeeEvent | null>(null);
 
-    const [singleDate, setSingleDate] = useState<Date | undefined>(new Date());
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: new Date(2025, 11, 15), to: endOfDay(new Date()) });
-    const [mode, setMode] = useState<'point-in-time' | 'range'>('point-in-time');
+    const [singleDate, setSingleDate] = useState<Date | undefined>(new Date(2025, 11, 15));
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 30), to: endOfDay(new Date()) });
+    const [mode, setMode] = useState<'history' | 'dynamic'>('dynamic');
 
     const { 
         dailyReport, 
-        pointInTimeReport, 
-        rangeReport 
+        pointInTimeReport,
+        rangeReport,
+        comparisonData,
     } = useMemo(() => {
-        // --- Daily Report ---
-        const today = new Date();
-        const yesterday = subDays(today, 1);
-        const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
+        const endOfToday = endOfDay(new Date());
         
-        const yesterdaySnapshot = statsHistory.find(s => s.id === yesterdayStr);
+        let snapshotA: StatsSnapshot;
+        let snapshotB: StatsSnapshot;
 
-        const todaysEvents = employeeEvents.filter(event => isSameDay(parseISO(event.date), today));
-        const hiresToday = todaysEvents.filter(e => e.type === 'hire').length;
-        const termsToday = todaysEvents.filter(e => e.type === 'termination').length;
-        const currentTotal = employees.filter(e => e.status === 'aktywny').length;
+        let hiresInRange = 0;
+        let terminationsInRange = 0;
+        
+        if (mode === 'dynamic') {
+             // Dynamic mode: Compare yesterday with today
+             const todayStr = format(new Date(), 'yyyy-MM-dd');
+             const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+             
+             const yesterdaySnapshot = statsHistory.find(s => s.id === yesterdayStr);
+             if (!yesterdaySnapshot) {
+                 return { dailyReport: null, pointInTimeReport: null, rangeReport: null, comparisonData: null };
+             }
+             snapshotA = yesterdaySnapshot;
 
-        const dailyReportData = {
-            yesterdayTotal: yesterdaySnapshot?.totalActive,
-            hiresToday,
-            terminationsToday: termsToday,
-            currentTotal,
+             const todaysEvents = employeeEvents.filter(event => isSameDay(parseISO(event.date), new Date()));
+             hiresInRange = todaysEvents.filter(e => e.type === 'hire').length;
+             terminationsInRange = todaysEvents.filter(e => e.type === 'termination').length;
+             
+             snapshotB = {
+                 id: todayStr,
+                 totalActive: employees.filter(e => e.status === 'aktywny').length,
+                 newHires: hiresInRange,
+                 terminations: terminationsInRange,
+                 departments: {}, jobTitles: {}, nationalities: {} // Not needed for this view
+             };
+        } else {
+             // History mode: Use dateRange
+             if (!dateRange?.from || !dateRange.to) {
+                 return { dailyReport: null, pointInTimeReport: null, rangeReport: null, comparisonData: null };
+             }
+             const fromStr = format(dateRange.from, 'yyyy-MM-dd');
+             const toStr = format(dateRange.to, 'yyyy-MM-dd');
+             
+             const snapA = statsHistory.find(s => s.id === fromStr);
+             const snapB = statsHistory.find(s => s.id === toStr);
+
+             if (!snapA || !snapB) {
+                 return { dailyReport: null, pointInTimeReport: null, rangeReport: null, comparisonData: null };
+             }
+             snapshotA = snapA;
+             snapshotB = snapB;
+             
+             const relevantEvents = employeeEvents.filter(event => 
+                isWithinInterval(parseISO(event.date), { start: startOfDay(dateRange.from!), end: endOfDay(dateRange.to!) })
+            );
+
+            hiresInRange = relevantEvents.filter(e => e.type === 'hire').length;
+            terminationsInRange = relevantEvents.filter(e => e.type === 'termination').length;
+        }
+
+        const totalDelta = hiresInRange - terminationsInRange;
+
+        const comparisonDataResult = {
+            startDate: snapshotA.id,
+            endDate: snapshotB.id,
+            startTotal: snapshotA.totalActive,
+            endTotal: snapshotB.totalActive,
+            hires: hiresInRange,
+            terminations: terminationsInRange,
+            totalDelta: totalDelta
         };
 
-        // --- Point-in-Time Report ---
-        let pointInTimeReportData: { date: Date; snapshot: StatsSnapshot | null } | null = null;
-        if (mode === 'point-in-time' && singleDate) {
-            const snapshot = statsHistory.find(s => s.id === format(singleDate, 'yyyy-MM-dd')) || null;
-            pointInTimeReportData = { date: singleDate, snapshot };
-        }
-        
-        // --- Range Report ---
-        let rangeReportData: {
-            from: Date;
-            to: Date;
-            hires: EmployeeEvent[];
-            terminations: EmployeeEvent[];
-            departmentChanges: { name: string; delta: number }[];
-            jobTitleChanges: { name: string; delta: number }[];
-        } | null = null;
-
-        if (mode === 'range' && dateRange?.from && dateRange.to) {
-            const relevantEvents = employeeEvents.filter(event => 
-                isWithinInterval(parseISO(event.date), { start: dateRange.from!, end: dateRange.to! })
-            );
-            
-            const hires = relevantEvents.filter(event => event.type === 'hire');
-            const terms = relevantEvents.filter(event => event.type === 'termination');
-            
-            const departmentChangesMap: Record<string, number> = {};
-            const jobTitleChangesMap: Record<string, number> = {};
-
-            relevantEvents.forEach(event => {
-                const employee = employees.find(e => e.id === event.employeeId);
-                if (employee) {
-                    const change = event.type === 'hire' ? 1 : -1;
-                    if (employee.department) {
-                        departmentChangesMap[employee.department] = (departmentChangesMap[employee.department] || 0) + change;
-                    }
-                    if (employee.jobTitle) {
-                        jobTitleChangesMap[employee.jobTitle] = (jobTitleChangesMap[employee.jobTitle] || 0) + change;
-                    }
-                }
-            });
-
-            rangeReportData = {
-                from: dateRange.from,
-                to: dateRange.to,
-                hires: hires.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-                terminations: terms.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-                departmentChanges: Object.entries(departmentChangesMap).map(([name, delta]) => ({name, delta})).sort((a,b) => b.delta - a.delta),
-                jobTitleChanges: Object.entries(jobTitleChangesMap).map(([name, delta]) => ({name, delta})).sort((a,b) => b.delta - a.delta),
-            };
-        }
-
-        return { dailyReport: dailyReportData, pointInTimeReport: pointInTimeReportData, rangeReport: rangeReportData };
+        return {
+            dailyReport: null, // This is now handled by comparisonData in dynamic mode
+            pointInTimeReport: { date: singleDate!, snapshot: statsHistory.find(s => s.id === format(singleDate!, 'yyyy-MM-dd')) || null }, 
+            rangeReport: null, // This is also handled by comparisonData
+            comparisonData: comparisonDataResult,
+        };
 
     }, [mode, singleDate, dateRange, statsHistory, employeeEvents, employees]);
-
     
     const handleDelete = () => {
         if (eventToDelete) {
@@ -468,93 +508,97 @@ const HiresAndFiresTab = () => {
             setEventToDelete(null);
         }
     };
-
-    const DeltaCell = ({ delta }: { delta: number }) => {
-        if (delta === 0) return <span className="text-muted-foreground flex items-center justify-end"><Minus className="h-4 w-4 mr-1" /> {delta}</span>;
-        if (delta > 0) return <span className="text-green-600 font-bold flex items-center justify-end"><TrendingUp className="h-4 w-4 mr-1" /> +{delta}</span>;
-        return <span className="text-red-600 font-bold flex items-center justify-end"><TrendingDown className="h-4 w-4 mr-1" /> {delta}</span>;
-    };
     
     return (
         <div className="flex flex-col space-y-6 flex-grow">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Dobowy Raport Zmian</CardTitle>
-                    <CardDescription>Podsumowanie stanu zatrudnienia w oparciu o dane z ostatniej doby.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {dailyReport.yesterdayTotal !== undefined ? (
+            {comparisonData ? (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Podsumowanie ogólne</CardTitle>
+                        <CardDescription>
+                            {mode === 'dynamic' 
+                                ? 'Automatyczne podsumowanie zmian z ostatniej doby.'
+                                : `Porównanie od ${format(parseISO(comparisonData.startDate), 'dd.MM.yyyy')} do ${format(parseISO(comparisonData.endDate), 'dd.MM.yyyy')}.`
+                            }
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div>
-                                <p className="text-sm text-muted-foreground">Stan na wczoraj</p>
-                                <p className="text-2xl font-bold">{dailyReport.yesterdayTotal}</p>
+                                <p className="text-sm text-muted-foreground">Stan na {format(parseISO(comparisonData.startDate), 'dd.MM.yy')}</p>
+                                <p className="text-2xl font-bold">{comparisonData.startTotal}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Nowo zatrudnieni (dziś)</p>
-                                <p className="text-2xl font-bold text-green-600">+{dailyReport.hiresToday}</p>
+                                <p className="text-sm text-muted-foreground">Nowo zatrudnieni</p>
+                                <p className="text-2xl font-bold text-green-600">+{comparisonData.hires}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Zwolnieni (dziś)</p>
-                                <p className="text-2xl font-bold text-red-600">-{dailyReport.terminationsToday}</p>
+                                <p className="text-sm text-muted-foreground">Zwolnieni</p>
+                                <p className="text-2xl font-bold text-red-600">-{comparisonData.terminations}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Stan na teraz</p>
-                                <p className="text-2xl font-bold">{dailyReport.currentTotal}</p>
+                                <p className="text-sm text-muted-foreground">Stan na {format(parseISO(comparisonData.endDate), 'dd.MM.yy')}</p>
+                                <p className="text-2xl font-bold">{comparisonData.endTotal}</p>
                             </div>
                         </div>
-                    ) : (
-                        <div className="text-center text-muted-foreground py-4">
-                            <p>Brak migawki z dnia wczorajszego.</p>
-                            <p className="text-xs">Poczekaj na automatyczne utworzenie lub uruchom ręcznie.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            ) : (
+                 <Card>
+                    <CardHeader><CardTitle>Podsumowanie ogólne</CardTitle></CardHeader>
+                    <CardContent className="text-center text-muted-foreground py-6">
+                        <p>Brak wystarczających danych do wygenerowania podsumowania.</p>
+                        <p className="text-xs">Poczekaj na utworzenie historycznych migawek lub wybierz inny zakres dat.</p>
+                    </CardContent>
+                </Card>
+            )}
+
 
             <Card>
                 <CardHeader>
                      <CardTitle>Analiza Historyczna</CardTitle>
-                     <CardDescription>Wybierz tryb analizy: punkt w czasie lub zakres dat.</CardDescription>
+                     <CardDescription>Wybierz tryb analizy: dynamiczny (dobowy) lub historyczny (zakres dat).</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <RadioGroup defaultValue="point-in-time" onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-4">
+                    <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="point-in-time" id="r1" />
-                            <Label htmlFor="r1">Punkt w czasie</Label>
+                            <RadioGroupItem value="dynamic" id="r1" />
+                            <Label htmlFor="r1">Dynamiczne (Dobowe)</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="range" id="r2" />
-                            <Label htmlFor="r2">Zakres dat</Label>
+                            <RadioGroupItem value="history" id="r2" />
+                            <Label htmlFor="r2">Historyczne (Zakres)</Label>
                         </div>
                     </RadioGroup>
 
-                    {mode === 'point-in-time' ? (
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !singleDate && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {singleDate ? format(singleDate, "PPP", { locale: pl }) : <span>Wybierz datę</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar initialFocus mode="single" selected={singleDate} onSelect={setSingleDate} locale={pl} />
-                            </PopoverContent>
-                        </Popover>
-                    ) : (
-                         <Popover>
-                            <PopoverTrigger asChild>
-                                <Button id="date-range" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd.MM.yy")} - ${format(dateRange.to, "dd.MM.yy")}` : format(dateRange.from, "dd.MM.yy")) : <span>Wybierz zakres</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} locale={pl} />
-                            </PopoverContent>
-                        </Popover>
+                    {mode === 'history' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button id="date-range" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, "dd.MM.yy")} - ${format(dateRange.to, "dd.MM.yy")}` : format(dateRange.from, "dd.MM.yy")) : <span>Wybierz zakres</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} locale={pl} />
+                                </PopoverContent>
+                            </Popover>
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !singleDate && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {singleDate ? format(singleDate, "PPP", { locale: pl }) : <span>Wybierz datę</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar initialFocus mode="single" selected={singleDate} onSelect={setSingleDate} locale={pl} />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     )}
-
-                    {mode === 'point-in-time' && pointInTimeReport && (
+                    
+                    {mode === 'history' && pointInTimeReport && (
                         pointInTimeReport.snapshot ? (
                             <div>
                                 <h3 className="font-semibold mb-2">Stan na dzień {format(pointInTimeReport.date, 'dd.MM.yyyy')}</h3>
@@ -570,56 +614,6 @@ const HiresAndFiresTab = () => {
                         )
                     )}
 
-                    {mode === 'range' && rangeReport && (
-                        <div className="space-y-6">
-                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                                <Card>
-                                    <CardHeader><CardTitle>Zmiany wg działów</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <Table>
-                                            <TableBody>
-                                                {rangeReport.departmentChanges.map(item => <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell><DeltaCell delta={item.delta} /></TableCell></TableRow>)}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader><CardTitle>Zmiany wg stanowisk</CardTitle></CardHeader>
-                                    <CardContent>
-                                         <Table>
-                                            <TableBody>
-                                                {rangeReport.jobTitleChanges.map(item => <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell><DeltaCell delta={item.delta} /></TableCell></TableRow>)}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader><CardTitle>Zatrudnieni ({rangeReport.hires.length})</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <ScrollArea className="h-60">
-                                            <Table>
-                                                <TableBody>
-                                                    {rangeReport.hires.map(e => <TableRow key={e.id}><TableCell>{e.employeeFullName}</TableCell><TableCell className="text-right">{format(parseISO(e.date), 'dd.MM.yy')}</TableCell></TableRow>)}
-                                                </TableBody>
-                                            </Table>
-                                        </ScrollArea>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader><CardTitle>Zwolnieni ({rangeReport.terminations.length})</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <ScrollArea className="h-60">
-                                            <Table>
-                                                <TableBody>
-                                                    {rangeReport.terminations.map(e => <TableRow key={e.id}><TableCell>{e.employeeFullName}</TableCell><TableCell className="text-right">{format(parseISO(e.date), 'dd.MM.yy')}</TableCell></TableRow>)}
-                                                </TableBody>
-                                            </Table>
-                                        </ScrollArea>
-                                    </CardContent>
-                                </Card>
-                             </div>
-                        </div>
-                    )}
                 </CardContent>
             </Card>
 
@@ -987,3 +981,4 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
