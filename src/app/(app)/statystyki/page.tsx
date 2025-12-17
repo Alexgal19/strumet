@@ -414,12 +414,12 @@ ReportTab.displayName = 'ReportTab';
 
 const HiresAndFiresTab = () => {
     const { employees, statsHistory, isHistoryLoading } = useAppContext();
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 1), to: subDays(new Date(), 1) });
+    const [startDate, setStartDate] = useState<Date | undefined>(subDays(new Date(), 1));
+    const [endDate, setEndDate] = useState<Date | undefined>();
 
     const { dailyReport, pointInTimeReport, comparisonReport } = useMemo(() => {
         const today = startOfDay(new Date());
 
-        // This calculation is ALWAYS live and based on the full employee list
         const hiresToday = employees.filter(e => {
             const hireDate = parseMaybeDate(e.hireDate);
             return hireDate && isSameDay(hireDate, today);
@@ -447,49 +447,46 @@ const HiresAndFiresTab = () => {
             currentTotal: employees.filter(e => e.status === 'aktywny').length,
         };
 
-        let pointInTimeData = null;
+        let pointInTimeData: 'is-today' | { date: Date, snapshot: StatsSnapshot } | null = null;
         let comparisonData = null;
 
-        if (statsHistory && dateRange?.from) {
-            const isRange = dateRange.to && !isSameDay(dateRange.from, dateRange.to);
-
-            if (!isRange && isSameDay(dateRange.from, today)) {
-                 pointInTimeData = 'is-today';
-            } else {
-                const fromDateStr = format(dateRange.from, 'yyyy-MM-dd');
-                const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
-                
-                if (isRange && dateRange.to) {
-                    // Comparison Mode
-                    const toDateStr = format(dateRange.to, 'yyyy-MM-dd');
-                    const endSnapshot = statsHistory.find(s => s.id === toDateStr);
-
-                    if (startSnapshot && endSnapshot) {
-                        const allDepts = Array.from(new Set([...Object.keys(startSnapshot.departments || {}), ...Object.keys(endSnapshot.departments || {})]));
-                        const allJobs = Array.from(new Set([...Object.keys(startSnapshot.jobTitles || {}), ...Object.keys(endSnapshot.jobTitles || {})]));
-
-                        comparisonData = {
-                            start: startSnapshot,
-                            end: endSnapshot,
-                            deptChanges: allDepts.map(dept => {
-                                const startCount = startSnapshot.departments?.[dept] || 0;
-                                const endCount = endSnapshot.departments?.[dept] || 0;
-                                return { name: dept, start: startCount, end: endCount, diff: endCount - startCount };
-                            }).filter(d => d.diff !== 0).sort((a,b) => b.diff - a.diff),
-                            jobChanges: allJobs.map(job => {
-                                 const startCount = startSnapshot.jobTitles?.[job] || 0;
-                                 const endCount = endSnapshot.jobTitles?.[job] || 0;
-                                 return { name: job, start: startCount, end: endCount, diff: endCount - startCount };
-                            }).filter(j => j.diff !== 0).sort((a,b) => b.diff - a.diff),
-                        }
-                    }
+        if (statsHistory && startDate) {
+            if (!endDate || isSameDay(startDate, endDate)) {
+                if (isSameDay(startDate, today)) {
+                    pointInTimeData = 'is-today';
                 } else {
-                    // Single Day Mode
+                    const fromDateStr = format(startDate, 'yyyy-MM-dd');
+                    const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
                     if (startSnapshot) {
                         pointInTimeData = {
-                            date: dateRange.from,
+                            date: startDate,
                             snapshot: startSnapshot,
                         };
+                    }
+                }
+            } else { // Comparison Mode
+                const fromDateStr = format(startDate, 'yyyy-MM-dd');
+                const toDateStr = format(endDate, 'yyyy-MM-dd');
+                const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
+                const endSnapshot = statsHistory.find(s => s.id === toDateStr);
+
+                if (startSnapshot && endSnapshot) {
+                    const allDepts = Array.from(new Set([...Object.keys(startSnapshot.departments || {}), ...Object.keys(endSnapshot.departments || {})]));
+                    const allJobs = Array.from(new Set([...Object.keys(startSnapshot.jobTitles || {}), ...Object.keys(endSnapshot.jobTitles || {})]));
+
+                    comparisonData = {
+                        start: startSnapshot,
+                        end: endSnapshot,
+                        deptChanges: allDepts.map(dept => {
+                            const startCount = startSnapshot.departments?.[dept] || 0;
+                            const endCount = endSnapshot.departments?.[dept] || 0;
+                            return { name: dept, start: startCount, end: endCount, diff: endCount - startCount };
+                        }).filter(d => d.diff !== 0).sort((a,b) => b.diff - a.diff),
+                        jobChanges: allJobs.map(job => {
+                             const startCount = startSnapshot.jobTitles?.[job] || 0;
+                             const endCount = endSnapshot.jobTitles?.[job] || 0;
+                             return { name: job, start: startCount, end: endCount, diff: endCount - startCount };
+                        }).filter(j => j.diff !== 0).sort((a,b) => b.diff - a.diff),
                     }
                 }
             }
@@ -501,7 +498,7 @@ const HiresAndFiresTab = () => {
             comparisonReport: comparisonData,
         };
 
-    }, [dateRange, employees, statsHistory]);
+    }, [startDate, endDate, employees, statsHistory]);
     
     if (isHistoryLoading) {
         return (
@@ -556,46 +553,61 @@ const HiresAndFiresTab = () => {
                      <CardDescription>Wybierz dzień, aby zobaczyć stan z przeszłości, lub dwa dni, aby je porównać. Migawki danych są tworzone automatycznie każdego dnia.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                     <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                id="date"
-                                variant={"outline"}
-                                className={cn("w-full max-w-md justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateRange?.from ? (
-                                    dateRange.to ? (
-                                        <>
-                                            {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
-                                            {format(dateRange.to, "LLL dd, y", { locale: pl })}
-                                        </>
-                                    ) : (
-                                        format(dateRange.from, "LLL dd, y", { locale: pl })
-                                    )
-                                ) : (
-                                    <span>Wybierz zakres dat</span>
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={dateRange?.from}
-                                selected={dateRange}
-                                onSelect={setDateRange}
-                                numberOfMonths={2}
-                                locale={pl}
-                                disabled={(date) => date >= new Date()}
-                            />
-                        </PopoverContent>
-                    </Popover>
+                     <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    id="start-date"
+                                    variant={"outline"}
+                                    className={cn("w-full sm:w-[260px] justify-start text-left font-normal", !startDate && "text-muted-foreground")}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {startDate ? format(startDate, "LLL dd, y", { locale: pl }) : <span>Data początkowa</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="single"
+                                    selected={startDate}
+                                    onSelect={setStartDate}
+                                    locale={pl}
+                                    disabled={(date) => date >= new Date()}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    id="end-date"
+                                    variant={"outline"}
+                                    className={cn("w-full sm:w-[260px] justify-start text-left font-normal", !endDate && "text-muted-foreground")}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {endDate ? format(endDate, "LLL dd, y", { locale: pl }) : <span>Data końcowa (opcjonalnie)</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="single"
+                                    selected={endDate}
+                                    onSelect={setEndDate}
+                                    locale={pl}
+                                    disabled={(date) => date >= new Date() || (startDate && date < startDate)}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        {endDate && (
+                            <Button variant="ghost" onClick={() => setEndDate(undefined)}>Wyczyść datę końcową</Button>
+                        )}
+                    </div>
                     
                     {pointInTimeReport === 'is-today' ? (
-                        <p className="text-muted-foreground text-center py-4">
-                            Dane dla dnia dzisiejszego są dostępne na żywo w "Dobowym Raporcie Zmian" powyżej.
-                        </p>
+                        <div className="text-muted-foreground text-center py-4 flex items-center justify-center gap-2">
+                           <Info className="h-4 w-4"/>
+                           <span>Dane dla dnia dzisiejszego są dostępne na żywo w "Dobowym Raporcie Zmian" powyżej.</span>
+                        </div>
                     ) : pointInTimeReport && typeof pointInTimeReport === 'object' ? (
                         <div>
                             <h3 className="font-semibold mb-2">Stan na dzień {format(pointInTimeReport.date, 'dd.MM.yyyy')}</h3>
@@ -1006,4 +1018,5 @@ export default function StatisticsPage() {
     
 
     
+
 
