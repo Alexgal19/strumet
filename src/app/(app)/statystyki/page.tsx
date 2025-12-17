@@ -412,12 +412,18 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
     }, [employees]);
     
     const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
+        if (statsHistory.length < 1) {
+            return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
+        }
+
         let relevantEvents: EmployeeEvent[] = [];
         let snapA: StatsSnapshot | undefined;
         let snapB: StatsSnapshot | undefined;
+        let newHiresInRange = 0;
+        let terminationsInRange = 0;
         
         if (mode === 'history') {
-            if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
+             if (!dateRange?.from || !dateRange.to) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
             }
             
@@ -432,7 +438,7 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
             snapB = findClosestSnapshot(dateRange.to);
 
         } else { // Dynamic mode
-            if (!singleDate || statsHistory.length < 1) {
+            if (!singleDate) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
             }
             
@@ -450,6 +456,9 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
             
         const departmentChangesMap: Record<string, number> = {};
         const jobTitleChangesMap: Record<string, number> = {};
+        
+        newHiresInRange = relevantEvents.filter(e => e.type === 'hire').length;
+        terminationsInRange = relevantEvents.filter(e => e.type === 'termination').length;
 
         relevantEvents.forEach(event => {
             const employee = employees.find(e => e.id === event.employeeId);
@@ -464,9 +473,6 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
                 jobTitleChangesMap[employee.jobTitle] = (jobTitleChangesMap[employee.jobTitle] || 0) + delta;
             }
         });
-        
-        const newHiresInRange = relevantEvents.filter(e => e.type === 'hire').length;
-        const terminationsInRange = relevantEvents.filter(e => e.type === 'termination').length;
         
         const departmentChanges = Object.entries(departmentChangesMap).map(([name, delta]) => ({ name, delta })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
         const jobTitleChanges = Object.entries(jobTitleChangesMap).map(([name, delta]) => ({ name, delta })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
@@ -534,7 +540,7 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
                         <CardDescription>Wybierz tryb i daty, aby porównać stan zatrudnienia.</CardDescription>
                     </div>
                      <div className="flex items-center gap-4">
-                         <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-2 rounded-md bg-muted/50 p-1">
+                         <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} defaultValue="dynamic" className="flex items-center space-x-2 rounded-md bg-muted/50 p-1">
                               <RadioGroupItem value="history" id="r1" className="peer sr-only" />
                               <Label htmlFor="r1" className="cursor-pointer rounded-sm px-3 py-1.5 text-sm font-medium peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow-sm">Historyczne</Label>
                               <RadioGroupItem value="dynamic" id="r2" className="peer sr-only" />
@@ -1305,12 +1311,4 @@ export default function StatisticsPage() {
   );
 }
 
-
-
-
-
-
-
-
-
-
+    
