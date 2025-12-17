@@ -30,8 +30,6 @@ interface EmployeeFormProps {
 
 const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
     if (employee) {
-        // If employee is terminated, the planned termination date field should reflect the actual termination date
-        const isTerminated = employee.status === 'zwolniony';
         return {
             fullName: employee.fullName || '',
             hireDate: employee.hireDate || '',
@@ -44,7 +42,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             departmentLockerNumber: employee.departmentLockerNumber || '',
             sealNumber: employee.sealNumber || '',
             avatarDataUri: employee.avatarDataUri,
-            plannedTerminationDate: isTerminated ? employee.terminationDate : employee.plannedTerminationDate,
+            plannedTerminationDate: employee.plannedTerminationDate,
             vacationStartDate: employee.vacationStartDate,
             vacationEndDate: employee.vacationEndDate,
             contractEndDate: employee.contractEndDate,
@@ -113,13 +111,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
         e.preventDefault();
         if (validate()) {
             let dataToSave = { ...formData };
-            // If the employee is terminated, the date from the 'plannedTerminationDate' field
-            // should actually update the 'terminationDate'.
-            if (employee?.status === 'zwolniony') {
-                dataToSave.terminationDate = dataToSave.plannedTerminationDate;
-                dataToSave.plannedTerminationDate = undefined;
-            }
-
+            
             onSave({
                 ...dataToSave,
                 id: employee?.id || '',
@@ -337,14 +329,26 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                  <Separator />
                 <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  <div>
-                    <Label>{isTerminated ? 'Data zwolnienia' : 'Planowana data zwolnienia'}</Label>
-                    <DatePickerInput 
-                        value={formData.plannedTerminationDate} 
-                        onChange={(date) => handleChange('plannedTerminationDate', date)}
-                        placeholder={isTerminated ? 'Wybierz datę zwolnienia' : 'Wybierz planowaną datę'}
-                    />
-                  </div>
+                  {!isTerminated && (
+                    <div>
+                        <Label>Planowana data zwolnienia</Label>
+                        <DatePickerInput 
+                            value={formData.plannedTerminationDate} 
+                            onChange={(date) => handleChange('plannedTerminationDate', date)}
+                            placeholder="Wybierz planowaną datę"
+                        />
+                    </div>
+                  )}
+                  {isTerminated && (
+                    <div>
+                        <Label>Data zwolnienia</Label>
+                        <DatePickerInput 
+                            value={formData.terminationDate} 
+                            onChange={(date) => handleChange('terminationDate', date)}
+                            placeholder="Wybierz datę zwolnienia"
+                        />
+                    </div>
+                  )}
                   <div>
                     <Label>Urlop od</Label>
                     <DatePickerInput 
@@ -386,5 +390,3 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
         </form>
     );
 }
-
-    

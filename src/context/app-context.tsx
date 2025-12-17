@@ -144,14 +144,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             if (id) {
                 const originalEmployee = employees.find(e => e.id === id) || {};
                 
-                let dataWithPreservedStatus = Object.assign(originalEmployee, dataToSave);
-                
-                // If the employee is terminated, ensure the terminationDate is updated from the form,
-                // and plannedTerminationDate is cleared.
-                if (dataWithPreservedStatus.status === 'zwolniony') {
-                    dataWithPreservedStatus.terminationDate = dataToSave.terminationDate;
-                    dataWithPreservedStatus.plannedTerminationDate = undefined;
-                }
+                let dataWithPreservedStatus = Object.assign({}, originalEmployee, dataToSave);
 
                 const finalData: { [key: string]: any } = {};
                 for (const key in dataWithPreservedStatus) {
