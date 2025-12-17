@@ -63,8 +63,9 @@ const AppContent = () => {
     const router = useRouter();
 
     useEffect(() => {
-        // If user is not an admin and tries to access a page other than 'statystyki', redirect them.
-        if (!isAdmin && activeView !== 'statystyki') {
+        const allowedGuestViews: ActiveView[] = ['statystyki', 'planowanie'];
+        // If user is not an admin and tries to access a page they are not allowed to, redirect them to default.
+        if (!isAdmin && !allowedGuestViews.includes(activeView)) {
              router.replace('/statystyki');
         }
     }, [isAdmin, activeView, router]);

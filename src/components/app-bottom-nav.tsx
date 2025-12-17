@@ -14,6 +14,7 @@ import {
   PackagePlus,
   CalendarCheck,
   ClipboardList,
+  CalendarClock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
@@ -40,11 +41,13 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const allMenuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
     { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność'},
+    { view: 'planowanie', icon: CalendarClock, label: 'Planowanie'},
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];
-
-  const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => item.view === 'statystyki');
+  
+  const guestViews: ActiveView[] = ['statystyki', 'planowanie'];
+  const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => item.view && guestViews.includes(item.view));
   
   if (!hasMounted || !isMobile) {
     return null;

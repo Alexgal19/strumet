@@ -183,8 +183,9 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
     { view: 'brak-logowania', icon: <FileText />, label: 'Brak logowania' },
     { view: 'konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
   ];
-
-  const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => item.view === 'statystyki');
+  
+  const guestViews: ActiveView[] = ['statystyki', 'planowanie'];
+  const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => guestViews.includes(item.view));
 
 
   if (!hasMounted || isMobile) {
