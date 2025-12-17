@@ -413,8 +413,10 @@ ReportTab.displayName = 'ReportTab';
 
 const HiresAndFiresTab = () => {
     const { employees, statsHistory, isHistoryLoading } = useAppContext();
-    const [startDate, setStartDate] = useState<Date | undefined>(subDays(new Date(), 1));
-    const [endDate, setEndDate] = useState<Date | undefined>();
+    const [date, setDate] = useState<DateRange | undefined>({
+        from: subDays(new Date(), 1),
+        to: undefined,
+    });
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
     type PointInTimeReportType = { date: Date; snapshot: StatsSnapshot } | null;
@@ -447,6 +449,8 @@ const HiresAndFiresTab = () => {
         };
 
         const daily = (() => {
+             const yesterday = subDays(today, 1);
+            
             const hiresToday = employees.filter(e => {
                 const hireDate = parseMaybeDate(e.hireDate);
                 return hireDate && isSameDay(hireDate, today);
@@ -459,10 +463,12 @@ const HiresAndFiresTab = () => {
 
             const activeYesterday = employees.filter(e => {
                 const hireDate = parseMaybeDate(e.hireDate);
-                if (!hireDate || hireDate >= today) return false;
+                // Zatrudniony wczoraj lub wcześniej
+                if (!hireDate || hireDate > yesterday) return false;
 
                 const termDate = parseMaybeDate(e.terminationDate);
-                if (termDate && termDate < today) return false;
+                // Zwolniony dzisiaj lub później (lub wcale)
+                if (termDate && termDate <= yesterday) return false;
                 
                 return true;
             }).length;
@@ -486,26 +492,25 @@ const HiresAndFiresTab = () => {
     const generateReport = () => {
         setPointInTimeReport(null);
         setComparisonReport(null);
-        const today = startOfDay(new Date());
 
-        if (statsHistory && startDate) {
-             if (isSameDay(startDate, today) && (!endDate || isSameDay(startDate, endDate))) {
+        if (statsHistory && date?.from) {
+             if (isSameDay(date.from, new Date()) && (!date.to || isSameDay(date.from, date.to))) {
                  setIsReportDialogOpen(true);
                  return;
             } 
             
-            if (!endDate || isSameDay(startDate, endDate)) {
-                const fromDateStr = format(startDate, 'yyyy-MM-dd');
+            if (!date.to || isSameDay(date.from, date.to)) {
+                const fromDateStr = format(date.from, 'yyyy-MM-dd');
                 const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
                 if (startSnapshot) {
                     setPointInTimeReport({
-                        date: startDate,
+                        date: date.from,
                         snapshot: startSnapshot,
                     });
                 }
             } else { // Comparison Mode
-                const fromDateStr = format(startDate, 'yyyy-MM-dd');
-                const toDateStr = format(endDate, 'yyyy-MM-dd');
+                const fromDateStr = format(date.from, 'yyyy-MM-dd');
+                const toDateStr = format(date.to, 'yyyy-MM-dd');
                 const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
                 const endSnapshot = statsHistory.find(s => s.id === toDateStr);
 
@@ -557,6 +562,7 @@ const HiresAndFiresTab = () => {
                          <p className={cn("text-xl font-bold", data.netChange > 0 && "text-green-600", data.netChange < 0 && "text-red-600")}>
                            {data.netChange > 0 ? `+${data.netChange}` : data.netChange}
                         </p>
+                         <p className="text-xs text-muted-foreground">(zatrudnieni - zwolnieni)</p>
                     </div>
                 </CardContent>
             </Card>
@@ -607,54 +613,41 @@ const HiresAndFiresTab = () => {
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
-                                    id="start-date"
+                                    id="date"
                                     variant={"outline"}
-                                    className={cn("w-full sm:w-auto justify-start text-left font-normal", !startDate && "text-muted-foreground")}
+                                    className={cn("w-full sm:w-[300px] justify-start text-left font-normal", !date && "text-muted-foreground")}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {startDate ? format(startDate, "dd.MM.yyyy", { locale: pl }) : <span>Data początkowa</span>}
+                                    {date?.from ? (
+                                        date.to ? (
+                                            <>
+                                                {format(date.from, "dd.MM.yyyy")} - {format(date.to, "dd.MM.yyyy")}
+                                            </>
+                                        ) : (
+                                            format(date.from, "dd.MM.yyyy")
+                                        )
+                                    ) : (
+                                        <span>Wybierz datę lub zakres</span>
+                                    )}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                     initialFocus
-                                    mode="single"
-                                    selected={startDate}
-                                    onSelect={setStartDate}
+                                    mode="range"
+                                    defaultMonth={date?.from}
+                                    selected={date}
+                                    onSelect={setDate}
+                                    numberOfMonths={2}
                                     locale={pl}
                                 />
                             </PopoverContent>
                         </Popover>
-                         <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    id="end-date"
-                                    variant={"outline"}
-                                    className={cn("w-full sm:w-auto justify-start text-left font-normal", !endDate && "text-muted-foreground")}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {endDate ? format(endDate, "dd.MM.yyyy", { locale: pl }) : <span>Data końcowa</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    initialFocus
-                                    mode="single"
-                                    selected={endDate}
-                                    onSelect={setEndDate}
-                                    locale={pl}
-                                    disabled={(date) => (startDate && date < startDate)}
-                                />
-                            </PopoverContent>
-                        </Popover>
-                        {endDate && (
-                            <Button variant="ghost" onClick={() => setEndDate(undefined)}>Wyczyść datę końcową</Button>
-                        )}
+                        <Button onClick={generateReport} disabled={!date?.from || isHistoryLoading}>
+                            {isHistoryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HistoryIcon className="mr-2 h-4 w-4" />}
+                            Generuj Raport
+                        </Button>
                     </div>
-                    <Button onClick={generateReport} disabled={!startDate || isHistoryLoading}>
-                        {isHistoryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HistoryIcon className="mr-2 h-4 w-4" />}
-                        Generuj Raport
-                    </Button>
                 </CardContent>
             </Card>
 
@@ -668,7 +661,7 @@ const HiresAndFiresTab = () => {
                              <div className="flex h-full w-full items-center justify-center">
                                 <Loader2 className="h-8 w-8 animate-spin" />
                             </div>
-                        ) : startDate && isSameDay(startDate, new Date()) && (!endDate || isSameDay(startDate, endDate)) ? (
+                        ) : date?.from && isSameDay(date.from, new Date()) && (!date.to || isSameDay(date.from, date.to)) ? (
                             <div className="text-muted-foreground text-center py-10 flex items-center justify-center gap-2">
                                <Info className="h-5 w-5"/>
                                <span>Dane dla dnia dzisiejszego są dostępne na żywo w "Dobowym Raporcie Zmian".</span>
@@ -1083,5 +1076,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
