@@ -26,7 +26,7 @@ import { StatisticsExcelExportButton } from '@/components/statistics-excel-expor
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfToday, isWithinInterval, isSameDay, getDay } from 'date-fns';
+import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfToday, isWithinInterval, isSameDay, getDay, endOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -387,7 +387,7 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
     
     const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: new Date(2025, 11, 15), to: endOfToday() });
     const [singleDate, setSingleDate] = useState<Date | undefined>(new Date(2025, 11, 15));
-
+    
     const liveSnapshot: StatsSnapshot = useMemo(() => {
         const activeEmployees = employees.filter(e => e.status === 'aktywny');
         const departmentCounts: Record<string, number> = {};
@@ -414,20 +414,18 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
     const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
         let newHiresInRange = 0;
         let terminationsInRange = 0;
-
-        let rangeStart: Date;
-        let rangeEnd: Date;
+        let relevantEvents: EmployeeEvent[] = [];
         let snapA: StatsSnapshot | undefined;
         let snapB: StatsSnapshot | undefined;
         
-        let relevantEvents: EmployeeEvent[] = [];
-
         if (mode === 'history') {
             if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
             }
-            rangeStart = startOfDay(dateRange.from);
-            rangeEnd = endOfToday();
+            
+            relevantEvents = employeeEvents.filter(event => 
+                isWithinInterval(parseISO(event.date), { start: dateRange.from!, end: endOfDay(dateRange.to!) })
+            );
             
             const findClosestSnapshot = (targetDate: Date) => statsHistory.reduce((prev, curr) => 
                 Math.abs(parseISO(curr.id).getTime() - targetDate.getTime()) < Math.abs(parseISO(prev.id).getTime() - targetDate.getTime()) ? curr : prev
@@ -435,30 +433,23 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
             snapA = findClosestSnapshot(dateRange.from);
             snapB = findClosestSnapshot(dateRange.to);
 
-            if (!snapA || !snapB) return { comparisonData: null, snapshotA, snapshotB, newHiresInRange, terminationsInRange };
-            
-            relevantEvents = employeeEvents.filter(event => 
-                isWithinInterval(parseISO(event.date), { start: parseISO(snapA!.id), end: parseISO(snapB!.id) })
-            );
-
         } else { // Dynamic mode
             if (!singleDate || statsHistory.length < 1) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
             }
-            rangeStart = startOfDay(singleDate);
-            rangeEnd = endOfToday();
+            
+            relevantEvents = employeeEvents.filter(event => 
+                isWithinInterval(parseISO(event.date), { start: singleDate, end: endOfToday() })
+            );
+
             snapA = statsHistory.reduce((prev, curr) => 
                 Math.abs(parseISO(curr.id).getTime() - singleDate.getTime()) < Math.abs(parseISO(prev.id).getTime() - singleDate.getTime()) ? curr : prev
             );
             snapB = liveSnapshot;
-
-            if (!snapA) return { comparisonData: null, snapshotA, snapshotB, newHiresInRange, terminationsInRange };
-
-            relevantEvents = employeeEvents.filter(event => 
-                isWithinInterval(parseISO(event.date), { start: parseISO(snapA!.id), end: rangeEnd })
-            );
         }
 
+        if (!snapA || !snapB) return { comparisonData: null, snapshotA, snapshotB, newHiresInRange, terminationsInRange };
+            
         const departmentChangesMap: Record<string, number> = {};
         const jobTitleChangesMap: Record<string, number> = {};
 
@@ -545,7 +536,7 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
                         <CardDescription>Wybierz tryb i daty, aby porównać stan zatrudnienia.</CardDescription>
                     </div>
                      <div className="flex items-center gap-4">
-                         <RadioGroup defaultValue="dynamic" onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-2 rounded-md bg-muted/50 p-1">
+                         <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-2 rounded-md bg-muted/50 p-1">
                               <RadioGroupItem value="history" id="r1" className="peer sr-only" />
                               <Label htmlFor="r1" className="cursor-pointer rounded-sm px-3 py-1.5 text-sm font-medium peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow-sm">Historyczne</Label>
                               <RadioGroupItem value="dynamic" id="r2" className="peer sr-only" />
@@ -627,7 +618,7 @@ const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
                                     <div>
                                         <p className="text-sm text-muted-foreground">Stan na {snapshotB.id === 'live' ? 'teraz' : format(parseISO(snapshotB.id), "dd.MM.yy")}</p>
                                         <div className="flex items-center justify-center gap-2">
-                                            <p className="text-2xl font-bold">{snapshotB.totalActive}</p>
+                                            <p className="text-2xl font-bold">{snapshotA.totalActive + comparisonData.totalDelta}</p>
                                             <DeltaCell delta={comparisonData.totalDelta} className="text-lg" />
                                         </div>
                                     </div>
@@ -1315,6 +1306,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
 
 
