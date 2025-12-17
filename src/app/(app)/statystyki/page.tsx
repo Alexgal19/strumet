@@ -424,7 +424,7 @@ const HiresAndFiresTab = () => {
         pointInTimeReport,
     } = useMemo(() => {
         const today = startOfDay(new Date());
-        const yesterday = subDays(today, 1);
+        const endOfYesterday = endOfDay(subDays(today, 1));
         
         const hiresToday = employees.filter(e => {
             const hireDate = parseMaybeDate(e.hireDate);
@@ -438,11 +438,13 @@ const HiresAndFiresTab = () => {
         
         const activeYesterday = employees.filter(e => {
             const hireDate = parseMaybeDate(e.hireDate);
-            if (!hireDate || hireDate > yesterday) return false;
-            
+            if (!hireDate || hireDate > endOfYesterday) {
+                return false; 
+            }
             const termDate = parseMaybeDate(e.terminationDate);
-            if (termDate && termDate <= yesterday) return false;
-
+            if (termDate && termDate <= endOfYesterday) {
+                return false;
+            }
             return true;
         }).length;
         
