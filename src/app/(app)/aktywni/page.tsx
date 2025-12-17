@@ -229,6 +229,7 @@ export default function AktywniPage() {
   const onTerminate = async (id: string, fullName: string) => {
     if (window.confirm('Czy na pewno chcesz zwolnić tego pracownika?')) {
         await handleTerminateEmployee(id, fullName);
+        setIsFormOpen(false);
     }
   };
 
@@ -477,6 +478,7 @@ export default function AktywniPage() {
               employee={editingEmployee}
               onSave={onSave}
               onCancel={() => setIsFormOpen(false)}
+              onTerminate={onTerminate}
               config={config}
             />
           </div>
@@ -563,3 +565,5 @@ export default function AktywniPage() {
     </div>
   );
 }
+
+    

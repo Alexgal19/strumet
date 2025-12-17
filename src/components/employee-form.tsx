@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, Bot, Loader2, Sparkles } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, Bot, Loader2, Sparkles, UserX } from 'lucide-react';
 import { format as formatFns, parse, isValid, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ interface EmployeeFormProps {
   employee: Employee | null;
   onSave: (employee: Employee) => void;
   onCancel: () => void;
+  onTerminate?: (id: string, fullName: string) => void;
   config: AllConfig;
 }
 
@@ -71,7 +72,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
     };
 };
 
-export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFormProps) {
+export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }: EmployeeFormProps) {
     const { departments, jobTitles, managers, nationalities } = config;
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -357,10 +358,26 @@ export function EmployeeForm({ employee, onSave, onCancel, config }: EmployeeFor
                 </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
-                <Button type="submit">Zapisz</Button>
+            <div className="flex justify-between items-center gap-2 pt-2">
+                <div>
+                  {employee && employee.status === 'aktywny' && onTerminate && (
+                      <Button 
+                          type="button" 
+                          variant="destructive" 
+                          onClick={() => onTerminate(employee.id, employee.fullName)}
+                      >
+                         <UserX className="mr-2 h-4 w-4" />
+                         Zwolnij
+                      </Button>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
+                    <Button type="submit">Zapisz</Button>
+                </div>
             </div>
         </form>
     );
 }
+
+    
