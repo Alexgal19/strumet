@@ -415,7 +415,7 @@ ReportTab.displayName = 'ReportTab';
 
 
 const HiresAndFiresTab = () => {
-    const { employees, isAdmin, statsHistory, isLoading: isAppLoading } = useAppContext();
+    const { employees, isAdmin, statsHistory, isHistoryLoading } = useAppContext();
     
     const [singleDate, setSingleDate] = useState<Date | undefined>(new Date());
     
@@ -475,7 +475,7 @@ const HiresAndFiresTab = () => {
     }, [singleDate, employees, statsHistory]);
     
     
-    if (isAppLoading) {
+    if (isHistoryLoading) {
         return (
              <div className="flex h-full w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
