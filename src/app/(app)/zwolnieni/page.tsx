@@ -176,12 +176,13 @@ export default function ZwolnieniPage() {
     
     filtered = filtered.filter(emp => dateFilter(emp, 'terminationDate', selectedTerminationPeriods));
     
-    return filtered.filter(employee => {
-      if (selectedEmployeeIds.length === 0) return true;
-      return selectedEmployeeIds.includes(employee.id);
-    });
-
-  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedTerminationPeriods, selectedEmployeeIds]);
+    return filtered;
+  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedTerminationPeriods]);
+  
+  const displayedEmployees = useMemo(() => {
+    if (selectedEmployeeIds.length === 0) return filteredEmployees;
+    return filteredEmployees.filter(employee => selectedEmployeeIds.includes(employee.id));
+  }, [filteredEmployees, selectedEmployeeIds]);
 
   const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
     if (window.confirm('Czy na pewno chcesz przywrócić tego pracownika?')) {
@@ -270,14 +271,14 @@ export default function ZwolnieniPage() {
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
-    count: filteredEmployees.length,
+    count: displayedEmployees.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 170, // Approximate height of a card
     overscan: 5,
   });
 
   const renderMobileView = () => {
-    if (filteredEmployees.length === 0) {
+    if (displayedEmployees.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
@@ -296,7 +297,7 @@ export default function ZwolnieniPage() {
           }}
         >
           {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-            const employee = filteredEmployees[virtualItem.index];
+            const employee = displayedEmployees[virtualItem.index];
             return (
               <div
                 key={employee.id}
@@ -327,6 +328,8 @@ export default function ZwolnieniPage() {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
+  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedTerminationPeriods.length > 0;
+
   return (
     <div className="flex h-full flex-col">
       <PageHeader
@@ -334,7 +337,7 @@ export default function ZwolnieniPage() {
         description="Przeglądaj historię zwolnionych pracowników."
       >
         <div className="hidden md:flex shrink-0 items-center space-x-2">
-            <ExcelExportButton employees={filteredEmployees} fileName="zwolnieni_pracownicy" columns={exportColumns} />
+            <ExcelExportButton employees={displayedEmployees} fileName="zwolnieni_pracownicy" columns={exportColumns} />
             <TerminatedExcelImportButton />
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -406,7 +409,7 @@ export default function ZwolnieniPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          {(searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedTerminationPeriods.length > 0) && (
+          {hasActiveFilters && (
             <Button variant="outline" onClick={handleClearFilters}>
               <XCircle className="mr-2 h-4 w-4" />
               Wyczyść filtry
@@ -434,13 +437,19 @@ export default function ZwolnieniPage() {
             />
         </div>
       </div>
+      
+       <div className="flex items-center justify-between mb-4 text-sm text-muted-foreground">
+        <span>
+          Znaleziono: <span className="font-bold text-foreground">{displayedEmployees.length}</span> z {terminatedEmployees.length}
+        </span>
+      </div>
 
        <div className="flex flex-col flex-grow">
         {hasMounted && isMobile 
           ? renderMobileView() 
           : <DataTable 
               columns={columns} 
-              data={filteredEmployees} 
+              data={displayedEmployees} 
               onRowClick={handleEditEmployee}
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
