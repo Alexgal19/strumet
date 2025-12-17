@@ -183,9 +183,9 @@ export default function ZwolnieniPage() {
 
   }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedTerminationPeriods, selectedEmployeeIds]);
 
-  const onRestoreEmployee = async (employeeId: string) => {
+  const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
     if (window.confirm('Czy na pewno chcesz przywrócić tego pracownika?')) {
-        await handleRestoreEmployee(employeeId);
+        await handleRestoreEmployee(employeeId, employeeFullName);
     }
   };
 
@@ -257,7 +257,7 @@ export default function ZwolnieniPage() {
                         Kopiuj imię
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => onRestoreEmployee(employee.id)}>
+                    <DropdownMenuItem onSelect={() => onRestoreEmployee(employee.id, employee.fullName)}>
                       <RotateCcw className="mr-2 h-4 w-4" />
                       Przywróć
                     </DropdownMenuItem>
@@ -312,7 +312,7 @@ export default function ZwolnieniPage() {
                 <EmployeeCard 
                     employee={employee}
                     onEdit={() => handleEditEmployee(employee)}
-                    onRestore={() => onRestoreEmployee(employee.id)}
+                    onRestore={() => onRestoreEmployee(employee.id, employee.fullName)}
                     onCopy={() => handleCopy(employee)}
                 />
               </div>

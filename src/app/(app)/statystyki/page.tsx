@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList, Info } from 'lucide-react';
-import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
+import { Employee, Order, StatsSnapshot, AllConfig, Stats, EmployeeEvent } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -295,7 +295,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
     return (<div className="flex flex-col space-y-6 flex-grow">
              <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold">Raport bieżący</h3>
-                <>{employees.length > 0 && <StatisticsExcelExportButton stats={stats} departmentData={departmentData} nationalityData={nationalityData} jobTitleData={jobTitleData} employees={activeEmployees}/>}</>
+                {isAdmin && employees.length > 0 && <StatisticsExcelExportButton stats={stats} departmentData={departmentData} nationalityData={nationalityData} jobTitleData={jobTitleData} employees={activeEmployees}/>}
             </div>
              {employees.length === 0 ? (<div className="text-center text-muted-foreground py-10">
                     Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
@@ -679,7 +679,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
 })
 
 const HiresAndFiresTab = () => {
-    const { employees } = useAppContext();
+    const { employeeEvents } = useAppContext();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: startOfDay(subDays(today, 30)),
@@ -706,43 +706,23 @@ const HiresAndFiresTab = () => {
             return { newHires: [], terminations: [], hiresSummary: null, terminationsSummary: null };
         }
 
-        const hires = employees.filter(emp => {
-            const hireDate = parseMaybeDate(emp.hireDate);
-            return hireDate && isWithinInterval(hireDate, { start: dateRange.from!, end: dateRange.to! });
-        }).sort((a,b) => new Date(b.hireDate).getTime() - new Date(a.hireDate).getTime());
+        const hires = employeeEvents
+            .filter(event => event.type === 'hire' && isWithinInterval(parseISO(event.date), { start: dateRange.from!, end: dateRange.to! }))
+            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        const terms = employees.filter(emp => {
-            const termDate = parseMaybeDate(emp.terminationDate);
-            return termDate && isWithinInterval(termDate, { start: dateRange.from!, end: dateRange.to! });
-        }).sort((a,b) => new Date(b.terminationDate!).getTime() - new Date(a.terminationDate!).getTime());
-
-        const createSummary = (employeeList: Employee[]) => {
-            const byDepartment = employeeList.reduce((acc, emp) => {
-                const key = emp.department || 'Brak działu';
-                acc[key] = (acc[key] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-
-            const byJobTitle = employeeList.reduce((acc, emp) => {
-                const key = emp.jobTitle || 'Brak stanowiska';
-                acc[key] = (acc[key] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-            
-            return {
-                byDepartment: Object.entries(byDepartment).map(([name, count]) => ({name, count})).sort((a,b) => b.count - a.count),
-                byJobTitle: Object.entries(byJobTitle).map(([name, count]) => ({name, count})).sort((a,b) => b.count - a.count),
-            }
-        };
-
+        const terms = employeeEvents
+            .filter(event => event.type === 'termination' && isWithinInterval(parseISO(event.date), { start: dateRange.from!, end: dateRange.to! }))
+            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
         return { 
             newHires: hires, 
             terminations: terms,
-            hiresSummary: createSummary(hires),
-            terminationsSummary: createSummary(terms),
+            // Summaries can be added here if needed, by fetching employee details
+            hiresSummary: { byDepartment: [], byJobTitle: [] },
+            terminationsSummary: { byDepartment: [], byJobTitle: [] },
         };
 
-    }, [employees, dateRange]);
+    }, [employeeEvents, dateRange]);
     
     const SummaryTable = ({ title, data }: { title: string, data: {name: string, count: number}[] }) => (
         <div className='space-y-2'>
@@ -822,51 +802,9 @@ const HiresAndFiresTab = () => {
             </Card>
 
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                <Card>
+                 <Card>
                     <CardHeader>
-                        <CardTitle>Podsumowanie zatrudnień ({newHires.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
-                            <AccordionItem value="departments">
-                                <AccordionTrigger>Wg działów</AccordionTrigger>
-                                <AccordionContent>
-                                    {hiresSummary && <SummaryTable title="" data={hiresSummary.byDepartment} />}
-                                </AccordionContent>
-                            </AccordionItem>
-                            <AccordionItem value="job-titles">
-                                <AccordionTrigger>Wg stanowisk</AccordionTrigger>
-                                <AccordionContent>
-                                     {hiresSummary && <SummaryTable title="" data={hiresSummary.byJobTitle} />}
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Podsumowanie zwolnień ({terminations.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Accordion type="multiple" defaultValue={['departments', 'job-titles']}>
-                            <AccordionItem value="departments">
-                                <AccordionTrigger>Wg działów</AccordionTrigger>
-                                <AccordionContent>
-                                    {terminationsSummary && <SummaryTable title="" data={terminationsSummary.byDepartment} />}
-                                </AccordionContent>
-                            </AccordionItem>
-                            <AccordionItem value="job-titles">
-                                <AccordionTrigger>Wg stanowisk</AccordionTrigger>
-                                <AccordionContent>
-                                    {terminationsSummary && <SummaryTable title="" data={terminationsSummary.byJobTitle} />}
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Lista nowo zatrudnionych ({newHires.length})</CardTitle>
+                        <CardTitle>Zatrudnienia ({newHires.length})</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="h-96">
@@ -879,13 +817,12 @@ const HiresAndFiresTab = () => {
                                 </TableHeader>
                                 <TableBody>
                                     {newHires.length > 0 ? (
-                                        newHires.map(emp => (
-                                            <TableRow key={emp.id}>
+                                        newHires.map(event => (
+                                            <TableRow key={event.id}>
                                                 <TableCell>
-                                                    <div className="font-medium">{emp.fullName}</div>
-                                                    <div className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</div>
+                                                    <div className="font-medium">{event.employeeFullName}</div>
                                                 </TableCell>
-                                                <TableCell>{format(parseMaybeDate(emp.hireDate)!, 'dd.MM.yyyy')}</TableCell>
+                                                <TableCell>{format(parseISO(event.date)!, 'dd.MM.yyyy HH:mm')}</TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
@@ -900,7 +837,7 @@ const HiresAndFiresTab = () => {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Lista zwolnionych ({terminations.length})</CardTitle>
+                        <CardTitle>Zwolnienia ({terminations.length})</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="h-96">
@@ -913,13 +850,12 @@ const HiresAndFiresTab = () => {
                                 </TableHeader>
                                 <TableBody>
                                     {terminations.length > 0 ? (
-                                        terminations.map(emp => (
-                                            <TableRow key={emp.id}>
+                                        terminations.map(event => (
+                                            <TableRow key={event.id}>
                                                 <TableCell>
-                                                    <div className="font-medium">{emp.fullName}</div>
-                                                    <div className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</div>
+                                                    <div className="font-medium">{event.employeeFullName}</div>
                                                 </TableCell>
-                                                <TableCell>{format(parseMaybeDate(emp.terminationDate)!, 'dd.MM.yyyy')}</TableCell>
+                                                <TableCell>{format(parseISO(event.date)!, 'dd.MM.yyyy HH:mm')}</TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
@@ -1263,7 +1199,7 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-4" : "grid-cols-4")}>
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
           <TabsTrigger value="orders">Zamówienia</TabsTrigger>
           <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>

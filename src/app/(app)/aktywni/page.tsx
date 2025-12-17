@@ -224,9 +224,9 @@ export default function AktywniPage() {
     setIsFormOpen(false);
   };
   
-  const onTerminate = async (id: string) => {
+  const onTerminate = async (id: string, fullName: string) => {
     if (window.confirm('Czy na pewno chcesz zwolnić tego pracownika?')) {
-        await handleTerminateEmployee(id);
+        await handleTerminateEmployee(id, fullName);
     }
   };
 
@@ -318,7 +318,7 @@ export default function AktywniPage() {
                        Generuj podsumowanie
                    </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive" onSelect={() => onTerminate(employee.id)}>
+                  <DropdownMenuItem className="text-destructive" onSelect={() => onTerminate(employee.id, employee.fullName)}>
                     <UserX className="mr-2 h-4 w-4" />
                     Zwolnij
                   </DropdownMenuItem>
@@ -375,7 +375,7 @@ export default function AktywniPage() {
                 <EmployeeCard 
                     employee={employee} 
                     onEdit={() => handleEditEmployee(employee)}
-                    onTerminate={() => onTerminate(employee.id)}
+                    onTerminate={() => onTerminate(employee.id, employee.fullName)}
                     onCopy={() => handleCopy(employee)}
                 />
               </div>
@@ -559,5 +559,3 @@ export default function AktywniPage() {
     </div>
   );
 }
-
-    

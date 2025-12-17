@@ -23,6 +23,7 @@ import type {
     StatsSnapshot,
     AuthUser,
     UserRole,
+    EmployeeEvent,
 } from '@/lib/types';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -31,6 +32,7 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 
 interface AppContextType {
     employees: Employee[];
+    employeeEvents: EmployeeEvent[];
     config: AllConfig;
     notifications: AppNotification[];
     statsHistory: StatsSnapshot[];
@@ -40,8 +42,8 @@ interface AppContextType {
     toast: (props: any) => void;
     setActiveView: (view: ActiveView) => void;
     handleSaveEmployee: (employeeData: Employee) => Promise<void>;
-    handleTerminateEmployee: (id: string) => Promise<void>;
-    handleRestoreEmployee: (id: string) => Promise<void>;
+    handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
+    handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
     handleDeleteAllHireDates: () => Promise<void>;
     handleDeleteAllEmployees: () => Promise<void>;
     handleRestoreAllTerminatedEmployees: () => Promise<void>;
@@ -73,6 +75,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [activeView, setActiveView] = useState<ActiveView>('statystyki');
     
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [employeeEvents, setEmployeeEvents] = useState<EmployeeEvent[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
@@ -97,9 +100,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 // For non-admin users, force the view to 'statystyki'
                 if (role !== 'admin') {
                     setActiveView('statystyki');
-                } else if (activeView !== 'aktywni') {
-                    // Default view for admin
-                    setActiveView('aktywni');
                 }
 
             } else {
@@ -112,6 +112,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribeDb = onValue(dataRef, (snapshot) => {
             const data = snapshot.val() || {};
             setEmployees(objectToArray(data.employees));
+            setEmployeeEvents(objectToArray(data.employeeEvents));
             setConfig({
                 departments: objectToArray(data.config?.departments),
                 jobTitles: objectToArray(data.config?.jobTitles),
@@ -136,12 +137,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [toast]);
     
+    // --- Event Creator ---
+    const createEmployeeEvent = useCallback(async (employeeId: string, employeeFullName: string, type: 'hire' | 'termination') => {
+        const newEventRef = push(ref(db, 'employeeEvents'));
+        const event: Omit<EmployeeEvent, 'id'> = {
+            employeeId,
+            employeeFullName,
+            type,
+            date: new Date().toISOString(),
+        };
+        await set(newEventRef, event);
+    }, []);
+
     // --- Employee Actions ---
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
         try {
             const { id, ...dataToSave } = employeeData;
             
-            // Ensure undefined values are converted to null for Firebase
             const finalData: { [key: string]: any } = {};
             for (const key in dataToSave) {
                 const typedKey = key as keyof typeof dataToSave;
@@ -154,39 +166,42 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             } else {
                 const newEmployeeRef = push(ref(db, 'employees'));
                 await set(newEmployeeRef, { ...finalData, status: 'aktywny', id: newEmployeeRef.key });
+                await createEmployeeEvent(newEmployeeRef.key!, finalData.fullName, 'hire');
                 toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
             }
         } catch (error) {
             console.error("Error saving employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
         }
-    }, [toast]);
+    }, [toast, createEmployeeEvent]);
 
-    const handleTerminateEmployee = useCallback(async (id: string) => {
+    const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
         try {
-            await update(ref(db, `employees/${id}`), {
+            await update(ref(db, `employees/${employeeId}`), {
                 status: 'zwolniony',
                 terminationDate: format(new Date(), 'yyyy-MM-dd')
             });
+            await createEmployeeEvent(employeeId, employeeFullName, 'termination');
             toast({ title: 'Pracownik zwolniony', description: 'Status pracownika został zmieniony na "zwolniony".' });
         } catch (error) {
             console.error("Error terminating employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
         }
-    }, [toast]);
+    }, [toast, createEmployeeEvent]);
 
-    const handleRestoreEmployee = useCallback(async (employeeId: string) => {
+    const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
         try {
             await update(ref(db, `employees/${employeeId}`), {
                 status: 'aktywny',
                 terminationDate: null 
             });
+            await createEmployeeEvent(employeeId, employeeFullName, 'hire');
             toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
         } catch (error) {
             console.error("Error restoring employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
         }
-    }, [toast]);
+    }, [toast, createEmployeeEvent]);
 
     const handleDeleteAllHireDates = useCallback(async () => {
         try {
@@ -205,7 +220,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const handleDeleteAllEmployees = useCallback(async () => {
         try {
             await remove(ref(db, 'employees'));
-            toast({ title: 'Sukces', description: 'Wszyscy pracownicy zostali usunięci.' });
+            await remove(ref(db, 'employeeEvents'));
+            toast({ title: 'Sukces', description: 'Wszyscy pracownicy i zdarzenia zostały usunięte.' });
         } catch (error) {
             console.error("Error deleting all employees: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracowników.' });
@@ -221,17 +237,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 return;
             }
 
-            terminatedEmployees.forEach(employee => {
-                updates[`/employees/${employee.id}/status`] = 'aktywny';
-                updates[`/employees/${employee.id}/terminationDate`] = null;
-            });
+            for (const employee of terminatedEmployees) {
+                 updates[`/employees/${employee.id}/status`] = 'aktywny';
+                 updates[`/employees/${employee.id}/terminationDate`] = null;
+                 await createEmployeeEvent(employee.id, employee.fullName, 'hire');
+            }
             await update(ref(db), updates);
             toast({ title: 'Sukces', description: `Przywrócono ${terminatedEmployees.length} pracowników.` });
         } catch (error) {
             console.error("Error restoring all terminated employees: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracowników.' });
         }
-    }, [employees, toast]);
+    }, [employees, toast, createEmployeeEvent]);
 
     // --- Config Actions ---
     const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
@@ -424,6 +441,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const value = {
         employees,
+        employeeEvents,
         config,
         notifications,
         statsHistory,
