@@ -7,7 +7,7 @@ import { LineChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList, Info } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList, Info, ArrowRight } from 'lucide-react';
 import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -26,13 +26,11 @@ import { StatisticsExcelExportButton } from '@/components/statistics-excel-expor
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfDay, isWithinInterval, isSameDay } from 'date-fns';
+import { format, parseISO, startOfDay, subDays, endOfDay, isWithinInterval, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "@/components/ui/tooltip"
 import { Badge } from '@/components/ui/badge';
 import { parseMaybeDate } from '@/lib/date';
 
@@ -415,17 +413,12 @@ ReportTab.displayName = 'ReportTab';
 
 
 const HiresAndFiresTab = () => {
-    const { employees, isAdmin, statsHistory, isHistoryLoading } = useAppContext();
-    
-    const [singleDate, setSingleDate] = useState<Date | undefined>(new Date());
-    
-    const { 
-        dailyReport,
-        pointInTimeReport,
-    } = useMemo(() => {
+    const { employees, statsHistory, isHistoryLoading } = useAppContext();
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: new Date(), to: new Date() });
+
+    const { dailyReport, pointInTimeReport, comparisonReport } = useMemo(() => {
         const today = startOfDay(new Date());
-        const endOfYesterday = endOfDay(subDays(today, 1));
-        
+
         const hiresToday = employees.filter(e => {
             const hireDate = parseMaybeDate(e.hireDate);
             return hireDate && isSameDay(hireDate, today);
@@ -437,43 +430,71 @@ const HiresAndFiresTab = () => {
         }).length;
         
         const activeYesterday = employees.filter(e => {
-            const hireDate = parseMaybeDate(e.hireDate);
-            if (!hireDate || hireDate > endOfYesterday) {
-                return false; 
-            }
-            const termDate = parseMaybeDate(e.terminationDate);
-            if (termDate && termDate <= endOfYesterday) {
-                return false;
-            }
-            return true;
+             const hireDate = parseMaybeDate(e.hireDate);
+             if (!hireDate || hireDate > subDays(today, 1)) return false;
+             
+             const termDate = parseMaybeDate(e.terminationDate);
+             if (termDate && termDate < today) return false;
+
+             return true;
         }).length;
-        
+
         const dailyReportData = {
             yesterdayTotal: activeYesterday,
             hiresToday: hiresToday,
             terminationsToday: terminationsToday,
             currentTotal: employees.filter(e => e.status === 'aktywny').length,
         };
-        
-        // Point in Time Report Logic
+
         let pointInTimeData = null;
-        if (singleDate && statsHistory) {
-            const pointInTimeSnapshot = statsHistory.find(s => s.id === format(singleDate, 'yyyy-MM-dd'));
-            if (pointInTimeSnapshot) {
-                pointInTimeData = {
-                    date: singleDate,
-                    snapshot: pointInTimeSnapshot,
-                };
+        let comparisonData = null;
+
+        if (statsHistory && dateRange?.from) {
+            const fromDateStr = format(dateRange.from, 'yyyy-MM-dd');
+            const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
+            
+            if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+                // Comparison Mode
+                const toDateStr = format(dateRange.to, 'yyyy-MM-dd');
+                const endSnapshot = statsHistory.find(s => s.id === toDateStr);
+
+                if (startSnapshot && endSnapshot) {
+                    const allDepts = Array.from(new Set([...Object.keys(startSnapshot.departments || {}), ...Object.keys(endSnapshot.departments || {})]));
+                    const allJobs = Array.from(new Set([...Object.keys(startSnapshot.jobTitles || {}), ...Object.keys(endSnapshot.jobTitles || {})]));
+
+                    comparisonData = {
+                        start: startSnapshot,
+                        end: endSnapshot,
+                        deptChanges: allDepts.map(dept => {
+                            const startCount = startSnapshot.departments?.[dept] || 0;
+                            const endCount = endSnapshot.departments?.[dept] || 0;
+                            return { name: dept, start: startCount, end: endCount, diff: endCount - startCount };
+                        }).filter(d => d.diff !== 0).sort((a,b) => b.diff - a.diff),
+                        jobChanges: allJobs.map(job => {
+                             const startCount = startSnapshot.jobTitles?.[job] || 0;
+                             const endCount = endSnapshot.jobTitles?.[job] || 0;
+                             return { name: job, start: startCount, end: endCount, diff: endCount - startCount };
+                        }).filter(j => j.diff !== 0).sort((a,b) => b.diff - a.diff),
+                    }
+                }
+            } else {
+                // Single Day Mode
+                if (startSnapshot) {
+                    pointInTimeData = {
+                        date: dateRange.from,
+                        snapshot: startSnapshot,
+                    };
+                }
             }
         }
 
         return {
             dailyReport: dailyReportData,
             pointInTimeReport: pointInTimeData,
+            comparisonReport: comparisonData,
         };
 
-    }, [singleDate, employees, statsHistory]);
-    
+    }, [dateRange, employees, statsHistory]);
     
     if (isHistoryLoading) {
         return (
@@ -482,63 +503,85 @@ const HiresAndFiresTab = () => {
             </div>
         )
     }
+
+    const DiffBadge = ({ diff }: { diff: number}) => {
+        if (diff === 0) return null;
+        const isPositive = diff > 0;
+        return (
+            <Badge variant={isPositive ? 'default' : 'destructive'} className={cn(isPositive && "bg-green-600 hover:bg-green-700")}>
+                {isPositive ? `+${diff}`: diff}
+            </Badge>
+        );
+    }
     
     return (
         <div className="flex flex-col space-y-6 flex-grow">
-            {dailyReport ? (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Dobowy Raport Zmian</CardTitle>
-                        <CardDescription>
-                            Automatyczne podsumowanie zmian w stanie zatrudnienia z ostatniej doby.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Stan na wczoraj</p>
-                                <p className="text-2xl font-bold">{dailyReport.yesterdayTotal}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Zatrudnieni dzisiaj</p>
-                                <p className="text-2xl font-bold text-green-600">+{dailyReport.hiresToday}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Zwolnieni dzisiaj</p>
-                                <p className="text-2xl font-bold text-red-600">-{dailyReport.terminationsToday}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Stan na teraz</p>
-                                <p className="text-2xl font-bold">{dailyReport.currentTotal}</p>
-                            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Dobowy Raport Zmian</CardTitle>
+                    <CardDescription>Automatyczne podsumowanie zmian w stanie zatrudnienia z ostatniej doby.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div>
+                            <p className="text-sm text-muted-foreground">Stan na wczoraj</p>
+                            <p className="text-2xl font-bold">{dailyReport.yesterdayTotal}</p>
                         </div>
-                    </CardContent>
-                </Card>
-            ) : (
-                 <Card>
-                    <CardHeader><CardTitle>Dobowy Raport Zmian</CardTitle></CardHeader>
-                    <CardContent className="text-center text-muted-foreground py-6">
-                        <p>Brak danych historycznych do wygenerowania raportu.</p>
-                    </CardContent>
-                </Card>
-            )}
-
+                        <div>
+                            <p className="text-sm text-muted-foreground">Zatrudnieni dzisiaj</p>
+                            <p className="text-2xl font-bold text-green-600">+{dailyReport.hiresToday}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Zwolnieni dzisiaj</p>
+                            <p className="text-2xl font-bold text-red-600">-{dailyReport.terminationsToday}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Stan na teraz</p>
+                            <p className="text-2xl font-bold">{dailyReport.currentTotal}</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>
-                     <CardTitle>Analiza Punktowa w Czasie</CardTitle>
-                     <CardDescription>Wybierz dowolny dzień z przeszłości, aby zobaczyć stan zatrudnienia i rozkład w działach.</CardDescription>
+                     <CardTitle>Analiza Historyczna</CardTitle>
+                     <CardDescription>Wybierz jeden dzień, aby zobaczyć stan historyczny, lub dwa dni, aby je porównać.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <Popover>
                         <PopoverTrigger asChild>
-                            <Button id="date" variant={"outline"} className={cn("w-full max-w-sm justify-start text-left font-normal", !singleDate && "text-muted-foreground")}>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn("w-full max-w-md justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
+                            >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {singleDate ? format(singleDate, "PPP", { locale: pl }) : <span>Wybierz datę</span>}
+                                {dateRange?.from ? (
+                                    dateRange.to ? (
+                                        <>
+                                            {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
+                                            {format(dateRange.to, "LLL dd, y", { locale: pl })}
+                                        </>
+                                    ) : (
+                                        format(dateRange.from, "LLL dd, y", { locale: pl })
+                                    )
+                                ) : (
+                                    <span>Wybierz zakres dat</span>
+                                )}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar initialFocus mode="single" selected={singleDate} onSelect={setSingleDate} locale={pl} disabled={(date) => date > new Date() || date < new Date("2023-01-01")} />
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                numberOfMonths={2}
+                                locale={pl}
+                                disabled={(date) => date > new Date() || date < new Date("2023-01-01")}
+                            />
                         </PopoverContent>
                     </Popover>
                     
@@ -552,8 +595,48 @@ const HiresAndFiresTab = () => {
                                  <SummaryTable title="Wg narodowości" data={Object.entries(pointInTimeReport.snapshot.nationalities || {}).map(([name, count]) => ({name, count})).sort((a,b)=>b.count - a.count)} />
                             </div>
                         </div>
+                    ) : comparisonReport ? (
+                         <div className="space-y-6">
+                            <div className="text-center">
+                                <h3 className="font-semibold">Porównanie całkowitego zatrudnienia</h3>
+                                <div className="flex items-center justify-center gap-4 text-2xl font-bold mt-2">
+                                    <span>{comparisonReport.start.totalActive}</span>
+                                    <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                                    <span>{comparisonReport.end.totalActive}</span>
+                                    <DiffBadge diff={comparisonReport.end.totalActive - comparisonReport.start.totalActive} />
+                                </div>
+                            </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <Card>
+                                    <CardHeader><CardTitle className="text-base">Zmiany w Działach</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Dział</TableHead><TableHead className="text-right">Zmiana</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {comparisonReport.deptChanges.map(c => (
+                                                    <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell className="text-right"><DiffBadge diff={c.diff}/></TableCell></TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader><CardTitle className="text-base">Zmiany na Stanowiskach</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Stanowisko</TableHead><TableHead className="text-right">Zmiana</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {comparisonReport.jobChanges.map(c => (
+                                                    <TableRow key={c.name}><TableCell>{c.name}</TableCell><TableCell className="text-right"><DiffBadge diff={c.diff}/></TableCell></TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                         </div>
                     ) : (
-                        <p className="text-muted-foreground text-center py-4">Brak migawki dla wybranego dnia.</p>
+                        <p className="text-muted-foreground text-center py-4">Brak migawki dla wybranego dnia lub zakresu.</p>
                     )}
 
                 </CardContent>
@@ -906,5 +989,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
 
     
