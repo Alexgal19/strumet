@@ -431,8 +431,8 @@ const HiresAndFiresTab = () => {
         
         const activeYesterday = employees.filter(e => {
              const hireDate = parseMaybeDate(e.hireDate);
-             if (!hireDate || hireDate > subDays(today, 1)) return false;
-             
+             if (!hireDate || hireDate >= today) return false;
+
              const termDate = parseMaybeDate(e.terminationDate);
              if (termDate && termDate < today) return false;
 
@@ -519,7 +519,7 @@ const HiresAndFiresTab = () => {
             <Card>
                 <CardHeader>
                     <CardTitle>Dobowy Raport Zmian</CardTitle>
-                    <CardDescription>Automatyczne podsumowanie zmian w stanie zatrudnienia z ostatniej doby.</CardDescription>
+                    <CardDescription>Automatyczne podsumowanie zmian w stanie zatrudnienia z ostatniej doby, obliczane na żywo.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -546,7 +546,7 @@ const HiresAndFiresTab = () => {
             <Card>
                 <CardHeader>
                      <CardTitle>Analiza Historyczna</CardTitle>
-                     <CardDescription>Wybierz jeden dzień, aby zobaczyć stan historyczny, lub dwa dni, aby je porównać.</CardDescription>
+                     <CardDescription>Wybierz dzień, aby zobaczyć stan z przeszłości, lub dwa dni, aby je porównać. Dane są archiwizowane raz w tygodniu.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <Popover>
