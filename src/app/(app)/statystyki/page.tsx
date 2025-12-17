@@ -419,6 +419,7 @@ const HiresAndFiresTab = () => {
     const { dailyReport, pointInTimeReport, comparisonReport } = useMemo(() => {
         const today = startOfDay(new Date());
 
+        // This calculation is ALWAYS live and based on the full employee list
         const hiresToday = employees.filter(e => {
             const hireDate = parseMaybeDate(e.hireDate);
             return hireDate && isSameDay(hireDate, today);
@@ -431,10 +432,10 @@ const HiresAndFiresTab = () => {
         
         const activeYesterday = employees.filter(e => {
              const hireDate = parseMaybeDate(e.hireDate);
-             if (!hireDate || hireDate >= today) return false;
+             if (!hireDate || hireDate > subDays(today, 1)) return false;
 
              const termDate = parseMaybeDate(e.terminationDate);
-             if (termDate && termDate < today) return false;
+             if (termDate && termDate <= subDays(today, 1)) return false;
 
              return true;
         }).length;
@@ -450,40 +451,47 @@ const HiresAndFiresTab = () => {
         let comparisonData = null;
 
         if (statsHistory && dateRange?.from) {
-            const fromDateStr = format(dateRange.from, 'yyyy-MM-dd');
-            const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
-            
-            if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
-                // Comparison Mode
-                const toDateStr = format(dateRange.to, 'yyyy-MM-dd');
-                const endSnapshot = statsHistory.find(s => s.id === toDateStr);
+            const isTodaySelected = isSameDay(dateRange.from, new Date()) && !dateRange.to;
 
-                if (startSnapshot && endSnapshot) {
-                    const allDepts = Array.from(new Set([...Object.keys(startSnapshot.departments || {}), ...Object.keys(endSnapshot.departments || {})]));
-                    const allJobs = Array.from(new Set([...Object.keys(startSnapshot.jobTitles || {}), ...Object.keys(endSnapshot.jobTitles || {})]));
-
-                    comparisonData = {
-                        start: startSnapshot,
-                        end: endSnapshot,
-                        deptChanges: allDepts.map(dept => {
-                            const startCount = startSnapshot.departments?.[dept] || 0;
-                            const endCount = endSnapshot.departments?.[dept] || 0;
-                            return { name: dept, start: startCount, end: endCount, diff: endCount - startCount };
-                        }).filter(d => d.diff !== 0).sort((a,b) => b.diff - a.diff),
-                        jobChanges: allJobs.map(job => {
-                             const startCount = startSnapshot.jobTitles?.[job] || 0;
-                             const endCount = endSnapshot.jobTitles?.[job] || 0;
-                             return { name: job, start: startCount, end: endCount, diff: endCount - startCount };
-                        }).filter(j => j.diff !== 0).sort((a,b) => b.diff - a.diff),
-                    }
-                }
+            if (isTodaySelected) {
+                // If today is selected, we don't show snapshot data. We rely on the live daily report.
+                pointInTimeData = null;
             } else {
-                // Single Day Mode
-                if (startSnapshot) {
-                    pointInTimeData = {
-                        date: dateRange.from,
-                        snapshot: startSnapshot,
-                    };
+                const fromDateStr = format(dateRange.from, 'yyyy-MM-dd');
+                const startSnapshot = statsHistory.find(s => s.id === fromDateStr);
+                
+                if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+                    // Comparison Mode
+                    const toDateStr = format(dateRange.to, 'yyyy-MM-dd');
+                    const endSnapshot = statsHistory.find(s => s.id === toDateStr);
+
+                    if (startSnapshot && endSnapshot) {
+                        const allDepts = Array.from(new Set([...Object.keys(startSnapshot.departments || {}), ...Object.keys(endSnapshot.departments || {})]));
+                        const allJobs = Array.from(new Set([...Object.keys(startSnapshot.jobTitles || {}), ...Object.keys(endSnapshot.jobTitles || {})]));
+
+                        comparisonData = {
+                            start: startSnapshot,
+                            end: endSnapshot,
+                            deptChanges: allDepts.map(dept => {
+                                const startCount = startSnapshot.departments?.[dept] || 0;
+                                const endCount = endSnapshot.departments?.[dept] || 0;
+                                return { name: dept, start: startCount, end: endCount, diff: endCount - startCount };
+                            }).filter(d => d.diff !== 0).sort((a,b) => b.diff - a.diff),
+                            jobChanges: allJobs.map(job => {
+                                 const startCount = startSnapshot.jobTitles?.[job] || 0;
+                                 const endCount = endSnapshot.jobTitles?.[job] || 0;
+                                 return { name: job, start: startCount, end: endCount, diff: endCount - startCount };
+                            }).filter(j => j.diff !== 0).sort((a,b) => b.diff - a.diff),
+                        }
+                    }
+                } else {
+                    // Single Day Mode
+                    if (startSnapshot) {
+                        pointInTimeData = {
+                            date: dateRange.from,
+                            snapshot: startSnapshot,
+                        };
+                    }
                 }
             }
         }
@@ -636,7 +644,12 @@ const HiresAndFiresTab = () => {
                             </div>
                          </div>
                     ) : (
-                        <p className="text-muted-foreground text-center py-4">Brak migawki dla wybranego dnia lub zakresu.</p>
+                        <p className="text-muted-foreground text-center py-4">
+                            {dateRange?.from && isSameDay(dateRange.from, new Date()) && !dateRange.to
+                                ? "Dane dla dnia dzisiejszego są dostępne na żywo w raporcie dobowym powyżej."
+                                : "Brak migawki dla wybranego dnia lub zakresu."
+                            }
+                        </p>
                     )}
 
                 </CardContent>
