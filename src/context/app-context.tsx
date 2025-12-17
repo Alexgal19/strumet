@@ -45,6 +45,7 @@ interface AppContextType {
     handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
     handleDeleteAllHireDates: () => Promise<void>;
     handleUpdateHireDates: (updates: { fullName: string; hireDate: string }[]) => Promise<void>;
+    handleUpdateContractEndDates: (updates: { fullName: string; contractEndDate: string }[]) => Promise<void>;
     handleDeleteAllEmployees: () => Promise<void>;
     handleRestoreAllTerminatedEmployees: () => Promise<void>;
     addConfigItems: (configType: ConfigType, items: string[]) => Promise<void>;
@@ -240,10 +241,48 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 await update(ref(db), updates);
                 toast({
                     title: 'Aktualizacja zakończona',
-                    description: `Zaktualizowano daty dla ${updatedCount} pracowników.`,
+                    description: `Zaktualizowano daty zatrudnienia dla ${updatedCount} pracowników.`,
                 });
             } catch (error) {
                 console.error("Error updating hire dates:", error);
+                toast({ variant: 'destructive', title: 'Błąd', description: 'Wystąpił błąd podczas aktualizacji dat.' });
+                return;
+            }
+        }
+        
+        if (notFound.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Nie znaleziono pracowników',
+                description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
+            });
+        }
+    }, [employees, toast]);
+
+    const handleUpdateContractEndDates = useCallback(async (dateUpdates: { fullName: string; contractEndDate: string }[]) => {
+        const updates: Record<string, any> = {};
+        let updatedCount = 0;
+        const notFound: string[] = [];
+
+        dateUpdates.forEach(updateData => {
+            const employeeToUpdate = employees.find(emp => emp.fullName === updateData.fullName);
+            if (employeeToUpdate) {
+                updates[`/employees/${employeeToUpdate.id}/contractEndDate`] = updateData.contractEndDate;
+                updatedCount++;
+            } else {
+                notFound.push(updateData.fullName);
+            }
+        });
+
+        if (Object.keys(updates).length > 0) {
+            try {
+                await update(ref(db), updates);
+                toast({
+                    title: 'Aktualizacja zakończona',
+                    description: `Zaktualizowano daty końca umowy dla ${updatedCount} pracowników.`,
+                });
+            } catch (error) {
+                console.error("Error updating contract end dates:", error);
                 toast({ variant: 'destructive', title: 'Błąd', description: 'Wystąpił błąd podczas aktualizacji dat.' });
                 return;
             }
@@ -494,6 +533,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         handleRestoreEmployee,
         handleDeleteAllHireDates,
         handleUpdateHireDates,
+        handleUpdateContractEndDates,
         handleDeleteAllEmployees,
         handleRestoreAllTerminatedEmployees,
         addConfigItems,
@@ -527,5 +567,3 @@ export const useAppContext = () => {
     }
     return context;
 };
-
-    
