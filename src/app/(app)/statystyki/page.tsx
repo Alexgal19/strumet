@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList, Info } from 'lucide-react';
-import { Employee, Order, StatsSnapshot, AllConfig, Stats, EmployeeEvent } from '@/lib/types';
+import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ import { DateRange } from 'react-day-picker';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "@/components/ui/tooltip"
 import { Badge } from '@/components/ui/badge';
+import { parseMaybeDate } from '@/lib/date';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -414,44 +415,47 @@ ReportTab.displayName = 'ReportTab';
 
 
 const HiresAndFiresTab = () => {
-    const { employeeEvents, employees, isAdmin, deleteEmployeeEvent, statsHistory, isLoading: isAppLoading } = useAppContext();
-    const [eventToDelete, setEventToDelete] = useState<EmployeeEvent | null>(null);
-
-    const [singleDate, setSingleDate] = useState<Date | undefined>(new Date(2025, 11, 15));
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 7), to: endOfDay(new Date()) });
+    const { employees, isAdmin, statsHistory, isLoading: isAppLoading } = useAppContext();
+    
+    const [singleDate, setSingleDate] = useState<Date | undefined>(new Date());
     
     const { 
         dailyReport,
         pointInTimeReport,
     } = useMemo(() => {
-        if (!statsHistory || statsHistory.length === 0) {
-            return { dailyReport: null, pointInTimeReport: null };
-        }
-
-        // Daily Report Logic
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+        const today = new Date();
+        const yesterday = subDays(today, 1);
         
-        const yesterdaySnapshot = statsHistory.find(s => s.id === yesterdayStr);
-        const todaySnapshot = statsHistory.find(s => s.id === todayStr);
+        const hiresToday = employees.filter(e => {
+            const hireDate = parseMaybeDate(e.hireDate);
+            return hireDate && isSameDay(hireDate, today);
+        }).length;
 
-        let dailyReportData = null;
-        if (yesterdaySnapshot) {
-            const todaysEvents = employeeEvents.filter(event => isSameDay(parseISO(event.date), new Date()));
-            const hiresToday = todaysEvents.filter(e => e.type === 'hire').length;
-            const terminationsToday = todaysEvents.filter(e => e.type === 'termination').length;
+        const terminationsToday = employees.filter(e => {
+            const termDate = parseMaybeDate(e.terminationDate);
+            return e.status === 'zwolniony' && termDate && isSameDay(termDate, today);
+        }).length;
+        
+        const activeYesterday = employees.filter(e => {
+            const hireDate = parseMaybeDate(e.hireDate);
+            if (!hireDate || hireDate > yesterday) return false;
             
-            dailyReportData = {
-                yesterdayTotal: yesterdaySnapshot.totalActive,
-                hiresToday: hiresToday,
-                terminationsToday: terminationsToday,
-                currentTotal: employees.filter(e => e.status === 'aktywny').length,
-            };
-        }
+            const termDate = parseMaybeDate(e.terminationDate);
+            if (termDate && termDate <= yesterday) return false;
+
+            return true;
+        }).length;
+        
+        const dailyReportData = {
+            yesterdayTotal: activeYesterday,
+            hiresToday: hiresToday,
+            terminationsToday: terminationsToday,
+            currentTotal: employees.filter(e => e.status === 'aktywny').length,
+        };
         
         // Point in Time Report Logic
         let pointInTimeData = null;
-        if (singleDate) {
+        if (singleDate && statsHistory) {
             const pointInTimeSnapshot = statsHistory.find(s => s.id === format(singleDate, 'yyyy-MM-dd'));
             if (pointInTimeSnapshot) {
                 pointInTimeData = {
@@ -466,14 +470,8 @@ const HiresAndFiresTab = () => {
             pointInTimeReport: pointInTimeData,
         };
 
-    }, [singleDate, dateRange, statsHistory, employeeEvents, employees]);
+    }, [singleDate, employees, statsHistory]);
     
-    const handleDelete = () => {
-        if (eventToDelete) {
-            deleteEmployeeEvent(eventToDelete.id);
-            setEventToDelete(null);
-        }
-    };
     
     if (isAppLoading) {
         return (
@@ -518,8 +516,7 @@ const HiresAndFiresTab = () => {
                  <Card>
                     <CardHeader><CardTitle>Dobowy Raport Zmian</CardTitle></CardHeader>
                     <CardContent className="text-center text-muted-foreground py-6">
-                        <p>Brak migawki z dnia wczorajszego.</p>
-                        <p className="text-xs">Poczekaj na utworzenie historycznych danych, aby zobaczyć raport.</p>
+                        <p>Brak danych historycznych do wygenerowania raportu.</p>
                     </CardContent>
                 </Card>
             )}

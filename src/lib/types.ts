@@ -157,11 +157,3 @@ export interface AuthUser {
     email: string | null;
     role: UserRole;
 }
-
-export interface EmployeeEvent {
-  id: string;
-  employeeId: string;
-  employeeFullName: string;
-  type: 'hire' | 'termination';
-  date: string; // ISO string
-}

@@ -23,7 +23,6 @@ import type {
     StatsSnapshot,
     AuthUser,
     UserRole,
-    EmployeeEvent,
 } from '@/lib/types';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -32,7 +31,6 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 
 interface AppContextType {
     employees: Employee[];
-    employeeEvents: EmployeeEvent[];
     config: AllConfig;
     notifications: AppNotification[];
     statsHistory: StatsSnapshot[];
@@ -64,7 +62,6 @@ interface AppContextType {
     addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Promise<void>;
     updateOrder: (order: Order) => Promise<void>;
     deleteOrder: (orderId: string) => Promise<void>;
-    deleteEmployeeEvent: (eventId: string) => Promise<void>;
     currentUser: AuthUser | null;
     isAdmin: boolean;
 }
@@ -76,7 +73,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [activeView, setActiveView] = useState<ActiveView>('statystyki');
     
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [employeeEvents, setEmployeeEvents] = useState<EmployeeEvent[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
@@ -113,7 +109,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribeDb = onValue(dataRef, (snapshot) => {
             const data = snapshot.val() || {};
             setEmployees(objectToArray(data.employees));
-            setEmployeeEvents(objectToArray(data.employeeEvents));
             setConfig({
                 departments: objectToArray(data.config?.departments),
                 jobTitles: objectToArray(data.config?.jobTitles),
@@ -138,28 +133,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [toast]);
     
-    // --- Event Creator ---
-    const createEmployeeEvent = useCallback(async (employeeId: string, employeeFullName: string, type: 'hire' | 'termination') => {
-        const newEventRef = push(ref(db, 'employeeEvents'));
-        const event: Omit<EmployeeEvent, 'id'> = {
-            employeeId,
-            employeeFullName,
-            type,
-            date: new Date().toISOString(),
-        };
-        await set(newEventRef, event);
-    }, []);
-
-    const deleteEmployeeEvent = useCallback(async (eventId: string) => {
-        try {
-            await remove(ref(db, `employeeEvents/${eventId}`));
-            toast({ title: 'Sukces', description: 'Zdarzenie historyczne zostało usunięte.' });
-        } catch (error) {
-            console.error("Error deleting employee event: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zdarzenia.' });
-        }
-    }, [toast]);
-
     // --- Employee Actions ---
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
         try {
@@ -197,14 +170,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
                 const newEmployeeRef = push(ref(db, 'employees'));
                 await set(newEmployeeRef, { ...finalData, status: 'aktywny', id: newEmployeeRef.key });
-                await createEmployeeEvent(newEmployeeRef.key!, finalData.fullName, 'hire');
                 toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
             }
         } catch (error) {
             console.error("Error saving employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
         }
-    }, [toast, createEmployeeEvent, employees]);
+    }, [toast, employees]);
 
     const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
         try {
@@ -212,13 +184,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 status: 'zwolniony',
                 terminationDate: format(new Date(), 'yyyy-MM-dd')
             });
-            await createEmployeeEvent(employeeId, employeeFullName, 'termination');
             toast({ title: 'Pracownik zwolniony', description: 'Status pracownika został zmieniony na "zwolniony".' });
         } catch (error) {
             console.error("Error terminating employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
         }
-    }, [toast, createEmployeeEvent]);
+    }, [toast]);
 
     const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
         try {
@@ -226,13 +197,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 status: 'aktywny',
                 terminationDate: null 
             });
-            await createEmployeeEvent(employeeId, employeeFullName, 'hire');
             toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
         } catch (error) {
             console.error("Error restoring employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
         }
-    }, [toast, createEmployeeEvent]);
+    }, [toast]);
 
     const handleDeleteAllHireDates = useCallback(async () => {
         try {
@@ -251,8 +221,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const handleDeleteAllEmployees = useCallback(async () => {
         try {
             await remove(ref(db, 'employees'));
-            await remove(ref(db, 'employeeEvents'));
-            toast({ title: 'Sukces', description: 'Wszyscy pracownicy i zdarzenia zostały usunięte.' });
+            toast({ title: 'Sukces', description: 'Wszyscy pracownicy zostali usunięci.' });
         } catch (error) {
             console.error("Error deleting all employees: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracowników.' });
@@ -271,7 +240,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             for (const employee of terminatedEmployees) {
                  updates[`/employees/${employee.id}/status`] = 'aktywny';
                  updates[`/employees/${employee.id}/terminationDate`] = null;
-                 await createEmployeeEvent(employee.id, employee.fullName, 'hire');
             }
             await update(ref(db), updates);
             toast({ title: 'Sukces', description: `Przywrócono ${terminatedEmployees.length} pracowników.` });
@@ -279,7 +247,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error restoring all terminated employees: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracowników.' });
         }
-    }, [employees, toast, createEmployeeEvent]);
+    }, [employees, toast]);
 
     // --- Config Actions ---
     const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
@@ -472,7 +440,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const value = {
         employees,
-        employeeEvents,
         config,
         notifications,
         statsHistory,
@@ -504,7 +471,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addOrder,
         updateOrder,
         deleteOrder,
-        deleteEmployeeEvent,
         currentUser,
         isAdmin,
     };
