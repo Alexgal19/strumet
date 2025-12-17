@@ -36,6 +36,7 @@ import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { ExcelImportButton } from '@/components/excel-import-button';
+import { HireDateImportButton } from '@/components/hire-date-import-button';
 import { ExcelExportButton } from '@/components/excel-export-button';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
@@ -405,6 +406,7 @@ export default function AktywniPage() {
         <div className="hidden md:flex shrink-0 items-center space-x-2">
             <ExcelExportButton employees={displayedEmployees} fileName="aktywni_pracownicy" columns={exportColumns} />
             <ExcelImportButton />
+            <HireDateImportButton />
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
@@ -559,3 +561,5 @@ export default function AktywniPage() {
     </div>
   );
 }
+
+    

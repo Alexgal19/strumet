@@ -44,6 +44,7 @@ interface AppContextType {
     handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
     handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
     handleDeleteAllHireDates: () => Promise<void>;
+    handleUpdateHireDates: (updates: { fullName: string; hireDate: string }[]) => Promise<void>;
     handleDeleteAllEmployees: () => Promise<void>;
     handleRestoreAllTerminatedEmployees: () => Promise<void>;
     addConfigItems: (configType: ConfigType, items: string[]) => Promise<void>;
@@ -218,6 +219,45 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć dat zatrudnienia.' });
         }
     }, [employees, toast]);
+
+    const handleUpdateHireDates = useCallback(async (dateUpdates: { fullName: string; hireDate: string }[]) => {
+        const updates: Record<string, any> = {};
+        let updatedCount = 0;
+        const notFound: string[] = [];
+
+        dateUpdates.forEach(updateData => {
+            const employeeToUpdate = employees.find(emp => emp.fullName === updateData.fullName);
+            if (employeeToUpdate) {
+                updates[`/employees/${employeeToUpdate.id}/hireDate`] = updateData.hireDate;
+                updatedCount++;
+            } else {
+                notFound.push(updateData.fullName);
+            }
+        });
+
+        if (Object.keys(updates).length > 0) {
+            try {
+                await update(ref(db), updates);
+                toast({
+                    title: 'Aktualizacja zakończona',
+                    description: `Zaktualizowano daty dla ${updatedCount} pracowników.`,
+                });
+            } catch (error) {
+                console.error("Error updating hire dates:", error);
+                toast({ variant: 'destructive', title: 'Błąd', description: 'Wystąpił błąd podczas aktualizacji dat.' });
+                return;
+            }
+        }
+        
+        if (notFound.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Nie znaleziono pracowników',
+                description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
+            });
+        }
+    }, [employees, toast]);
+
 
     const handleDeleteAllEmployees = useCallback(async () => {
         try {
@@ -453,6 +493,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         handleTerminateEmployee,
         handleRestoreEmployee,
         handleDeleteAllHireDates,
+        handleUpdateHireDates,
         handleDeleteAllEmployees,
         handleRestoreAllTerminatedEmployees,
         addConfigItems,
@@ -486,3 +527,5 @@ export const useAppContext = () => {
     }
     return context;
 };
+
+    
