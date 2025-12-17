@@ -1222,28 +1222,24 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-4" : "grid-cols-1")}>
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
-          {isAdmin && <>
-            <TabsTrigger value="orders">Zamówienia</TabsTrigger>
-            <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
-            <TabsTrigger value="history">Historia</TabsTrigger>
-          </>}
+          <TabsTrigger value="orders">Zamówienia</TabsTrigger>
+          <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
+          <TabsTrigger value="history">Historia</TabsTrigger>
         </TabsList>
         <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
         </TabsContent>
-        {isAdmin && <>
-            <TabsContent value="orders" className="flex-grow mt-6">
-                <OrdersTab />
-            </TabsContent>
-            <TabsContent value="hires_and_fires" className="flex-grow mt-6">
-                <HiresAndFiresTab />
-            </TabsContent>
-            <TabsContent value="history" className="flex-grow mt-6">
-                <HistoryTab toast={toast} />
-            </TabsContent>
-        </>}
+        <TabsContent value="orders" className="flex-grow mt-6">
+            <OrdersTab />
+        </TabsContent>
+        <TabsContent value="hires_and_fires" className="flex-grow mt-6">
+            <HiresAndFiresTab />
+        </TabsContent>
+        <TabsContent value="history" className="flex-grow mt-6">
+            <HistoryTab toast={toast} />
+        </TabsContent>
       </Tabs>
     </div>
   );
