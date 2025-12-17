@@ -376,15 +376,17 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             </Dialog>
         </div>);
 })
+ReportTab.displayName = 'ReportTab';
 
-const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, ref) => {
+
+const HistoryTab = forwardRef<unknown, {}>((props, ref) => {
     const { employeeEvents, statsHistory, isHistoryLoading, isAdmin, employees } = useAppContext();
-    const { toast } = props;
+    const { toast } = useToast();
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     const [mode, setMode] = useState<'history' | 'dynamic'>('history');
     
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: startOfDay(new Date()), to: endOfToday() });
-    const [singleDate, setSingleDate] = useState<Date | undefined>(startOfDay(new Date()));
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: new Date(2025, 11, 15), to: endOfToday() });
+    const [singleDate, setSingleDate] = useState<Date | undefined>(new Date(2025, 11, 15));
 
     const liveSnapshot: StatsSnapshot = useMemo(() => {
         const activeEmployees = employees.filter(e => e.status === 'aktywny');
@@ -460,7 +462,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             const jobTitleChanges = Array.from(allJobTitleKeys).map(name => ({ name, countA: snapA.jobTitles?.[name] || 0, countB: snapB.jobTitles?.[name] || 0, delta: (snapB.jobTitles?.[name] || 0) - (snapA.jobTitles?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
             
             const rangeStart = startOfDay(snapA ? parseISO(snapA.id) : new Date());
-             newHiresInRange = employeeEvents.filter(e => {
+            newHiresInRange = employeeEvents.filter(e => {
                 return e.type === 'hire' && isWithinInterval(parseISO(e.date), { start: rangeStart, end: endOfToday() });
             }).length;
             terminationsInRange = employeeEvents.filter(e => {
@@ -672,13 +674,15 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             </Card>
         </div>
     )
-})
+});
+HistoryTab.displayName = 'HistoryTab';
+
 
 const HiresAndFiresTab = () => {
     const { employeeEvents, employees, isAdmin, deleteEmployeeEvent } = useAppContext();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: startOfDay(subDays(today, 30)),
+        from: new Date(2025, 11, 15),
         to: today,
     });
     const [eventToDelete, setEventToDelete] = useState<EmployeeEvent | null>(null);
@@ -694,6 +698,9 @@ const HiresAndFiresTab = () => {
                 break;
             case 'month':
                 setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
+                break;
+            case 'custom':
+                 setDateRange({ from: new Date(2025, 11, 15), to: endOfToday() });
                 break;
         }
     };
@@ -774,11 +781,12 @@ const HiresAndFiresTab = () => {
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <CardTitle>Wybierz okres</CardTitle>
                             <div className="flex flex-wrap items-center gap-2">
-                                <Select onValueChange={handlePresetChange} defaultValue='30'>
+                                <Select onValueChange={handlePresetChange} defaultValue="custom">
                                     <SelectTrigger className="w-[180px]">
                                         <SelectValue placeholder="Wybierz okres" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="custom">Od 15.12.2025</SelectItem>
                                         <SelectItem value="7">Ostatnie 7 dni</SelectItem>
                                         <SelectItem value="30">Ostatnie 30 dni</SelectItem>
                                         <SelectItem value="month">Ten miesiąc</SelectItem>
@@ -1024,7 +1032,8 @@ const OrdersTab = () => {
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {isAdmin && <div className="lg:col-span-1">
+           {isAdmin && (
+            <div className="lg:col-span-1">
                 <Tabs defaultValue="new" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="new">Nowy pracownik</TabsTrigger>
@@ -1113,7 +1122,8 @@ const OrdersTab = () => {
                         </Card>
                     </TabsContent>
                 </Tabs>
-            </div>}
+            </div>
+            )}
             <div className={isAdmin ? "lg:col-span-2" : "lg:col-span-3"}>
                 <Card>
                     <CardHeader>
@@ -1252,7 +1262,7 @@ const OrdersTab = () => {
 }
 
 export default function StatisticsPage() {
-  const { isLoading, toast, isAdmin } = useAppContext();
+  const { isLoading, isAdmin } = useAppContext();
   
   if (isLoading) {
     return (
@@ -1285,12 +1295,13 @@ export default function StatisticsPage() {
             <HiresAndFiresTab />
         </TabsContent>
         <TabsContent value="history" className="flex-grow mt-6">
-            <HistoryTab toast={toast} />
+            <HistoryTab />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
+
 
 
 
