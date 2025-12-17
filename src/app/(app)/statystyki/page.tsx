@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef } from 'react';
@@ -24,7 +25,7 @@ import { StatisticsExcelExportButton } from '@/components/statistics-excel-expor
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfToday, isWithinInterval, isSameDay } from 'date-fns';
+import { format, parseISO, startOfDay, subDays, startOfMonth, endOfMonth, endOfToday, isWithinInterval, isSameDay, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -376,7 +377,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 })
 
 const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, ref) => {
-    const { employees, statsHistory, isHistoryLoading, isAdmin } = useAppContext();
+    const { employees, employeeEvents, statsHistory, isHistoryLoading, isAdmin } = useAppContext();
     const { toast } = props;
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     const [mode, setMode] = useState<'history' | 'dynamic'>('history');
@@ -417,6 +418,9 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
     
     const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
         if (mode === 'history') {
+            let newHiresInRange = 0;
+            let terminationsInRange = 0;
+
             if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
                 return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
             }
@@ -424,8 +428,8 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
                 const sDate = parseISO(s.id);
                 return isWithinInterval(sDate, { start: startOfDay(dateRange.from!), end: dateRange.to! });
             });
-            const hiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
-            const terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
+            newHiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
+            terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
             
             const findClosestSnapshot = (targetDate: Date) => statsHistory.reduce((prev, curr) => 
                 Math.abs(parseISO(curr.id).getTime() - targetDate.getTime()) < Math.abs(parseISO(prev.id).getTime() - targetDate.getTime()) ? curr : prev
@@ -463,18 +467,16 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
             
             // Hires and terminations are calculated on-the-fly for dynamic mode
             const rangeStart = startOfDay(snapA ? parseISO(snapA.id) : new Date());
-            const hiresInRange = employees.filter(e => {
-                const hireDate = parseMaybeDate(e.hireDate);
-                return hireDate && isWithinInterval(hireDate, { start: rangeStart, end: endOfToday() });
+            const hiresInRange = employeeEvents.filter(e => {
+                return e.type === 'hire' && isWithinInterval(parseISO(e.date), { start: rangeStart, end: endOfToday() });
             }).length;
-             const terminationsInRange = employees.filter(e => {
-                const termDate = parseMaybeDate(e.terminationDate);
-                return termDate && isWithinInterval(termDate, { start: rangeStart, end: endOfToday() });
+             const terminationsInRange = employeeEvents.filter(e => {
+                return e.type === 'termination' && isWithinInterval(parseISO(e.date), { start: rangeStart, end: endOfToday() });
             }).length;
 
             return { comparisonData: { totalDelta: snapB.totalActive - snapA.totalActive, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
         }
-    }, [dateRange, singleDate, mode, statsHistory, liveSnapshot, employees]);
+    }, [dateRange, singleDate, mode, statsHistory, liveSnapshot, employeeEvents]);
 
     const handleCreateSnapshot = async () => {
         setIsCreatingSnapshot(true);
@@ -679,7 +681,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
 })
 
 const HiresAndFiresTab = () => {
-    const { employeeEvents } = useAppContext();
+    const { employeeEvents, isAdmin } = useAppContext();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: startOfDay(subDays(today, 30)),
@@ -703,7 +705,7 @@ const HiresAndFiresTab = () => {
 
     const { newHires, terminations, hiresSummary, terminationsSummary } = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) {
-            return { newHires: [], terminations: [], hiresSummary: null, terminationsSummary: null };
+            return { newHires: [], terminations: [], hiresSummary: {byDepartment: [], byJobTitle: []}, terminationsSummary: {byDepartment: [], byJobTitle: []} };
         }
 
         const hires = employeeEvents
@@ -717,9 +719,8 @@ const HiresAndFiresTab = () => {
         return { 
             newHires: hires, 
             terminations: terms,
-            // Summaries can be added here if needed, by fetching employee details
-            hiresSummary: { byDepartment: [], byJobTitle: [] },
-            terminationsSummary: { byDepartment: [], byJobTitle: [] },
+            hiresSummary: {byDepartment: [], byJobTitle: []},
+            terminationsSummary: {byDepartment: [], byJobTitle: []},
         };
 
     }, [employeeEvents, dateRange]);
@@ -743,7 +744,7 @@ const HiresAndFiresTab = () => {
     );
 
     return (
-         <div className="flex flex-col space-y-6 flex-grow">
+        <div className="flex flex-col space-y-6 flex-grow">
             <Card>
                 <CardHeader>
                     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -868,7 +869,7 @@ const HiresAndFiresTab = () => {
                         </ScrollArea>
                     </CardContent>
                 </Card>
-            </div>
+             </div>
         </div>
     )
 }
@@ -1041,7 +1042,8 @@ const OrdersTab = () => {
                         </Card>
                     </TabsContent>
                 </Tabs>
-            </div>}
+            </div>
+            }
             <div className={isAdmin ? "lg:col-span-2" : "lg:col-span-3"}>
                 <Card>
                     <CardHeader>
@@ -1077,9 +1079,7 @@ const OrdersTab = () => {
                                                         return (
                                                             <div key={order.id} className="flex items-start justify-between p-3 rounded-md border">
                                                                 <div>
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <p className="font-medium">{order.jobTitle}</p>
-                                                                    </div>
+                                                                    <p className="font-medium">{order.jobTitle}</p>
                                                                     <div className="text-xs text-muted-foreground space-y-1 mt-2">
                                                                         <p>Ilość: <span className='font-semibold'>{order.quantity}</span></p>
                                                                         <p>Zrealizowano: <span className='font-semibold text-green-500'>{realized}</span></p>
@@ -1200,10 +1200,10 @@ export default function StatisticsPage() {
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
-          <TabsTrigger value="orders">Zamówienia</TabsTrigger>
-          <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
-          <TabsTrigger value="history">Historia</TabsTrigger>
+            <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
+            <TabsTrigger value="orders">Zamówienia</TabsTrigger>
+            <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
+            <TabsTrigger value="history">Historia</TabsTrigger>
         </TabsList>
         <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
