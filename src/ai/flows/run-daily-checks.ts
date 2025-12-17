@@ -47,28 +47,43 @@ const runDailyChecksFlow = ai.defineFlow(
   async () => {
     console.log('Starting all daily checks...');
     
-    // Run all checks in parallel, including snapshot creation
-    const [contractsResult, appointmentsResult, terminationsResult, snapshotResult] = await Promise.allSettled([
+    // Check if today is Monday (1 for Monday, 0 for Sunday)
+    const isMonday = getDay(new Date()) === 1;
+    
+    const checksToRun: Promise<any>[] = [
         checkExpiringContractsAndNotify(),
         checkAppointmentsAndNotify(),
         checkPlannedTerminations(),
-        createStatsSnapshot(),
-    ]);
+    ];
 
-    const getResultValue = <T>(result: PromiseSettledResult<T>, defaultValue: T): T => {
+    if (isMonday) {
+        console.log('It is Monday. Adding statistics snapshot creation to the queue.');
+        checksToRun.push(createStatsSnapshot());
+    } else {
+        console.log('It is not Monday. Skipping statistics snapshot creation.');
+    }
+
+    const results = await Promise.allSettled(checksToRun);
+
+    const getResultValue = <T>(result: PromiseSettledResult<T> | undefined, defaultValue: T): T => {
+        if (!result) return defaultValue;
         return result.status === 'fulfilled' ? result.value : defaultValue;
     };
 
-    const contractsRes = getResultValue(contractsResult, { notificationsCreated: 0, emailsSent: 0 });
-    const appointmentsRes = getResultValue(appointmentsResult, { notificationsCreated: 0, emailsSent: 0 });
-    const terminationsRes = getResultValue(terminationsResult, { processedCount: 0, notificationsCreated: 0 });
+    const contractsRes = getResultValue(results[0], { notificationsCreated: 0, emailsSent: 0 });
+    const appointmentsRes = getResultValue(results[1], { notificationsCreated: 0, emailsSent: 0 });
+    const terminationsRes = getResultValue(results[2], { processedCount: 0, notificationsCreated: 0 });
     
     let snapshotRes: { snapshotId?: string, error?: string } | undefined = undefined;
-    if (snapshotResult.status === 'fulfilled') {
-        snapshotRes = { snapshotId: snapshotResult.value.snapshotId };
-    } else {
-        console.error("Failed to create statistics snapshot:", snapshotResult.reason);
-        snapshotRes = { error: (snapshotResult.reason as Error).message };
+    if (isMonday) {
+        const snapshotResult = results[3];
+        if (snapshotResult && snapshotResult.status === 'fulfilled') {
+            snapshotRes = { snapshotId: (snapshotResult.value as any).snapshotId };
+        } else {
+            const reason = snapshotResult ? (snapshotResult as PromiseRejectedResult).reason : new Error("Unknown snapshot failure");
+            console.error("Failed to create statistics snapshot:", reason);
+            snapshotRes = { error: (reason as Error).message };
+        }
     }
     
     const totalNotifications = contractsRes.notificationsCreated + appointmentsRes.notificationsCreated + terminationsRes.notificationsCreated;

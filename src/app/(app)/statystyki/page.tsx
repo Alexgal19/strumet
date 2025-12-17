@@ -6,7 +6,7 @@ import { LineChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList, Info } from 'lucide-react';
 import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,8 @@ import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { CheckIcon, ChevronsUpDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "@/components/ui/tooltip"
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -374,80 +376,106 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 })
 
 const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, ref) => {
-    const { statsHistory, isHistoryLoading, isAdmin } = useAppContext();
+    const { employees, statsHistory, isHistoryLoading, isAdmin } = useAppContext();
     const { toast } = props;
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
+    const [mode, setMode] = useState<'history' | 'dynamic'>('history');
     
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const [singleDate, setSingleDate] = useState<Date | undefined>();
 
-    useEffect(() => {
-        if (!dateRange && statsHistory.length > 0) {
-            const defaultTo = parseISO(statsHistory[0].id);
-            const defaultFrom = statsHistory.length > 1 ? parseISO(statsHistory[1].id) : defaultTo;
-            setDateRange({ from: defaultFrom, to: defaultTo });
-        }
-    }, [statsHistory, dateRange]);
-    
-    const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
-        if (statsHistory.length < 1 || !dateRange?.from) {
-            return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
-        }
-        
-        const effectiveTo = dateRange.to || endOfToday();
+    const liveSnapshot: StatsSnapshot = useMemo(() => {
+        const activeEmployees = employees.filter(e => e.status === 'aktywny');
+        const departmentCounts: Record<string, number> = {};
+        const jobTitleCounts: Record<string, number> = {};
+        const nationalityCounts: Record<string, number> = {};
 
-        const snapshotsInRange = statsHistory.filter(s => {
-            const sDate = parseISO(s.id);
-            return isWithinInterval(sDate, { start: startOfDay(dateRange.from!), end: effectiveTo });
+        activeEmployees.forEach(emp => {
+            if (emp.department) departmentCounts[emp.department] = (departmentCounts[emp.department] || 0) + 1;
+            if (emp.jobTitle) jobTitleCounts[emp.jobTitle] = (jobTitleCounts[emp.jobTitle] || 0) + 1;
+            if (emp.nationality) nationalityCounts[emp.nationality] = (nationalityCounts[emp.nationality] || 0) + 1;
         });
-        
-        const hiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
-        const terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
-        
-        const findClosestSnapshot = (targetDate: Date) => {
-            if (statsHistory.length === 0) return null;
-            return statsHistory.reduce((prev, curr) => {
-                const prevDiff = Math.abs(parseISO(prev.id).getTime() - targetDate.getTime());
-                const currDiff = Math.abs(parseISO(curr.id).getTime() - targetDate.getTime());
-                return currDiff < prevDiff ? curr : prev;
-            });
-        };
-
-        const snapA = findClosestSnapshot(dateRange.from);
-        const snapB = findClosestSnapshot(effectiveTo);
-
-        if (!snapA || !snapB || snapA.id === snapB.id) {
-             return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange: hiresInRange, terminationsInRange: terminationsInRange };
-        }
-
-        const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
-        const allJobTitleKeys = new Set([...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})]);
-
-        const departmentChanges = Array.from(allDepartmentKeys).map(name => {
-            const countA = snapA.departments?.[name] || 0;
-            const countB = snapB.departments?.[name] || 0;
-            return { name, countA, countB, delta: countB - countA };
-        }).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-
-        const jobTitleChanges = Array.from(allJobTitleKeys).map(name => {
-            const countA = snapA.jobTitles?.[name] || 0;
-            const countB = snapB.jobTitles?.[name] || 0;
-            return { name, countA, countB, delta: countB - countA };
-        }).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
         return {
-            comparisonData: {
-                totalDelta: snapB.totalActive - snapA.totalActive,
-                departmentChanges,
-                jobTitleChanges,
-            },
-            snapshotA: snapA,
-            snapshotB: snapB,
-            newHiresInRange: hiresInRange,
-            terminationsInRange,
+            id: 'live',
+            totalActive: activeEmployees.length,
+            departments: departmentCounts,
+            jobTitles: jobTitleCounts,
+            nationalities: nationalityCounts,
+            newHires: 0, // Not calculated for live snapshot in this context
+            terminations: 0,
         };
-    }, [dateRange, statsHistory]);
-
+    }, [employees]);
     
+    useEffect(() => {
+        if (!dateRange && statsHistory.length > 1) {
+             setDateRange({ from: parseISO(statsHistory[1].id), to: parseISO(statsHistory[0].id) });
+        } else if (!singleDate && statsHistory.length > 0) {
+            setSingleDate(parseISO(statsHistory[0].id));
+        }
+    }, [statsHistory, dateRange, singleDate]);
+    
+    const { comparisonData, snapshotA, snapshotB, newHiresInRange, terminationsInRange } = useMemo(() => {
+        if (mode === 'history') {
+            if (!dateRange?.from || !dateRange.to || statsHistory.length < 1) {
+                return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
+            }
+             const snapshotsInRange = statsHistory.filter(s => {
+                const sDate = parseISO(s.id);
+                return isWithinInterval(sDate, { start: startOfDay(dateRange.from!), end: dateRange.to! });
+            });
+            const hiresInRange = snapshotsInRange.reduce((sum, s) => sum + (s.newHires || 0), 0);
+            const terminationsInRange = snapshotsInRange.reduce((sum, s) => sum + (s.terminations || 0), 0);
+            
+            const findClosestSnapshot = (targetDate: Date) => statsHistory.reduce((prev, curr) => 
+                Math.abs(parseISO(curr.id).getTime() - targetDate.getTime()) < Math.abs(parseISO(prev.id).getTime() - targetDate.getTime()) ? curr : prev
+            );
+
+            const snapA = findClosestSnapshot(dateRange.from);
+            const snapB = findClosestSnapshot(dateRange.to);
+
+            if (!snapA || !snapB || snapA.id === snapB.id) return { comparisonData: null, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
+            
+             const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
+            const allJobTitleKeys = new Set([...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})]);
+
+            const departmentChanges = Array.from(allDepartmentKeys).map(name => ({ name, countA: snapA.departments?.[name] || 0, countB: snapB.departments?.[name] || 0, delta: (snapB.departments?.[name] || 0) - (snapA.departments?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+            const jobTitleChanges = Array.from(allJobTitleKeys).map(name => ({ name, countA: snapA.jobTitles?.[name] || 0, countB: snapB.jobTitles?.[name] || 0, delta: (snapB.jobTitles?.[name] || 0) - (snapA.jobTitles?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+            return { comparisonData: { totalDelta: snapB.totalActive - snapA.totalActive, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
+        } else { // Dynamic mode
+            if (!singleDate || statsHistory.length < 1) {
+                return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
+            }
+            
+            const snapA = statsHistory.reduce((prev, curr) => 
+                Math.abs(parseISO(curr.id).getTime() - singleDate.getTime()) < Math.abs(parseISO(prev.id).getTime() - singleDate.getTime()) ? curr : prev
+            );
+            const snapB = liveSnapshot;
+
+            if (!snapA) return { comparisonData: null, snapshotA: null, snapshotB: null, newHiresInRange: 0, terminationsInRange: 0 };
+
+            const allDepartmentKeys = new Set([...Object.keys(snapA.departments || {}), ...Object.keys(snapB.departments || {})]);
+            const allJobTitleKeys = new Set([...Object.keys(snapA.jobTitles || {}), ...Object.keys(snapB.jobTitles || {})]);
+
+            const departmentChanges = Array.from(allDepartmentKeys).map(name => ({ name, countA: snapA.departments?.[name] || 0, countB: snapB.departments?.[name] || 0, delta: (snapB.departments?.[name] || 0) - (snapA.departments?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+            const jobTitleChanges = Array.from(allJobTitleKeys).map(name => ({ name, countA: snapA.jobTitles?.[name] || 0, countB: snapB.jobTitles?.[name] || 0, delta: (snapB.jobTitles?.[name] || 0) - (snapA.jobTitles?.[name] || 0) })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+            
+            // Hires and terminations are calculated on-the-fly for dynamic mode
+            const rangeStart = startOfDay(snapA ? parseISO(snapA.id) : new Date());
+            const hiresInRange = employees.filter(e => {
+                const hireDate = parseMaybeDate(e.hireDate);
+                return hireDate && isWithinInterval(hireDate, { start: rangeStart, end: endOfToday() });
+            }).length;
+             const terminationsInRange = employees.filter(e => {
+                const termDate = parseMaybeDate(e.terminationDate);
+                return termDate && isWithinInterval(termDate, { start: rangeStart, end: endOfToday() });
+            }).length;
+
+            return { comparisonData: { totalDelta: snapB.totalActive - snapA.totalActive, departmentChanges, jobTitleChanges }, snapshotA: snapA, snapshotB: snapB, newHiresInRange, terminationsInRange };
+        }
+    }, [dateRange, singleDate, mode, statsHistory, liveSnapshot, employees]);
+
     const handleCreateSnapshot = async () => {
         setIsCreatingSnapshot(true);
         try {
@@ -502,47 +530,15 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
                  <CardHeader className="flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <CardTitle>Porównanie historyczne</CardTitle>
-                        <CardDescription>Wybierz dwie daty, aby porównać stan zatrudnienia.</CardDescription>
+                        <CardDescription>Wybierz tryb i daty, aby porównać stan zatrudnienia.</CardDescription>
                     </div>
-                     <div className="flex items-center gap-2">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    id="date"
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-[300px] justify-start text-left font-normal",
-                                        !dateRange && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <>
-                                                {format(dateRange.from, "LLL dd, y", { locale: pl })} -{" "}
-                                                {format(dateRange.to, "LLL dd, y", { locale: pl })}
-                                            </>
-                                        ) : (
-                                            format(dateRange.from, "LLL dd, y", { locale: pl })
-                                        )
-                                    ) : (
-                                        <span>Wybierz zakres dat</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="end">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={setDateRange}
-                                    numberOfMonths={2}
-                                    locale={pl}
-                                    disabled={(date) => !statsHistory.some(s => isSameDay(parseISO(s.id), date))}
-                                />
-                            </PopoverContent>
-                        </Popover>
+                     <div className="flex items-center gap-4">
+                         <RadioGroup defaultValue="history" onValueChange={(v) => setMode(v as any)} className="flex items-center space-x-2 rounded-md bg-muted/50 p-1">
+                              <RadioGroupItem value="history" id="r1" className="peer sr-only" />
+                              <Label htmlFor="r1" className="cursor-pointer rounded-sm px-3 py-1.5 text-sm font-medium peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow-sm">Historyczne</Label>
+                              <RadioGroupItem value="dynamic" id="r2" className="peer sr-only" />
+                              <Label htmlFor="r2" className="cursor-pointer rounded-sm px-3 py-1.5 text-sm font-medium peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow-sm">Dynamiczne</Label>
+                        </RadioGroup>
                          {isAdmin && <Button onClick={handleCreateSnapshot} disabled={isCreatingSnapshot} variant="outline" size="sm">
                             {isCreatingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                             Nowy zrzut
@@ -550,10 +546,55 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
                      </div>
                 </CardHeader>
                 <CardContent>
+                     <div className="flex items-center gap-4 p-4 border-b">
+                        {mode === 'history' ? (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date-range"
+                                        variant={"outline"}
+                                        className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y", { locale: pl })} - {format(dateRange.to, "LLL dd, y", { locale: pl })}</>) : format(dateRange.from, "LLL dd, y", { locale: pl })) : <span>Wybierz zakres dat</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} locale={pl} disabled={(date) => !statsHistory.some(s => isSameDay(parseISO(s.id), date))} />
+                                </PopoverContent>
+                            </Popover>
+                        ) : (
+                           <>
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                     <Button variant={"outline"} className={cn("w-[180px] justify-start text-left font-normal", !singleDate && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {singleDate ? format(singleDate, "LLL dd, y", { locale: pl }) : <span>Wybierz datę</span>}
+                                     </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar initialFocus mode="single" selected={singleDate} onSelect={setSingleDate} locale={pl} disabled={(date) => !statsHistory.some(s => isSameDay(parseISO(s.id), date))} />
+                                </PopoverContent>
+                             </Popover>
+                             <div className="text-sm font-medium text-muted-foreground">vs.</div>
+                             <Button variant={"outline"} className="w-[180px] font-semibold" disabled>Teraz</Button>
+                           </>
+                        )}
+                        <TooltipProvider>
+                            <UiTooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="ml-auto"><Info className="h-4 w-4" /></Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="max-w-xs">Wybierz daty, w których istnieją zrzuty danych (dni podświetlone). System automatycznie wybierze najbliższy dostępny zrzut do wybranej daty.</p>
+                                </TooltipContent>
+                            </UiTooltip>
+                        </TooltipProvider>
+                     </div>
                     {!comparisonData || !snapshotA || !snapshotB ? (
                         <p className="text-center text-muted-foreground py-10">Wybierz dwie różne daty, aby zobaczyć porównanie.</p>
                     ) : (
-                        <div className="space-y-8">
+                        <div className="space-y-8 mt-6">
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Podsumowanie ogólne</CardTitle>
@@ -572,7 +613,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
                                         <p className="text-2xl font-bold text-red-600">-{terminationsInRange}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Stan na {format(parseISO(snapshotB.id), "dd.MM.yy")}</p>
+                                        <p className="text-sm text-muted-foreground">Stan na {snapshotB.id === 'live' ? 'teraz' : format(parseISO(snapshotB.id), "dd.MM.yy")}</p>
                                         <div className="flex items-center justify-center gap-2">
                                             <p className="text-2xl font-bold">{snapshotB.totalActive}</p>
                                             <DeltaCell delta={comparisonData.totalDelta} className="text-lg" />
@@ -638,7 +679,7 @@ const HistoryTab = forwardRef<unknown, { toast: (props: any) => void }>((props, 
 })
 
 const HiresAndFiresTab = () => {
-    const { employees, isAdmin } = useAppContext();
+    const { employees } = useAppContext();
     const today = endOfToday();
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: startOfDay(subDays(today, 30)),
@@ -722,7 +763,7 @@ const HiresAndFiresTab = () => {
     );
 
     return (
-        <div className="flex flex-col space-y-6 flex-grow">
+         <div className="flex flex-col space-y-6 flex-grow">
             <Card>
                 <CardHeader>
                     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -1085,7 +1126,7 @@ const OrdersTab = () => {
                                                     <div className="flex items-center gap-2">
                                                         <span className='font-bold text-base'>{dept}</span>
                                                         {hasNewOrders && <Badge variant="outline">Nowe</Badge>}
-                                                        {hasReplacementOrders && <Badge variant="outline" className="bg-orange-500/20 text-orange-700 border-orange-500/50">Zastępstwo</Badge>}
+                                                        {hasReplacementOrders && <Badge variant="secondary" className="border-orange-500/80 text-orange-800">Zastępstwo</Badge>}
                                                     </div>
                                                     <span className='text-muted-foreground text-sm font-normal'>
                                                         {orderList.reduce((sum, o) => sum + o.quantity, 0)} os.
@@ -1222,7 +1263,7 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
       />
       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-4" : "grid-cols-4")}>
           <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
           <TabsTrigger value="orders">Zamówienia</TabsTrigger>
           <TabsTrigger value="hires_and_fires">Ruchy kadrowe</TabsTrigger>
