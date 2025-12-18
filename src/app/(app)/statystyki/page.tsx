@@ -430,9 +430,12 @@ const HiresAndFiresTab = () => {
         setReport(null);
 
         try {
-            const listRef = storageRef(storage, 'archives');
-            const res = await listAll(listRef);
-            const archives = res.items.map(item => item.name);
+            // Step 1: Get the list of available archives from our new API endpoint
+            const listResponse = await fetch('/api/archives/list');
+            if (!listResponse.ok) {
+                throw new Error('Nie udało się pobrać listy archiwów.');
+            }
+            const { files: archives } = await listResponse.json();
 
             const startFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
             const endFile = `employees_${format(date.to, 'yyyy-MM-dd')}.xlsx`;
@@ -442,7 +445,8 @@ const HiresAndFiresTab = () => {
                 setIsLoading(false);
                 return;
             }
-
+            
+            // Step 2: Get download URLs for the specific files we need
             const startUrl = await getDownloadURL(storageRef(storage, `archives/${startFile}`));
             const endUrl = await getDownloadURL(storageRef(storage, `archives/${endFile}`));
 
@@ -491,11 +495,7 @@ const HiresAndFiresTab = () => {
 
         } catch (error) {
             console.error("Error generating report:", error);
-            if ((error as any).code === 'storage/object-not-found' || (error as any).code === 'storage/unauthorized') {
-                 toast({ variant: 'destructive', title: 'Błąd Uprawnień', description: 'Nie udało się pobrać plików archiwum. Spróbuj odświeżyć stronę i zalogować się ponownie.' });
-            } else {
-                toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się wygenerować raportu.' });
-            }
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się wygenerować raportu.' });
         } finally {
             setIsLoading(false);
         }
