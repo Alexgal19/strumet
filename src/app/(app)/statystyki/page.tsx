@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
@@ -384,17 +383,24 @@ const HiresAndFiresTab = () => {
     const handleManualArchive = async () => {
         setIsArchiving(true);
         try {
-            const response = await fetch('/api/cron/daily-checks', {
+            const response = await fetch('/api/archive', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'archive' })
             });
 
-            const result = await response.json();
-
             if (!response.ok) {
-                throw new Error(result.error || 'Nieznany błąd serwera.');
+                let errorMsg = 'Nieznany błąd serwera.';
+                try {
+                    const result = await response.json();
+                    errorMsg = result.error || errorMsg;
+                } catch (e) {
+                    // response was not json, probably an HTML error page
+                    errorMsg = `Błąd serwera (${response.status})`;
+                }
+                throw new Error(errorMsg);
             }
+
+            const result = await response.json();
             
             toast({
                 title: 'Archiwizacja zakończona',
