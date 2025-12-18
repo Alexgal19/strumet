@@ -2,10 +2,11 @@
 'use server';
 
 import { NextResponse } from 'next/server';
-import { adminDb, adminStorage } from '@/lib/firebase-admin';
+import admin from 'firebase-admin';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { Employee } from '@/lib/types';
+import { getAdminApp } from '@/lib/firebase-admin';
 
 const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -13,7 +14,10 @@ const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { i
 
 export async function POST() {
   try {
-    const employeesRef = adminDb().ref('employees');
+    // Ensure the admin app is initialized
+    getAdminApp();
+
+    const employeesRef = admin.database().ref('employees');
     const snapshot = await employeesRef.once('value');
     const allEmployees = objectToArray<Employee>(snapshot.val());
 
@@ -60,7 +64,12 @@ export async function POST() {
     const fileName = `employees_${today}.xlsx`;
     const filePath = `archives/${fileName}`;
     
-    const bucket = adminStorage().bucket();
+    // Explicitly specify the bucket name on every call
+    const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
+    if (!bucketName) {
+        throw new Error("FIREBASE_STORAGE_BUCKET environment variable is not set.");
+    }
+    const bucket = admin.storage().bucket(bucketName);
     const file = bucket.file(filePath);
     
     await file.save(excelBuffer, {
