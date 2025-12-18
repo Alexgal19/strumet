@@ -3,7 +3,6 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import admin from 'firebase-admin';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -21,21 +20,3 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const db = getDatabase(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-
-// Initialize Firebase Admin for server-side
-if (typeof window === 'undefined' && !admin.apps.length) {
-    try {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: firebaseConfig.databaseURL,
-            storageBucket: firebaseConfig.storageBucket
-        });
-        console.log("Firebase Admin SDK initialized successfully.");
-    } catch (e: any) {
-        console.error("Firebase Admin SDK initialization error:", e.message);
-    }
-}
-
-export const adminDb = admin.apps.length ? admin.database() : null;
-export const adminStorage = admin.apps.length ? admin.storage() : null;
