@@ -12,15 +12,5 @@
     },
     ".read": "auth != null",
     ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
-  },
-  "storage": {
-    "rules": {
-      "match /b/{bucket}/o": {
-        "match /{allPaths=**}": {
-          "allow read": "request.auth != null",
-          "allow write": "request.auth != null && root.child('users').child(request.auth.uid).child('role').val() == 'admin'"
-        }
-      }
-    }
   }
 }
