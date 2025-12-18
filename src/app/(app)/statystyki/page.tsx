@@ -376,32 +376,12 @@ ReportTab.displayName = 'ReportTab';
 
 const HiresAndFiresTab = () => {
     const [archives, setArchives] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isArchiving, setIsArchiving] = useState(false);
     const [date, setDate] = useState<DateRange | undefined>();
     const [report, setReport] = useState<any>(null);
     const { toast } = useToast();
     const { isAdmin } = useAppContext();
-
-    const fetchArchives = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const listRef = storageRef(storage, 'archives');
-            const res = await listAll(listRef);
-            const fileNames = res.items.map(item => item.name);
-            setArchives(fileNames);
-        } catch (error) {
-            console.error("Error fetching archives:", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać listy archiwów.' });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [toast]);
-
-    useEffect(() => {
-        fetchArchives();
-    }, [fetchArchives]);
     
     const handleManualArchive = async () => {
         setIsArchiving(true);
@@ -411,8 +391,10 @@ const HiresAndFiresTab = () => {
                 title: 'Archiwizacja zakończona',
                 description: `Pomyślnie utworzono plik: ${result.filePath}`,
             });
-            // Refresh the list of archives after creating a new one
-            fetchArchives();
+            // Immediately fetch new list of archives
+            const listRef = storageRef(storage, 'archives');
+            const res = await listAll(listRef);
+            setArchives(res.items.map(item => item.name));
         } catch (error) {
             console.error("Error creating manual archive:", error);
             toast({ variant: 'destructive', title: 'Błąd archiwizacji', description: 'Nie udało się utworzyć archiwum.' });
@@ -439,10 +421,16 @@ const HiresAndFiresTab = () => {
         setReport(null);
 
         try {
+            // Fetch the list of archives on demand
+            const listRef = storageRef(storage, 'archives');
+            const res = await listAll(listRef);
+            const availableArchives = res.items.map(item => item.name);
+            setArchives(availableArchives);
+
             const startFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
             const endFile = `employees_${format(date.to, 'yyyy-MM-dd')}.xlsx`;
 
-            if (!archives.includes(startFile) || !archives.includes(endFile)) {
+            if (!availableArchives.includes(startFile) || !availableArchives.includes(endFile)) {
                 toast({ variant: 'destructive', title: 'Błąd', description: 'Brak plików archiwum dla wybranych dat.' });
                 setIsGenerating(false);
                 return;
@@ -496,7 +484,11 @@ const HiresAndFiresTab = () => {
 
         } catch (error) {
             console.error("Error generating report:", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się wygenerować raportu.' });
+            if ((error as any).code === 'storage/object-not-found' || (error as any).code === 'storage/unauthorized') {
+                 toast({ variant: 'destructive', title: 'Błąd Uprawnień', description: 'Nie udało się pobrać plików archiwum. Spróbuj odświeżyć stronę i zalogować się ponownie.' });
+            } else {
+                toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się wygenerować raportu.' });
+            }
         } finally {
             setIsGenerating(false);
         }
@@ -556,7 +548,7 @@ const HiresAndFiresTab = () => {
                             <CardDescription>Porównaj stan zatrudnienia między dwoma wybranymi dniami.</CardDescription>
                         </div>
                          {isAdmin && (
-                            <Button onClick={handleManualArchive} disabled={isArchiving || isLoading}>
+                            <Button onClick={handleManualArchive} disabled={isArchiving}>
                                 {isArchiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}
                                 Utwórz archiwum teraz
                             </Button>
@@ -600,7 +592,7 @@ const HiresAndFiresTab = () => {
                                 onSelect={setDate}
                                 numberOfMonths={2}
                                 locale={pl}
-                                disabled={(day) => !archives.includes(`employees_${format(day, 'yyyy-MM-dd')}.xlsx`)}
+                                disabled={(day) => isGenerating}
                             />
                             </PopoverContent>
                         </Popover>
@@ -1010,6 +1002,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
 
 
 
