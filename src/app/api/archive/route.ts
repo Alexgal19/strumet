@@ -58,7 +58,13 @@ export async function POST() {
     const today = format(new Date(), 'yyyy-MM-dd');
     const fileName = `employees_${today}.xlsx`;
     const filePath = `archives/${fileName}`;
-    const file = adminStorage().bucket().file(filePath);
+    
+    if (!process.env.FIREBASE_STORAGE_BUCKET) {
+        throw new Error("FIREBASE_STORAGE_BUCKET environment variable is not set.");
+    }
+    
+    const bucket = adminStorage().bucket(process.env.FIREBASE_STORAGE_BUCKET);
+    const file = bucket.file(filePath);
     
     await file.save(excelBuffer, {
         metadata: {
@@ -76,6 +82,7 @@ export async function POST() {
     return NextResponse.json({
       success: false,
       message: error.message || 'An unknown server error occurred during archival.',
+      error: error
     }, { status: 500 });
   }
 }

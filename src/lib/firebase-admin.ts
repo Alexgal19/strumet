@@ -16,7 +16,6 @@ const initializeAdminApp = () => {
             admin.initializeApp({
                 credential,
                 databaseURL: process.env.FIREBASE_DATABASE_URL,
-                storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
             });
 
         } catch (error: any) {
