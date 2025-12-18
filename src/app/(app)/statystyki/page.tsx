@@ -7,7 +7,7 @@ import { LineChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList, Info, ArrowRight } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList, Info, ArrowRight, Camera } from 'lucide-react';
 import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -33,6 +33,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { Badge } from '@/components/ui/badge';
 import { parseMaybeDate } from '@/lib/date';
+import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -413,12 +414,14 @@ ReportTab.displayName = 'ReportTab';
 
 
 const HiresAndFiresTab = () => {
-    const { employees, statsHistory, isHistoryLoading } = useAppContext();
+    const { employees, statsHistory, isHistoryLoading, isAdmin } = useAppContext();
+    const { toast } = useToast();
     const [date, setDate] = useState<DateRange | undefined>({
         from: subDays(new Date(), 1),
         to: subDays(new Date(), 1),
     });
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+    const [isSnapshotting, setIsSnapshotting] = useState(false);
 
     type PointInTimeReportType = { date: Date; snapshot: StatsSnapshot } | null;
     type ComparisonReportType = { start: StatsSnapshot; end: StatsSnapshot; deptChanges: any[] } | null;
@@ -533,6 +536,27 @@ const HiresAndFiresTab = () => {
         setIsReportDialogOpen(true);
     };
 
+    const handleManualSnapshot = async () => {
+        setIsSnapshotting(true);
+        try {
+            const result = await createStatsSnapshot();
+            toast({
+                title: "Sukces",
+                description: `Ręczna migawka statystyk dla dnia ${result.snapshotId} została pomyślnie utworzona.`,
+            });
+        } catch (error) {
+            console.error("Manual snapshot failed:", error);
+            toast({
+                variant: 'destructive',
+                title: "Błąd",
+                description: "Nie udało się utworzyć migawki statystyk. Spróbuj ponownie.",
+            });
+        } finally {
+            setIsSnapshotting(false);
+        }
+    };
+
+
     const DiffBadge = ({ diff }: { diff: number}) => {
         if (diff === 0) return <span className="text-muted-foreground">-</span>;
         const isPositive = diff > 0;
@@ -611,7 +635,7 @@ const HiresAndFiresTab = () => {
                      <CardDescription>Wybierz dzień, aby zobaczyć stan z przeszłości, lub dwa dni, aby je porównać. Migawki danych są tworzone automatycznie każdego dnia.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                     <div className="flex flex-col sm:flex-row items-center gap-4">
+                     <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap">
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -670,6 +694,13 @@ const HiresAndFiresTab = () => {
                             {isHistoryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HistoryIcon className="mr-2 h-4 w-4" />}
                             Generuj Raport
                         </Button>
+                        
+                        {isAdmin && (
+                            <Button onClick={handleManualSnapshot} disabled={isSnapshotting} variant="secondary">
+                                {isSnapshotting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
+                                Utwórz migawkę teraz
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>
