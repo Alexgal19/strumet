@@ -32,6 +32,7 @@ import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { archiveEmployees as archiveEmployeesAction } from '@/ai/flows/archive-employees-flow';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -383,25 +384,7 @@ const HiresAndFiresTab = () => {
     const handleManualArchive = async () => {
         setIsArchiving(true);
         try {
-            const response = await fetch('/api/archive', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            });
-
-            if (!response.ok) {
-                let errorMsg = 'Nieznany błąd serwera.';
-                try {
-                    const result = await response.json();
-                    errorMsg = result.error || errorMsg;
-                } catch (e) {
-                    // response was not json, probably an HTML error page
-                    errorMsg = `Błąd serwera (${response.status})`;
-                }
-                throw new Error(errorMsg);
-            }
-
-            const result = await response.json();
-            
+            const result = await archiveEmployeesAction();
             toast({
                 title: 'Archiwizacja zakończona',
                 description: `Pomyślnie utworzono plik: ${result.filePath}`,

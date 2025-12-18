@@ -1,6 +1,5 @@
 
-
-'use client';
+'use server';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
@@ -18,6 +17,10 @@ const ArchiveOutputSchema = z.object({
   terminatedCount: z.number(),
 });
 type ArchiveOutput = z.infer<typeof ArchiveOutputSchema>;
+
+export async function archiveEmployees(): Promise<ArchiveOutput> {
+  return archiveEmployeesFlow();
+}
 
 const archiveEmployeesFlow = ai.defineFlow(
   {
