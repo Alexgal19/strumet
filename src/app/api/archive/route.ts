@@ -60,11 +60,7 @@ export async function POST() {
     const fileName = `employees_${today}.xlsx`;
     const filePath = `archives/${fileName}`;
     
-    if (!process.env.FIREBASE_STORAGE_BUCKET) {
-        throw new Error("FIREBASE_STORAGE_BUCKET environment variable is not set.");
-    }
-    
-    const bucket = adminStorage().bucket(); // Let Admin SDK use the default bucket from config
+    const bucket = adminStorage().bucket();
     const file = bucket.file(filePath);
     
     await file.save(excelBuffer, {
