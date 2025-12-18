@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
@@ -372,12 +373,12 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 ReportTab.displayName = 'ReportTab';
 
 const HiresAndFiresTab = () => {
+    const { isAdmin, currentUser } = useAppContext();
     const [isArchiving, setIsArchiving] = useState(false);
     const [date, setDate] = useState<DateRange | undefined>();
     const [report, setReport] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
-    const { isAdmin } = useAppContext();
 
     const handleManualArchive = async () => {
         setIsArchiving(true);
@@ -420,6 +421,10 @@ const HiresAndFiresTab = () => {
     }
     
     const generateReport = async () => {
+        if (!currentUser) {
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Musisz być zalogowany, aby wygenerować raport.' });
+            return;
+        }
         if (!date || !date.from || !date.to) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Proszę wybrać zakres dat.' });
             return;
