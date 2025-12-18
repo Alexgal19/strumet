@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label';
 import { StatisticsExcelExportButton } from '@/components/statistics-excel-export-button';
 import { db, storage } from '@/lib/firebase';
 import { ref as dbRef, onValue } from 'firebase/database';
-import { ref as storageRef, listAll, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, getDownloadURL } from 'firebase/storage';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -412,87 +412,107 @@ const HiresAndFiresTab = () => {
         }
     };
     
-    const parseExcelData = (arrayBuffer: ArrayBuffer): { active: any[], terminated: any[] } => {
+    const parseExcelData = (arrayBuffer: ArrayBuffer): any[] => {
         const data = new Uint8Array(arrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const active = XLSX.utils.sheet_to_json(workbook.Sheets['Pracownicy aktywni']);
-        const terminated = XLSX.utils.sheet_to_json(workbook.Sheets['Pracownicy zwolnieni']);
-        return { active, terminated };
+        return active;
     }
     
     const generateReport = async () => {
-        if (!date || !date.from || !date.to) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Proszę wybrać zakres dat.' });
+        if (!date || !date.from) {
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Proszę wybrać datę lub zakres dat.' });
             return;
         }
-
+    
         setIsLoading(true);
         setReport(null);
-
+    
         try {
-            // Step 1: Get the list of available archives from our new API endpoint
             const listResponse = await fetch('/api/archives/list');
             if (!listResponse.ok) {
                 throw new Error('Nie udało się pobrać listy archiwów.');
             }
             const { files: archives } = await listResponse.json();
-
-            const startFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
-            const endFile = `employees_${format(date.to, 'yyyy-MM-dd')}.xlsx`;
-
-            if (!archives.includes(startFile) || !archives.includes(endFile)) {
-                toast({ variant: 'destructive', title: 'Błąd', description: 'Brak plików archiwum dla wybranych dat.' });
-                setIsLoading(false);
-                return;
-            }
-            
-            // Step 2: Get download URLs for the specific files we need
-            const startUrl = await getDownloadURL(storageRef(storage, `archives/${startFile}`));
-            const endUrl = await getDownloadURL(storageRef(storage, `archives/${endFile}`));
-
-            const [startResponse, endResponse] = await Promise.all([fetch(startUrl), fetch(endUrl)]);
-            const [startArrayBuffer, endArrayBuffer] = await Promise.all([startResponse.arrayBuffer(), endResponse.arrayBuffer()]);
-
-            const startData = parseExcelData(startArrayBuffer);
-            const endData = parseExcelData(endArrayBuffer);
-
-            const calculateChanges = (start: any[], end: any[]) => {
-                const startMap = new Map(start.map(item => [item['Nazwisko i imię'], item]));
-                const endMap = new Map(end.map(item => [item['Nazwisko i imię'], item]));
-
-                const added = Array.from(endMap.keys()).filter(key => !startMap.has(key));
-                const removed = Array.from(startMap.keys()).filter(key => !endMap.has(key));
-                
-                const changed: any[] = [];
-                for(const key of startMap.keys()) {
-                    if (endMap.has(key)) {
-                        const startItem = startMap.get(key);
-                        const endItem = endMap.get(key);
-                        if (JSON.stringify(startItem) !== JSON.stringify(endItem)) {
-                            changed.push({ name: key, from: startItem, to: endItem });
-                        }
-                    }
+    
+            const isRange = date.to && date.from.getTime() !== date.to.getTime();
+    
+            if (isRange) {
+                // --- TRYB PORÓWNAWCZY ---
+                const startFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
+                const endFile = `employees_${format(date.to!, 'yyyy-MM-dd')}.xlsx`;
+    
+                if (!archives.includes(startFile) || !archives.includes(endFile)) {
+                    toast({ variant: 'destructive', title: 'Błąd', description: 'Brak plików archiwum dla wybranych dat.' });
+                    setIsLoading(false);
+                    return;
                 }
-
-                return { added, removed, changed };
-            };
-            
-            const activeChanges = calculateChanges(startData.active, endData.active);
-            const deptChanges = compareGroups(startData.active, endData.active, 'Dział');
-            const jobTitleChanges = compareGroups(startData.active, endData.active, 'Stanowisko');
-            const nationalityChanges = compareGroups(startData.active, endData.active, 'Narodowość');
-
-            setReport({
-                start: { total: startData.active.length, date: format(date.from, 'dd.MM.yyyy') },
-                end: { total: endData.active.length, date: format(date.to, 'dd.MM.yyyy') },
-                diff: endData.active.length - startData.active.length,
-                newHires: activeChanges.added,
-                terminated: activeChanges.removed,
-                deptChanges,
-                jobTitleChanges,
-                nationalityChanges
-            });
-
+    
+                const [startUrl, endUrl] = await Promise.all([
+                    getDownloadURL(storageRef(storage, `archives/${startFile}`)),
+                    getDownloadURL(storageRef(storage, `archives/${endFile}`))
+                ]);
+    
+                const [startResponse, endResponse] = await Promise.all([fetch(startUrl), fetch(endUrl)]);
+                const [startArrayBuffer, endArrayBuffer] = await Promise.all([startResponse.arrayBuffer(), endResponse.arrayBuffer()]);
+    
+                const startData = parseExcelData(startArrayBuffer);
+                const endData = parseExcelData(endArrayBuffer);
+    
+                const calculateChanges = (start: any[], end: any[]) => {
+                    const startMap = new Map(start.map(item => [item['Nazwisko i imię'], item]));
+                    const endMap = new Map(end.map(item => [item['Nazwisko i imię'], item]));
+    
+                    const added = Array.from(endMap.keys()).filter(key => !startMap.has(key));
+                    const removed = Array.from(startMap.keys()).filter(key => !endMap.has(key));
+                    
+                    return { added, removed };
+                };
+    
+                const activeChanges = calculateChanges(startData, endData);
+                const deptChanges = compareGroups(startData, endData, 'Dział');
+                const jobTitleChanges = compareGroups(startData, endData, 'Stanowisko');
+                const nationalityChanges = compareGroups(startData, endData, 'Narodowość');
+    
+                setReport({
+                    isRange: true,
+                    start: { total: startData.length, date: format(date.from, 'dd.MM.yyyy') },
+                    end: { total: endData.length, date: format(date.to!, 'dd.MM.yyyy') },
+                    diff: endData.length - startData.length,
+                    newHires: activeChanges.added,
+                    terminated: activeChanges.removed,
+                    deptChanges,
+                    jobTitleChanges,
+                    nationalityChanges
+                });
+            } else {
+                // --- TRYB POJEDYNCZEGO DNIA ---
+                const singleDateFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
+                if (!archives.includes(singleDateFile)) {
+                    toast({ variant: 'destructive', title: 'Błąd', description: 'Brak pliku archiwum dla wybranej daty.' });
+                    setIsLoading(false);
+                    return;
+                }
+    
+                const fileUrl = await getDownloadURL(storageRef(storage, `archives/${singleDateFile}`));
+                const response = await fetch(fileUrl);
+                const arrayBuffer = await response.arrayBuffer();
+                const data = parseExcelData(arrayBuffer);
+    
+                const deptChanges = compareGroups([], data, 'Dział');
+                const jobTitleChanges = compareGroups([], data, 'Stanowisko');
+                const nationalityChanges = compareGroups([], data, 'Narodowość');
+    
+                setReport({
+                    isRange: false,
+                    date: format(date.from, 'dd.MM.yyyy'),
+                    total: data.length,
+                    deptChanges,
+                    jobTitleChanges,
+                    nationalityChanges
+                });
+            }
+    
         } catch (error) {
             console.error("Error generating report:", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się wygenerować raportu.' });
@@ -502,8 +522,8 @@ const HiresAndFiresTab = () => {
     };
     
     const compareGroups = (startData: any[], endData: any[], key: string) => {
-        const startCounts = startData.reduce((acc, item) => { acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {} as Record<string, number>);
-        const endCounts = endData.reduce((acc, item) => { acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const startCounts = startData.reduce((acc, item) => { if(item[key]) acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const endCounts = endData.reduce((acc, item) => { if(item[key]) acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {} as Record<string, number>);
         
         const allKeys = new Set([...Object.keys(startCounts), ...Object.keys(endCounts)]);
         const changes: any[] = [];
@@ -511,15 +531,15 @@ const HiresAndFiresTab = () => {
         allKeys.forEach(groupName => {
             const startCount = startCounts[groupName] || 0;
             const endCount = endCounts[groupName] || 0;
-            if (startCount !== endCount) {
+            if (startCount !== endCount || (endData.length > 0 && startData.length === 0)) {
                 changes.push({ name: groupName, from: startCount, to: endCount, diff: endCount - startCount });
             }
         });
-        return changes;
+        return changes.sort((a,b) => b.to - a.to);
     };
     
     const DiffBadge = ({ diff }: { diff: number }) => (
-        <Badge variant={diff > 0 ? 'default' : 'destructive'} className={cn(diff > 0 && "bg-green-500 hover:bg-green-600")}>
+        <Badge variant={diff >= 0 ? 'default' : 'destructive'} className={cn(diff >= 0 && "bg-green-500 hover:bg-green-600")}>
             {diff > 0 ? `+${diff}` : diff}
         </Badge>
     );
@@ -545,6 +565,22 @@ const HiresAndFiresTab = () => {
         </Card>
     );
 
+    const SingleDayReportCard = ({ title, data }: { title: string, data: { name: string, to: number }[] }) => (
+        <Card>
+            <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
+            <CardContent>
+                <div className="space-y-3">
+                    {data.length > 0 ? data.map(item => (
+                        <div key={item.name} className="flex justify-between items-center text-sm">
+                            <span>{item.name || 'Brak'}</span>
+                            <span className="font-bold font-mono">{item.to}</span>
+                        </div>
+                    )) : <p className="text-sm text-muted-foreground text-center">Brak danych</p>}
+                </div>
+            </CardContent>
+        </Card>
+    );
+
     return (
         <div className="space-y-6">
             <Card>
@@ -552,7 +588,7 @@ const HiresAndFiresTab = () => {
                     <div className="flex justify-between items-start">
                         <div>
                             <CardTitle>Analiza historyczna</CardTitle>
-                            <CardDescription>Porównaj stan zatrudnienia między dwoma wybranymi dniami.</CardDescription>
+                            <CardDescription>Porównaj stan zatrudnienia między dwoma dniami lub zobacz stan na jeden dzień.</CardDescription>
                         </div>
                          {isAdmin && (
                             <Button onClick={handleManualArchive} disabled={isArchiving}>
@@ -564,7 +600,7 @@ const HiresAndFiresTab = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid gap-2">
-                        <Label>Wybierz okres</Label>
+                        <Label>Wybierz okres lub jeden dzień</Label>
                         <Popover>
                             <PopoverTrigger asChild>
                             <Button
@@ -605,7 +641,7 @@ const HiresAndFiresTab = () => {
                             </PopoverContent>
                         </Popover>
                     </div>
-                     <Button onClick={generateReport} disabled={isLoading || !date?.from || !date?.to}>
+                     <Button onClick={generateReport} disabled={isLoading || !date?.from}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Generuj raport
                     </Button>
@@ -619,7 +655,7 @@ const HiresAndFiresTab = () => {
                  </div>
             )}
 
-            {report && (
+            {report && report.isRange && (
                 <div className="space-y-6 animate-fade-in">
                     <Card className="bg-muted/30">
                         <CardHeader>
@@ -640,7 +676,7 @@ const HiresAndFiresTab = () => {
                              <div className="p-4 rounded-lg border bg-background text-center">
                                 <p className="text-sm text-muted-foreground">Różnica</p>
                                 <div className="flex items-center justify-center gap-4 mt-2">
-                                     <span className={cn("text-3xl font-bold", report.diff > 0 ? 'text-green-500' : 'text-destructive')}>
+                                     <span className={cn("text-3xl font-bold", report.diff >= 0 ? 'text-green-500' : 'text-destructive')}>
                                         {report.diff > 0 ? '+' : ''}{report.diff}
                                     </span>
                                 </div>
@@ -662,6 +698,33 @@ const HiresAndFiresTab = () => {
                     </div>
                 </div>
             )}
+            
+            {report && !report.isRange && (
+                <div className="space-y-6 animate-fade-in">
+                     <Card className="bg-muted/30">
+                        <CardHeader>
+                            <CardTitle>Raport na dzień: {report.date}</CardTitle>
+                            <CardDescription>
+                                Stan zatrudnienia w wybranym dniu.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="p-4 rounded-lg border bg-background text-center max-w-xs mx-auto">
+                                <p className="text-sm text-muted-foreground">Całkowita liczba pracowników</p>
+                                <div className="flex items-center justify-center gap-4 mt-2">
+                                    <span className="text-3xl font-bold">{report.total}</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <SingleDayReportCard title="Liczba pracowników w działach" data={report.deptChanges} />
+                        <SingleDayReportCard title="Liczba pracowników na stanowiskach" data={report.jobTitleChanges} />
+                        <SingleDayReportCard title="Liczba pracowników wg narodowości" data={report.nationalityChanges} />
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };
