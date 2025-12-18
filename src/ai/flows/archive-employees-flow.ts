@@ -39,6 +39,10 @@ const archiveEmployeesFlow = ai.defineFlow(
     const snapshot = await employeesRef.once('value');
     const allEmployees = objectToArray<Employee>(snapshot.val());
 
+    if (allEmployees.length === 0) {
+        throw new Error('Brak pracowników do zarchiwizowania.');
+    }
+
     const activeEmployees = allEmployees.filter(e => e.status === 'aktywny');
     const terminatedEmployees = allEmployees.filter(e => e.status === 'zwolniony');
     
@@ -96,5 +100,5 @@ const archiveEmployeesFlow = ai.defineFlow(
 );
 
 export async function archiveEmployees(): Promise<ArchiveOutput> {
-    return archiveEmployeesFlow();
+  return archiveEmployeesFlow();
 }

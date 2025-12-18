@@ -33,7 +33,7 @@ import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import { archiveEmployees } from '@/lib/actions';
+import { archiveEmployeesAction } from '@/lib/actions';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -375,7 +375,6 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 ReportTab.displayName = 'ReportTab';
 
 const HiresAndFiresTab = () => {
-    const [archives, setArchives] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isArchiving, setIsArchiving] = useState(false);
     const [date, setDate] = useState<DateRange | undefined>();
@@ -383,45 +382,17 @@ const HiresAndFiresTab = () => {
     const { toast } = useToast();
     const { isAdmin } = useAppContext();
 
-    useEffect(() => {
-        async function fetchArchives() {
-            if (!isAdmin) return;
-            setIsLoading(true);
-            try {
-                const listRef = storageRef(storage, 'archives');
-                const res = await listAll(listRef);
-                setArchives(res.items.map(item => item.name));
-            } catch (error) {
-                console.error("Failed to fetch archives:", error);
-                 if ((error as any).code === 'storage/unauthorized' || (error as any).code === 'storage/retry-limit-exceeded') {
-                    // This can happen on first load due to auth race conditions.
-                    // We will retry fetching when user tries to generate report.
-                    console.warn("Initial archive fetch failed due to auth, will retry on demand.");
-                } else {
-                    toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać listy archiwów.' });
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        fetchArchives();
-    }, [isAdmin, toast]);
-    
     const handleManualArchive = async () => {
         setIsArchiving(true);
         try {
-            const result = await archiveEmployees();
+            const result = await archiveEmployeesAction();
             toast({
                 title: 'Archiwizacja zakończona',
                 description: `Pomyślnie utworzono plik: ${result.filePath}`,
             });
-            // Immediately fetch new list of archives
-            const listRef = storageRef(storage, 'archives');
-            const res = await listAll(listRef);
-            setArchives(res.items.map(item => item.name));
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating manual archive:", error);
-            toast({ variant: 'destructive', title: 'Błąd archiwizacji', description: 'Nie udało się utworzyć archiwum.' });
+            toast({ variant: 'destructive', title: 'Błąd archiwizacji', description: error.message || 'Nie udało się utworzyć archiwum.' });
         } finally {
             setIsArchiving(false);
         }
@@ -449,7 +420,6 @@ const HiresAndFiresTab = () => {
             const listRef = storageRef(storage, 'archives');
             const res = await listAll(listRef);
             const availableArchives = res.items.map(item => item.name);
-            setArchives(availableArchives);
 
             const startFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
             const endFile = `employees_${format(date.to, 'yyyy-MM-dd')}.xlsx`;
@@ -617,7 +587,7 @@ const HiresAndFiresTab = () => {
                                 onSelect={setDate}
                                 numberOfMonths={2}
                                 locale={pl}
-                                disabled={(day) => isLoading || !archives.some(name => name.includes(format(day, 'yyyy-MM-dd')))}
+                                disabled={isLoading}
                             />
                             </PopoverContent>
                         </Popover>
