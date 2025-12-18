@@ -30,11 +30,14 @@ const archiveEmployeesFlow = ai.defineFlow(
   async () => {
     console.log('Starting daily employee archival to Excel...');
     
-    if (!adminDb || !adminStorage) {
+    const db = adminDb();
+    const storage = adminStorage();
+
+    if (!db || !storage) {
         throw new Error('Firebase Admin SDK not initialized.');
     }
 
-    const employeesRef = adminDb.ref('employees');
+    const employeesRef = db.ref('employees');
     const snapshot = await employeesRef.once('value');
     const allEmployees = objectToArray<Employee>(snapshot.val());
 
@@ -76,7 +79,7 @@ const archiveEmployeesFlow = ai.defineFlow(
     const today = format(new Date(), 'yyyy-MM-dd');
     const fileName = `employees_${today}.xlsx`;
     const filePath = `archives/${fileName}`;
-    const file = adminStorage.bucket().file(filePath);
+    const file = storage.bucket().file(filePath);
 
     await file.save(excelBuffer, {
         metadata: {
