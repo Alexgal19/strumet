@@ -33,7 +33,7 @@ import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
+import { archiveEmployees } from '@/lib/actions';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -376,12 +376,36 @@ ReportTab.displayName = 'ReportTab';
 
 const HiresAndFiresTab = () => {
     const [archives, setArchives] = useState<string[]>([]);
-    const [isGenerating, setIsGenerating] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [isArchiving, setIsArchiving] = useState(false);
     const [date, setDate] = useState<DateRange | undefined>();
     const [report, setReport] = useState<any>(null);
     const { toast } = useToast();
     const { isAdmin } = useAppContext();
+
+    useEffect(() => {
+        async function fetchArchives() {
+            if (!isAdmin) return;
+            setIsLoading(true);
+            try {
+                const listRef = storageRef(storage, 'archives');
+                const res = await listAll(listRef);
+                setArchives(res.items.map(item => item.name));
+            } catch (error) {
+                console.error("Failed to fetch archives:", error);
+                 if ((error as any).code === 'storage/unauthorized' || (error as any).code === 'storage/retry-limit-exceeded') {
+                    // This can happen on first load due to auth race conditions.
+                    // We will retry fetching when user tries to generate report.
+                    console.warn("Initial archive fetch failed due to auth, will retry on demand.");
+                } else {
+                    toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać listy archiwów.' });
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        fetchArchives();
+    }, [isAdmin, toast]);
     
     const handleManualArchive = async () => {
         setIsArchiving(true);
@@ -417,7 +441,7 @@ const HiresAndFiresTab = () => {
             return;
         }
 
-        setIsGenerating(true);
+        setIsLoading(true);
         setReport(null);
 
         try {
@@ -432,7 +456,7 @@ const HiresAndFiresTab = () => {
 
             if (!availableArchives.includes(startFile) || !availableArchives.includes(endFile)) {
                 toast({ variant: 'destructive', title: 'Błąd', description: 'Brak plików archiwum dla wybranych dat.' });
-                setIsGenerating(false);
+                setIsLoading(false);
                 return;
             }
 
@@ -490,7 +514,7 @@ const HiresAndFiresTab = () => {
                 toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się wygenerować raportu.' });
             }
         } finally {
-            setIsGenerating(false);
+            setIsLoading(false);
         }
     };
     
@@ -567,6 +591,7 @@ const HiresAndFiresTab = () => {
                                 "w-[300px] justify-start text-left font-normal",
                                 !date && "text-muted-foreground"
                                 )}
+                                disabled={isLoading}
                             >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {date?.from ? (
@@ -592,19 +617,19 @@ const HiresAndFiresTab = () => {
                                 onSelect={setDate}
                                 numberOfMonths={2}
                                 locale={pl}
-                                disabled={(day) => isGenerating}
+                                disabled={(day) => isLoading || !archives.some(name => name.includes(format(day, 'yyyy-MM-dd')))}
                             />
                             </PopoverContent>
                         </Popover>
                     </div>
-                     <Button onClick={generateReport} disabled={isGenerating || !date?.from || !date?.to}>
-                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                     <Button onClick={generateReport} disabled={isLoading || !date?.from || !date?.to}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Generuj raport
                     </Button>
                 </CardContent>
             </Card>
 
-            {isGenerating && (
+            {isLoading && !report && (
                  <div className="flex justify-center items-center py-10">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="ml-4 text-muted-foreground">Generowanie raportu, to może potrwać chwilę...</p>
@@ -1002,7 +1027,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-
-
-
