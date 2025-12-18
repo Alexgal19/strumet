@@ -31,7 +31,6 @@ import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import { archiveEmployees as archiveEmployeesAction } from '@/ai/flows/archive-employees-flow';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -383,15 +382,27 @@ const HiresAndFiresTab = () => {
     const handleManualArchive = async () => {
         setIsArchiving(true);
         try {
-            const result = await archiveEmployeesAction();
-            if (result.success) {
-                toast({
-                    title: 'Archiwizacja zakończona',
-                    description: `Pomyślnie utworzono plik: ${result.filePath}`,
-                });
-            } else {
-                 throw new Error(result.message || 'Nie udało się utworzyć archiwum.');
+            const response = await fetch('/api/archive', {
+                method: 'POST',
+            });
+
+            if (!response.ok) {
+                let errorMsg = 'Nie udało się utworzyć archiwum.';
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || `Błąd serwera (${response.status})`;
+                } catch (e) {
+                     errorMsg = `Błąd serwera (${response.status})`;
+                }
+                throw new Error(errorMsg);
             }
+
+            const result = await response.json();
+            toast({
+                title: 'Archiwizacja zakończona',
+                description: `Pomyślnie utworzono plik: ${result.filePath}`,
+            });
+
         } catch (error: any) {
             console.error("Error creating manual archive:", error);
             toast({ variant: 'destructive', title: 'Błąd archiwizacji', description: error.message || 'Wystąpił błąd po stronie serwera.' });
