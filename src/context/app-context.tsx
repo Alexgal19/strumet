@@ -23,6 +23,7 @@ import type {
     JobTitleClothingSet,
     StatsSnapshot,
     AuthUser,
+    User,
     UserRole,
 } from '@/lib/types';
 
@@ -32,6 +33,7 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 
 interface AppContextType {
     employees: Employee[];
+    users: User[];
     config: AllConfig;
     notifications: AppNotification[];
     statsHistory: StatsSnapshot[];
@@ -53,6 +55,7 @@ interface AppContextType {
     removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
     handleSaveJobTitleClothingSet: (jobTitleId: string, description: string) => Promise<void>;
     handleSaveResendApiKey: (apiKey: string) => Promise<void>;
+    handleUpdateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
     addAbsence: (employeeId: string, date: string) => Promise<void>;
     deleteAbsence: (absenceId: string) => Promise<void>;
     addAbsenceRecord: (record: Omit<AbsenceRecord, 'id'>) => Promise<void>;
@@ -76,6 +79,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [activeView, setActiveView] = useState<ActiveView>('statystyki');
     
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
@@ -112,6 +116,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribeDb = onValue(dataRef, (snapshot) => {
             const data = snapshot.val() || {};
             setEmployees(objectToArray(data.employees));
+            setUsers(objectToArray(data.users));
             setConfig({
                 departments: objectToArray(data.config?.departments),
                 jobTitles: objectToArray(data.config?.jobTitles),
@@ -389,6 +394,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [toast]);
 
+    const handleUpdateUserRole = useCallback(async (userId: string, newRole: UserRole) => {
+        try {
+            await update(ref(db, `users/${userId}`), { role: newRole });
+            toast({ title: 'Sukces', description: 'Rola użytkownika została zaktualizowana.' });
+        } catch (error) {
+            console.error("Error updating user role: ", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować roli użytkownika.' });
+        }
+    }, [toast]);
+
     // --- Absence Actions ---
     const addAbsence = useCallback(async (employeeId: string, date: string) => {
         const newAbsenceRef = push(ref(db, 'absences'));
@@ -513,6 +528,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const value = {
         employees,
+        users,
         config,
         notifications,
         statsHistory,
@@ -534,6 +550,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         removeConfigItem,
         handleSaveJobTitleClothingSet,
         handleSaveResendApiKey,
+        handleUpdateUserRole,
         addAbsence,
         deleteAbsence,
         addAbsenceRecord,

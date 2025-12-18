@@ -6,19 +6,24 @@ import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Trash2, Loader2, Edit, Save, KeyRound } from 'lucide-react';
-import type { ConfigItem, ConfigType, JobTitle, JobTitleClothingSet } from '@/lib/types';
+import { PlusCircle, Trash2, Loader2, Edit, Save, KeyRound, Users, ShieldCheck } from 'lucide-react';
+import type { ConfigItem, ConfigType, JobTitle, JobTitleClothingSet, User, UserRole } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useHasMounted } from '@/hooks/use-mobile';
 import { useAppContext } from '@/context/app-context';
-import { MultiSelect, OptionType } from '@/components/ui/multi-select';
+import { Switch } from '@/components/ui/switch';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -77,14 +82,14 @@ const JobTitleClothingSetsTab = () => {
     return (
         <Card className="h-full flex flex-col">
             <CardHeader>
-                <CardTitle className="lg:text-2xl">Zestawy odzieży dla stanowisk</CardTitle>
-                <CardDescription className="lg:text-base">Przypisz domyślne zestawy odzieży do poszczególnych stanowisk.</CardDescription>
+                <CardTitle>Zestawy odzieży dla stanowisk</CardTitle>
+                <CardDescription>Przypisz domyślne zestawy odzieży do poszczególnych stanowisk.</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow overflow-y-auto">
                 <Accordion type="multiple" className="w-full">
                     {jobTitles.map((jobTitle) => (
                         <AccordionItem value={jobTitle.id} key={jobTitle.id}>
-                            <AccordionTrigger className="lg:text-lg">{jobTitle.name}</AccordionTrigger>
+                            <AccordionTrigger>{jobTitle.name}</AccordionTrigger>
                             <AccordionContent>
                                 <div className="space-y-4 p-2">
                                      <Textarea
@@ -94,10 +99,10 @@ const JobTitleClothingSetsTab = () => {
                                             setDescriptions(prev => ({ ...prev, [jobTitle.id]: e.target.value }));
                                         }}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="min-h-[100px] lg:text-base"
+                                        className="min-h-[100px]"
                                     />
-                                    <Button onClick={(e) => { e.stopPropagation(); handleSave(jobTitle.id); }} className="lg:h-11 lg:px-6">
-                                        <Save className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                    <Button onClick={(e) => { e.stopPropagation(); handleSave(jobTitle.id); }}>
+                                        <Save className="mr-2 h-4 w-4" />
                                         Zapisz zestaw
                                     </Button>
                                 </div>
@@ -110,9 +115,72 @@ const JobTitleClothingSetsTab = () => {
     );
 };
 
+const UserManagementTab = () => {
+    const { users, currentUser, handleUpdateUserRole } = useAppContext();
+    const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+
+    const handleRoleChange = (user: User, newRole: UserRole) => {
+        if (user.id === currentUser?.uid) {
+            alert("Nie można zmienić własnej roli.");
+            return;
+        }
+        setUpdatingUserId(user.id);
+        handleUpdateUserRole(user.id, newRole).finally(() => {
+            setUpdatingUserId(null);
+        });
+    };
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Zarządzanie Użytkownikami</CardTitle>
+                <CardDescription>
+                    Przeglądaj użytkowników i zarządzaj ich uprawnieniami.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Email</TableHead>
+                                <TableHead className="w-[150px] text-center">Rola</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {users.map(user => (
+                                <TableRow key={user.id}>
+                                    <TableCell className="font-medium">{user.email}</TableCell>
+                                    <TableCell className="text-center">
+                                       <div className="flex items-center justify-center space-x-2">
+                                           <Label htmlFor={`role-switch-${user.id}`} className={cn("text-muted-foreground", user.role === 'guest' && "text-foreground font-semibold")}>
+                                             Gość
+                                           </Label>
+                                            <Switch
+                                                id={`role-switch-${user.id}`}
+                                                checked={user.role === 'admin'}
+                                                onCheckedChange={(checked) => handleRoleChange(user, checked ? 'admin' : 'guest')}
+                                                disabled={user.id === currentUser?.uid || updatingUserId === user.id}
+                                                aria-label="Przełącz rolę"
+                                            />
+                                            <Label htmlFor={`role-switch-${user.id}`} className={cn("text-muted-foreground", user.role === 'admin' && "text-foreground font-semibold")}>
+                                              Admin
+                                            </Label>
+                                       </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
 
 export default function ConfigurationPage() {
-  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, handleSaveResendApiKey } = useAppContext();
+  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, handleSaveResendApiKey, isAdmin } = useAppContext();
   const hasMounted = useHasMounted();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -209,15 +277,68 @@ export default function ConfigurationPage() {
         description="Zarządzaj opcjami dostępnymi w systemie."
       />
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-grow">
-        <div className="flex flex-col gap-6">
-            <Card>
+      <Tabs defaultValue="lists" className="flex-grow flex flex-col">
+         <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="lists">Listy</TabsTrigger>
+            <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
+            <TabsTrigger value="api_keys">Klucze API</TabsTrigger>
+            {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="lists" className="flex-grow mt-6">
+            <Card className="flex-grow flex flex-col">
+               <CardHeader>
+                    <CardTitle>Listy Konfiguracyjne</CardTitle>
+                    <CardDescription>Zarządzaj listami działów, stanowisk, etc.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow overflow-y-auto">
+                     <Accordion type="multiple" className="w-full">
+                        {configLists.map(({ type, items }) => (
+                            <AccordionItem value={type} key={type}>
+                                <AccordionTrigger>{configLabels[type as Exclude<ConfigView, 'jobTitleClothingSets'>]}</AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-3 p-2">
+                                      <div className="space-y-2">
+                                        {items.map((item) => (
+                                          <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
+                                            <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(type, item)}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleRemoveItem(type, item.id)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                        {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
+                                      </div>
+                                      <Button className="mt-2 w-full" variant="secondary" onClick={() => openAddDialog(type)}>
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Dodaj nowe
+                                      </Button>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                     </Accordion>
+                </CardContent>
+            </Card>
+        </TabsContent>
+
+        <TabsContent value="clothing_sets" className="flex-grow mt-6">
+            <JobTitleClothingSetsTab />
+        </TabsContent>
+
+        <TabsContent value="api_keys" className="flex-grow mt-6">
+             <Card>
                 <CardHeader>
-                    <CardTitle className="lg:text-2xl flex items-center gap-3">
+                    <CardTitle className="flex items-center gap-3">
                         <KeyRound className="h-6 w-6" />
                         Klucz API Resend
                     </CardTitle>
-                    <CardDescription className="lg:text-base">
+                    <CardDescription>
                         Wprowadź klucz API do wysyłania powiadomień email.
                     </CardDescription>
                 </CardHeader>
@@ -238,49 +359,15 @@ export default function ConfigurationPage() {
                     </Button>
                 </CardContent>
             </Card>
-            <Card className="flex-grow flex flex-col">
-               <CardHeader>
-                    <CardTitle className="lg:text-2xl">Listy Konfiguracyjne</CardTitle>
-                    <CardDescription className="lg:text-base">Zarządzaj listami działów, stanowisk, etc.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow overflow-y-auto">
-                     <Accordion type="multiple" className="w-full">
-                        {configLists.map(({ type, items }) => (
-                            <AccordionItem value={type} key={type}>
-                                <AccordionTrigger className="lg:text-lg">{configLabels[type as Exclude<ConfigView, 'jobTitleClothingSets'>]}</AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="space-y-3 p-2">
-                                      <div className="space-y-2">
-                                        {items.map((item) => (
-                                          <div key={item.id} className="flex items-center justify-between rounded-md border p-3 lg:p-4 gap-2">
-                                            <span className="flex-1 break-words font-medium text-sm lg:text-base">{item.name}</span>
-                                            <div className="flex items-center gap-1 lg:gap-2 shrink-0">
-                                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8 lg:h-9 lg:w-9" onClick={() => openEditDialog(type, item)}>
-                                                    <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8 lg:h-9 lg:w-9" onClick={() => handleRemoveItem(type, item.id)}>
-                                                    <Trash2 className="h-4 w-4 lg:h-5 lg:w-5" />
-                                                </Button>
-                                            </div>
-                                          </div>
-                                        ))}
-                                        {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
-                                      </div>
-                                      <Button className="mt-2 w-full lg:h-11" variant="secondary" onClick={() => openAddDialog(type)}>
-                                        <PlusCircle className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
-                                        Dodaj nowe
-                                      </Button>
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        ))}
-                     </Accordion>
-                </CardContent>
-            </Card>
-        </div>
-        
-        <JobTitleClothingSetsTab />
-      </div>
+        </TabsContent>
+
+        {isAdmin && (
+            <TabsContent value="users" className="flex-grow mt-6">
+                <UserManagementTab />
+            </TabsContent>
+        )}
+
+      </Tabs>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
