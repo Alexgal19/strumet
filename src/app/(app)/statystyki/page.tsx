@@ -421,10 +421,6 @@ const HiresAndFiresTab = () => {
     }
     
     const generateReport = async () => {
-        if (!currentUser) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Musisz być zalogowany, aby wygenerować raport.' });
-            return;
-        }
         if (!date || !date.from || !date.to) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Proszę wybrać zakres dat.' });
             return;
