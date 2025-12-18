@@ -3,14 +3,13 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef } from 'react';
-import { LineChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, TrendingUp, TrendingDown, Minus, CalendarIcon, History as HistoryIcon, ClipboardList, Info, ArrowRight, Camera } from 'lucide-react';
-import { Employee, Order, StatsSnapshot, AllConfig, Stats } from '@/lib/types';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit } from 'lucide-react';
+import { Employee, Order, AllConfig, Stats, User, UserRole } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -25,15 +24,7 @@ import { Label } from '@/components/ui/label';
 import { StatisticsExcelExportButton } from '@/components/statistics-excel-export-button';
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, parseISO, startOfDay, subDays, endOfDay, isWithinInterval, isSameDay } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { DateRange } from 'react-day-picker';
 import { Badge } from '@/components/ui/badge';
-import { parseMaybeDate } from '@/lib/date';
-import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -80,44 +71,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
   return null;
 };
-
-const SummaryTable = ({ title, data }: { title: string; data: { name: string; count: number }[] }) => {
-    if (!data || data.length === 0) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-base">{title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground text-center py-4">Brak danych.</p>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base">{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <ScrollArea className="h-60">
-                    <Table>
-                        <TableBody>
-                            {data.map(item => (
-                                <TableRow key={item.name}>
-                                    <TableCell>{item.name}</TableCell>
-                                    <TableCell className="text-right font-bold">{item.count}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </ScrollArea>
-            </CardContent>
-        </Card>
-    );
-};
-
 
 const ReportTab = forwardRef<unknown, {}>((_, ref) => {
     const { employees, config, handleSaveEmployee, isAdmin } = useAppContext();
