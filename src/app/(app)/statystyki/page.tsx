@@ -23,7 +23,6 @@ import { Label } from '@/components/ui/label';
 import { StatisticsExcelExportButton } from '@/components/statistics-excel-export-button';
 import { db, storage } from '@/lib/firebase';
 import { ref as dbRef, onValue } from 'firebase/database';
-import { ref as storageRef, getDownloadURL } from 'firebase/storage';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -31,7 +30,6 @@ import { CalendarIcon } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import * as XLSX from 'xlsx';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -412,13 +410,6 @@ const HiresAndFiresTab = () => {
         }
     };
     
-    const parseExcelData = (arrayBuffer: ArrayBuffer): any[] => {
-        const data = new Uint8Array(arrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const active = XLSX.utils.sheet_to_json(workbook.Sheets['Pracownicy aktywni']);
-        return active;
-    }
-    
     const generateReport = async () => {
         if (!date || !date.from) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Proszę wybrać datę lub zakres dat.' });
@@ -429,113 +420,31 @@ const HiresAndFiresTab = () => {
         setReport(null);
     
         try {
-            const listResponse = await fetch('/api/archives/list');
-            if (!listResponse.ok) {
-                throw new Error('Nie udało się pobrać listy archiwów.');
-            }
-            const { files: archives } = await listResponse.json();
+            const response = await fetch('/api/generate-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    startDate: format(date.from, 'yyyy-MM-dd'),
+                    endDate: date.to ? format(date.to, 'yyyy-MM-dd') : undefined,
+                }),
+            });
     
-            const isRange = date.to && date.from.getTime() !== date.to.getTime();
-    
-            if (isRange) {
-                // --- TRYB PORÓWNAWCZY ---
-                const startFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
-                const endFile = `employees_${format(date.to!, 'yyyy-MM-dd')}.xlsx`;
-    
-                if (!archives.includes(startFile) || !archives.includes(endFile)) {
-                    toast({ variant: 'destructive', title: 'Błąd', description: 'Brak plików archiwum dla wybranych dat.' });
-                    setIsLoading(false);
-                    return;
-                }
-    
-                const [startUrl, endUrl] = await Promise.all([
-                    getDownloadURL(storageRef(storage, `archives/${startFile}`)),
-                    getDownloadURL(storageRef(storage, `archives/${endFile}`))
-                ]);
-    
-                const [startResponse, endResponse] = await Promise.all([fetch(startUrl), fetch(endUrl)]);
-                const [startArrayBuffer, endArrayBuffer] = await Promise.all([startResponse.arrayBuffer(), endResponse.arrayBuffer()]);
-    
-                const startData = parseExcelData(startArrayBuffer);
-                const endData = parseExcelData(endArrayBuffer);
-    
-                const calculateChanges = (start: any[], end: any[]) => {
-                    const startMap = new Map(start.map(item => [item['Nazwisko i imię'], item]));
-                    const endMap = new Map(end.map(item => [item['Nazwisko i imię'], item]));
-    
-                    const added = Array.from(endMap.keys()).filter(key => !startMap.has(key));
-                    const removed = Array.from(startMap.keys()).filter(key => !endMap.has(key));
-                    
-                    return { added, removed };
-                };
-    
-                const activeChanges = calculateChanges(startData, endData);
-                const deptChanges = compareGroups(startData, endData, 'Dział');
-                const jobTitleChanges = compareGroups(startData, endData, 'Stanowisko');
-                const nationalityChanges = compareGroups(startData, endData, 'Narodowość');
-    
-                setReport({
-                    isRange: true,
-                    start: { total: startData.length, date: format(date.from, 'dd.MM.yyyy') },
-                    end: { total: endData.length, date: format(date.to!, 'dd.MM.yyyy') },
-                    diff: endData.length - startData.length,
-                    newHires: activeChanges.added,
-                    terminated: activeChanges.removed,
-                    deptChanges,
-                    jobTitleChanges,
-                    nationalityChanges
-                });
-            } else {
-                // --- TRYB POJEDYNCZEGO DNIA ---
-                const singleDateFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
-                if (!archives.includes(singleDateFile)) {
-                    toast({ variant: 'destructive', title: 'Błąd', description: 'Brak pliku archiwum dla wybranej daty.' });
-                    setIsLoading(false);
-                    return;
-                }
-    
-                const fileUrl = await getDownloadURL(storageRef(storage, `archives/${singleDateFile}`));
-                const response = await fetch(fileUrl);
-                const arrayBuffer = await response.arrayBuffer();
-                const data = parseExcelData(arrayBuffer);
-    
-                const deptChanges = compareGroups([], data, 'Dział');
-                const jobTitleChanges = compareGroups([], data, 'Stanowisko');
-                const nationalityChanges = compareGroups([], data, 'Narodowość');
-    
-                setReport({
-                    isRange: false,
-                    date: format(date.from, 'dd.MM.yyyy'),
-                    total: data.length,
-                    deptChanges,
-                    jobTitleChanges,
-                    nationalityChanges
-                });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Nie udało się wygenerować raportu.');
             }
     
-        } catch (error) {
+            const reportData = await response.json();
+            setReport(reportData);
+    
+        } catch (error: any) {
             console.error("Error generating report:", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się wygenerować raportu.' });
+            toast({ variant: 'destructive', title: 'Błąd', description: error.message || 'Nie udało się wygenerować raportu.' });
         } finally {
             setIsLoading(false);
         }
-    };
-    
-    const compareGroups = (startData: any[], endData: any[], key: string) => {
-        const startCounts = startData.reduce((acc, item) => { if(item[key]) acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {} as Record<string, number>);
-        const endCounts = endData.reduce((acc, item) => { if(item[key]) acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {} as Record<string, number>);
-        
-        const allKeys = new Set([...Object.keys(startCounts), ...Object.keys(endCounts)]);
-        const changes: any[] = [];
-        
-        allKeys.forEach(groupName => {
-            const startCount = startCounts[groupName] || 0;
-            const endCount = endCounts[groupName] || 0;
-            if (startCount !== endCount || (endData.length > 0 && startData.length === 0)) {
-                changes.push({ name: groupName, from: startCount, to: endCount, diff: endCount - startCount });
-            }
-        });
-        return changes.sort((a,b) => b.to - a.to);
     };
     
     const DiffBadge = ({ diff }: { diff: number }) => (
