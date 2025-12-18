@@ -13,7 +13,7 @@ import { checkExpiringContractsAndNotify } from './check-expiring-contracts';
 import { checkAppointmentsAndNotify } from './check-fingerprint-appointments';
 import { checkPlannedTerminations } from './check-planned-terminations';
 import { createStatsSnapshot } from './create-stats-snapshot';
-import { archiveEmployeesFlow } from './archive-employees-flow';
+import { archiveEmployees } from './archive-employees-flow';
 
 const DailyCheckOutputSchema = z.object({
   contractsResult: z.object({
@@ -57,7 +57,7 @@ const runDailyChecksFlow = ai.defineFlow(
         checkAppointmentsAndNotify(),
         checkPlannedTerminations(),
         createStatsSnapshot(), // Snapshot is now created every day
-        archiveEmployeesFlow(),
+        archiveEmployees(),
     ];
 
     const results = await Promise.allSettled(checksToRun);

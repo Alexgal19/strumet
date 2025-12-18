@@ -6,7 +6,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { adminDb, adminStorage } from '@/lib/firebase';
+import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { Employee } from '@/lib/types';
@@ -20,8 +20,9 @@ const ArchiveOutputSchema = z.object({
   activeCount: z.number(),
   terminatedCount: z.number(),
 });
+export type ArchiveOutput = z.infer<typeof ArchiveOutputSchema>;
 
-export const archiveEmployeesFlow = ai.defineFlow(
+const archiveEmployeesFlow = ai.defineFlow(
   {
     name: 'archiveEmployeesFlow',
     outputSchema: ArchiveOutputSchema,
@@ -92,3 +93,7 @@ export const archiveEmployeesFlow = ai.defineFlow(
     };
   }
 );
+
+export async function archiveEmployees(): Promise<ArchiveOutput> {
+    return archiveEmployeesFlow();
+}

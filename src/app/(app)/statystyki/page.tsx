@@ -7,7 +7,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive } from 'lucide-react';
 import { Employee, Order, AllConfig, Stats, User, UserRole, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
+import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -378,28 +378,48 @@ const HiresAndFiresTab = () => {
     const [archives, setArchives] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isArchiving, setIsArchiving] = useState(false);
     const [date, setDate] = useState<DateRange | undefined>();
     const [report, setReport] = useState<any>(null);
     const { toast } = useToast();
     const { isAdmin } = useAppContext();
 
-    useEffect(() => {
-        const fetchArchives = async () => {
-            setIsLoading(true);
-            try {
-                const listRef = storageRef(storage, 'archives');
-                const res = await listAll(listRef);
-                const fileNames = res.items.map(item => item.name);
-                setArchives(fileNames);
-            } catch (error) {
-                console.error("Error fetching archives:", error);
-                toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać listy archiwów.' });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchArchives();
+    const fetchArchives = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const listRef = storageRef(storage, 'archives');
+            const res = await listAll(listRef);
+            const fileNames = res.items.map(item => item.name);
+            setArchives(fileNames);
+        } catch (error) {
+            console.error("Error fetching archives:", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać listy archiwów.' });
+        } finally {
+            setIsLoading(false);
+        }
     }, [toast]);
+
+    useEffect(() => {
+        fetchArchives();
+    }, [fetchArchives]);
+    
+    const handleManualArchive = async () => {
+        setIsArchiving(true);
+        try {
+            const result = await archiveEmployees();
+            toast({
+                title: 'Archiwizacja zakończona',
+                description: `Pomyślnie utworzono plik: ${result.filePath}`,
+            });
+            // Refresh the list of archives after creating a new one
+            fetchArchives();
+        } catch (error) {
+            console.error("Error creating manual archive:", error);
+            toast({ variant: 'destructive', title: 'Błąd archiwizacji', description: 'Nie udało się utworzyć archiwum.' });
+        } finally {
+            setIsArchiving(false);
+        }
+    };
     
     const parseExcelData = (arrayBuffer: ArrayBuffer): { active: any[], terminated: any[] } => {
         const data = new Uint8Array(arrayBuffer);
@@ -530,8 +550,18 @@ const HiresAndFiresTab = () => {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Analiza historyczna</CardTitle>
-                    <CardDescription>Porównaj stan zatrudnienia między dwoma wybranymi dniami.</CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>Analiza historyczna</CardTitle>
+                            <CardDescription>Porównaj stan zatrudnienia między dwoma wybranymi dniami.</CardDescription>
+                        </div>
+                         {isAdmin && (
+                            <Button onClick={handleManualArchive} disabled={isArchiving || isLoading}>
+                                {isArchiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}
+                                Utwórz archiwum teraz
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid gap-2">
@@ -980,3 +1010,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+
