@@ -2,13 +2,13 @@
 
 'use client';
 
-import React, { useMemo, useState, useEffect, forwardRef } from 'react';
+import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit } from 'lucide-react';
-import { Employee, Order, AllConfig, Stats, User, UserRole } from '@/lib/types';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows } from 'lucide-react';
+import { Employee, Order, AllConfig, Stats, User, UserRole, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,9 +22,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatisticsExcelExportButton } from '@/components/statistics-excel-export-button';
-import { db } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
+import { db, storage } from '@/lib/firebase';
+import { ref as dbRef, onValue } from 'firebase/database';
+import { ref as storageRef, listAll, getDownloadURL } from 'firebase/storage';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { DateRange } from 'react-day-picker';
+import { format, parse } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import * as XLSX from 'xlsx';
+import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -365,6 +374,268 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 })
 ReportTab.displayName = 'ReportTab';
 
+const HiresAndFiresTab = () => {
+    const [archives, setArchives] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [date, setDate] = useState<DateRange | undefined>();
+    const [report, setReport] = useState<any>(null);
+    const { toast } = useToast();
+    const { isAdmin } = useAppContext();
+
+    useEffect(() => {
+        const fetchArchives = async () => {
+            setIsLoading(true);
+            try {
+                const listRef = storageRef(storage, 'archives');
+                const res = await listAll(listRef);
+                const fileNames = res.items.map(item => item.name);
+                setArchives(fileNames);
+            } catch (error) {
+                console.error("Error fetching archives:", error);
+                toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać listy archiwów.' });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchArchives();
+    }, [toast]);
+    
+    const parseExcelData = (arrayBuffer: ArrayBuffer): { active: any[], terminated: any[] } => {
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const active = XLSX.utils.sheet_to_json(workbook.Sheets['Pracownicy aktywni']);
+        const terminated = XLSX.utils.sheet_to_json(workbook.Sheets['Pracownicy zwolnieni']);
+        return { active, terminated };
+    }
+    
+    const generateReport = async () => {
+        if (!date || !date.from || !date.to) {
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Proszę wybrać zakres dat.' });
+            return;
+        }
+
+        setIsGenerating(true);
+        setReport(null);
+
+        try {
+            const startFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
+            const endFile = `employees_${format(date.to, 'yyyy-MM-dd')}.xlsx`;
+
+            if (!archives.includes(startFile) || !archives.includes(endFile)) {
+                toast({ variant: 'destructive', title: 'Błąd', description: 'Brak plików archiwum dla wybranych dat.' });
+                setIsGenerating(false);
+                return;
+            }
+
+            const startUrl = await getDownloadURL(storageRef(storage, `archives/${startFile}`));
+            const endUrl = await getDownloadURL(storageRef(storage, `archives/${endFile}`));
+
+            const [startResponse, endResponse] = await Promise.all([fetch(startUrl), fetch(endUrl)]);
+            const [startArrayBuffer, endArrayBuffer] = await Promise.all([startResponse.arrayBuffer(), endResponse.arrayBuffer()]);
+
+            const startData = parseExcelData(startArrayBuffer);
+            const endData = parseExcelData(endArrayBuffer);
+
+            const calculateChanges = (start: any[], end: any[]) => {
+                const startMap = new Map(start.map(item => [item['Nazwisko i imię'], item]));
+                const endMap = new Map(end.map(item => [item['Nazwisko i imię'], item]));
+
+                const added = Array.from(endMap.keys()).filter(key => !startMap.has(key));
+                const removed = Array.from(startMap.keys()).filter(key => !endMap.has(key));
+                
+                const changed: any[] = [];
+                for(const key of startMap.keys()) {
+                    if (endMap.has(key)) {
+                        const startItem = startMap.get(key);
+                        const endItem = endMap.get(key);
+                        if (JSON.stringify(startItem) !== JSON.stringify(endItem)) {
+                            changed.push({ name: key, from: startItem, to: endItem });
+                        }
+                    }
+                }
+
+                return { added, removed, changed };
+            };
+            
+            const activeChanges = calculateChanges(startData.active, endData.active);
+            const deptChanges = compareGroups(startData.active, endData.active, 'Dział');
+            const jobTitleChanges = compareGroups(startData.active, endData.active, 'Stanowisko');
+            const nationalityChanges = compareGroups(startData.active, endData.active, 'Narodowość');
+
+            setReport({
+                start: { total: startData.active.length, date: format(date.from, 'dd.MM.yyyy') },
+                end: { total: endData.active.length, date: format(date.to, 'dd.MM.yyyy') },
+                diff: endData.active.length - startData.active.length,
+                newHires: activeChanges.added,
+                terminated: activeChanges.removed,
+                deptChanges,
+                jobTitleChanges,
+                nationalityChanges
+            });
+
+        } catch (error) {
+            console.error("Error generating report:", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się wygenerować raportu.' });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+    
+    const compareGroups = (startData: any[], endData: any[], key: string) => {
+        const startCounts = startData.reduce((acc, item) => { acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {} as Record<string, number>);
+        const endCounts = endData.reduce((acc, item) => { acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {} as Record<string, number>);
+        
+        const allKeys = new Set([...Object.keys(startCounts), ...Object.keys(endCounts)]);
+        const changes: any[] = [];
+        
+        allKeys.forEach(groupName => {
+            const startCount = startCounts[groupName] || 0;
+            const endCount = endCounts[groupName] || 0;
+            if (startCount !== endCount) {
+                changes.push({ name: groupName, from: startCount, to: endCount, diff: endCount - startCount });
+            }
+        });
+        return changes;
+    };
+    
+    const DiffBadge = ({ diff }: { diff: number }) => (
+        <Badge variant={diff > 0 ? 'default' : 'destructive'} className={cn(diff > 0 && "bg-green-500 hover:bg-green-600")}>
+            {diff > 0 ? `+${diff}` : diff}
+        </Badge>
+    );
+    
+    const PeriodChangeCard = ({ title, data }: { title: string, data: { name: string, from: number, to: number, diff: number }[] }) => (
+        <Card>
+            <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
+            <CardContent>
+                <div className="space-y-3">
+                    {data.length > 0 ? data.map(item => (
+                        <div key={item.name} className="flex justify-between items-center text-sm">
+                            <span>{item.name || 'Brak'}</span>
+                            <div className="flex items-center gap-2 font-mono">
+                                <span>{item.from}</span>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                                <span className="font-bold">{item.to}</span>
+                                <DiffBadge diff={item.diff} />
+                            </div>
+                        </div>
+                    )) : <p className="text-sm text-muted-foreground text-center">Brak zmian</p>}
+                </div>
+            </CardContent>
+        </Card>
+    );
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Analiza historyczna</CardTitle>
+                    <CardDescription>Porównaj stan zatrudnienia między dwoma wybranymi dniami.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="grid gap-2">
+                        <Label>Wybierz okres</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                "w-[300px] justify-start text-left font-normal",
+                                !date && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {date?.from ? (
+                                date.to ? (
+                                    <>
+                                    {format(date.from, "dd LLL, y", { locale: pl })} -{" "}
+                                    {format(date.to, "dd LLL, y", { locale: pl })}
+                                    </>
+                                ) : (
+                                    format(date.from, "dd LLL, y", { locale: pl })
+                                )
+                                ) : (
+                                <span>Wybierz zakres dat</span>
+                                )}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={date?.from}
+                                selected={date}
+                                onSelect={setDate}
+                                numberOfMonths={2}
+                                locale={pl}
+                                disabled={(day) => !archives.includes(`employees_${format(day, 'yyyy-MM-dd')}.xlsx`)}
+                            />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                     <Button onClick={generateReport} disabled={isGenerating || !date?.from || !date?.to}>
+                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Generuj raport
+                    </Button>
+                </CardContent>
+            </Card>
+
+            {isGenerating && (
+                 <div className="flex justify-center items-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-4 text-muted-foreground">Generowanie raportu, to może potrwać chwilę...</p>
+                 </div>
+            )}
+
+            {report && (
+                <div className="space-y-6 animate-fade-in">
+                    <Card className="bg-muted/30">
+                        <CardHeader>
+                            <CardTitle>Podsumowanie zmian</CardTitle>
+                            <CardDescription>
+                                Porównanie stanu z dnia <span className="font-bold">{report.start.date}</span> i <span className="font-bold">{report.end.date}</span>.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="p-4 rounded-lg border bg-background text-center">
+                                <p className="text-sm text-muted-foreground">Liczba pracowników</p>
+                                <div className="flex items-center justify-center gap-4 mt-2">
+                                    <span className="text-2xl font-bold">{report.start.total}</span>
+                                    <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                                    <span className="text-2xl font-bold">{report.end.total}</span>
+                                </div>
+                            </div>
+                             <div className="p-4 rounded-lg border bg-background text-center">
+                                <p className="text-sm text-muted-foreground">Różnica</p>
+                                <div className="flex items-center justify-center gap-4 mt-2">
+                                     <span className={cn("text-3xl font-bold", report.diff > 0 ? 'text-green-500' : 'text-destructive')}>
+                                        {report.diff > 0 ? '+' : ''}{report.diff}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="p-4 rounded-lg border bg-background text-center">
+                                <p className="text-sm text-muted-foreground">Nowi / Odeszli</p>
+                                <div className="flex items-center justify-center gap-4 mt-2">
+                                    <span className="text-2xl font-bold text-green-500">+{report.newHires.length}</span>
+                                     <span className="text-2xl font-bold text-destructive">-{report.terminated.length}</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <PeriodChangeCard title="Zmiany w działach" data={report.deptChanges} />
+                        <PeriodChangeCard title="Zmiany na stanowiskach" data={report.jobTitleChanges} />
+                        <PeriodChangeCard title="Zmiany narodowości" data={report.nationalityChanges} />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const OrdersTab = () => {
     const { config, addOrder, updateOrder, deleteOrder, isLoading: isAppLoading, isAdmin } = useAppContext();
     const [orders, setOrders] = useState<Order[]>([]);
@@ -380,7 +651,7 @@ const OrdersTab = () => {
     const [editFormData, setEditFormData] = useState<{ department: string; jobTitle: string; quantity: number; realizedQuantity: number; } | null>(null);
     
     useEffect(() => {
-      const ordersRef = ref(db, 'orders');
+      const ordersRef = dbRef(db, 'orders');
       const unsubscribe = onValue(ordersRef, (snapshot) => {
         setOrders(objectToArray(snapshot.val()));
         setIsLoadingOrders(false);
@@ -691,12 +962,16 @@ export default function StatisticsPage() {
         description="Kluczowe wskaźniki i zapotrzebowanie na personel."
       />
        <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
+            <TabsTrigger value="hires_fires">Analiza</TabsTrigger>
             <TabsTrigger value="orders">Zamówienia</TabsTrigger>
         </TabsList>
         <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
+        </TabsContent>
+        <TabsContent value="hires_fires" className="flex-grow mt-6">
+            <HiresAndFiresTab />
         </TabsContent>
         <TabsContent value="orders" className="flex-grow mt-6">
             <OrdersTab />

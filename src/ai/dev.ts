@@ -10,9 +10,8 @@ import '@/ai/flows/generate-avatar.ts';
 import '@/ai/flows/run-daily-checks.ts';
 import '@/ai/flows/run-manual-checks.ts';
 import '@/ai/flows/create-stats-snapshot.ts';
+import '@/ai/flows/archive-employees-flow.ts';
 
 // This is a dev-only file that is used to run the Genkit flows locally.
 // It is not included in the production build.
 // To run the flows, run `npm run genkit:watch`
-
-
