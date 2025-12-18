@@ -1,8 +1,11 @@
 
 'use server';
+
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { adminDb, adminStorage } from '@/lib/firebase-admin';
+import { db, storage } from '@/lib/firebase';
+import { ref as dbRef, get } from 'firebase/database';
+import { ref as storageRef, uploadBytes } from 'firebase/storage';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { Employee } from '@/lib/types';
@@ -16,9 +19,8 @@ const ArchiveOutputSchema = z.object({
   activeCount: z.number(),
   terminatedCount: z.number(),
 });
-type ArchiveOutput = z.infer<typeof ArchiveOutputSchema>;
 
-export async function archiveEmployees(): Promise<ArchiveOutput> {
+export async function archiveEmployees(): Promise<z.infer<typeof ArchiveOutputSchema>> {
   return archiveEmployeesFlow();
 }
 
@@ -30,15 +32,8 @@ const archiveEmployeesFlow = ai.defineFlow(
   async () => {
     console.log('Starting daily employee archival to Excel...');
     
-    const db = adminDb();
-    const storage = adminStorage();
-
-    if (!db || !storage) {
-        throw new Error('Firebase Admin SDK not initialized.');
-    }
-
-    const employeesRef = db.ref('employees');
-    const snapshot = await employeesRef.once('value');
+    const employeesRef = dbRef(db, 'employees');
+    const snapshot = await get(employeesRef);
     const allEmployees = objectToArray<Employee>(snapshot.val());
 
     if (allEmployees.length === 0) {
@@ -83,13 +78,13 @@ const archiveEmployeesFlow = ai.defineFlow(
     const today = format(new Date(), 'yyyy-MM-dd');
     const fileName = `employees_${today}.xlsx`;
     const filePath = `archives/${fileName}`;
-    const file = storage.bucket().file(filePath);
+    const fileRef = storageRef(storage, filePath);
+    
+    const metadata = {
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    };
 
-    await file.save(excelBuffer, {
-        metadata: {
-            contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        },
-    });
+    await uploadBytes(fileRef, excelBuffer, metadata);
 
     console.log(`Successfully archived ${activeEmployees.length} active and ${terminatedEmployees.length} terminated employees to ${filePath}`);
 
