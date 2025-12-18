@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
@@ -32,7 +31,6 @@ import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import { archiveEmployees as archiveEmployeesAction } from '@/ai/flows/archive-employees-flow';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -384,7 +382,23 @@ const HiresAndFiresTab = () => {
     const handleManualArchive = async () => {
         setIsArchiving(true);
         try {
-            const result = await archiveEmployeesAction();
+            const response = await fetch('/api/archive', {
+                method: 'POST',
+            });
+
+            if (!response.ok) {
+                let errorMsg = `Błąd serwera (${response.status})`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch (e) {
+                    // response is not json
+                }
+                throw new Error(errorMsg);
+            }
+
+            const result = await response.json();
+
             toast({
                 title: 'Archiwizacja zakończona',
                 description: `Pomyślnie utworzono plik: ${result.filePath}`,
