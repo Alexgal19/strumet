@@ -4,10 +4,7 @@
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",
-        ".write": "auth != null && auth.uid == $uid",
-        "role": {
-          ".write": "(!data.exists() && newData.val() == 'guest') || (root.child('users').child(auth.uid).child('role').val() == 'admin' && newData.val() != data.val())"
-        }
+        ".write": "auth != null && auth.uid == $uid"
       }
     },
     ".read": "auth != null",
