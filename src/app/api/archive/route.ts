@@ -1,3 +1,4 @@
+
 'use server';
 
 import { NextResponse } from 'next/server';
@@ -63,7 +64,7 @@ export async function POST() {
         throw new Error("FIREBASE_STORAGE_BUCKET environment variable is not set.");
     }
     
-    const bucket = adminStorage().bucket(process.env.FIREBASE_STORAGE_BUCKET);
+    const bucket = adminStorage().bucket(); // Let Admin SDK use the default bucket from config
     const file = bucket.file(filePath);
     
     await file.save(excelBuffer, {
@@ -73,8 +74,7 @@ export async function POST() {
     });
 
     const message = `Successfully archived ${activeEmployees.length} active and ${terminatedEmployees.length} terminated employees to ${filePath}`;
-    console.log(`SERVER ACTION: ${message}`);
-
+    
     return NextResponse.json({ success: true, message, filePath });
 
   } catch (error: any) {
@@ -82,7 +82,11 @@ export async function POST() {
     return NextResponse.json({
       success: false,
       message: error.message || 'An unknown server error occurred during archival.',
-      error: error
+      error: {
+        message: error.message,
+        code: error.code,
+        errors: error.errors
+      }
     }, { status: 500 });
   }
 }
