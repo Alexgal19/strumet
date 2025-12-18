@@ -5,15 +5,15 @@ import { getDatabase } from "firebase/database";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration is now read from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyC5Kryaewq6NcXjpF-ciABQ4Z7RSdm2GwA",
-  authDomain: "kadry-online-4h3x9.firebaseapp.com",
-  databaseURL: "https://kadry-online-4h3x9-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "kadry-online-4h3x9",
-  storageBucket: "kadry-online-4h3x9.appspot.com",
-  messagingSenderId: "358071580509",
-  appId: "1:358071580509:web:4f4dd0622ade5586de5ab4"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase for client
