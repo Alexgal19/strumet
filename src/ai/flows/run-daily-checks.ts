@@ -51,7 +51,7 @@ const runDailyChecksFlow = ai.defineFlow(
         checkExpiringContractsAndNotify(),
         checkAppointmentsAndNotify(),
         checkPlannedTerminations(),
-        createStatsSnapshot(), // Snapshot is now created every day
+        createStatsSnapshot(),
     ];
 
     const results = await Promise.allSettled(checksToRun);
