@@ -13,7 +13,6 @@ import { checkExpiringContractsAndNotify } from './check-expiring-contracts';
 import { checkAppointmentsAndNotify } from './check-fingerprint-appointments';
 import { checkPlannedTerminations } from './check-planned-terminations';
 import { createStatsSnapshot } from './create-stats-snapshot';
-import { archiveEmployees } from './archive-employees-flow';
 
 const DailyCheckOutputSchema = z.object({
   contractsResult: z.object({
@@ -30,10 +29,6 @@ const DailyCheckOutputSchema = z.object({
   }),
   snapshotResult: z.object({
     snapshotId: z.string().optional(),
-    error: z.string().optional(),
-  }).optional(),
-  archiveResult: z.object({
-    filePath: z.string().optional(),
     error: z.string().optional(),
   }).optional(),
   totalNotifications: z.number(),
@@ -57,7 +52,6 @@ const runDailyChecksFlow = ai.defineFlow(
         checkAppointmentsAndNotify(),
         checkPlannedTerminations(),
         createStatsSnapshot(), // Snapshot is now created every day
-        archiveEmployees(),
     ];
 
     const results = await Promise.allSettled(checksToRun);
@@ -80,16 +74,6 @@ const runDailyChecksFlow = ai.defineFlow(
         console.error("Failed to create statistics snapshot:", reason);
         snapshotRes = { error: (reason as Error).message };
     }
-
-    let archiveRes: { filePath?: string, error?: string } | undefined = undefined;
-    const archiveResult = results[4];
-    if (archiveResult && archiveResult.status === 'fulfilled') {
-        archiveRes = { filePath: (archiveResult.value as any).filePath };
-    } else {
-        const reason = archiveResult ? (archiveResult as PromiseRejectedResult).reason : new Error("Unknown archive failure");
-        console.error("Failed to create Excel archive:", reason);
-        archiveRes = { error: (reason as Error).message };
-    }
     
     const totalNotifications = contractsRes.notificationsCreated + appointmentsRes.notificationsCreated + terminationsRes.notificationsCreated;
     const totalEmails = contractsRes.emailsSent + appointmentsRes.emailsSent;
@@ -101,9 +85,6 @@ const runDailyChecksFlow = ai.defineFlow(
     if (snapshotRes) {
         console.log(`Snapshot - ${snapshotRes.snapshotId ? `ID: ${snapshotRes.snapshotId}` : `Error: ${snapshotRes.error}`}`);
     }
-    if (archiveRes) {
-      console.log(`Archive - ${archiveRes.filePath ? `Path: ${archiveRes.filePath}` : `Error: ${archiveRes.error}`}`);
-    }
     console.log(`Total - Notifications: ${totalNotifications}, Emails: ${totalEmails}`);
     
     return {
@@ -111,7 +92,6 @@ const runDailyChecksFlow = ai.defineFlow(
       appointmentsResult: appointmentsRes,
       terminationsResult: terminationsRes,
       snapshotResult: snapshotRes,
-      archiveResult: archiveRes,
       totalNotifications,
       totalEmails,
     };
