@@ -1,4 +1,3 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -23,9 +22,12 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+      executionTimeout: 120, // Extend timeout to 120 seconds for long-running tasks
+    },
+  },
 };
 
 export default nextConfig;
-
-
-

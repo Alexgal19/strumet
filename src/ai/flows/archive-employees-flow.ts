@@ -1,24 +1,39 @@
-import { NextResponse } from 'next/server';
+'use server';
+/**
+ * @fileOverview A flow to manually archive all employee data to an Excel file in Firebase Storage.
+ * - archiveEmployees - A Server Action that handles the archival process.
+ * - ArchiveOutput - The return type for the archiveEmployees function.
+ */
+
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { Employee } from '@/lib/types';
+import { z } from 'zod';
 
 const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
-export async function POST() {
+const ArchiveOutputSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  filePath: z.string().optional(),
+});
+export type ArchiveOutput = z.infer<typeof ArchiveOutputSchema>;
+
+export async function archiveEmployees(): Promise<ArchiveOutput> {
   try {
-    console.log('API ARCHIVE: Starting manual employee archival to Excel...');
+    console.log('SERVER ACTION: Starting manual employee archival...');
     
     const employeesRef = adminDb().ref('employees');
     const snapshot = await employeesRef.once('value');
     const allEmployees = objectToArray<Employee>(snapshot.val());
 
     if (allEmployees.length === 0) {
-        console.log('API ARCHIVE: No employees to archive.');
-        return NextResponse.json({ success: false, message: 'Brak pracowników do zarchiwizowania.' }, { status: 400 });
+        const msg = 'Brak pracowników do zarchiwizowania.';
+        console.log(`SERVER ACTION: ${msg}`);
+        return { success: false, message: msg };
     }
 
     const activeEmployees = allEmployees.filter(e => e.status === 'aktywny');
@@ -61,19 +76,22 @@ export async function POST() {
     const filePath = `archives/${fileName}`;
     const file = adminStorage().bucket().file(filePath);
     
-    const metadata = {
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    };
-
-    await file.save(excelBuffer, { metadata });
+    await file.save(excelBuffer, {
+        metadata: {
+            contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }
+    });
 
     const message = `Successfully archived ${activeEmployees.length} active and ${terminatedEmployees.length} terminated employees to ${filePath}`;
-    console.log(`API ARCHIVE: ${message}`);
+    console.log(`SERVER ACTION: ${message}`);
 
-    return NextResponse.json({ success: true, message, filePath });
-  } catch (error) {
-    console.error('API ARCHIVE ERROR:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
-    return NextResponse.json({ success: false, message: errorMessage }, { status: 500 });
+    return { success: true, message, filePath };
+
+  } catch (error: any) {
+    console.error('SERVER ACTION ERROR (archiveEmployees):', error);
+    return {
+      success: false,
+      message: error.message || 'An unknown server error occurred during archival.',
+    };
   }
 }
