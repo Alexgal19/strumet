@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef } from 'react';
@@ -575,7 +576,7 @@ const HiresAndFiresTab = () => {
             <Card>
                 <CardHeader>
                     <CardTitle>Dobowy Raport Zmian</CardTitle>
-                    <CardDescription>Automatyczne podsumowanie zmian w stanie zatrudnienia z ostatniej doby, obliczane na żywo.</CardDescription>
+                    <CardDescription>Automatyczne podsumowanie zmian w stanie zatrudnienia z ostatniej doby.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -1077,7 +1078,7 @@ export default function StatisticsPage() {
     <div className="h-full flex flex-col w-full">
       <PageHeader
         title="Statystyki i Planowanie"
-        description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza historyczna."
+        description="Kluczowe wskaźniki, zapotrzebowanie na personel oraz analiza."
       />
        <Tabs defaultValue="report" className="flex-grow flex flex-col">
         <TabsList className="grid w-full grid-cols-3">
@@ -1098,3 +1099,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
