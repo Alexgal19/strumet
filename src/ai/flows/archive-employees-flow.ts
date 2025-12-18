@@ -1,7 +1,6 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { db, storage } from '@/lib/firebase';
 import { ref as dbRef, get } from 'firebase/database';
@@ -9,6 +8,7 @@ import { ref as storageRef, uploadBytes } from 'firebase/storage';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { Employee } from '@/lib/types';
+import { ai } from '@/ai/genkit';
 
 const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -19,8 +19,9 @@ const ArchiveOutputSchema = z.object({
   activeCount: z.number(),
   terminatedCount: z.number(),
 });
+type ArchiveOutput = z.infer<typeof ArchiveOutputSchema>;
 
-export async function archiveEmployees(): Promise<z.infer<typeof ArchiveOutputSchema>> {
+export async function archiveEmployees(): Promise<ArchiveOutput> {
   return archiveEmployeesFlow();
 }
 
