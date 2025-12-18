@@ -1,3 +1,4 @@
+'use server';
 /**
  * @fileOverview A flow to archive employee data to an Excel file in Firebase Storage.
  */
@@ -18,7 +19,7 @@ const ArchiveOutputSchema = z.object({
   activeCount: z.number(),
   terminatedCount: z.number(),
 });
-export type ArchiveOutput = z.infer<typeof ArchiveOutputSchema>;
+type ArchiveOutput = z.infer<typeof ArchiveOutputSchema>;
 
 const archiveEmployeesFlow = ai.defineFlow(
   {

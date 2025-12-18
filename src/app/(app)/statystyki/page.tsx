@@ -33,7 +33,7 @@ import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import { archiveEmployeesAction } from '@/lib/actions';
+import { archiveEmployees as archiveEmployeesAction } from '@/ai/flows/archive-employees-flow';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -375,10 +375,11 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 ReportTab.displayName = 'ReportTab';
 
 const HiresAndFiresTab = () => {
-    const [isLoading, setIsLoading] = useState(false);
     const [isArchiving, setIsArchiving] = useState(false);
     const [date, setDate] = useState<DateRange | undefined>();
     const [report, setReport] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [availableArchives, setAvailableArchives] = useState<string[]>([]);
     const { toast } = useToast();
     const { isAdmin } = useAppContext();
 
@@ -419,12 +420,13 @@ const HiresAndFiresTab = () => {
             // Fetch the list of archives on demand
             const listRef = storageRef(storage, 'archives');
             const res = await listAll(listRef);
-            const availableArchives = res.items.map(item => item.name);
+            const archives = res.items.map(item => item.name);
+            setAvailableArchives(archives);
 
             const startFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
             const endFile = `employees_${format(date.to, 'yyyy-MM-dd')}.xlsx`;
 
-            if (!availableArchives.includes(startFile) || !availableArchives.includes(endFile)) {
+            if (!archives.includes(startFile) || !archives.includes(endFile)) {
                 toast({ variant: 'destructive', title: 'Błąd', description: 'Brak plików archiwum dla wybranych dat.' });
                 setIsLoading(false);
                 return;
