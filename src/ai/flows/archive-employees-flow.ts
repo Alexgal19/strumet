@@ -1,8 +1,6 @@
-'use server';
-/**
- * @fileOverview A flow to archive employee data to an Excel file in Firebase Storage.
- */
 
+
+'use client';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
@@ -99,7 +97,3 @@ const archiveEmployeesFlow = ai.defineFlow(
     };
   }
 );
-
-export async function archiveEmployees(): Promise<ArchiveOutput> {
-  return archiveEmployeesFlow();
-}

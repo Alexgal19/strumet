@@ -33,7 +33,6 @@ import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import { archiveEmployees as archiveEmployeesAction } from '@/ai/flows/archive-employees-flow';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -379,14 +378,24 @@ const HiresAndFiresTab = () => {
     const [date, setDate] = useState<DateRange | undefined>();
     const [report, setReport] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [availableArchives, setAvailableArchives] = useState<string[]>([]);
     const { toast } = useToast();
     const { isAdmin } = useAppContext();
 
     const handleManualArchive = async () => {
         setIsArchiving(true);
         try {
-            const result = await archiveEmployeesAction();
+            const response = await fetch('/api/cron/daily-checks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'archive' })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Nieznany błąd serwera.');
+            }
+            
             toast({
                 title: 'Archiwizacja zakończona',
                 description: `Pomyślnie utworzono plik: ${result.filePath}`,
@@ -417,11 +426,9 @@ const HiresAndFiresTab = () => {
         setReport(null);
 
         try {
-            // Fetch the list of archives on demand
             const listRef = storageRef(storage, 'archives');
             const res = await listAll(listRef);
             const archives = res.items.map(item => item.name);
-            setAvailableArchives(archives);
 
             const startFile = `employees_${format(date.from, 'yyyy-MM-dd')}.xlsx`;
             const endFile = `employees_${format(date.to, 'yyyy-MM-dd')}.xlsx`;
