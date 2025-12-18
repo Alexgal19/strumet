@@ -8,9 +8,8 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ref, get, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { format, isSameDay, parseISO } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import type { Employee, StatsSnapshot } from '@/lib/types';
-import { parseMaybeDate } from '@/lib/date';
 
 const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -46,16 +45,28 @@ const createStatsSnapshotFlow = ai.defineFlow(
     
     const snapshotDate = new Date();
     const snapshotId = format(snapshotDate, 'yyyy-MM-dd');
+    const yesterdayId = format(subDays(snapshotDate, 1), 'yyyy-MM-dd');
+    
+    // Get yesterday's snapshot to calculate diffs
+    const yesterdaySnapshotRef = ref(db, `statisticsHistory/${yesterdayId}`);
+    const yesterdaySnapshotData = (await get(yesterdaySnapshotRef)).val() as StatsSnapshot | null;
 
-    const newHiresToday = allEmployees.filter(e => {
-        const hireDate = parseMaybeDate(e.hireDate);
-        return hireDate && isSameDay(hireDate, snapshotDate);
-    }).length;
+    let newHires = 0;
+    let terminations = 0;
 
-    const terminationsToday = allEmployees.filter(e => {
-        const termDate = parseMaybeDate(e.terminationDate);
-        return termDate && isSameDay(termDate, snapshotDate);
-    }).length;
+    if (yesterdaySnapshotData) {
+        const totalActiveToday = activeEmployees.length;
+        const totalActiveYesterday = yesterdaySnapshotData.totalActive;
+        
+        const diff = totalActiveToday - totalActiveYesterday;
+
+        if (diff > 0) {
+            newHires = diff;
+        } else if (diff < 0) {
+            terminations = -diff; // make it positive
+        }
+    }
+    // If no snapshot yesterday, we can't calculate diff, so it remains 0.
 
     const departmentCounts: Record<string, number> = {};
     const jobTitleCounts: Record<string, number> = {};
@@ -83,8 +94,8 @@ const createStatsSnapshotFlow = ai.defineFlow(
       departments: departmentCounts,
       jobTitles: jobTitleCounts,
       nationalities: nationalityCounts,
-      newHires: newHiresToday,
-      terminations: terminationsToday,
+      newHires: newHires,
+      terminations: terminations,
     };
 
     const snapshotRef = ref(db, `statisticsHistory/${snapshotId}`);
@@ -95,8 +106,9 @@ const createStatsSnapshotFlow = ai.defineFlow(
     return {
       snapshotId,
       totalActive: activeEmployees.length,
-      newHires: newHiresToday,
-      terminations: terminationsToday,
+      newHires: newHires,
+      terminations: terminations,
     };
   }
 );
+
