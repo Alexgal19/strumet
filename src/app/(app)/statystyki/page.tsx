@@ -631,8 +631,18 @@ const HiresAndFiresTab = () => {
 
             <Card>
                 <CardHeader>
-                     <CardTitle>Analiza</CardTitle>
-                     <CardDescription>Wybierz dzień, aby zobaczyć stan z przeszłości, lub dwa dni, aby je porównać. Migawki danych są tworzone automatycznie każdego dnia.</CardDescription>
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+                        <div>
+                            <CardTitle>Analiza</CardTitle>
+                            <CardDescription>Wybierz dzień, aby zobaczyć stan z przeszłości, lub dwa dni, aby je porównać. Migawki danych są tworzone automatycznie każdego dnia.</CardDescription>
+                        </div>
+                        {isAdmin && (
+                            <Button onClick={handleManualSnapshot} disabled={isSnapshotting} variant="secondary" className="w-full sm:w-auto">
+                                {isSnapshotting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
+                                Utwórz migawkę teraz
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap">
@@ -694,13 +704,6 @@ const HiresAndFiresTab = () => {
                             {isHistoryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HistoryIcon className="mr-2 h-4 w-4" />}
                             Generuj Raport
                         </Button>
-                        
-                        {isAdmin && (
-                            <Button onClick={handleManualSnapshot} disabled={isSnapshotting} variant="secondary">
-                                {isSnapshotting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
-                                Utwórz migawkę teraz
-                            </Button>
-                        )}
                     </div>
                 </CardContent>
             </Card>
