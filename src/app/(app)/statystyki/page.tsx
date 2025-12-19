@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive } from 'lucide-react';
 import { Employee, Order, AllConfig, Stats, User, UserRole, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -500,10 +501,26 @@ const HiresAndFiresTab = () => {
                             <CardDescription>Porównaj stan zatrudnienia między dwoma dniami lub zobacz stan na jeden dzień.</CardDescription>
                         </div>
                          {isAdmin && (
-                            <Button onClick={handleManualArchive} disabled={isArchiving}>
-                                {isArchiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}
-                                Utwórz archiwum teraz
-                            </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button disabled={isArchiving}>
+                                        {isArchiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}
+                                        Utwórz archiwum teraz
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Czy jesteś pewien?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Spowoduje to utworzenie nowego archiwum na dzień dzisiejszy. Jeśli archiwum na dziś już istnieje, zostanie ono nadpisane.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleManualArchive}>Kontynuuj</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         )}
                     </div>
                 </CardHeader>
@@ -982,3 +999,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
+
+    
