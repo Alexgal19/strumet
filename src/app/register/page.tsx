@@ -31,13 +31,27 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start as true to wait for Firebase init
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
-  // Directly get instances, initialization is now synchronous.
-  const { auth, db } = getFirebaseServices();
-
   useEffect(() => {
+    const initFirebase = async () => {
+      try {
+        await getFirebaseServices();
+      } catch (err: any) {
+        setError(err.message || 'Nie można zainicjować aplikacji. Sprawdź połączenie.');
+         toast({
+          variant: "destructive",
+          title: "Błąd krytyczny",
+          description: err.message || 'Nie udało się połączyć z usługami w tle.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initFirebase();
+    
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -46,7 +60,7 @@ export default function RegisterPage() {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [toast]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +72,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      const { auth, db } = await getFirebaseServices();
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
@@ -88,6 +103,9 @@ export default function RegisterPage() {
         case 'auth/weak-password':
           errorMessage = 'Hasło jest zbyt słabe. Powinno mieć co najmniej 6 znaków.';
           break;
+        default:
+           errorMessage = error.message || errorMessage;
+           break;
       }
       setError(errorMessage);
     } finally {

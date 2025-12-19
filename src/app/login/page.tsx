@@ -28,13 +28,27 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start as true to wait for Firebase init
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
-  // Directly get auth instance, initialization is now synchronous.
-  const { auth } = getFirebaseServices();
-
   useEffect(() => {
+    const initFirebase = async () => {
+      try {
+        await getFirebaseServices();
+      } catch (err: any) {
+        setError(err.message || 'Nie można zainicjować aplikacji. Sprawdź połączenie.');
+        toast({
+          variant: "destructive",
+          title: "Błąd krytyczny",
+          description: err.message || 'Nie udało się połączyć z usługami w tle.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initFirebase();
+    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').then(registration => {
             console.log('SW registered: ', registration);
@@ -54,7 +68,7 @@ export default function LoginPage() {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +76,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      const { auth } = await getFirebaseServices();
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: 'Sukces', description: 'Zalogowano pomyślnie.' });
       router.push("/");
@@ -76,6 +91,9 @@ export default function LoginPage() {
         case 'auth/invalid-email':
           errorMessage = 'Nieprawidłowy format adresu email.';
           break;
+        default:
+           errorMessage = error.message || errorMessage;
+           break;
       }
       setError(errorMessage);
     } finally {

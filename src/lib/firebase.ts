@@ -3,34 +3,51 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getDatabase, type Database } from "firebase/database";
 import { getAuth, type Auth } from "firebase/auth";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
-import { firebaseConfig } from "@/lib/firebase-config";
-
-// Essential validation to prevent runtime errors
-if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
-  throw new Error(
-    "Kluczowe zmienne środowiskowe Firebase nie są poprawnie skonfigurowane. Sprawdź plik .env i upewnij się, że zmienne NEXT_PUBLIC_... są ustawione."
-  );
-}
 
 let app: FirebaseApp;
 let auth: Auth;
 let db: Database;
 let storage: FirebaseStorage;
+let initializationPromise: Promise<void> | null = null;
 
-// Singleton pattern to initialize Firebase only once
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
+async function initializeAppClient(): Promise<void> {
+    if (getApps().length) {
+        app = getApp();
+    } else {
+        try {
+            const response = await fetch('/api/firebase-config');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch Firebase config');
+            }
+            const { config } = await response.json();
+
+            if (!config || !config.apiKey) {
+                 throw new Error("Pobrana konfiguracja Firebase jest nieprawidłowa.");
+            }
+
+            app = initializeApp(config);
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+            // We throw the error to be caught by the caller
+            throw error;
+        }
+    }
+    
+    auth = getAuth(app);
+    db = getDatabase(app);
+    storage = getStorage(app);
 }
 
-auth = getAuth(app);
-db = getDatabase(app);
-storage = getStorage(app);
-
-// We now export a simple synchronous getter function.
-function getFirebaseServices() {
+// This is the new getter function that ensures initialization is complete.
+async function getFirebaseServices() {
+    if (!initializationPromise) {
+        initializationPromise = initializeAppClient();
+    }
+    await initializationPromise;
     return { app, auth, db, storage };
 }
 
+// We still export the instances for legacy parts that might use them,
+// but the primary way to get them should be the async function.
 export { getFirebaseServices, auth, db, storage };
