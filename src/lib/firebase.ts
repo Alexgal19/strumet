@@ -16,6 +16,14 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
+// Validate the configuration to prevent silent failures.
+if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
+  throw new Error(
+    "Błąd Konfiguracji Firebase: Zmienne środowiskowe (NEXT_PUBLIC_FIREBASE_...) nie są poprawnie ustawione w pliku .env. Sprawdź konsolę Firebase i uzupełnij brakujące wartości."
+  );
+}
+
+
 // Initialize Firebase for client
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const db = getDatabase(app);
