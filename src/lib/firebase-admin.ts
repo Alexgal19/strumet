@@ -23,7 +23,8 @@ export const getAdminApp = () => {
             admin.initializeApp({
                 credential,
                 databaseURL: process.env.FIREBASE_DATABASE_URL,
-                storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+                // The storageBucket is specified directly in the API routes
+                // to ensure robustness in serverless environments.
             });
 
         } catch (error: any) {
@@ -36,3 +37,6 @@ export const getAdminApp = () => {
     adminApp = admin.apps[0]!;
     return adminApp;
 };
+
+export const adminDb = () => admin.database(getAdminApp());
+export const adminStorage = () => admin.storage(getAdminApp());
