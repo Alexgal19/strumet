@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -27,25 +28,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true for Firebase init
-  const [authInstance, setAuthInstance] = useState<Auth | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
-  useEffect(() => {
-    async function initFirebase() {
-        try {
-            const { auth } = await getFirebaseServices();
-            setAuthInstance(auth);
-        } catch (err) {
-            setError("Nie można połączyć się z serwerem. Spróbuj odświeżyć stronę.");
-            console.error(err);
-        } finally {
-            setIsLoading(false);
-        }
-    }
+  // Directly get auth instance, initialization is now synchronous.
+  const { auth } = getFirebaseServices();
 
-    initFirebase();
-    
+  useEffect(() => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').then(registration => {
             console.log('SW registered: ', registration);
@@ -69,15 +58,11 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authInstance) {
-        setError("Usługa logowania nie jest gotowa. Spróbuj ponownie za chwilę.");
-        return;
-    }
     setError('');
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(authInstance, email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       toast({ title: 'Sukces', description: 'Zalogowano pomyślnie.' });
       router.push("/");
     } catch (error: any) {

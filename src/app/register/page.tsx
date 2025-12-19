@@ -1,6 +1,8 @@
+
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, 'react';
+import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -10,8 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Database, Loader2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getFirebaseServices } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, type Auth } from "firebase/auth";
-import { ref, set, get, type Database as RealtimeDatabase } from "firebase/database";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { ref, set, get } from "firebase/database";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -29,25 +31,13 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true); // Start loading for Firebase init
-  const [firebaseServices, setFirebaseServices] = useState<{auth: Auth, db: RealtimeDatabase} | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
+  // Directly get instances, initialization is now synchronous.
+  const { auth, db } = getFirebaseServices();
+
   useEffect(() => {
-    async function initFirebase() {
-        try {
-            const { auth, db } = await getFirebaseServices();
-            setFirebaseServices({ auth, db });
-        } catch (err) {
-            setError("Nie można połączyć się z serwerem. Spróbuj odświeżyć stronę.");
-            console.error(err);
-        } finally {
-            setIsLoading(false);
-        }
-    }
-    
-    initFirebase();
-    
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -60,18 +50,12 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseServices) {
-        setError("Usługa rejestracji nie jest gotowa. Spróbuj ponownie za chwilę.");
-        return;
-    }
     if (password !== confirmPassword) {
       setError("Hasła nie pasują do siebie.");
       return;
     }
     setError('');
     setIsLoading(true);
-
-    const { auth, db } = firebaseServices;
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -168,7 +152,7 @@ export default function RegisterPage() {
               <Label htmlFor="confirm-password">Potwierdź hasło</Label>
               <Input 
                 id="confirm-password" 
-                type="password" 
+                type="password"                  
                 required 
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
