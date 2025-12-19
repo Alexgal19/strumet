@@ -43,7 +43,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "Start date is required" }, { status: 400 });
         }
 
-        const bucket = admin.storage().bucket(process.env.FIREBASE_STORAGE_BUCKET);
+        const bucket = admin.storage().bucket();
         
         const isRange = !!endDate;
 
