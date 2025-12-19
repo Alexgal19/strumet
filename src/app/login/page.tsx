@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Database, Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { auth } from "@/lib/firebase";
+import { getFirebaseServices } from "@/lib/firebase";
 import { signInWithEmailAndPassword, type Auth } from "firebase/auth";
+
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -28,10 +29,28 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [auth, setAuth] = useState<Auth | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
+    async function initFirebase() {
+      try {
+        const { auth: firebaseAuth } = await getFirebaseServices();
+        setAuth(firebaseAuth);
+      } catch(e: any) {
+        setError(e.message || "Failed to initialize Firebase services.");
+        toast({
+          variant: "destructive",
+          title: "Błąd krytyczny",
+          description: e.message || "Nie udało się połączyć z usługami Firebase.",
+        })
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    initFirebase();
+
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').then(registration => {
             console.log('SW registered: ', registration);
@@ -51,10 +70,14 @@ export default function LoginPage() {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+      setError("Usługi uwierzytelniania nie są gotowe. Spróbuj ponownie za chwilę.");
+      return;
+    }
     setError('');
     setIsLoading(true);
 
@@ -64,18 +87,21 @@ export default function LoginPage() {
       router.push("/");
     } catch (error: any) {
       let errorMessage = "Wystąpił błąd podczas logowania.";
-       switch (error.code) {
-        case 'auth/user-not-found':
-        case 'auth/wrong-password':
-        case 'auth/invalid-credential':
-          errorMessage = 'Nieprawidłowy email lub hasło.';
-          break;
-        case 'auth/invalid-email':
-          errorMessage = 'Nieprawidłowy format adresu email.';
-          break;
-        default:
-           errorMessage = error.message || errorMessage;
-           break;
+      // Simplified error handling
+      if (error.code) {
+          switch (error.code) {
+              case 'auth/user-not-found':
+              case 'auth/wrong-password':
+              case 'auth/invalid-credential':
+                  errorMessage = 'Nieprawidłowy email lub hasło.';
+                  break;
+              case 'auth/invalid-email':
+                  errorMessage = 'Nieprawidłowy format adresu email.';
+                  break;
+              default:
+                  errorMessage = error.message || errorMessage;
+                  break;
+          }
       }
       setError(errorMessage);
     } finally {
@@ -114,11 +140,11 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="email@example.com" 
-                required 
+              <Input
+                id="email"
+                type="email"
+                placeholder="email@example.com"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
@@ -126,10 +152,10 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Hasło</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
+              <Input
+                id="password"
+                type="password"
+                required
                 placeholder="********"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -159,7 +185,6 @@ export default function LoginPage() {
           )}
         </CardContent>
       </Card>
-    </Card>
     </div>
   );
 }
