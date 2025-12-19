@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Database, Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getFirebaseServices } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword, type Auth } from "firebase/auth";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -28,27 +28,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true); // Start as true to wait for Firebase init
+  const [isLoading, setIsLoading] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
-    const initFirebase = async () => {
-      try {
-        await getFirebaseServices();
-      } catch (err: any) {
-        setError(err.message || 'Nie można zainicjować aplikacji. Sprawdź połączenie.');
-        toast({
-          variant: "destructive",
-          title: "Błąd krytyczny",
-          description: err.message || 'Nie udało się połączyć z usługami w tle.',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initFirebase();
-    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').then(registration => {
             console.log('SW registered: ', registration);
@@ -68,7 +51,7 @@ export default function LoginPage() {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
-  }, [toast]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +59,6 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const { auth } = await getFirebaseServices();
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: 'Sukces', description: 'Zalogowano pomyślnie.' });
       router.push("/");
@@ -177,6 +159,7 @@ export default function LoginPage() {
           )}
         </CardContent>
       </Card>
+    </Card>
     </div>
   );
 }

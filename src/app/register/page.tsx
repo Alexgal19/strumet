@@ -1,8 +1,7 @@
 
 "use client";
 
-import React, 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Database, Loader2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getFirebaseServices } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, set, get } from "firebase/database";
 
@@ -31,27 +30,10 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true); // Start as true to wait for Firebase init
+  const [isLoading, setIsLoading] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
-    const initFirebase = async () => {
-      try {
-        await getFirebaseServices();
-      } catch (err: any) {
-        setError(err.message || 'Nie można zainicjować aplikacji. Sprawdź połączenie.');
-         toast({
-          variant: "destructive",
-          title: "Błąd krytyczny",
-          description: err.message || 'Nie udało się połączyć z usługami w tle.',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initFirebase();
-    
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -60,7 +42,7 @@ export default function RegisterPage() {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
-  }, [toast]);
+  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +54,6 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const { auth, db } = await getFirebaseServices();
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
