@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -10,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Database, Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { getFirebaseServices } from "@/lib/firebase";
+import { signInWithEmailAndPassword, type Auth } from "firebase/auth";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -28,10 +27,25 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true for Firebase init
+  const [authInstance, setAuthInstance] = useState<Auth | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
+    async function initFirebase() {
+        try {
+            const { auth } = await getFirebaseServices();
+            setAuthInstance(auth);
+        } catch (err) {
+            setError("Nie można połączyć się z serwerem. Spróbuj odświeżyć stronę.");
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    initFirebase();
+    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').then(registration => {
             console.log('SW registered: ', registration);
@@ -55,11 +69,15 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!authInstance) {
+        setError("Usługa logowania nie jest gotowa. Spróbuj ponownie za chwilę.");
+        return;
+    }
     setError('');
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(authInstance, email, password);
       toast({ title: 'Sukces', description: 'Zalogowano pomyślnie.' });
       router.push("/");
     } catch (error: any) {

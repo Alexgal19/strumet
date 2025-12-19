@@ -1,11 +1,9 @@
-
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ref, onValue, set, push, update, remove, get } from 'firebase/database';
-import { db, auth } from '@/lib/firebase';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { getFirebaseServices } from '@/lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { 
@@ -26,6 +24,7 @@ import type {
     User,
     UserRole,
 } from '@/lib/types';
+import type { Database } from 'firebase/database';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -86,10 +85,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+    const [firebaseServices, setFirebaseServices] = useState<{auth: Auth, db: Database} | null>(null);
 
     const isAdmin = currentUser?.role === 'admin';
 
     useEffect(() => {
+        getFirebaseServices().then(services => {
+            setFirebaseServices(services);
+        }).catch(err => {
+            console.error("Failed to initialize Firebase services in context", err);
+            toast({ variant: 'destructive', title: 'Błąd Krytyczny', description: 'Nie można załadować aplikacji. Odśwież stronę.'});
+        });
+    }, [toast]);
+    
+    useEffect(() => {
+        if (!firebaseServices) return;
+        
+        const { auth, db } = firebaseServices;
+
         const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
             if (user) {
                 const userRoleRef = ref(db, `users/${user.uid}/role`);
@@ -98,10 +111,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setCurrentUser({
                     uid: user.uid,
                     email: user.email,
-                    role: role || 'guest', // Default to guest if no role is found
+                    role: role || 'guest', 
                 });
                 
-                // For non-admin users, force the view to 'statystyki'
                 if (role !== 'admin') {
                     setActiveView('statystyki');
                 }
@@ -139,11 +151,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             unsubscribeAuth();
             unsubscribeDb();
         };
-    }, [toast]);
+    }, [firebaseServices, toast]);
     
     // --- Employee Actions ---
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             const { id, ...dataToSave } = employeeData;
             
             if (id) {
@@ -177,10 +191,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error saving employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
         }
-    }, [toast, employees]);
+    }, [toast, employees, firebaseServices]);
 
     const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await update(ref(db, `employees/${employeeId}`), {
                 status: 'zwolniony',
                 terminationDate: format(new Date(), 'yyyy-MM-dd')
@@ -190,10 +206,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error terminating employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await update(ref(db, `employees/${employeeId}`), {
                 status: 'aktywny',
                 terminationDate: null 
@@ -203,10 +221,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error restoring employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     const handleDeleteAllHireDates = useCallback(async () => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             const updates: Record<string, any> = {};
             employees.forEach(employee => {
                 updates[`/employees/${employee.id}/hireDate`] = null;
@@ -217,9 +237,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error deleting all hire dates: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć dat zatrudnienia.' });
         }
-    }, [employees, toast]);
+    }, [employees, toast, firebaseServices]);
 
     const handleUpdateHireDates = useCallback(async (dateUpdates: { fullName: string; hireDate: string }[]) => {
+        if (!firebaseServices) return;
+        const { db } = firebaseServices;
         const updates: Record<string, any> = {};
         let updatedCount = 0;
         const notFound: string[] = [];
@@ -255,9 +277,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
             });
         }
-    }, [employees, toast]);
+    }, [employees, toast, firebaseServices]);
 
     const handleUpdateContractEndDates = useCallback(async (dateUpdates: { fullName: string; contractEndDate: string }[]) => {
+        if (!firebaseServices) return;
+        const { db } = firebaseServices;
         const updates: Record<string, any> = {};
         let updatedCount = 0;
         const notFound: string[] = [];
@@ -293,21 +317,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
             });
         }
-    }, [employees, toast]);
+    }, [employees, toast, firebaseServices]);
 
 
     const handleDeleteAllEmployees = useCallback(async () => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await remove(ref(db, 'employees'));
             toast({ title: 'Sukces', description: 'Wszyscy pracownicy zostali usunięci.' });
         } catch (error) {
             console.error("Error deleting all employees: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracowników.' });
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     const handleRestoreAllTerminatedEmployees = useCallback(async () => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             const updates: Record<string, any> = {};
             const terminatedEmployees = employees.filter(e => e.status === 'zwolniony');
             if (terminatedEmployees.length === 0) {
@@ -325,10 +353,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error restoring all terminated employees: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracowników.' });
         }
-    }, [employees, toast]);
+    }, [employees, toast, firebaseServices]);
 
     // --- Config Actions ---
     const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
+        if (!firebaseServices) return;
+        const { db } = firebaseServices;
         const configRef = ref(db, `config/${configType}`);
         const updates: Record<string, any> = {};
         items.forEach(itemName => {
@@ -336,9 +366,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             updates[newItemRef.key!] = { name: itemName };
         });
          await update(configRef, updates);
-    }, []);
+    }, [firebaseServices]);
 
     const updateConfigItem = useCallback(async (configType: ConfigType, itemId: string, newName: string) => {
+        if (!firebaseServices) return;
+        const { db } = firebaseServices;
         const itemToUpdate = config[configType].find(i => i.id === itemId);
         if (!itemToUpdate) return;
         
@@ -364,15 +396,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error updating item:", error);
             toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zaktualizować elementu."});
         }
-    }, [config, employees, toast]);
+    }, [config, employees, toast, firebaseServices]);
 
     const removeConfigItem = useCallback(async (configType: ConfigType, itemId: string) => {
+        if (!firebaseServices) return;
+        const { db } = firebaseServices;
         await remove(ref(db, `config/${configType}/${itemId}`));
         toast({ title: "Sukces", description: "Element został usunięty."});
-    }, [toast]);
+    }, [toast, firebaseServices]);
     
     const handleSaveJobTitleClothingSet = useCallback(async (jobTitleId: string, description: string) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await set(ref(db, `config/jobTitleClothingSets/${jobTitleId}`), {
                 id: jobTitleId,
                 description: description
@@ -382,61 +418,75 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error saving job title clothing set:", error);
             toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać zestawu odzieży."});
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     const handleSaveResendApiKey = useCallback(async (apiKey: string) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await set(ref(db, 'config/resendApiKey'), apiKey);
             toast({ title: "Sukces", description: "Klucz API Resend został zapisany."});
         } catch (error) {
             console.error("Error saving Resend API key:", error);
             toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać klucza API."});
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     const handleUpdateUserRole = useCallback(async (userId: string, newRole: UserRole) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await update(ref(db, `users/${userId}`), { role: newRole });
             toast({ title: 'Sukces', description: 'Rola użytkownika została zaktualizowana.' });
         } catch (error) {
             console.error("Error updating user role: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować roli użytkownika.' });
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     // --- Absence Actions ---
     const addAbsence = useCallback(async (employeeId: string, date: string) => {
+        if (!firebaseServices) return;
+        const { db } = firebaseServices;
         const newAbsenceRef = push(ref(db, 'absences'));
         await set(newAbsenceRef, { employeeId, date });
-    }, []);
+    }, [firebaseServices]);
 
     const deleteAbsence = useCallback(async (absenceId: string) => {
+        if (!firebaseServices) return;
+        const { db } = firebaseServices;
         await remove(ref(db, `absences/${absenceId}`));
-    }, []);
+    }, [firebaseServices]);
     
     // --- Other Actions ---
     const addAbsenceRecord = useCallback(async (record: Omit<AbsenceRecord, 'id'>) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await set(push(ref(db, 'absenceRecords')), record);
             toast({ title: 'Sukces', description: 'Zapis został pomyślnie dodany.' });
         } catch (error) {
             console.error('Error saving record:', error);
             toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać rekordu.' });
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
     
     const deleteAbsenceRecord = useCallback(async (recordId: string) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await remove(ref(db, `absenceRecords/${recordId}`));
             toast({ title: 'Sukces', description: 'Zapis został usunięty.' });
         } catch (error) {
             console.error('Error deleting record:', error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapisu.' });
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
     
     const addCirculationCard = useCallback(async (employeeId: string, employeeFullName: string) => {
+        if (!firebaseServices) return null;
         try {
+            const { db } = firebaseServices;
             const newCardRef = push(ref(db, 'circulationCards'));
             const newCard: Omit<CirculationCard, 'id'> = {
                 employeeId, employeeFullName, date: new Date().toISOString(),
@@ -448,30 +498,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać karty.' });
             return null;
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
     
     const addFingerprintAppointment = useCallback(async (appointment: Omit<FingerprintAppointment, 'id'>) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await set(push(ref(db, 'fingerprintAppointments')), appointment);
             toast({ title: 'Sukces', description: 'Termin został pomyślnie dodany.' });
         } catch (error) {
             console.error('Error saving appointment:', error);
             toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać terminu.' });
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
     
     const deleteFingerprintAppointment = useCallback(async (appointmentId: string) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await remove(ref(db, `fingerprintAppointments/${appointmentId}`));
             toast({ title: 'Sukces', description: 'Termin został usunięty.' });
         } catch (error) {
             console.error('Error deleting appointment:', error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć terminu.' });
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
     
     const addClothingIssuance = useCallback(async (issuance: Omit<ClothingIssuance, 'id'>) => {
+        if (!firebaseServices) return null;
         try {
+            const { db } = firebaseServices;
             const newIssuanceRef = push(ref(db, 'clothingIssuances'));
             await set(newIssuanceRef, issuance);
             toast({ title: 'Sukces', description: 'Zapis o wydaniu odzieży został zapisany.' });
@@ -481,19 +537,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać danych.' });
             return null;
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     const deleteClothingIssuance = useCallback(async (issuanceId: string) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await remove(ref(db, `clothingIssuances/${issuanceId}`));
             toast({ title: 'Sukces', description: 'Zapis został usunięty.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapisu.' });
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     const addOrder = useCallback(async (order: Omit<Order, 'id' | 'createdAt'>) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             const newOrderRef = push(ref(db, 'orders'));
             const dataToSet: Omit<Order, 'id'> = {
                 ...order,
@@ -505,26 +565,30 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         } catch(e) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zamówienia.'});
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
     
     const updateOrder = useCallback(async (order: Order) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             const { id, ...dataToUpdate } = order;
             await update(ref(db, `orders/${id}`), dataToUpdate);
             toast({ title: 'Sukces', description: 'Zamówienie zostało zaktualizowane.'});
         } catch(e) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować zamówienia.'});
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     const deleteOrder = useCallback(async (orderId: string) => {
+        if (!firebaseServices) return;
         try {
+            const { db } = firebaseServices;
             await remove(ref(db, `orders/${orderId}`));
             toast({ title: 'Sukces', description: 'Zamówienie zostało usunięte.'});
         } catch(e) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zamówienia.'});
         }
-    }, [toast]);
+    }, [toast, firebaseServices]);
 
     const value = {
         employees,

@@ -1,31 +1,72 @@
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getDatabase, type Database } from "firebase/database";
+import { getAuth, type Auth } from "firebase/auth";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
-// Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getDatabase } from "firebase/database";
-import { getAuth } from "firebase/auth";
-import { getStorage } from "firebase/storage";
+let app: FirebaseApp;
+let auth: Auth;
+let db: Database;
+let storage: FirebaseStorage;
+let isInitialized = false;
 
-// Your web app's Firebase configuration is now read from environment variables
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
-
-// Validate the configuration to prevent silent failures.
-if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
-  throw new Error(
-    "Błąd Konfiguracji Firebase: Zmienne środowiskowe (NEXT_PUBLIC_FIREBASE_...) nie są poprawnie ustawione w pliku .env. Sprawdź konsolę Firebase i uzupełnij brakujące wartości."
-  );
+interface FirebaseServices {
+    app: FirebaseApp;
+    auth: Auth;
+    db: Database;
+    storage: FirebaseStorage;
 }
 
+async function initializeAppClient(): Promise<FirebaseServices> {
+    if (isInitialized && app) {
+        return { app, auth, db, storage };
+    }
 
-// Initialize Firebase for client
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const db = getDatabase(app);
-export const auth = getAuth(app);
-export const storage = getStorage(app);
+    try {
+        const response = await fetch('/api/firebase-config');
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to fetch Firebase config');
+        }
+        const { config } = await response.json();
+
+        if (!config || !config.apiKey || !config.authDomain || !config.projectId) {
+            throw new Error("Invalid or incomplete Firebase config received from server.");
+        }
+        
+        if (getApps().length === 0) {
+            app = initializeApp(config);
+        } else {
+            app = getApp();
+        }
+
+        auth = getAuth(app);
+        db = getDatabase(app);
+        storage = getStorage(app);
+
+        isInitialized = true;
+        return { app, auth, db, storage };
+
+    } catch (error) {
+        console.error("Critical Firebase initialization error:", error);
+        throw error;
+    }
+}
+
+// Export a function that ensures initialization is complete
+async function getFirebaseServices(): Promise<FirebaseServices> {
+    if (!isInitialized) {
+        return await initializeAppClient();
+    }
+    return { app, auth, db, storage };
+}
+
+// We still export the instances for legacy imports, but they might not be initialized
+// immediately. The components should use getFirebaseServices.
+let _auth: Auth, _db: Database, _storage: FirebaseStorage;
+if(getApps().length > 0) {
+    _auth = getAuth();
+    _db = getDatabase();
+    _storage = getStorage();
+}
+
+export { getFirebaseServices, _auth as auth, _db as db, _storage as storage };
