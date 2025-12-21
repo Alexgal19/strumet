@@ -12,9 +12,18 @@ export const getAdminApp = () => {
     // Jeśli nie ma istniejących aplikacji, zainicjalizuj nową.
     if (admin.apps.length === 0) {
         try {
-            const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-                ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-                : undefined;
+            let serviceAccount;
+            if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+                try {
+                    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+                } catch (parseError) {
+                    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', parseError);
+                    console.error('Raw value:', process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+                    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY format. Must be valid JSON.');
+                }
+            } else {
+                serviceAccount = undefined;
+            }
             
             const credential = serviceAccount 
                 ? admin.credential.cert(serviceAccount)
