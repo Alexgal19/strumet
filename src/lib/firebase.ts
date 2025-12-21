@@ -9,6 +9,7 @@ import { firebaseConfig } from "./firebase-config";
 if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
   // This error will be caught during the build process or on page load in development.
   // It's a safeguard to ensure the environment variables are set.
+  throw new Error("Missing Firebase config. Please set up your .env file.");
 }
 
 let app: FirebaseApp;

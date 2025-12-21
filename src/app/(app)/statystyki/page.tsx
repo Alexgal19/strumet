@@ -193,38 +193,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         setEditingEmployee(null);
         setIsFormOpen(false);
     };
-    const handleCopyNames = () => {
-        if (!dialogContent || !dialogContent.data)
-            return;
-        let employeesToCopy: Employee[] = [];
-        if (dialogContent.type === "list") {
-            employeesToCopy = dialogContent.data as Employee[];
-        }
-        else {
-            const hierarchy = dialogContent.data as DepartmentHierarchy;
-            Object.values(hierarchy).forEach(manager => {
-                Object.values(manager).forEach(jobTitleGroup => {
-                    employeesToCopy.push(...jobTitleGroup);
-                });
-            });
-        }
-        if (employeesToCopy.length === 0)
-            return;
-        const names = employeesToCopy.map(e => e.fullName).join("\n");
-        navigator.clipboard.writeText(names).then(() => {
-            toast({
-                title: "Skopiowano!",
-                description: "Imiona i nazwiska zostały skopiowane do schowka.",
-            });
-        }).catch(err => {
-            console.error("Could not copy text: ", err);
-            toast({
-                variant: "destructive",
-                title: "Błąd",
-                description: "Nie udało się skopiować listy.",
-            });
-        });
-    };
+    
     const renderPieChart = (data: any[], title: string, description: string, type: "department" | "nationality" | "jobTitle") => (<Card className="flex flex-col">
             <CardHeader>
                 <CardTitle className="text-xl">{title}</CardTitle>
@@ -349,12 +318,6 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                             {renderDialogContent()}
                         </div>
                     </ScrollArea>
-                    <DialogFooter className="sm:justify-between">
-                       {isAdmin && dialogContent && dialogContent.total > 0 && <Button onClick={handleCopyNames}>
-                           <Copy className="mr-2 h-4 w-4"/>
-                           Kopiuj imiona
-                       </Button>}
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
             
@@ -988,7 +951,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
-
-    

@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Copy, Trash2, XCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Trash2, XCircle } from 'lucide-react';
 import type { Employee, HierarchicalOption } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
@@ -243,16 +243,6 @@ export default function AktywniPage() {
     setIsFormOpen(true);
   }
 
-  const handleCopy = (employee: Employee) => {
-    const textToCopy = employee.fullName;
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        toast({
-            title: 'Skopiowano!',
-            description: 'Imię i nazwisko pracownika zostało skopiowane.',
-        });
-    });
-  };
-
   const columns = useMemo<ColumnDef<Employee>[]>(() => [
     {
         accessorKey: "fullName",
@@ -311,10 +301,6 @@ export default function AktywniPage() {
                   <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edytuj
-                  </DropdownMenuItem>
-                   <DropdownMenuItem onSelect={() => handleCopy(employee)}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Kopiuj imię
                   </DropdownMenuItem>
                    <DropdownMenuItem>
                       <Bot className="mr-2 h-4 w-4" />
@@ -379,7 +365,6 @@ export default function AktywniPage() {
                     employee={employee} 
                     onEdit={() => handleEditEmployee(employee)}
                     onTerminate={() => onTerminate(employee.id, employee.fullName)}
-                    onCopy={() => handleCopy(employee)}
                 />
               </div>
             );
@@ -565,5 +550,3 @@ export default function AktywniPage() {
     </div>
   );
 }
-
-    

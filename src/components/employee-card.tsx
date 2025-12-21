@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Edit, Copy, UserX, RotateCcw, CalendarClock, Briefcase, Building } from 'lucide-react';
+import { MoreHorizontal, Edit, UserX, RotateCcw, CalendarClock, Briefcase, Building } from 'lucide-react';
 import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import type { Employee } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,6 @@ interface EmployeeCardProps {
   onEdit?: () => void;
   onTerminate?: () => void;
   onRestore?: () => void;
-  onCopy?: () => void;
 }
 
 export const EmployeeCard: React.FC<EmployeeCardProps> = ({
@@ -35,7 +34,6 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({
   onEdit,
   onTerminate,
   onRestore,
-  onCopy,
 }) => {
     
   const today = startOfDay(new Date());
@@ -89,7 +87,6 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenuLabel>Akcje</DropdownMenuLabel>
                 {onEdit && <DropdownMenuItem onSelect={onEdit}><Edit className="mr-2 h-4 w-4" />Edytuj</DropdownMenuItem>}
-                {onCopy && <DropdownMenuItem onSelect={onCopy}><Copy className="mr-2 h-4 w-4" />Kopiuj imię</DropdownMenuItem>}
                 <EmployeeSummary employee={employee}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Briefcase className="mr-2 h-4 w-4" />Generuj podsumowanie</DropdownMenuItem>
                 </EmployeeSummary>

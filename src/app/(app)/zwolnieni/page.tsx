@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, Trash2, XCircle, Copy } from 'lucide-react';
+import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, Trash2, XCircle } from 'lucide-react';
 import type { Employee, HierarchicalOption } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -201,16 +201,6 @@ export default function ZwolnieniPage() {
     setIsFormOpen(false);
   };
 
-  const handleCopy = (employee: Employee) => {
-    const textToCopy = employee.fullName;
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        toast({
-            title: 'Skopiowano!',
-            description: 'Imię i nazwisko pracownika zostało skopiowane.',
-        });
-    });
-  };
-
   const columns = useMemo<ColumnDef<Employee>[]>(() => [
       { 
           accessorKey: "fullName", 
@@ -252,10 +242,6 @@ export default function ZwolnieniPage() {
                      <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
                        <Edit className="mr-2 h-4 w-4" />
                         Edytuj
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleCopy(employee)}>
-                       <Copy className="mr-2 h-4 w-4" />
-                        Kopiuj imię
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={() => onRestoreEmployee(employee.id, employee.fullName)}>
@@ -314,7 +300,6 @@ export default function ZwolnieniPage() {
                     employee={employee}
                     onEdit={() => handleEditEmployee(employee)}
                     onRestore={() => onRestoreEmployee(employee.id, employee.fullName)}
-                    onCopy={() => handleCopy(employee)}
                 />
               </div>
             );

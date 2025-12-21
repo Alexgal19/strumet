@@ -1,47 +1,42 @@
 import admin from 'firebase-admin';
 
-// Wzorzec Singleton: przechowujemy instancję w pamięci modułu.
 let adminApp: admin.app.App;
 
 export const getAdminApp = () => {
-    // Jeśli instancja już istnieje, natychmiast ją zwróć.
     if (adminApp) {
         return adminApp;
     }
 
-    // Jeśli nie ma istniejących aplikacji, zainicjalizuj nową.
     if (admin.apps.length === 0) {
         try {
-            let serviceAccount;
-            if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-                try {
-                    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-                } catch (parseError) {
-                    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', parseError);
-                    console.error('Raw value:', process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-                    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY format. Must be valid JSON.');
-                }
-            } else {
-                serviceAccount = undefined;
+            // Sprawdzenie, czy kluczowe zmienne środowiskowe istnieją
+            if (
+                !process.env.FIREBASE_PROJECT_ID ||
+                !process.env.FIREBASE_CLIENT_EMAIL ||
+                !process.env.FIREBASE_PRIVATE_KEY
+            ) {
+                throw new Error('Firebase Admin SDK environment variables are not set.');
             }
-            
-            const credential = serviceAccount 
-                ? admin.credential.cert(serviceAccount)
-                : admin.credential.applicationDefault();
+
+            const serviceAccount: admin.ServiceAccount = {
+                projectId: process.env.FIREBASE_PROJECT_ID,
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                // Kluczowe: Poprawne formatowanie klucza prywatnego
+                privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            };
 
             admin.initializeApp({
-                credential,
-                databaseURL: process.env.FIREBASE_DATABASE_URL,
-                storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+                credential: admin.credential.cert(serviceAccount),
+                databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
             });
 
         } catch (error: any) {
             console.error('Firebase admin initialization error', error.stack);
-            throw error; // Rzuć błędem, aby zatrzymać wadliwy proces.
+            throw new Error(`Firebase admin initialization failed: ${error.message}`);
         }
     }
     
-    // Zapisz zainicjalizowaną aplikację do naszej zmiennej i zwróć ją.
     adminApp = admin.apps[0]!;
     return adminApp;
 };

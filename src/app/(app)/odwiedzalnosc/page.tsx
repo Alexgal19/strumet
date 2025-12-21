@@ -13,7 +13,6 @@ import { PageHeader } from '@/components/page-header';
 import { Loader2, ArrowLeft, ArrowRight, User, TrendingDown, CalendarDays, Building, Search, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import {
   format,
@@ -492,16 +491,7 @@ export default function AttendancePage() {
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
-                              <div className="space-y-4">
-                                  {attendanceData.stats.departmentAbsenceData.map((dept) => dept && (
-                                      <div key={dept.name} className="space-y-1">
-                                          <div className="flex justify-between items-center text-sm font-medium">
-                                              <span style={{ color: dept.fill }}>{dept.name}</span>
-                                              <span>{dept.absences} dni ({dept.percentage.toFixed(1)}%)</span>
-                                          </div>
-                                          <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{ '--progress-indicator-fill': dept.fill } as React.CSSProperties} />
-                                      </div>
-                                  ))}
+                              <div>
                               </div>
                           </div>
                       </AccordionContent>
