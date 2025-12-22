@@ -1,10 +1,8 @@
-
 'use server';
 
 import { z } from 'zod';
 import { Resend } from 'resend';
-import { db } from '@/lib/firebase';
-import { ref, get } from 'firebase/database';
+import { adminDb } from '@/lib/firebase-admin';
 
 const NOTIFICATION_EMAIL = 'o.holiadynets@smartwork.pl';
 
@@ -21,17 +19,20 @@ const SendEmailOutputSchema = z.object({
 export async function sendEmail(
     input: z.infer<typeof SendEmailInputSchema>
 ): Promise<z.infer<typeof SendEmailOutputSchema>> {
-    let apiKey: string | undefined | null = 're_8JohdvBu_GXuno8rBM4pgeEJHUiX5ew37';
+    let apiKey: string | undefined | null;
 
     try {
-        const apiKeyRef = ref(db, 'config/resendApiKey');
-        const snapshot = await get(apiKeyRef);
+        const apiKeyRef = adminDb().ref('config/resendApiKey');
+        const snapshot = await apiKeyRef.once('value');
         const dbApiKey = snapshot.val();
         if (dbApiKey) {
             apiKey = dbApiKey;
+        } else {
+             apiKey = process.env.RESEND_API_KEY;
         }
     } catch (dbError) {
         console.warn("Could not fetch Resend API key from Firebase, falling back to environment variable. Error:", dbError);
+        apiKey = process.env.RESEND_API_KEY;
     }
 
     if (!apiKey) {

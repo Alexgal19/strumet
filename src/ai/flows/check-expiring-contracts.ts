@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow to check for expiring contracts and send notifications.
@@ -9,7 +8,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ref, get, push, set } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import { startOfDay, differenceInDays } from 'date-fns';
 import type { Employee, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
@@ -36,8 +35,8 @@ const checkExpiringContractsFlow = ai.defineFlow(
   async () => {
     console.log('Starting to check for expiring contracts...');
     
-    const employeesRef = ref(db, 'employees');
-    const snapshot = await get(employeesRef);
+    const employeesRef = adminDb().ref('employees');
+    const snapshot = await employeesRef.once('value');
     const allEmployees = objectToArray<Employee>(snapshot.val());
     const activeEmployees = allEmployees.filter(e => e.status === 'aktywny');
 
@@ -93,7 +92,7 @@ const checkExpiringContractsFlow = ai.defineFlow(
     
     const message = messageParts.join(' ');
     
-    const newNotificationRef = push(ref(db, 'notifications'));
+    const newNotificationRef = push(adminDb().ref('notifications'));
     const newNotification: Omit<AppNotification, 'id'> = {
         title,
         message,
@@ -140,7 +139,7 @@ const checkExpiringContractsFlow = ai.defineFlow(
     } else {
         console.error(`Failed to send email: ${emailResult.message}`);
         // Create an error notification
-        const errorNotificationRef = push(ref(db, 'notifications'));
+        const errorNotificationRef = push(adminDb().ref('notifications'));
         const errorNotification: Omit<AppNotification, 'id'> = {
             title: 'Błąd wysyłania Email',
             message: `Nie udało się wysłać powiadomienia email. Szczegóły błędu: ${emailResult.message}`,

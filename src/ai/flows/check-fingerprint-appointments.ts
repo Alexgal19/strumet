@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow to check for upcoming fingerprint appointments and send notifications.
@@ -9,7 +8,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { ref, get, push, set } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import { startOfDay, differenceInDays, format } from 'date-fns';
 import type { FingerprintAppointment, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
@@ -36,8 +35,8 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
   async () => {
     console.log('DEBUG: [checkAppointmentsAndNotifyFlow] Starting flow.');
     
-    const appointmentsRef = ref(db, 'fingerprintAppointments');
-    const snapshot = await get(appointmentsRef);
+    const appointmentsRef = adminDb().ref('fingerprintAppointments');
+    const snapshot = await appointmentsRef.once('value');
     const appointments = objectToArray<FingerprintAppointment>(snapshot.val());
 
     console.log(`DEBUG: Found ${appointments.length} total appointments in Firebase.`);
@@ -84,7 +83,7 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     
     // 1. Create in-app notification
     console.log('DEBUG: Creating in-app notification...');
-    const newNotificationRef = push(ref(db, 'notifications'));
+    const newNotificationRef = push(adminDb().ref('notifications'));
     const newNotification: Omit<AppNotification, 'id'> = {
         title,
         message,
@@ -103,7 +102,9 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
             let dayText = `za ${apt.daysRemaining} dni`;
             if (apt.daysRemaining === 1) dayText = 'jutro';
             if (apt.daysRemaining === 0) dayText = 'dzisiaj';
-            return `<li><strong>${apt.employeeFullName}</strong> - ${format(parseMaybeDate(apt.appointmentDate)!, 'dd.MM.yyyy HH:mm')} (${dayText})</li>`
+            const aptDate = parseMaybeDate(apt.appointmentDate);
+            if (!aptDate) return '';
+            return `<li><strong>${apt.employeeFullName}</strong> - ${format(aptDate, 'dd.MM.yyyy HH:mm')} (${dayText})</li>`
         })
         .join('');
 
@@ -124,7 +125,7 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     } else {
         console.error(`DEBUG: Failed to send email: ${emailResult.message}`);
         // Create an error notification in-app
-        const errorNotificationRef = push(ref(db, 'notifications'));
+        const errorNotificationRef = push(adminDb().ref('notifications'));
         const errorNotification: Omit<AppNotification, 'id'> = {
             title: 'Błąd wysyłania Email (Odciski)',
             message: `Nie udało się wysłać powiadomienia email o terminach. Błąd: ${emailResult.message}`,

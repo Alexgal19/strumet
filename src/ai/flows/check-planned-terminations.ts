@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow to check for planned terminations and update employee status.
@@ -9,7 +8,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ref, get, update, push, set } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import { startOfDay, isBefore, isEqual, format } from 'date-fns';
 import type { Employee, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
@@ -35,8 +34,8 @@ const checkPlannedTerminationsFlow = ai.defineFlow(
   async () => {
     console.log('Starting to check for planned terminations...');
     
-    const employeesRef = ref(db, 'employees');
-    const snapshot = await get(employeesRef);
+    const employeesRef = adminDb().ref('employees');
+    const snapshot = await employeesRef.once('value');
     const allEmployees = objectToArray<Employee>(snapshot.val());
     const activeEmployees = allEmployees.filter(e => e.status === 'aktywny');
 
@@ -70,7 +69,7 @@ const checkPlannedTerminationsFlow = ai.defineFlow(
       updates[`/employees/${emp.id}/terminationDate`] = emp.plannedTerminationDate;
     });
 
-    await update(ref(db), updates);
+    await update(adminDb().ref(), updates);
     console.log(`Successfully processed ${employeesToProcess.length} terminations.`);
 
     // Create a single in-app notification for all processed terminations
@@ -78,7 +77,7 @@ const checkPlannedTerminationsFlow = ai.defineFlow(
     const title = `Automatyczne zwolnienie: ${employeesToProcess.length} pracownik(ów)`;
     const message = `Następujący pracownicy zostali automatycznie przeniesieni do zwolnionych na podstawie planowanej daty: ${employeeNames}.`;
     
-    const newNotificationRef = push(ref(db, 'notifications'));
+    const newNotificationRef = push(adminDb().ref('notifications'));
     const newNotification: Omit<AppNotification, 'id'> = {
         title,
         message,

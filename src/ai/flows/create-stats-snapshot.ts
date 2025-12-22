@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow to create a weekly snapshot of employee statistics.
@@ -7,7 +6,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ref, get } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import { format, parse } from 'date-fns';
 import type { Employee, StatsSnapshot } from '@/lib/types';
 
@@ -49,12 +48,12 @@ export async function createStatsSnapshot(input: z.infer<typeof CreateSnapshotIn
 }
 
 const getSnapshotForDate = async (date: string): Promise<{ data: any[], total: number }> => {
-    const snapshotRef = ref(db, `statisticsHistory/${date}`);
-    const snapshot = await get(snapshotRef);
+    const snapshotRef = adminDb().ref(`statisticsHistory/${date}`);
+    const snapshot = await snapshotRef.once('value');
     if (!snapshot.exists()) {
         // If no snapshot, fetch live data as a fallback
-        const employeesRef = ref(db, 'employees');
-        const empSnapshot = await get(employeesRef);
+        const employeesRef = adminDb().ref('employees');
+        const empSnapshot = await employeesRef.once('value');
         const allEmployees = objectToArray<Employee>(empSnapshot.val());
         const activeEmployees = allEmployees.filter(e => {
             const hireDate = parse(e.hireDate, 'yyyy-MM-dd', new Date());
@@ -84,7 +83,8 @@ const createStatsSnapshotFlow = ai.defineFlow(
   async ({ startDate, endDate }) => {
     console.log(`Generating report for ${startDate} to ${endDate}`);
 
-    const allEmployees = objectToArray<Employee>((await get(ref(db, 'employees'))).val());
+    const employeesSnapshot = await adminDb().ref('employees').once('value');
+    const allEmployees = objectToArray<Employee>(employeesSnapshot.val());
 
     const getActiveEmployeesOnDate = (date: Date) => {
         return allEmployees.filter(e => {
