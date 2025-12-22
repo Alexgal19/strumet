@@ -97,7 +97,17 @@ export default function AktywniPage() {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
   
-  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+  const activeEmployees = useMemo(() => {
+    return employees
+      .filter(e => e.status === 'aktywny')
+      .sort((a, b) => {
+        const dateA = parseMaybeDate(a.hireDate);
+        const dateB = parseMaybeDate(b.hireDate);
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateB.getTime() - dateA.getTime();
+      });
+  }, [employees]);
   
   const { hirePeriodOptions, contractPeriodOptions, plannedTerminationPeriodOptions } = useMemo(() => {
     const createHierarchicalOptions = (dateField: 'hireDate' | 'contractEndDate' | 'plannedTerminationDate'): HierarchicalOption[] => {
@@ -550,3 +560,5 @@ export default function AktywniPage() {
     </div>
   );
 }
+
+    

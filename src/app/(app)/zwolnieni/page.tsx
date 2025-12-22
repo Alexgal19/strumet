@@ -80,7 +80,17 @@ export default function ZwolnieniPage() {
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
   const managerOptions: OptionType[] = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
 
-  const terminatedEmployees = useMemo(() => employees.filter(e => e.status === 'zwolniony'), [employees]);
+  const terminatedEmployees = useMemo(() => {
+    return employees
+      .filter(e => e.status === 'zwolniony')
+      .sort((a, b) => {
+        const dateA = parseMaybeDate(a.terminationDate);
+        const dateB = parseMaybeDate(b.terminationDate);
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateB.getTime() - dateA.getTime();
+      });
+  }, [employees]);
 
   const terminationPeriodOptions: HierarchicalOption[] = useMemo(() => {
     const hierarchy: Record<string, Record<string, Set<string>>> = {};
@@ -444,3 +454,5 @@ export default function ZwolnieniPage() {
     </div>
   );
 }
+
+    
