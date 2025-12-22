@@ -3,31 +3,36 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getDatabase, type Database } from "firebase/database";
 import { getAuth, type Auth } from "firebase/auth";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
-import { firebaseConfig } from "./firebase-config";
 
-// Essential validation to prevent runtime errors
-if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
-  // This error will be caught during the build process or on page load in development.
-  // It's a safeguard to ensure the environment variables are set.
-  throw new Error("Missing Firebase config. Please set up your .env file.");
-}
+// Public Firebase configuration, safe to be exposed on the client-side.
+// Security is enforced by Firebase Security Rules.
+export const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
 
 let app: FirebaseApp;
 let auth: Auth;
 let db: Database;
 let storage: FirebaseStorage;
 
-if (getApps().length) {
-  app = getApp();
-} else {
+// Initialize Firebase only once
+if (!getApps().length) {
   app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
 }
 
 auth = getAuth(app);
 db = getDatabase(app);
 storage = getStorage(app);
 
-// This is a simplified getter function.
+// A simplified getter function to access services elsewhere
 function getFirebaseServices() {
   return { app, auth, db, storage };
 }
