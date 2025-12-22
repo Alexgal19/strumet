@@ -44,6 +44,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
+import { Progress } from '@/components/ui/progress';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -447,55 +448,64 @@ export default function AttendancePage() {
 
        {attendanceData && attendanceData.stats.departmentAbsenceData.length > 0 && (
           <Card className="mb-6">
-              <Accordion type="single" collapsible>
-                  <AccordionItem value="item-1">
-                      <AccordionTrigger className="px-6 py-4">
-                          <div className="flex items-center">
-                              <Building className="mr-3 h-5 w-5" />
-                              <span className="font-semibold text-base">Nieobecności wg działów</span>
+               <Accordion type="single" collapsible>
+                <AccordionItem value="item-1">
+                  <AccordionTrigger className="px-6 py-4">
+                      <div className="flex items-center">
+                          <Building className="mr-3 h-5 w-5" />
+                          <span className="font-semibold text-base">Nieobecności wg działów</span>
+                      </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                           <div className="h-[250px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Pie
+                                        data={attendanceData.stats.departmentAbsenceData}
+                                        dataKey="absences"
+                                        nameKey="name"
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        strokeWidth={2}
+                                        stroke="hsl(var(--background))"
+                                    >
+                                        {attendanceData.stats.departmentAbsenceData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                                        ))}
+                                    </Pie>
+                                    <Legend
+                                        iconType="circle"
+                                        layout="vertical"
+                                        verticalAlign="middle"
+                                        align="right"
+                                        formatter={(value, entry: any) => (
+                                            <span className="text-sm text-muted-foreground">
+                                                {value} ({entry.payload.absences}d)
+                                            </span>
+                                        )}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                          <div className="space-y-4">
+                            {attendanceData.stats.departmentAbsenceData.map((dept) => dept && (
+                                <div key={dept.name} className="space-y-1">
+                                    <div className="flex justify-between items-center text-sm font-medium">
+                                        <span style={{ color: dept.fill }}>{dept.name}</span>
+                                        <span>{dept.absences} dni ({dept.percentage.toFixed(1)}%)</span>
+                                    </div>
+                                    <Progress value={dept.percentage} className="h-2" indicatorClassName="bg-[var(--progress-indicator-fill)]" style={{'--progress-indicator-fill': dept.fill} as React.CSSProperties} />
+                                </div>
+                            ))}
                           </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-6 pb-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                               <div className="h-[250px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Pie
-                                            data={attendanceData.stats.departmentAbsenceData}
-                                            dataKey="absences"
-                                            nameKey="name"
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={5}
-                                            strokeWidth={2}
-                                            stroke="hsl(var(--background))"
-                                        >
-                                            {attendanceData.stats.departmentAbsenceData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                                            ))}
-                                        </Pie>
-                                        <Legend
-                                            iconType="circle"
-                                            layout="vertical"
-                                            verticalAlign="middle"
-                                            align="right"
-                                            formatter={(value, entry: any) => (
-                                                <span className="text-sm text-muted-foreground">
-                                                    {value} ({entry.payload.absences}d)
-                                                </span>
-                                            )}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                              <div>
-                              </div>
-                          </div>
-                      </AccordionContent>
-                  </AccordionItem>
+                      </div>
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
           </Card>
       )}
