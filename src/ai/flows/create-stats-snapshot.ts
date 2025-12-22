@@ -38,6 +38,16 @@ const EmployeeChangeSchema = z.object({
     avatarDataUri: z.string().optional(),
 });
 
+const FieldChangeSchema = z.object({
+    fullName: z.string(),
+    avatarDataUri: z.string().optional(),
+    date: z.string(),
+    type: z.literal('department'),
+    from: z.string(),
+    to: z.string(),
+});
+
+
 const CreateSnapshotOutputSchema = z.object({
   isRange: z.boolean(),
   start: SnapshotDataSchema.optional(),
@@ -45,6 +55,7 @@ const CreateSnapshotOutputSchema = z.object({
   diff: z.number().optional(),
   newHires: z.array(EmployeeChangeSchema).optional(),
   terminated: z.array(EmployeeChangeSchema).optional(),
+  fieldChanges: z.array(FieldChangeSchema).optional(),
   date: z.string().optional(),
   total: z.number().optional(),
   deptChanges: z.array(z.object({ name: z.string(), to: z.number() })).optional(),
@@ -115,6 +126,26 @@ const createStatsSnapshotFlow = ai.defineFlow(
         const terminated = Array.from(startMap.values())
              .filter(emp => !endMap.has(emp.id))
              .map(emp => employeeToChangeSchema(emp, emp.terminationDate || format(end, 'yyyy-MM-dd')));
+             
+        const continuingEmployeesIds = Array.from(startMap.keys()).filter(id => endMap.has(id));
+        
+        const fieldChanges: z.infer<typeof FieldChangeSchema>[] = [];
+        continuingEmployeesIds.forEach(id => {
+            const startEmp = startMap.get(id)!;
+            const endEmp = endMap.get(id)!;
+
+            if (startEmp.department !== endEmp.department) {
+                fieldChanges.push({
+                    fullName: endEmp.fullName,
+                    avatarDataUri: endEmp.avatarDataUri,
+                    date: format(end, 'yyyy-MM-dd'),
+                    type: 'department',
+                    from: startEmp.department || 'Brak',
+                    to: endEmp.department || 'Brak',
+                });
+            }
+            // Add other fields to track here in the future
+        });
 
         const compareGroups = (startCounts: Record<string, number>, endCounts: Record<string, number>) => {
             const allKeys = new Set([...Object.keys(startCounts), ...Object.keys(endCounts)]);
@@ -136,6 +167,7 @@ const createStatsSnapshotFlow = ai.defineFlow(
             diff: endData.length - startData.length,
             newHires,
             terminated,
+            fieldChanges,
             deptChanges: compareGroups(getCounts(startData, 'department'), getCounts(endData, 'department')),
             jobTitleChanges: compareGroups(getCounts(startData, 'jobTitle'), getCounts(endData, 'jobTitle')),
             nationalityChanges: compareGroups(getCounts(startData, 'nationality'), getCounts(endData, 'nationality')),
@@ -164,6 +196,7 @@ const createStatsSnapshotFlow = ai.defineFlow(
             total: data.length,
             newHires,
             terminated,
+            fieldChanges: [], // No field change detection in single day mode
             deptChanges: formatForSingleDay(getCounts(data, 'department')),
             jobTitleChanges: formatForSingleDay(getCounts(data, 'jobTitle')),
             nationalityChanges: formatForSingleDay(getCounts(data, 'nationality')),
@@ -171,3 +204,5 @@ const createStatsSnapshotFlow = ai.defineFlow(
     }
   }
 );
+
+    

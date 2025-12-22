@@ -471,8 +471,63 @@ const HiresAndFiresTab = () => {
             </CardContent>
         </Card>
     );
+    
+    const FieldChangeList = ({ changes }: { changes: any[]}) => {
+        const groupedChanges = changes.reduce((acc, change) => {
+            if (!acc[change.type]) acc[change.type] = [];
+            acc[change.type].push(change);
+            return acc;
+        }, {} as Record<string, any[]>);
 
-    const hasEvents = report && ((report.newHires && report.newHires.length > 0) || (report.terminated && report.terminated.length > 0));
+        if (changes.length === 0) return null;
+
+        return (
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-3">
+                        <GitCompareArrows className="h-6 w-6 text-blue-500" />
+                        <div>
+                            <CardTitle className="text-lg">Zmiany w danych pracowników</CardTitle>
+                            <CardDescription>{changes.length} zarejestrowanych zmian</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Accordion type="multiple" defaultValue={Object.keys(groupedChanges)}>
+                         {Object.entries(groupedChanges).map(([type, items]) => (
+                            <AccordionItem value={type} key={type}>
+                                <AccordionTrigger>Zmiany działów ({items.length})</AccordionTrigger>
+                                <AccordionContent>
+                                     <ScrollArea className="max-h-80">
+                                        <div className="space-y-4 pr-4">
+                                            {items.map((item, index) => (
+                                                <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
+                                                    <Avatar>
+                                                        <AvatarImage src={item.avatarDataUri} />
+                                                        <AvatarFallback>{item.fullName.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex-grow">
+                                                        <p className="font-semibold">{item.fullName}</p>
+                                                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                                            <span>{item.from}</span>
+                                                            <ArrowRight className="h-3 w-3" />
+                                                            <span className="font-bold">{item.to}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                </AccordionContent>
+                            </AccordionItem>
+                         ))}
+                    </Accordion>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    const hasEvents = report && ((report.newHires && report.newHires.length > 0) || (report.terminated && report.terminated.length > 0) || (report.fieldChanges && report.fieldChanges.length > 0));
 
     return (
         <div className="space-y-6">
@@ -608,7 +663,7 @@ const HiresAndFiresTab = () => {
                 </div>
             )}
             
-            {report && (hasEvents || !report.isRange) && (
+            {report && hasEvents && (
                  <div className="space-y-6 animate-fade-in">
                     {report.isRange ? (
                          <h3 className="text-lg font-semibold mt-8">Szczegóły rotacji w okresie</h3>
@@ -654,6 +709,7 @@ const HiresAndFiresTab = () => {
                             emptyText="Brak zwolnień."
                         />
                     </div>
+                     <FieldChangeList changes={report.fieldChanges || []} />
                 </div>
             )}
             
@@ -1015,3 +1071,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
