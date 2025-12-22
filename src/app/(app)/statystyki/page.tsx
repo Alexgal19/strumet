@@ -32,6 +32,7 @@ import { DateRange } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
+import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -373,23 +374,10 @@ const HiresAndFiresTab = () => {
         setReport(null);
     
         try {
-            const response = await fetch('/api/generate-report', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    startDate: format(date.from, 'yyyy-MM-dd'),
-                    endDate: date.to ? format(date.to, 'yyyy-MM-dd') : undefined,
-                }),
+            const reportData = await createStatsSnapshot({
+                startDate: format(date.from, 'yyyy-MM-dd'),
+                endDate: date.to ? format(date.to, 'yyyy-MM-dd') : undefined,
             });
-    
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Nie udało się wygenerować raportu.');
-            }
-    
-            const reportData = await response.json();
             setReport(reportData);
     
         } catch (error: any) {
