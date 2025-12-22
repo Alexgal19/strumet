@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
@@ -6,7 +5,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive, UserPlus, UserX, CalendarClock } from 'lucide-react';
 import { Employee, Order, AllConfig, Stats, User, UserRole, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
@@ -33,6 +32,8 @@ import { format, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
 import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
+import { formatDate } from '@/lib/date';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -431,6 +432,45 @@ const HiresAndFiresTab = () => {
         </Card>
     );
 
+    const EmployeeChangeList = ({ title, employees, icon, emptyText, dateKey }: { title: string, employees: any[], icon: React.ReactNode, emptyText: string, dateKey: 'hireDate' | 'terminationDate' }) => (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    {icon}
+                    <div>
+                        <CardTitle className="text-lg">{title}</CardTitle>
+                        <CardDescription>{employees.length} pracowników</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {employees.length > 0 ? (
+                    <ScrollArea className="max-h-80">
+                        <div className="space-y-4 pr-4">
+                            {employees.map((emp, index) => (
+                                <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
+                                    <Avatar>
+                                        <AvatarImage src={emp.avatarDataUri} />
+                                        <AvatarFallback>{emp.fullName.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-grow">
+                                        <p className="font-semibold">{emp.fullName}</p>
+                                        <p className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</p>
+                                    </div>
+                                    <div className="text-right text-xs text-muted-foreground">
+                                        <p>{formatDate(emp.date, 'dd.MM.yyyy')}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">{emptyText}</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+
     return (
         <div className="space-y-6">
             <Card>
@@ -557,6 +597,23 @@ const HiresAndFiresTab = () => {
                         </CardContent>
                     </Card>
 
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <EmployeeChangeList
+                            title="Nowo zatrudnieni"
+                            employees={report.newHires}
+                            icon={<UserPlus className="h-6 w-6 text-green-500" />}
+                            emptyText="Brak nowych zatrudnień w tym okresie."
+                            dateKey="hireDate"
+                        />
+                        <EmployeeChangeList
+                            title="Zwolnieni"
+                            employees={report.terminated}
+                            icon={<UserX className="h-6 w-6 text-destructive" />}
+                            emptyText="Brak zwolnień w tym okresie."
+                            dateKey="terminationDate"
+                        />
+                    </div>
+                    
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <PeriodChangeCard title="Zmiany w działach" data={report.deptChanges} />
                         <PeriodChangeCard title="Zmiany na stanowiskach" data={report.jobTitleChanges} />

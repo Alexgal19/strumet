@@ -29,13 +29,21 @@ const SnapshotDataSchema = z.object({
   nationalityChanges: z.array(z.object({ name: z.string(), from: z.number(), to: z.number(), diff: z.number() })),
 });
 
+const EmployeeChangeSchema = z.object({
+    fullName: z.string(),
+    jobTitle: z.string(),
+    department: z.string(),
+    date: z.string(),
+    avatarDataUri: z.string().optional(),
+});
+
 const CreateSnapshotOutputSchema = z.object({
   isRange: z.boolean(),
   start: SnapshotDataSchema.optional(),
   end: SnapshotDataSchema.optional(),
   diff: z.number().optional(),
-  newHires: z.array(z.string()).optional(),
-  terminated: z.array(z.string()).optional(),
+  newHires: z.array(EmployeeChangeSchema).optional(),
+  terminated: z.array(EmployeeChangeSchema).optional(),
   date: z.string().optional(),
   total: z.number().optional(),
   deptChanges: z.array(z.object({ name: z.string(), to: z.number() })).optional(),
@@ -118,8 +126,25 @@ const createStatsSnapshotFlow = ai.defineFlow(
         const startMap = new Map(startData.map(item => [item.id, item]));
         const endMap = new Map(endData.map(item => [item.id, item]));
 
-        const newHires = Array.from(endMap.keys()).filter(key => !startMap.has(key)).map(key => endMap.get(key)!.fullName);
-        const terminated = Array.from(startMap.keys()).filter(key => !endMap.has(key)).map(key => startMap.get(key)!.fullName);
+        const newHires = Array.from(endMap.values())
+            .filter(emp => !startMap.has(emp.id))
+            .map(emp => ({
+                fullName: emp.fullName,
+                jobTitle: emp.jobTitle,
+                department: emp.department,
+                date: emp.hireDate,
+                avatarDataUri: emp.avatarDataUri,
+            }));
+
+        const terminated = Array.from(startMap.values())
+             .filter(emp => !endMap.has(emp.id))
+             .map(emp => ({
+                fullName: emp.fullName,
+                jobTitle: emp.jobTitle,
+                department: emp.department,
+                date: emp.terminationDate || format(end, 'yyyy-MM-dd'),
+                avatarDataUri: emp.avatarDataUri,
+             }));
 
         const compareGroups = (startCounts: Record<string, number>, endCounts: Record<string, number>) => {
             const allKeys = new Set([...Object.keys(startCounts), ...Object.keys(endCounts)]);
