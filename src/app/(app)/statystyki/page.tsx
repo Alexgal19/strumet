@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
@@ -432,7 +433,7 @@ const HiresAndFiresTab = () => {
         </Card>
     );
 
-    const EmployeeChangeList = ({ title, employees, icon, emptyText, dateKey }: { title: string, employees: any[], icon: React.ReactNode, emptyText: string, dateKey: 'hireDate' | 'terminationDate' }) => (
+    const EmployeeChangeList = ({ title, employees, icon, emptyText }: { title: string, employees: any[], icon: React.ReactNode, emptyText: string }) => (
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-3">
@@ -470,6 +471,8 @@ const HiresAndFiresTab = () => {
             </CardContent>
         </Card>
     );
+
+    const hasEvents = report && ((report.newHires && report.newHires.length > 0) || (report.terminated && report.terminated.length > 0));
 
     return (
         <div className="space-y-6">
@@ -596,23 +599,6 @@ const HiresAndFiresTab = () => {
                             </div>
                         </CardContent>
                     </Card>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <EmployeeChangeList
-                            title="Nowo zatrudnieni"
-                            employees={report.newHires}
-                            icon={<UserPlus className="h-6 w-6 text-green-500" />}
-                            emptyText="Brak nowych zatrudnień w tym okresie."
-                            dateKey="hireDate"
-                        />
-                        <EmployeeChangeList
-                            title="Zwolnieni"
-                            employees={report.terminated}
-                            icon={<UserX className="h-6 w-6 text-destructive" />}
-                            emptyText="Brak zwolnień w tym okresie."
-                            dateKey="terminationDate"
-                        />
-                    </div>
                     
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <PeriodChangeCard title="Zmiany w działach" data={report.deptChanges} />
@@ -622,32 +608,65 @@ const HiresAndFiresTab = () => {
                 </div>
             )}
             
-            {report && !report.isRange && (
-                <div className="space-y-6 animate-fade-in">
-                     <Card className="bg-muted/30">
-                        <CardHeader>
-                            <CardTitle>Raport na dzień: {report.date}</CardTitle>
-                            <CardDescription>
-                                Stan zatrudnienia w wybranym dniu.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="p-4 rounded-lg border bg-background text-center max-w-xs mx-auto">
-                                <p className="text-sm text-muted-foreground">Całkowita liczba pracowników</p>
-                                <div className="flex items-center justify-center gap-4 mt-2">
-                                    <span className="text-3xl font-bold">{report.total}</span>
+            {report && (hasEvents || !report.isRange) && (
+                 <div className="space-y-6 animate-fade-in">
+                    {report.isRange ? (
+                         <h3 className="text-lg font-semibold mt-8">Szczegóły rotacji w okresie</h3>
+                    ) : (
+                        <Card className="bg-muted/30">
+                            <CardHeader>
+                                <CardTitle>Raport na dzień: {report.date}</CardTitle>
+                                <CardDescription>Stan zatrudnienia i zdarzenia w wybranym dniu.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                               <div className="p-4 rounded-lg border bg-background text-center">
+                                    <p className="text-sm text-muted-foreground">Całkowita liczba pracowników</p>
+                                    <div className="flex items-center justify-center gap-4 mt-2">
+                                        <span className="text-3xl font-bold">{report.total}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                <div className="p-4 rounded-lg border bg-background text-center">
+                                    <p className="text-sm text-muted-foreground">Zatrudnieni tego dnia</p>
+                                    <div className="flex items-center justify-center gap-4 mt-2">
+                                         <span className="text-3xl font-bold text-green-500">+{report.newHires.length}</span>
+                                    </div>
+                                </div>
+                                <div className="p-4 rounded-lg border bg-background text-center">
+                                    <p className="text-sm text-muted-foreground">Zwolnieni tego dnia</p>
+                                    <div className="flex items-center justify-center gap-4 mt-2">
+                                         <span className="text-3xl font-bold text-destructive">-{report.terminated.length}</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                       <EmployeeChangeList
+                            title={report.isRange ? "Nowo zatrudnieni" : "Zatrudnieni w tym dniu"}
+                            employees={report.newHires}
+                            icon={<UserPlus className="h-6 w-6 text-green-500" />}
+                            emptyText="Brak zatrudnień."
+                        />
+                        <EmployeeChangeList
+                            title={report.isRange ? "Zwolnieni" : "Zwolnieni w tym dniu"}
+                            employees={report.terminated}
+                            icon={<UserX className="h-6 w-6 text-destructive" />}
+                            emptyText="Brak zwolnień."
+                        />
+                    </div>
+                </div>
+            )}
+            
+            {report && !report.isRange && (
+                 <div className="space-y-6 animate-fade-in">
+                    <h3 className="text-lg font-semibold mt-8">Statystyki na dzień {report.date}</h3>
                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <SingleDayReportCard title="Liczba pracowników w działach" data={report.deptChanges} />
                         <SingleDayReportCard title="Liczba pracowników na stanowiskach" data={report.jobTitleChanges} />
                         <SingleDayReportCard title="Liczba pracowników wg narodowości" data={report.nationalityChanges} />
                     </div>
-                </div>
+                 </div>
             )}
-
         </div>
     );
 };

@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to create a weekly snapshot of employee statistics.
@@ -7,7 +8,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ref, get } from 'firebase/database';
 import { adminDb } from '@/lib/firebase-admin';
-import { format, parse } from 'date-fns';
+import { format, parse, isEqual } from 'date-fns';
 import type { Employee, StatsSnapshot } from '@/lib/types';
 
 const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
@@ -55,33 +56,6 @@ export async function createStatsSnapshot(input: z.infer<typeof CreateSnapshotIn
   return createStatsSnapshotFlow(input);
 }
 
-const getSnapshotForDate = async (date: string): Promise<{ data: any[], total: number }> => {
-    const snapshotRef = adminDb().ref(`statisticsHistory/${date}`);
-    const snapshot = await snapshotRef.once('value');
-    if (!snapshot.exists()) {
-        // If no snapshot, fetch live data as a fallback
-        const employeesRef = adminDb().ref('employees');
-        const empSnapshot = await employeesRef.once('value');
-        const allEmployees = objectToArray<Employee>(empSnapshot.val());
-        const activeEmployees = allEmployees.filter(e => {
-            const hireDate = parse(e.hireDate, 'yyyy-MM-dd', new Date());
-            const termDate = e.terminationDate ? parse(e.terminationDate, 'yyyy-MM-dd', new Date()) : null;
-            const targetDate = parse(date, 'yyyy-MM-dd', new Date());
-            
-            return hireDate <= targetDate && (!termDate || termDate > targetDate);
-        });
-        return { data: activeEmployees, total: activeEmployees.length };
-    }
-    const snapData = snapshot.val();
-    // This part is tricky because we don't store raw employee list in snapshot.
-    // For now, let's just use the aggregated data. We will need to adjust the comparison logic.
-    // A better approach would be to calculate stats from raw employee data for the given date.
-    // Let's refactor to do that. See above.
-    
-    // For now, let's return what we have, this will require client-side adjustment
-    return { data: [], total: snapData.totalActive };
-};
-
 const createStatsSnapshotFlow = ai.defineFlow(
   {
     name: 'createStatsSnapshotFlow',
@@ -106,6 +80,14 @@ const createStatsSnapshotFlow = ai.defineFlow(
             return true;
         });
     };
+    
+    const employeeToChangeSchema = (emp: Employee, date: string) => ({
+        fullName: emp.fullName,
+        jobTitle: emp.jobTitle,
+        department: emp.department,
+        date: date,
+        avatarDataUri: emp.avatarDataUri,
+    });
 
     const getCounts = (employees: Employee[], key: keyof Employee) => {
       return employees.reduce((acc, item) => {
@@ -128,23 +110,11 @@ const createStatsSnapshotFlow = ai.defineFlow(
 
         const newHires = Array.from(endMap.values())
             .filter(emp => !startMap.has(emp.id))
-            .map(emp => ({
-                fullName: emp.fullName,
-                jobTitle: emp.jobTitle,
-                department: emp.department,
-                date: emp.hireDate,
-                avatarDataUri: emp.avatarDataUri,
-            }));
+            .map(emp => employeeToChangeSchema(emp, emp.hireDate));
 
         const terminated = Array.from(startMap.values())
              .filter(emp => !endMap.has(emp.id))
-             .map(emp => ({
-                fullName: emp.fullName,
-                jobTitle: emp.jobTitle,
-                department: emp.department,
-                date: emp.terminationDate || format(end, 'yyyy-MM-dd'),
-                avatarDataUri: emp.avatarDataUri,
-             }));
+             .map(emp => employeeToChangeSchema(emp, emp.terminationDate || format(end, 'yyyy-MM-dd')));
 
         const compareGroups = (startCounts: Record<string, number>, endCounts: Record<string, number>) => {
             const allKeys = new Set([...Object.keys(startCounts), ...Object.keys(endCounts)]);
@@ -176,6 +146,14 @@ const createStatsSnapshotFlow = ai.defineFlow(
         const singleDate = parse(startDate, 'yyyy-MM-dd', new Date());
         const data = getActiveEmployeesOnDate(singleDate);
         
+        const newHires = allEmployees
+            .filter(e => e.hireDate && isEqual(parse(e.hireDate, 'yyyy-MM-dd', new Date()), singleDate))
+            .map(emp => employeeToChangeSchema(emp, emp.hireDate));
+            
+        const terminated = allEmployees
+            .filter(e => e.terminationDate && isEqual(parse(e.terminationDate, 'yyyy-MM-dd', new Date()), singleDate))
+            .map(emp => employeeToChangeSchema(emp, emp.terminationDate!));
+        
         const formatForSingleDay = (counts: Record<string, number>) => {
             return Object.entries(counts).map(([name, count]) => ({ name, to: count })).sort((a,b)=>b.to - a.to);
         }
@@ -184,6 +162,8 @@ const createStatsSnapshotFlow = ai.defineFlow(
             isRange: false,
             date: format(singleDate, 'dd.MM.yyyy'),
             total: data.length,
+            newHires,
+            terminated,
             deptChanges: formatForSingleDay(getCounts(data, 'department')),
             jobTitleChanges: formatForSingleDay(getCounts(data, 'jobTitle')),
             nationalityChanges: formatForSingleDay(getCounts(data, 'nationality')),
