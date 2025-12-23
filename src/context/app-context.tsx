@@ -45,6 +45,7 @@ interface AppContextType {
     handleSaveEmployee: (employeeData: Employee) => Promise<void>;
     handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
     handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
+    handleDeleteEmployeePermanently: (employeeId: string) => Promise<void>;
     handleDeleteAllHireDates: () => Promise<void>;
     handleUpdateHireDates: (updates: { fullName: string; hireDate: string }[]) => Promise<void>;
     handleUpdateContractEndDates: (updates: { fullName: string; contractEndDate: string }[]) => Promise<void>;
@@ -203,6 +204,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
             console.error("Error restoring employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
+        }
+    }, [db, toast]);
+
+    const handleDeleteEmployeePermanently = useCallback(async (employeeId: string) => {
+        try {
+            await remove(ref(db, `employees/${employeeId}`));
+            toast({ title: 'Sukces', description: 'Pracownik został trwale usunięty z bazy danych.' });
+        } catch (error) {
+            console.error("Error deleting employee permanently: ", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracownika.' });
         }
     }, [db, toast]);
 
@@ -541,6 +552,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         handleSaveEmployee,
         handleTerminateEmployee,
         handleRestoreEmployee,
+        handleDeleteEmployeePermanently,
         handleDeleteAllHireDates,
         handleUpdateHireDates,
         handleUpdateContractEndDates,

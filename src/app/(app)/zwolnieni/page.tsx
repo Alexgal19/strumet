@@ -59,7 +59,7 @@ const exportColumns = [
 const BLANK_FILTER_VALUE = '(Puste)';
 
 export default function ZwolnieniPage() {
-  const { employees, config, isLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees } = useAppContext();
+  const { employees, config, isLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently } = useAppContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -195,9 +195,12 @@ export default function ZwolnieniPage() {
   }, [filteredEmployees, selectedEmployeeIds]);
 
   const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
-    if (window.confirm('Czy na pewno chcesz przywrócić tego pracownika?')) {
-        await handleRestoreEmployee(employeeId, employeeFullName);
-    }
+    await handleRestoreEmployee(employeeId, employeeFullName);
+  };
+  
+  const onDeletePermanently = async (id: string) => {
+    await handleDeleteEmployeePermanently(id);
+    setIsFormOpen(false);
   };
 
   const handleEditEmployee = (employee: Employee) => {
@@ -254,16 +257,24 @@ export default function ZwolnieniPage() {
                         Edytuj
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => onRestoreEmployee(employee.id, employee.fullName)}>
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Przywróć
-                    </DropdownMenuItem>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Przywróć
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                     <AlertDialogTrigger asChild>
+                      <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Usuń trwale
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
                   </DropdownMenuContent>
               </DropdownMenu>
           );
         },
       },
-  ], [onRestoreEmployee]);
+  ], []);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
@@ -310,6 +321,7 @@ export default function ZwolnieniPage() {
                     employee={employee}
                     onEdit={() => handleEditEmployee(employee)}
                     onRestore={() => onRestoreEmployee(employee.id, employee.fullName)}
+                    onDeletePermanently={() => onDeletePermanently(employee.id)}
                 />
               </div>
             );
@@ -442,17 +454,47 @@ export default function ZwolnieniPage() {
        <div className="flex flex-col flex-grow">
         {hasMounted && isMobile 
           ? renderMobileView() 
-          : <DataTable 
-              columns={columns} 
-              data={displayedEmployees} 
-              onRowClick={handleEditEmployee}
-              rowSelection={rowSelection}
-              onRowSelectionChange={setRowSelection}
-            />
+          : (
+             <AlertDialog>
+                <DataTable 
+                  columns={columns} 
+                  data={displayedEmployees} 
+                  onRowClick={handleEditEmployee}
+                  rowSelection={rowSelection}
+                  onRowSelectionChange={setRowSelection}
+                />
+                 <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tej akcji nie można cofnąć. Pracownik zostanie przywrócony do listy aktywnych.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => displayedEmployees[0] && onRestoreEmployee(displayedEmployees[0].id, displayedEmployees[0].fullName)}>
+                        Przywróć
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                   <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie pracownika i wszystkich jego danych z bazy danych.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => displayedEmployees[0] && onDeletePermanently(displayedEmployees[0].id)}>
+                        Usuń trwale
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+             </AlertDialog>
+           )
         }
       </div>
     </div>
   );
 }
-
-    

@@ -77,7 +77,7 @@ const exportColumns = [
 const BLANK_FILTER_VALUE = '(Puste)';
 
 export default function AktywniPage() {
-  const { employees, config, isLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees } = useAppContext();
+  const { employees, config, isLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently } = useAppContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -237,10 +237,13 @@ export default function AktywniPage() {
   };
   
   const onTerminate = async (id: string, fullName: string) => {
-    if (window.confirm('Czy na pewno chcesz zwolnić tego pracownika?')) {
-        await handleTerminateEmployee(id, fullName);
-        setIsFormOpen(false);
-    }
+     await handleTerminateEmployee(id, fullName);
+     setIsFormOpen(false);
+  };
+  
+  const onDeletePermanently = async (id: string) => {
+    await handleDeleteEmployeePermanently(id);
+    setIsFormOpen(false);
   };
 
   const handleEditEmployee = (employee: Employee) => {
@@ -317,17 +320,25 @@ export default function AktywniPage() {
                        Generuj podsumowanie
                    </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive" onSelect={() => onTerminate(employee.id, employee.fullName)}>
-                    <UserX className="mr-2 h-4 w-4" />
-                    Zwolnij
-                  </DropdownMenuItem>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                      <UserX className="mr-2 h-4 w-4" />
+                      Zwolnij
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Usuń trwale
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
                 </DropdownMenuContent>
             </DropdownMenu>
           </EmployeeSummary>
         );
       },
     },
-  ], [onTerminate]);
+  ], []);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
@@ -375,6 +386,7 @@ export default function AktywniPage() {
                     employee={employee} 
                     onEdit={() => handleEditEmployee(employee)}
                     onTerminate={() => onTerminate(employee.id, employee.fullName)}
+                    onDeletePermanently={() => onDeletePermanently(employee.id)}
                 />
               </div>
             );
@@ -542,23 +554,53 @@ export default function AktywniPage() {
        <div className="flex flex-col flex-grow">
         {hasMounted && isMobile 
           ? renderMobileView() 
-          : <DataTable 
-              columns={columns} 
-              data={displayedEmployees} 
-              onRowClick={handleEditEmployee}
-              rowSelection={rowSelection}
-              onRowSelectionChange={setRowSelection}
-              getRowProps={(row) => {
-                const status = row.original.legalizationStatus;
-                if (!status || status === 'Brak') return {};
-                const colorClass = getStatusColor(status, true); // Get background color
-                return { className: colorClass };
-              }}
-            />
+          : (
+            <AlertDialog>
+              <DataTable 
+                columns={columns} 
+                data={displayedEmployees} 
+                onRowClick={handleEditEmployee}
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+                getRowProps={(row) => {
+                  const status = row.original.legalizationStatus;
+                  if (!status || status === 'Brak') return {};
+                  const colorClass = getStatusColor(status, true); // Get background color
+                  return { className: colorClass };
+                }}
+              />
+               <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tej akcji nie można cofnąć. Pracownik zostanie przeniesiony do archiwum.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => displayedEmployees[0] && onTerminate(displayedEmployees[0].id, displayedEmployees[0].fullName)}>
+                    Kontynuuj
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+               <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie pracownika i wszystkich jego danych z bazy danych.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => displayedEmployees[0] && onDeletePermanently(displayedEmployees[0].id)}>
+                    Usuń trwale
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )
         }
       </div>
     </div>
   );
 }
-
-    
