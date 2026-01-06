@@ -1,0 +1,21 @@
+
+import { MetadataRoute } from 'next'
+ 
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'Baza - ST',
+    short_name: 'Baza-ST',
+    description: 'System do zarządzania pracownikami',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#209cee',
+    icons: [
+      {
+        src: '/favicon.ico',
+        sizes: 'any',
+        type: 'image/x-icon',
+      },
+    ],
+  }
+}
