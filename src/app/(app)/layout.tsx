@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, Suspense, lazy } from 'react';
@@ -23,7 +22,6 @@ const viewComponents: Record<ActiveView, React.LazyExoticComponent<React.Compone
   konfiguracja: lazy(() => import('@/app/(app)/konfiguracja/page')),
   'wydawanie-odziezy': lazy(() => import('@/app/(app)/wydawanie-odziezy/page')),
   'wydawanie-odziezy-nowi': lazy(() => import('@/app/(app)/wydawanie-odziezy-nowi/page')),
-  odwiedzalnosc: lazy(() => import('@/app/(app)/odwiedzalnosc/page')),
 };
 
 

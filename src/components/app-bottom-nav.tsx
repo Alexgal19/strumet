@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -12,7 +11,6 @@ import {
   BarChart3,
   LogOut,
   PackagePlus,
-  CalendarCheck,
   ClipboardList,
   CalendarClock,
 } from 'lucide-react';
@@ -40,7 +38,6 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
 
   const allMenuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
-    { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność'},
     { view: 'planowanie', icon: CalendarClock, label: 'Planowanie'},
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
