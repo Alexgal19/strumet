@@ -6,14 +6,7 @@ let adminApp: admin.app.App;
 export const getAdminApp = () => {
     // This check prevents initialization on the client side.
     if (typeof window !== 'undefined') {
-        // A minimal mock to prevent client-side crashes if accidentally imported.
-        // It's better to restructure code to avoid this, but it's a good safeguard.
-        return {
-           name: "mock-app-client",
-           options: {},
-           database: () => ({}),
-           storage: () => ({}),
-        } as unknown as admin.app.App;
+        throw new Error("Firebase Admin SDK cannot be initialized on the client side.");
     }
 
     if (admin.apps.length > 0) {

@@ -5,14 +5,11 @@
  * - archiveEmployees - A Server Action that handles the archival process.
  * - ArchiveOutput - The return type for the archiveEmployees function.
  */
-import { getAdminApp, adminStorage } from '@/lib/firebase-admin';
+import { getAdminApp, adminStorage, adminDb } from '@/lib/firebase-admin';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { Employee } from '@/lib/types';
 import { z } from 'zod';
-import { getFirestore } from 'firebase-admin/firestore';
-import { collection, getDocs } from 'firebase/firestore';
-
 
 const ArchiveOutputSchema = z.object({
   success: z.boolean(),
@@ -21,14 +18,18 @@ const ArchiveOutputSchema = z.object({
 });
 export type ArchiveOutput = z.infer<typeof ArchiveOutputSchema>;
 
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
+
 export async function archiveEmployees(): Promise<ArchiveOutput> {
   try {
     console.log('SERVER ACTION: Starting manual employee archival...');
     getAdminApp();
-    const db = getFirestore();
+    const db = adminDb();
     
-    const employeesSnapshot = await getDocs(collection(db, 'employees'));
-    const allEmployees = employeesSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Employee[];
+    const employeesSnapshot = await db.ref('employees').get();
+    const allEmployees: Employee[] = objectToArray(employeesSnapshot.val());
 
     if (allEmployees.length === 0) {
         const msg = 'Brak pracowników do zarchiwizowania.';

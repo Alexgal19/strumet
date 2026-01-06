@@ -8,14 +8,15 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { getAdminApp } from '@/lib/firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { getAdminApp, adminDb } from '@/lib/firebase-admin';
 import { startOfDay, differenceInDays, format } from 'date-fns';
 import type { FingerprintAppointment, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 import { sendEmail } from '@/lib/email-tool';
 
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 const CheckAppointmentsOutputSchema = z.object({
   notificationsCreated: z.number(),
@@ -34,11 +35,10 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
   async () => {
     console.log('DEBUG: [checkAppointmentsAndNotifyFlow] Starting flow.');
     getAdminApp();
-    const db = getFirestore();
+    const db = adminDb();
     
-    const appointmentsSnapshot = await getDocs(collection(db, "fingerprintAppointments"));
-    const appointments = appointmentsSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as FingerprintAppointment[];
-
+    const appointmentsSnapshot = await db.ref("fingerprintAppointments").get();
+    const appointments: FingerprintAppointment[] = objectToArray(appointmentsSnapshot.val());
 
     console.log(`DEBUG: Found ${appointments.length} total appointments in Firebase.`);
 
@@ -90,7 +90,7 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
         createdAt: new Date().toISOString(),
         read: false,
     };
-    await addDoc(collection(db, "notifications"), newNotification);
+    await db.ref("notifications").push(newNotification);
     console.log(`DEBUG: Created notification for ${upcomingAppointments.length} appointments.`);
 
     // 2. Send email notification
@@ -131,7 +131,7 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
             createdAt: new Date().toISOString(),
             read: false,
         };
-        await addDoc(collection(db, "notifications"), errorNotification);
+        await db.ref("notifications").push(errorNotification);
     }
 
     return {

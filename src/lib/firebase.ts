@@ -3,7 +3,6 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getDatabase, type Database } from "firebase/database";
 import { getAuth, type Auth } from "firebase/auth";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
-import { getFirestore, type Firestore } from "firebase/firestore";
 
 // Public Firebase configuration, safe to be exposed on the client-side.
 // Security is enforced by Firebase Security Rules.
@@ -29,11 +28,10 @@ if (getApps().length === 0) {
 const auth = getAuth(app);
 const db = getDatabase(app);
 const storage = getStorage(app);
-const firestore = getFirestore(app);
 
 // A simplified getter function to access services elsewhere
 function getFirebaseServices() {
-  return { app, auth, db, storage, firestore };
+  return { app, auth, db, storage };
 }
 
-export { getFirebaseServices, app, auth, db, storage, firestore };
+export { getFirebaseServices, app, auth, db, storage };

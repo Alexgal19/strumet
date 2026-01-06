@@ -8,13 +8,14 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getAdminApp } from '@/lib/firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
-import { collection, getDocs, writeBatch, addDoc } from 'firebase/firestore';
-import { startOfDay, isBefore, isEqual, format } from 'date-fns';
+import { getAdminApp, adminDb } from '@/lib/firebase-admin';
+import { startOfDay, isBefore, isEqual } from 'date-fns';
 import type { Employee, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 const CheckTerminationsOutputSchema = z.object({
   processedCount: z.number(),
@@ -33,10 +34,10 @@ const checkPlannedTerminationsFlow = ai.defineFlow(
   async () => {
     console.log('Starting to check for planned terminations...');
     getAdminApp();
-    const db = getFirestore();
+    const db = adminDb();
     
-    const employeesSnapshot = await getDocs(collection(db, "employees"));
-    const allEmployees = employeesSnapshot.docs.map(d => ({id: d.id, ...d.data()})) as Employee[];
+    const employeesSnapshot = await db.ref("employees").get();
+    const allEmployees: Employee[] = objectToArray(employeesSnapshot.val());
     const activeEmployees = allEmployees.filter(e => e.status === 'aktywny');
 
     if (!activeEmployees || activeEmployees.length === 0) {
@@ -62,16 +63,13 @@ const checkPlannedTerminationsFlow = ai.defineFlow(
         return { processedCount: 0, notificationsCreated: 0 };
     }
     
-    const batch = writeBatch(db);
+    const updates: Record<string, any> = {};
     employeesToProcess.forEach(emp => {
-        const empRef = doc(db, "employees", emp.id);
-        batch.update(empRef, {
-            status: 'zwolniony',
-            terminationDate: emp.plannedTerminationDate
-        });
+        updates[`/employees/${emp.id}/status`] = 'zwolniony';
+        updates[`/employees/${emp.id}/terminationDate`] = emp.plannedTerminationDate;
     });
 
-    await batch.commit();
+    await db.ref().update(updates);
     console.log(`Successfully processed ${employeesToProcess.length} terminations.`);
 
     // Create a single in-app notification for all processed terminations
@@ -85,7 +83,7 @@ const checkPlannedTerminationsFlow = ai.defineFlow(
         createdAt: new Date().toISOString(),
         read: false,
     };
-    await addDoc(collection(db, "notifications"), newNotification);
+    await db.ref("notifications").push(newNotification);
     console.log(`Created in-app notification for ${employeesToProcess.length} processed terminations.`);
 
     return {
