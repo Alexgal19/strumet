@@ -111,7 +111,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 }
             } else {
                 setCurrentUser(null);
-                setIsLoading(true); // Reset loading state on logout
+                setIsLoading(false); // Set loading to false on logout
             }
         });
 
@@ -121,8 +121,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         if (!currentUser) {
-            // No user, no need to fetch data. Loading will be set to false once auth state is confirmed null.
-            setIsLoading(false);
+            // No user, no need to fetch data.
             return;
         };
 
@@ -154,7 +153,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         });
 
         return () => unsubscribeDb();
-    }, [db, toast, currentUser]);
+    }, [db, currentUser]);
     
     // --- Employee Actions ---
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
