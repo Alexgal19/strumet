@@ -143,6 +143,10 @@ const SidebarProvider = React.forwardRef<
             }
             className={cn(
               "group/sidebar-wrapper flex w-full",
+              "has-[[data-sidebar]:not([data-state=collapsed])]:pl-[var(--sidebar-width)]",
+              "has-[[data-sidebar][data-collapsible=icon]]:pl-[var(--sidebar-width-icon)]",
+              "has-[[data-sidebar][data-variant=floating]]:pl-0",
+              "has-[[data-sidebar][data-variant=inset]]:pl-0",
               className
             )}
             ref={ref}
@@ -226,7 +230,7 @@ const Sidebar = React.forwardRef<
         {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
-            "duration-300 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-in-out",
+            "duration-300 fixed inset-y-0 z-20 h-svh w-[--sidebar-width] transition-[width] ease-in-out",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
@@ -771,3 +775,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
