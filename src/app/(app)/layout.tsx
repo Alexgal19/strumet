@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, Suspense, lazy } from 'react';
@@ -46,6 +47,7 @@ const ViewTransitionWrapper = ({ children, viewKey }: { children: React.ReactNod
 };
 
 const AppContent = () => {
+    console.log('DEBUG: AppContent rendering...');
     const { activeView, setActiveView, isLoading, isAdmin } = useAppContext();
     
     const allowedGuestViews: ActiveView[] = ['statystyki', 'planowanie'];

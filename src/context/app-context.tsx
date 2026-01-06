@@ -77,6 +77,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
+    console.log('DEBUG: AppProvider rendering...');
     const { toast } = useToast();
     const [activeView, setActiveView] = useState<ActiveView>('statystyki');
     
@@ -107,9 +108,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 });
             } else {
                 setCurrentUser(null);
+                 // If user logs out, clear data and stop loading.
+                setEmployees([]);
+                setUsers([]);
+                setAbsences([]);
+                setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
+                setNotifications([]);
+                setStatsHistory([]);
+                setIsLoading(false);
+                setIsHistoryLoading(false);
             }
-            // We set loading to false only after auth state is resolved and data is potentially fetched or cleared.
-            // This prevents rendering components that rely on auth state before it's known.
         });
 
         return () => unsubscribeAuth();
@@ -118,21 +126,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         if (!currentUser) {
-            // If user logs out, clear data and stop loading.
-            setEmployees([]);
-            setUsers([]);
-            setAbsences([]);
-            setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
-            setNotifications([]);
-            setStatsHistory([]);
-            setIsLoading(false);
-            setIsHistoryLoading(false);
             return;
         };
 
         setIsLoading(true);
         const dataRef = ref(db);
         const unsubscribeDb = onValue(dataRef, (snapshot) => {
+            console.log('DEBUG: Firebase onValue callback triggered.');
             const data = snapshot.val() || {};
             setEmployees(objectToArray(data.employees));
             setUsers(objectToArray(data.users));
@@ -160,7 +160,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return () => unsubscribeDb();
     }, [db, currentUser, toast]);
     
-    // --- Employee Actions ---
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
         try {
             const { id, ...dataToSave } = employeeData;
@@ -356,7 +355,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [db, employees, toast]);
 
-    // --- Config Actions ---
     const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
         const configRef = ref(db, `config/${configType}`);
         const updates: Record<string, any> = {};
@@ -433,7 +431,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [db, toast]);
 
-    // --- Absence Actions ---
     const addAbsence = useCallback(async (employeeId: string, date: string) => {
         const newAbsenceRef = push(ref(db, 'absences'));
         await set(newAbsenceRef, { employeeId, date });
@@ -443,7 +440,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         await remove(ref(db, `absences/${absenceId}`));
     }, [db]);
     
-    // --- Other Actions ---
     const addAbsenceRecord = useCallback(async (record: Omit<AbsenceRecord, 'id'>) => {
         try {
             await set(push(ref(db, 'absenceRecords')), record);
@@ -555,7 +551,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [db, toast]);
 
-    const value = {
+    const value: AppContextType = {
         employees,
         users,
         absences,
