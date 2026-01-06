@@ -1,15 +1,16 @@
 {
   "mcpServers": {
     "firebase": {
-      "command": "node",
+      "command": "firebase",
       "args": [
-        "/home/user/studio/node_modules/firebase-tools/lib/bin/firebase.js",
         "mcp"
       ]
     },
     "genkit": {
       "command": "genkit",
-      "args": ["mcp"],
+      "args": [
+        "mcp"
+      ],
       "cwd": "",
       "timeout": 30000,
       "trust": false
@@ -17,11 +18,7 @@
     "next-devtools": {
       "command": "node",
       "args": [
-        "/home/user/studio/node_modules/next-devtools-mcp/dist/index.js",
-        "--port",
-        "9002",
-        "--host",
-        "0.0.0.0"
+        "/home/user/studio/node_modules/next-devtools-mcp/dist/index.js"
       ]
     },
     "filesystem": {
@@ -43,7 +40,8 @@
     "sequential-thinking": {
       "command": "npx",
       "args": [
-        "/home/user/studio/.mcp-bin/sequential-thinking.js"
+        "-y",
+        "@modelcontextprotocol/server-memory"
       ]
     }
   },
@@ -62,7 +60,25 @@
       "firebase_init",
       "firebase_get_security_rules",
       "firebase_read_resources",
-      "firebase_login"
+      "firebase_login",
+      "firebase_validate_security_rules",
+      "storage_get_object_download_url",
+      "auth_get_users",
+      "auth_update_user",
+      "realtimedatabase_set_data",
+      "realtimedatabase_get_data",
+      "apphosting_list_backends",
+      "apphosting_fetch_logs",
+      "remoteconfig_update_template",
+      "remoteconfig_get_template",
+      "messaging_send_message",
+      "auth_set_sms_region_policy"
+    ],
+    "genkit": [
+      "lookup_genkit_docs",
+      "list_flows",
+      "run_flow",
+      "get_trace"
     ],
     "next-devtools": [
       "browser_eval",
@@ -70,9 +86,47 @@
       "nextjs_docs",
       "nextjs_runtime",
       "upgrade_nextjs_16",
-      "init",
       "nextjs_index",
-      "nextjs_call"
+      "nextjs_call",
+      "init"
+    ],
+    "filesystem": [
+      "read_file",
+      "read_text_file",
+      "read_media_file",
+      "read_multiple_files",
+      "write_file",
+      "edit_file",
+      "create_directory",
+      "list_directory",
+      "list_directory_with_sizes",
+      "directory_tree",
+      "move_file",
+      "search_files",
+      "get_file_info",
+      "list_allowed_directories"
+    ],
+    "memory": [
+      "create_entities",
+      "create_relations",
+      "add_observations",
+      "delete_entities",
+      "delete_observations",
+      "delete_relations",
+      "read_graph",
+      "search_nodes",
+      "open_nodes"
+    ],
+    "sequential-thinking": [
+      "create_entities",
+      "create_relations",
+      "add_observations",
+      "delete_entities",
+      "delete_observations",
+      "delete_relations",
+      "read_graph",
+      "search_nodes",
+      "open_nodes"
     ]
   }
 }
