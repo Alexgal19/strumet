@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { 
+import {
     ref,
     onValue,
     set,
@@ -16,14 +16,14 @@ import { getFirebaseServices } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import type { 
-    Employee, 
-    AllConfig, 
+import type {
+    Employee,
+    AllConfig,
     Absence,
-    AbsenceRecord, 
-    CirculationCard, 
-    FingerprintAppointment, 
-    ClothingIssuance, 
+    AbsenceRecord,
+    CirculationCard,
+    FingerprintAppointment,
+    ClothingIssuance,
     AppNotification,
     ActiveView,
     ConfigType,
@@ -92,7 +92,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
     const [activeView, setActiveView] = useState<ActiveView>('statystyki');
-    
+
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
@@ -107,8 +107,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const isAdmin = currentUser?.role === 'admin';
 
     useEffect(() => {
-        const { db, auth } = getFirebaseServices();
-        setServices({ db, auth });
+        const { auth, db } = getFirebaseServices();
+        setServices({ auth, db });
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
             if (user) {
@@ -118,8 +118,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setCurrentUser({ uid: user.uid, email: user.email, role });
             } else {
                 setCurrentUser(null);
+                setIsLoading(false); // Set loading to false if no user
             }
-            setIsLoading(false); 
         });
 
         return () => unsubscribeAuth();
@@ -130,7 +130,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             const { id, ...dataToSave } = employeeData;
-            
+
             const finalData: { [key: string]: any } = {};
             for (const key in dataToSave) {
                 const typedKey = key as keyof typeof dataToSave;
@@ -165,14 +165,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
         }
     }, [services, toast]);
-    
+
     const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
         if (!services) return;
         const { db } = services;
         try {
             await update(ref(db, `employees/${employeeId}`), {
                 status: 'aktywny',
-                terminationDate: null 
+                terminationDate: null
             });
             toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
         } catch (error) {
@@ -180,7 +180,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
         }
     }, [services, toast]);
-    
+
     const handleDeleteEmployeePermanently = useCallback(async (employeeId: string) => {
         if (!services) return;
         const { db } = services;
@@ -192,7 +192,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracownika.' });
         }
     }, [services, toast]);
-    
+
     const handleDeleteAllHireDates = useCallback(async () => {
         if (!services) return;
         const { db } = services;
@@ -208,7 +208,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć dat zatrudnienia.' });
         }
     }, [services, employees, toast]);
-    
+
     const handleUpdateHireDates = useCallback(async (dateUpdates: { fullName: string; hireDate: string }[]) => {
         if (!services) return;
         const { db } = services;
@@ -239,7 +239,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 return;
             }
         }
-        
+
         if (notFound.length > 0) {
             toast({
                 variant: 'destructive',
@@ -279,7 +279,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 return;
             }
         }
-        
+
         if (notFound.length > 0) {
             toast({
                 variant: 'destructive',
@@ -288,7 +288,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             });
         }
     }, [services, employees, toast]);
-    
+
     const handleDeleteAllEmployees = useCallback(async () => {
         if (!services) return;
         const { db } = services;
@@ -323,7 +323,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracowników.' });
         }
     }, [services, employees, toast]);
-    
+
     const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
         if (!services) return;
         const { db } = services;
@@ -340,15 +340,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         const itemToUpdate = config[configType].find(i => i.id === itemId);
         if (!itemToUpdate) return;
-        
+
         const oldName = itemToUpdate.name;
-        
+
         try {
             const updates: Record<string, any> = {};
             updates[`/config/${configType}/${itemId}/name`] = newName;
-            
+
             const employeeFieldToUpdate = configType === 'departments' ? 'department' : configType === 'jobTitles' ? 'jobTitle' : configType === 'managers' ? 'manager' : configType === 'nationalities' ? 'nationality' : null;
-            
+
             if (employeeFieldToUpdate) {
                 employees.forEach(emp => {
                     if (emp[employeeFieldToUpdate] === oldName) {
@@ -356,7 +356,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     }
                 });
             }
-            
+
             await update(ref(db), updates);
             toast({ title: "Sukces", description: "Element został zaktualizowany."});
         } catch (error) {
@@ -364,7 +364,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zaktualizować elementu."});
         }
     }, [services, config, employees, toast]);
-    
+
     const removeConfigItem = useCallback(async (configType: ConfigType, itemId: string) => {
         if (!services) return;
         const { db } = services;
@@ -423,7 +423,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         await remove(ref(db, `absences/${absenceId}`));
     }, [services]);
-    
+
     const addAbsenceRecord = useCallback(async (record: Omit<AbsenceRecord, 'id'>) => {
         if (!services) return;
         const { db } = services;
@@ -436,7 +436,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać rekordu.' });
         }
     }, [services, toast]);
-    
+
     const deleteAbsenceRecord = useCallback(async (recordId: string) => {
         if (!services) return;
         const { db } = services;
@@ -466,7 +466,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             return null;
         }
     }, [services, toast]);
-    
+
     const addFingerprintAppointment = useCallback(async (appointment: Omit<FingerprintAppointment, 'id'>) => {
         if (!services) return;
         const { db } = services;
@@ -507,7 +507,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             return null;
         }
     }, [services, toast]);
-    
+
     const deleteClothingIssuance = useCallback(async (issuanceId: string) => {
         if (!services) return;
         const { db } = services;
@@ -534,7 +534,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zamówienia.'});
         }
     }, [services, toast]);
-    
+
     const updateOrder = useCallback(async (order: Order) => {
         if (!services) return;
         const { db } = services;
@@ -571,17 +571,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const { db } = services;
+        let initialLoadComplete = false;
 
+        const handleDataLoaded = () => {
+          if (!initialLoadComplete) {
+            setIsLoading(false);
+            initialLoadComplete = true;
+          }
+        };
+
+        const employeesRef = ref(db, "employees");
+        const usersRef = ref(db, "users");
+        const absencesRef = ref(db, "absences");
+        const notificationsRef = ref(db, "notifications");
+        const historyRef = ref(db, "statisticsHistory");
+        const configRef = ref(db, "config");
+        
         const unsubscribes = [
-            onValue(ref(db, "employees"), snapshot => setEmployees(objectToArray(snapshot.val()))),
-            onValue(ref(db, "users"), snapshot => setUsers(objectToArray(snapshot.val()))),
-            onValue(ref(db, "absences"), snapshot => setAbsences(objectToArray(snapshot.val()))),
-            onValue(ref(db, "notifications"), snapshot => setNotifications(objectToArray(snapshot.val()))),
-            onValue(ref(db, "statisticsHistory"), snapshot => {
+            onValue(employeesRef, snapshot => { setEmployees(objectToArray(snapshot.val())); handleDataLoaded(); }),
+            onValue(usersRef, snapshot => { setUsers(objectToArray(snapshot.val())); handleDataLoaded(); }),
+            onValue(absencesRef, snapshot => { setAbsences(objectToArray(snapshot.val())); handleDataLoaded(); }),
+            onValue(notificationsRef, snapshot => { setNotifications(objectToArray(snapshot.val())); handleDataLoaded(); }),
+            onValue(historyRef, snapshot => {
                 setStatsHistory(objectToArray(snapshot.val()).sort((a:any, b:any) => new Date(b.id).getTime() - new Date(a.id).getTime()));
                 setIsHistoryLoading(false);
+                handleDataLoaded();
             }),
-            onValue(ref(db, "config"), snapshot => {
+            onValue(configRef, snapshot => {
                 const configData = snapshot.val() || {};
                 const newConfig: AllConfig = {
                     departments: objectToArray(configData.departments),
@@ -593,6 +609,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     resendApiKey: configData.resendApiKey || '',
                 };
                 setConfig(newConfig);
+                handleDataLoaded();
             }),
         ];
 
@@ -651,3 +668,5 @@ export const useAppContext = () => {
     }
     return context;
 };
+
+    
