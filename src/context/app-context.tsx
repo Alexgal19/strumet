@@ -538,7 +538,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         });
 
         return () => unsubscribeDb();
-    }, [db, currentUser]);
+    }, [db, currentUser, toast]);
 
     const value: AppContextType = {
         employees,

@@ -45,8 +45,10 @@ export const getAdminApp = () => {
             storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
         });
     } catch (error: any) {
-        console.error('Firebase admin initialization error', error.stack);
-        throw new Error(`Firebase admin initialization failed: ${error.message}`);
+        if (!/already exists/i.test(error.message)) {
+            console.error('Firebase admin initialization error', error.stack);
+            throw new Error(`Firebase admin initialization failed: ${error.message}`);
+        }
     }
     
     return adminApp;
