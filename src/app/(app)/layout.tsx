@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, Suspense, lazy } from 'react';
@@ -48,16 +47,12 @@ const ViewTransitionWrapper = ({ children, viewKey }: { children: React.ReactNod
 
 const AppContent = () => {
     const { activeView, setActiveView, isLoading, isAdmin } = useAppContext();
-    const router = useRouter();
+    
+    const allowedGuestViews: ActiveView[] = ['statystyki', 'planowanie'];
+    const isViewAllowed = isAdmin || allowedGuestViews.includes(activeView);
+    const viewToRender = isViewAllowed ? activeView : 'statystyki';
 
-    useEffect(() => {
-        const allowedGuestViews: ActiveView[] = ['statystyki', 'planowanie'];
-        if (!isAdmin && !allowedGuestViews.includes(activeView)) {
-             router.replace('/statystyki');
-        }
-    }, [isAdmin, activeView, router]);
-
-    const ActiveViewComponent = viewComponents[activeView] || viewComponents.statystyki;
+    const ActiveViewComponent = viewComponents[viewToRender] || viewComponents.statystyki;
 
     return (
         <SidebarProvider>
