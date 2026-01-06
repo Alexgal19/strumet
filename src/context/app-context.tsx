@@ -34,6 +34,7 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 interface AppContextType {
     employees: Employee[];
     users: User[];
+    absences: Absence[];
     config: AllConfig;
     notifications: AppNotification[];
     statsHistory: StatsSnapshot[];
@@ -81,6 +82,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [users, setUsers] = useState<User[]>([]);
+    const [absences, setAbsences] = useState<Absence[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
@@ -119,6 +121,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const data = snapshot.val() || {};
             setEmployees(objectToArray(data.employees));
             setUsers(objectToArray(data.users));
+            setAbsences(objectToArray(data.absences));
             setConfig({
                 departments: objectToArray(data.config?.departments),
                 jobTitles: objectToArray(data.config?.jobTitles),
@@ -541,6 +544,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const value = {
         employees,
         users,
+        absences,
         config,
         notifications,
         statsHistory,

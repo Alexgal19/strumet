@@ -3,6 +3,7 @@ export type ActiveView =
   | 'aktywni'
   | 'zwolnieni'
   | 'planowanie'
+  | 'odwiedzalnosc'
   | 'statystyki'
   | 'wydawanie-odziezy'
   | 'wydawanie-odziezy-nowi'

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, Suspense, lazy } from 'react';
@@ -15,6 +16,7 @@ const viewComponents: Record<ActiveView, React.LazyExoticComponent<React.Compone
   aktywni: lazy(() => import('@/app/(app)/aktywni/page')),
   zwolnieni: lazy(() => import('@/app/(app)/zwolnieni/page')),
   planowanie: lazy(() => import('@/app/(app)/planowanie/page')),
+  odwiedzalnosc: lazy(() => import('@/app/(app)/odwiedzalnosc/page')),
   statystyki: lazy(() => import('@/app/(app)/statystyki/page')),
   'karty-obiegowe': lazy(() => import('@/app/(app)/karty-obiegowe/page')),
   'odciski-palcow': lazy(() => import('@/app/(app)/odciski-palcow/page')),

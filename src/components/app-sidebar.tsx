@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -28,6 +29,7 @@ import {
   RefreshCw,
   Loader2,
   ClipboardList,
+  CalendarCheck,
 } from 'lucide-react';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import type { ActiveView, AppNotification } from '@/lib/types';
@@ -172,6 +174,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
     { view: 'aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
     { view: 'zwolnieni', icon: <UserX />, label: 'Pracownicy zwolnieni' },
     { view: 'planowanie', icon: <CalendarClock />, label: 'Planowanie' },
+    { view: 'odwiedzalnosc', icon: <CalendarCheck />, label: 'Obecność' },
     { view: 'statystyki', icon: <BarChart3 />, label: 'Statystyki' },
     { view: 'wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
     { view: 'wydawanie-odziezy-nowi', icon: <PackagePlus />, label: 'Wydawanie dla nowych'},
