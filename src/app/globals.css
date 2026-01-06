@@ -12,21 +12,24 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
-html, body, #__next__ {
+html,
+body,
+#__next__ {
   height: 100%;
 }
 
 @layer base {
   :root {
-    --background: 30 20% 98%; 
-    --foreground: 222.2 84% 4.9%;
+    --background: 220 20% 98%;
+    --foreground: 220 10% 20%;
     --card: 0 0% 100%;
-    --primary: 14 100% 59%;
-    --border: 220 13% 94%;
+    --primary: 210 90% 55%;
+    --destructive: 0 84.2% 60.2%;
+    --border: 220 13% 91%;
     --radius: 1rem;
     --shadow-color: 220 13% 91%;
-    
-    --chart-1: 221 83% 53%;
+
+    --chart-1: 220 80% 50%;
     --chart-2: 166 71% 40%;
     --chart-3: 38 96% 56%;
     --chart-4: 341 82% 60%;
@@ -43,11 +46,21 @@ html, body, #__next__ {
     @apply bg-background text-foreground;
   }
   button {
-    transition-property: box-shadow;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 300ms;
+    @apply transition-all duration-300;
   }
   button:hover {
     box-shadow: 0 10px 30px -10px hsl(var(--shadow-color) / 0.2), 0 4px 6px -4px hsl(var(--shadow-color) / 0.1);
+  }
+}
+
+@layer utilities {
+  .printing {
+    @apply print:visible print:p-0;
+  }
+  .main-content-container {
+    @apply print:hidden;
+  }
+  .print-only {
+    @apply hidden print:block print:w-full print:h-full;
   }
 }
