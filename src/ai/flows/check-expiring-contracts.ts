@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to check for expiring contracts and send notifications.
@@ -7,16 +8,14 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { ref, get, push, set } from 'firebase/database';
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminApp } from '@/lib/firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { startOfDay, differenceInDays } from 'date-fns';
 import type { Employee, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 import { sendEmail } from '@/lib/email-tool';
 
-const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
 
 const CheckContractsOutputSchema = z.object({
   notificationsCreated: z.number(),
@@ -34,10 +33,11 @@ const checkExpiringContractsFlow = ai.defineFlow(
   },
   async () => {
     console.log('Starting to check for expiring contracts...');
+    getAdminApp();
+    const db = getFirestore();
     
-    const employeesRef = adminDb().ref('employees');
-    const snapshot = await employeesRef.once('value');
-    const allEmployees = objectToArray<Employee>(snapshot.val());
+    const employeesSnapshot = await getDocs(collection(db, "employees"));
+    const allEmployees = employeesSnapshot.docs.map(d => ({id: d.id, ...d.data()})) as Employee[];
     const activeEmployees = allEmployees.filter(e => e.status === 'aktywny');
 
     if (!activeEmployees || activeEmployees.length === 0) {
@@ -92,14 +92,13 @@ const checkExpiringContractsFlow = ai.defineFlow(
     
     const message = messageParts.join(' ');
     
-    const newNotificationRef = push(adminDb().ref('notifications'));
     const newNotification: Omit<AppNotification, 'id'> = {
         title,
         message,
         createdAt: new Date().toISOString(),
         read: false,
     };
-    await set(newNotificationRef, newNotification);
+    await addDoc(collection(db, "notifications"), newNotification);
     console.log(`Created in-app notification for ${totalExpiring} employees.`);
     
     // 2. Send email notification
@@ -139,14 +138,13 @@ const checkExpiringContractsFlow = ai.defineFlow(
     } else {
         console.error(`Failed to send email: ${emailResult.message}`);
         // Create an error notification
-        const errorNotificationRef = push(adminDb().ref('notifications'));
         const errorNotification: Omit<AppNotification, 'id'> = {
             title: 'Błąd wysyłania Email',
             message: `Nie udało się wysłać powiadomienia email. Szczegóły błędu: ${emailResult.message}`,
             createdAt: new Date().toISOString(),
             read: false,
         };
-        await set(errorNotificationRef, errorNotification);
+        await addDoc(collection(db, "notifications"), errorNotification);
     }
 
     return {

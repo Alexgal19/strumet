@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Sidebar,
@@ -38,8 +38,8 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
-import { db } from '@/lib/firebase';
-import { ref, onValue, update, remove } from 'firebase/database';
+import { getFirebaseServices } from '@/lib/firebase';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { runManualChecks } from '@/ai/flows/run-manual-checks';
@@ -47,41 +47,45 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
 
 
-const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
+const docToObject = (doc: any): any => {
+    if (!doc.exists()) return null;
+    return { id: doc.id, ...doc.data() };
+}
+
+const docsToArray = (snapshot: any): any[] => {
+    return snapshot.docs.map(docToObject);
+}
 
 
 const Notifications = () => {
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [isChecking, setIsChecking] = useState(false);
     const { toast } = useToast();
+    const { firestore } = getFirebaseServices();
     
     useEffect(() => {
-        const notificationsRef = ref(db, 'notifications');
-        const unsubscribe = onValue(notificationsRef, (snapshot) => {
-            const data = objectToArray<AppNotification>(snapshot.val() || {});
+        const notificationsRef = collection(firestore, 'notifications');
+        const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
+            const data = docsToArray(snapshot) as AppNotification[];
             setNotifications(data.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         });
         return () => unsubscribe();
-    }, []);
+    }, [firestore]);
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    const handleMarkAsRead = (id: string) => {
-        const updates: Record<string, any> = {};
-        updates[`/notifications/${id}/read`] = true;
-        update(ref(db), updates);
-    };
+    const handleMarkAsRead = useCallback(async (id: string) => {
+        await updateDoc(doc(firestore, `notifications/${id}`), { read: true });
+    },[firestore]);
     
-    const handleClearAll = () => {
+    const handleClearAll = useCallback(async () => {
         if (window.confirm('Czy na pewno chcesz usunąć wszystkie powiadomienia?')) {
-            const notifsRef = ref(db, 'notifications');
-            remove(notifsRef);
+            const batch = notifications.map(n => deleteDoc(doc(firestore, `notifications/${n.id}`)));
+            await Promise.all(batch);
         }
-    }
+    },[firestore, notifications]);
 
-    const handleManualCheck = async () => {
+    const handleManualCheck = useCallback(async () => {
         setIsChecking(true);
         try {
             const result = await runManualChecks();
@@ -101,7 +105,7 @@ const Notifications = () => {
         } finally {
             setIsChecking(false);
         }
-    };
+    },[toast]);
     
     return (
        <Popover>

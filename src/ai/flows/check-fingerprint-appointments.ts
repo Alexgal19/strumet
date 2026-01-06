@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to check for upcoming fingerprint appointments and send notifications.
@@ -7,16 +8,14 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { ref, get, push, set } from 'firebase/database';
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminApp } from '@/lib/firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { startOfDay, differenceInDays, format } from 'date-fns';
 import type { FingerprintAppointment, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 import { sendEmail } from '@/lib/email-tool';
 
-const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
 
 const CheckAppointmentsOutputSchema = z.object({
   notificationsCreated: z.number(),
@@ -34,10 +33,12 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
   },
   async () => {
     console.log('DEBUG: [checkAppointmentsAndNotifyFlow] Starting flow.');
+    getAdminApp();
+    const db = getFirestore();
     
-    const appointmentsRef = adminDb().ref('fingerprintAppointments');
-    const snapshot = await appointmentsRef.once('value');
-    const appointments = objectToArray<FingerprintAppointment>(snapshot.val());
+    const appointmentsSnapshot = await getDocs(collection(db, "fingerprintAppointments"));
+    const appointments = appointmentsSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as FingerprintAppointment[];
+
 
     console.log(`DEBUG: Found ${appointments.length} total appointments in Firebase.`);
 
@@ -83,14 +84,13 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     
     // 1. Create in-app notification
     console.log('DEBUG: Creating in-app notification...');
-    const newNotificationRef = push(adminDb().ref('notifications'));
     const newNotification: Omit<AppNotification, 'id'> = {
         title,
         message,
         createdAt: new Date().toISOString(),
         read: false,
     };
-    await set(newNotificationRef, newNotification);
+    await addDoc(collection(db, "notifications"), newNotification);
     console.log(`DEBUG: Created notification for ${upcomingAppointments.length} appointments.`);
 
     // 2. Send email notification
@@ -125,14 +125,13 @@ const checkAppointmentsAndNotifyFlow = ai.defineFlow(
     } else {
         console.error(`DEBUG: Failed to send email: ${emailResult.message}`);
         // Create an error notification in-app
-        const errorNotificationRef = push(adminDb().ref('notifications'));
         const errorNotification: Omit<AppNotification, 'id'> = {
             title: 'Błąd wysyłania Email (Odciski)',
             message: `Nie udało się wysłać powiadomienia email o terminach. Błąd: ${emailResult.message}`,
             createdAt: new Date().toISOString(),
             read: false,
         };
-        await set(errorNotificationRef, errorNotification);
+        await addDoc(collection(db, "notifications"), errorNotification);
     }
 
     return {

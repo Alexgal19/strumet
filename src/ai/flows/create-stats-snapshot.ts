@@ -6,16 +6,12 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { ref, get } from 'firebase/database';
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminApp } from '@/lib/firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { format, parse, isEqual } from 'date-fns';
 import type { Employee, StatsSnapshot } from '@/lib/types';
 
-const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
-
-const sanitizeKey = (key: string) => key.replace(/[.#$/\[\]]/g, '-');
 
 const CreateSnapshotInputSchema = z.object({
   startDate: z.string(),
@@ -75,9 +71,11 @@ const createStatsSnapshotFlow = ai.defineFlow(
   },
   async ({ startDate, endDate }) => {
     console.log(`Generating report for ${startDate} to ${endDate}`);
+    getAdminApp();
+    const db = getFirestore();
 
-    const employeesSnapshot = await adminDb().ref('employees').once('value');
-    const allEmployees = objectToArray<Employee>(employeesSnapshot.val());
+    const employeesSnapshot = await getDocs(collection(db, 'employees'));
+    const allEmployees = employeesSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Employee[];
 
     const getActiveEmployeesOnDate = (date: Date) => {
         return allEmployees.filter(e => {
@@ -204,5 +202,3 @@ const createStatsSnapshotFlow = ai.defineFlow(
     }
   }
 );
-
-    

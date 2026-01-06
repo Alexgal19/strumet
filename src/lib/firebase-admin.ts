@@ -6,18 +6,15 @@ let adminApp: admin.app.App;
 export const getAdminApp = () => {
     // This check prevents initialization on the client side.
     if (typeof window !== 'undefined') {
-        // Return a mock or empty object on the client to avoid errors,
-        // though this code path should ideally not be hit in the browser.
-        if (admin.apps.length > 0) return admin.apps[0]!;
         // A minimal mock to prevent client-side crashes if accidentally imported.
+        // It's better to restructure code to avoid this, but it's a good safeguard.
         return {
-           name: "mock-app",
+           name: "mock-app-client",
            options: {},
            database: () => ({}),
            storage: () => ({}),
         } as unknown as admin.app.App;
     }
-
 
     if (admin.apps.length > 0) {
         return admin.apps[0]!;
@@ -51,7 +48,7 @@ export const getAdminApp = () => {
         }
     }
     
-    return adminApp;
+    return admin.apps[0]!;
 };
 
 // These functions should only be called from server-side code.

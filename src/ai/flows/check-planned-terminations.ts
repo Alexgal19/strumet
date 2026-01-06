@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to check for planned terminations and update employee status.
@@ -7,15 +8,13 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { ref, get, update, push, set } from 'firebase/database';
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminApp } from '@/lib/firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
+import { collection, getDocs, writeBatch, addDoc } from 'firebase/firestore';
 import { startOfDay, isBefore, isEqual, format } from 'date-fns';
 import type { Employee, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 
-const objectToArray = <T>(obj: Record<string, any> | undefined | null): (T & { id: string })[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
 
 const CheckTerminationsOutputSchema = z.object({
   processedCount: z.number(),
@@ -33,10 +32,11 @@ const checkPlannedTerminationsFlow = ai.defineFlow(
   },
   async () => {
     console.log('Starting to check for planned terminations...');
+    getAdminApp();
+    const db = getFirestore();
     
-    const employeesRef = adminDb().ref('employees');
-    const snapshot = await employeesRef.once('value');
-    const allEmployees = objectToArray<Employee>(snapshot.val());
+    const employeesSnapshot = await getDocs(collection(db, "employees"));
+    const allEmployees = employeesSnapshot.docs.map(d => ({id: d.id, ...d.data()})) as Employee[];
     const activeEmployees = allEmployees.filter(e => e.status === 'aktywny');
 
     if (!activeEmployees || activeEmployees.length === 0) {
@@ -62,14 +62,16 @@ const checkPlannedTerminationsFlow = ai.defineFlow(
         return { processedCount: 0, notificationsCreated: 0 };
     }
     
-    const updates: Record<string, any> = {};
+    const batch = writeBatch(db);
     employeesToProcess.forEach(emp => {
-      updates[`/employees/${emp.id}/status`] = 'zwolniony';
-      // Use the planned date as the official termination date
-      updates[`/employees/${emp.id}/terminationDate`] = emp.plannedTerminationDate;
+        const empRef = doc(db, "employees", emp.id);
+        batch.update(empRef, {
+            status: 'zwolniony',
+            terminationDate: emp.plannedTerminationDate
+        });
     });
 
-    await update(adminDb().ref(), updates);
+    await batch.commit();
     console.log(`Successfully processed ${employeesToProcess.length} terminations.`);
 
     // Create a single in-app notification for all processed terminations
@@ -77,14 +79,13 @@ const checkPlannedTerminationsFlow = ai.defineFlow(
     const title = `Automatyczne zwolnienie: ${employeesToProcess.length} pracownik(ów)`;
     const message = `Następujący pracownicy zostali automatycznie przeniesieni do zwolnionych na podstawie planowanej daty: ${employeeNames}.`;
     
-    const newNotificationRef = push(adminDb().ref('notifications'));
     const newNotification: Omit<AppNotification, 'id'> = {
         title,
         message,
         createdAt: new Date().toISOString(),
         read: false,
     };
-    await set(newNotificationRef, newNotification);
+    await addDoc(collection(db, "notifications"), newNotification);
     console.log(`Created in-app notification for ${employeesToProcess.length} processed terminations.`);
 
     return {
