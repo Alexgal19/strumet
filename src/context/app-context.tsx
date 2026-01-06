@@ -41,7 +41,6 @@ interface AppContextType {
     isLoading: boolean;
     isHistoryLoading: boolean;
     activeView: ActiveView;
-    toast: (props: any) => void;
     setActiveView: (view: ActiveView) => void;
     handleSaveEmployee: (employeeData: Employee) => Promise<void>;
     handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
@@ -77,7 +76,6 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-    console.log('DEBUG: AppProvider rendering...');
     const { toast } = useToast();
     const [activeView, setActiveView] = useState<ActiveView>('statystyki');
     
@@ -95,71 +93,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const isAdmin = currentUser?.role === 'admin';
 
-    useEffect(() => {
-        const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
-            if (user) {
-                const userRoleRef = ref(db, `users/${user.uid}/role`);
-                const roleSnapshot = await get(userRoleRef);
-                const role = roleSnapshot.val() as UserRole;
-                setCurrentUser({
-                    uid: user.uid,
-                    email: user.email,
-                    role: role || 'guest', 
-                });
-            } else {
-                setCurrentUser(null);
-                 // If user logs out, clear data and stop loading.
-                setEmployees([]);
-                setUsers([]);
-                setAbsences([]);
-                setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
-                setNotifications([]);
-                setStatsHistory([]);
-                setIsLoading(false);
-                setIsHistoryLoading(false);
-            }
-        });
-
-        return () => unsubscribeAuth();
-    }, [db, auth]);
-
-
-    useEffect(() => {
-        if (!currentUser) {
-            return;
-        };
-
-        setIsLoading(true);
-        const dataRef = ref(db);
-        const unsubscribeDb = onValue(dataRef, (snapshot) => {
-            console.log('DEBUG: Firebase onValue callback triggered.');
-            const data = snapshot.val() || {};
-            setEmployees(objectToArray(data.employees));
-            setUsers(objectToArray(data.users));
-            setAbsences(objectToArray(data.absences));
-            setConfig({
-                departments: objectToArray(data.config?.departments),
-                jobTitles: objectToArray(data.config?.jobTitles),
-                managers: objectToArray(data.config?.managers),
-                nationalities: objectToArray(data.config?.nationalities),
-                clothingItems: objectToArray(data.config?.clothingItems),
-                jobTitleClothingSets: objectToArray(data.config?.jobTitleClothingSets),
-                resendApiKey: data.config?.resendApiKey || '',
-            });
-            setNotifications(objectToArray(data.notifications));
-            setStatsHistory(objectToArray(data.statisticsHistory).sort((a,b) => new Date(b.id).getTime() - new Date(a.id).getTime()));
-            setIsLoading(false);
-            setIsHistoryLoading(false);
-        }, (error) => {
-            console.error("Firebase read failed: ", error);
-            setIsLoading(false);
-            setIsHistoryLoading(false);
-            toast({ variant: 'destructive', title: 'Błąd Bazy Danych', description: 'Nie udało się załadować danych.'});
-        });
-
-        return () => unsubscribeDb();
-    }, [db, currentUser, toast]);
-    
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
         try {
             const { id, ...dataToSave } = employeeData;
@@ -551,6 +484,62 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [db, toast]);
 
+    useEffect(() => {
+        const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
+            if (user) {
+                const userRoleRef = ref(db, `users/${user.uid}/role`);
+                const roleSnapshot = await get(userRoleRef);
+                const role = roleSnapshot.val() as UserRole;
+                setCurrentUser({
+                    uid: user.uid,
+                    email: user.email,
+                    role: role || 'guest', 
+                });
+            } else {
+                setCurrentUser(null);
+                setIsLoading(true);
+            }
+        });
+
+        return () => unsubscribeAuth();
+    }, [db, auth]);
+
+
+    useEffect(() => {
+        if (!currentUser) {
+            return;
+        };
+
+        setIsLoading(true);
+        const dataRef = ref(db);
+        const unsubscribeDb = onValue(dataRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            setEmployees(objectToArray(data.employees));
+            setUsers(objectToArray(data.users));
+            setAbsences(objectToArray(data.absences));
+            setConfig({
+                departments: objectToArray(data.config?.departments),
+                jobTitles: objectToArray(data.config?.jobTitles),
+                managers: objectToArray(data.config?.managers),
+                nationalities: objectToArray(data.config?.nationalities),
+                clothingItems: objectToArray(data.config?.clothingItems),
+                jobTitleClothingSets: objectToArray(data.config?.jobTitleClothingSets),
+                resendApiKey: data.config?.resendApiKey || '',
+            });
+            setNotifications(objectToArray(data.notifications));
+            setStatsHistory(objectToArray(data.statisticsHistory).sort((a,b) => new Date(b.id).getTime() - new Date(a.id).getTime()));
+            setIsLoading(false);
+            setIsHistoryLoading(false);
+        }, (error) => {
+            console.error("Firebase read failed: ", error);
+            setIsLoading(false);
+            setIsHistoryLoading(false);
+            toast({ variant: 'destructive', title: 'Błąd Bazy Danych', description: 'Nie udało się załadować danych.'});
+        });
+
+        return () => unsubscribeDb();
+    }, [db, currentUser]);
+
     const value: AppContextType = {
         employees,
         users,
@@ -561,7 +550,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         isHistoryLoading,
         activeView,
-        toast,
         setActiveView,
         handleSaveEmployee,
         handleTerminateEmployee,
