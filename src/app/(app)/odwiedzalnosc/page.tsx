@@ -34,12 +34,15 @@ const DepartmentStats = ({
   departmentData,
   onCopy,
 }: {
-  departmentData: { name: string; percentage: number, employees: Employee[] }[];
+  departmentData: { name: string; percentage: number, employees: { employee: Employee, absencePercentage: number }[] }[];
   onCopy: (text: string) => void;
 }) => {
   const [openItems, setOpenItems] = useState<string[]>([]);
   const formatListForCopy = () => {
-    return departmentData.map(d => `${d.name}: ${d.percentage.toFixed(2)}%`).join('\n');
+    return departmentData.map(d => 
+        `${d.name}: ${d.percentage.toFixed(2)}%\n` +
+        d.employees.map(e => `  - ${e.employee.fullName}: ${e.absencePercentage.toFixed(2)}%`).join('\n')
+    ).join('\n\n');
   }
 
   return (
@@ -67,8 +70,13 @@ const DepartmentStats = ({
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="text-sm text-muted-foreground pl-4">
-                    {dept.employees.map(emp => (
-                        <li key={emp.id} className="py-1">{emp.fullName}</li>
+                    {dept.employees.map(empData => (
+                        <li key={empData.employee.id} className="flex justify-between items-center py-1">
+                            <span>{empData.employee.fullName}</span>
+                            <span className={cn("font-semibold", empData.absencePercentage > 5 && "text-destructive")}>
+                                {empData.absencePercentage.toFixed(2)}%
+                            </span>
+                        </li>
                     ))}
                   </ul>
                 </AccordionContent>
@@ -167,6 +175,11 @@ export default function OdwiedzalnoscPage() {
             deptStatsMap[employee.department].absenceCount++;
         }
     });
+    
+    const employeeAbsenceMap = relevantAbsences.reduce((acc, abs) => {
+        acc[abs.employeeId] = (acc[abs.employeeId] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
 
     const departmentStats = Object.entries(deptStatsMap)
         .map(([name, data]) => ({
@@ -174,7 +187,15 @@ export default function OdwiedzalnoscPage() {
             percentage: data.employeeCount > 0 && workingDaysInMonth > 0
                 ? (data.absenceCount / (data.employeeCount * workingDaysInMonth)) * 100
                 : 0,
-            employees: data.employees.sort((a,b) => a.fullName.localeCompare(b.fullName))
+            employees: data.employees
+                .map(emp => {
+                    const empAbsences = employeeAbsenceMap[emp.id] || 0;
+                    return {
+                        employee: emp,
+                        absencePercentage: workingDaysInMonth > 0 ? (empAbsences / workingDaysInMonth) * 100 : 0
+                    };
+                })
+                .sort((a,b) => a.employee.fullName.localeCompare(b.employee.fullName))
         }))
         .sort((a, b) => b.percentage - a.percentage);
 
