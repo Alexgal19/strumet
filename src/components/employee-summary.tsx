@@ -1,9 +1,7 @@
-
 "use client";
 
 import { useState, cloneElement } from "react";
-import { generateEmployeeSummary } from "@/ai/flows/generate-employee-summary";
-import { GenerateEmployeeSummaryInputSchema } from "@/ai/schemas/employee-summary-schemas";
+import { generateEmployeeSummary, type GenerateEmployeeSummaryInput } from "@/ai/flows/generate-employee-summary";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +36,7 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
     setKeyPoints([]);
 
     try {
-      const inputData = GenerateEmployeeSummaryInputSchema.parse({
+      const inputData: GenerateEmployeeSummaryInput = {
         fullName: employee.fullName,
         hireDate: employee.hireDate,
         jobTitle: employee.jobTitle,
@@ -51,7 +49,7 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
         sealNumber: employee.sealNumber,
         contractEndDate: employee.contractEndDate,
         legalizationStatus: employee.legalizationStatus,
-      });
+      };
 
       const result = await generateEmployeeSummary(inputData);
 
