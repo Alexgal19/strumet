@@ -9,6 +9,7 @@ import {
     update,
     remove,
     push,
+    get,
     type Database,
 } from 'firebase/database';
 import { getFirebaseServices } from '@/lib/firebase';
@@ -33,7 +34,6 @@ import type {
     User,
     UserRole,
 } from '@/lib/types';
-import { getFirestore, doc, getDoc, collection, getDocs, setDoc, updateDoc } from 'firebase/firestore';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -109,6 +109,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const { db, auth } = getFirebaseServices();
         setServices({ db, auth });
+
+        const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
+            if (user) {
+                const userRoleRef = ref(db, `users/${user.uid}/role`);
+                const snapshot = await get(userRoleRef);
+                const role = snapshot.val() as UserRole || 'guest';
+                setCurrentUser({ uid: user.uid, email: user.email, role });
+            } else {
+                setCurrentUser(null);
+            }
+            setIsLoading(false); 
+        });
+
+        return () => unsubscribeAuth();
     }, []);
 
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
@@ -389,8 +403,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (!services) return;
         const { db } = services;
         try {
-            const { firestore } = getFirebaseServices();
-            await updateDoc(doc(firestore, `users/${userId}`), { role: newRole });
+            await update(ref(db, `users/${userId}`), { role: newRole });
             toast({ title: 'Sukces', description: 'Rola użytkownika została zaktualizowana.' });
         } catch (error) {
             console.error("Error updating user role: ", error);
@@ -546,38 +559,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }, [services, toast]);
 
     useEffect(() => {
-        if (!services) return;
-
-        const unsubscribeAuth = onAuthStateChanged(services.auth, async (user: FirebaseUser | null) => {
-            if (user) {
-                // Use Firestore only for user roles, as it's more suitable for this kind of data.
-                const { firestore } = getFirebaseServices();
-                const userDocRef = doc(firestore, 'users', user.uid);
-                const userDocSnap = await getDoc(userDocRef);
-                
-                if (!userDocSnap.exists()) {
-                    const usersCollRef = collection(firestore, 'users');
-                    const allUsersSnap = await getDocs(usersCollRef);
-                    const isFirstUser = allUsersSnap.empty;
-                    const role = isFirstUser ? 'admin' : 'guest';
-                    await setDoc(userDocRef, { email: user.email, role: role });
-                    setCurrentUser({ uid: user.uid, email: user.email, role });
-                } else {
-                    const role = userDocSnap.data().role as UserRole;
-                    setCurrentUser({ uid: user.uid, email: user.email, role });
-                }
-            } else {
-                setCurrentUser(null);
-            }
-            setIsLoading(false); 
-        });
-
-        return () => unsubscribeAuth();
-    }, [services]);
-
-    useEffect(() => {
-        if (!currentUser || !services) {
+        if (!services || !currentUser) {
+            // Clear data if user is logged out or services aren't ready
             setEmployees([]);
+            setUsers([]);
             setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
             setAbsences([]);
             setNotifications([]);
@@ -589,6 +574,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         const unsubscribes = [
             onValue(ref(db, "employees"), snapshot => setEmployees(objectToArray(snapshot.val()))),
+            onValue(ref(db, "users"), snapshot => setUsers(objectToArray(snapshot.val()))),
             onValue(ref(db, "absences"), snapshot => setAbsences(objectToArray(snapshot.val()))),
             onValue(ref(db, "notifications"), snapshot => setNotifications(objectToArray(snapshot.val()))),
             onValue(ref(db, "statisticsHistory"), snapshot => {
@@ -608,7 +594,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 };
                 setConfig(newConfig);
             }),
-             onValue(ref(db, "users"), snapshot => setUsers(objectToArray(snapshot.val()))),
         ];
 
         return () => unsubscribes.forEach(unsub => unsub());

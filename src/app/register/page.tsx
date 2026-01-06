@@ -12,7 +12,7 @@ import { Database, Loader2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getFirebaseServices } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, getDocs, collection } from "firebase/firestore";
+import { ref, get, set } from "firebase/database";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -53,18 +53,18 @@ export default function RegisterPage() {
     setError('');
     setIsLoading(true);
 
-    const { auth, firestore } = getFirebaseServices();
+    const { auth, db } = getFirebaseServices();
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      const usersRef = collection(firestore, 'users');
-      const snapshot = await getDocs(usersRef);
-      const isFirstUser = snapshot.empty;
+      const usersRef = ref(db, 'users');
+      const snapshot = await get(usersRef);
+      const isFirstUser = !snapshot.exists() || snapshot.val() === null;
       const role = isFirstUser ? 'admin' : 'guest';
       
-      await setDoc(doc(firestore, `users/${user.uid}`), {
+      await set(ref(db, `users/${user.uid}`), {
           email: user.email,
           role: role,
       });
