@@ -1,6 +1,6 @@
 import type {Config} from 'tailwindcss';
 
-export default {
+const config: Config = {
   darkMode: ['class'],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -13,6 +13,7 @@ export default {
         'clay-md': '4px 4px 8px hsl(var(--primary) / 0.1), -4px -4px 8px hsl(0 0% 100% / 0.8)',
         'clay-md-inset': 'inset 4px 4px 8px hsl(var(--primary) / 0.1), inset -4px -4px 8px hsl(0 0% 100% / 0.8)',
         'grapefruit': '0 4px 14px 0 hsl(var(--grapefruit) / 0.2)',
+        'soft-xl': '0 10px 30px -10px hsl(var(--shadow-color) / 0.2), 0 4px 6px -4px hsl(var(--shadow-color) / 0.1)',
       },
       fontFamily: {
         body: ['"Geist"', 'sans-serif'],
@@ -76,6 +77,7 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        '2xl': '1rem',
       },
       keyframes: {
         "accordion-down": {
@@ -104,4 +106,6 @@ export default {
     },
   },
   plugins: [require('tailwindcss-animate')],
-} satisfies Config;
+};
+
+export default config;

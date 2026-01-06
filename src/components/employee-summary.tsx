@@ -2,18 +2,18 @@
 "use client";
 
 import { useState, cloneElement } from "react";
-import { generateEmployeeSummary } from "@/ai/flows/generate-employee-summary";
+import { generateEmployeeSummary, GenerateEmployeeSummaryInputSchema } from "@/ai/flows/generate-employee-summary";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogDescription,
   DialogFooter,
   DialogClose
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, List, FileText } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { Employee } from "@/lib/types";
 
@@ -24,22 +24,25 @@ interface EmployeeSummaryProps {
 
 export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [summary, setSummary] = useState("");
+  const [summary, setSummary] = useState<string | null>(null);
+  const [keyPoints, setKeyPoints] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerateSummary = async () => {
     setLoading(true);
     setError(null);
-    setSummary("");
+    setSummary(null);
+    setKeyPoints([]);
+
     try {
-      const result = await generateEmployeeSummary({
+      const inputData = GenerateEmployeeSummaryInputSchema.parse({
         fullName: employee.fullName,
         hireDate: employee.hireDate,
         jobTitle: employee.jobTitle,
         department: employee.department,
         manager: employee.manager,
-        cardId: employee.cardNumber,
+        cardNumber: employee.cardNumber,
         nationality: employee.nationality,
         lockerNumber: employee.lockerNumber,
         departmentLockerNumber: employee.departmentLockerNumber,
@@ -47,7 +50,12 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
         contractEndDate: employee.contractEndDate,
         legalizationStatus: employee.legalizationStatus,
       });
+
+      const result = await generateEmployeeSummary(inputData);
+
       setSummary(result.summary);
+      setKeyPoints(result.keyPoints);
+
     } catch (e) {
       setError("Nie udało się wygenerować podsumowania. Spróbuj ponownie.");
       console.error(e);
@@ -59,14 +67,14 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open) {
-      setSummary("");
+      setSummary(null);
+      setKeyPoints([]);
       setError(null);
       setLoading(false);
     }
   }
 
   const handleTriggerClick = (e: React.MouseEvent) => {
-    // We find the menu item for summary generation and trigger the dialog
     const target = e.target as HTMLElement;
     const menuItem = target.closest('[role="menuitem"]');
     if (menuItem && menuItem.textContent?.includes('Generuj podsumowanie')) {
@@ -80,26 +88,41 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
       <DialogTrigger asChild>
         {cloneElement(children, { onClick: handleTriggerClick, onSelect: handleTriggerClick })}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Podsumowanie pracownika</DialogTitle>
+           <DialogDescription>
+            Wygenerowane przez AI podsumowanie kluczowych informacji.
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-            <p className="font-semibold">{employee.fullName}</p>
+        <div className="space-y-4 py-4 min-h-[15rem] flex flex-col">
+            <p className="font-semibold text-lg">{employee.fullName}</p>
             {loading && (
-                <div className="flex items-center justify-center p-8">
+                <div className="flex flex-1 items-center justify-center p-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
             )}
             {error && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="flex-1">
                     <AlertTitle>Błąd</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}
             {summary && (
-                <div className="prose prose-sm max-w-none rounded-md border bg-muted/50 p-4">
-                    <p>{summary}</p>
+                <div className="flex-1 space-y-4">
+                  <div className="prose prose-sm max-w-none rounded-lg border bg-background p-4">
+                      <p>{summary}</p>
+                  </div>
+                   {keyPoints.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2"><List className="h-4 w-4"/> Kluczowe punkty:</h4>
+                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                          {keyPoints.map((point, index) => (
+                            <li key={index}>{point}</li>
+                          ))}
+                        </ul>
+                      </div>
+                   )}
                 </div>
             )}
         </div>
@@ -108,7 +131,7 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
                 <Button type="button" variant="secondary">Zamknij</Button>
             </DialogClose>
             <Button onClick={handleGenerateSummary} disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
                 {summary ? 'Generuj ponownie' : 'Generuj podsumowanie'}
             </Button>
         </DialogFooter>
