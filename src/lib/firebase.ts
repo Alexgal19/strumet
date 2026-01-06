@@ -16,22 +16,19 @@ export const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp;
-
-// Initialize Firebase
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
-}
-
-const auth = getAuth(app);
-const db = getDatabase(app);
-const storage = getStorage(app);
-
-// A simplified getter function to access services elsewhere
-function getFirebaseServices() {
+// Lazy initialization for Firebase services
+const getFirebaseServices = () => {
+  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+  const storage = getStorage(app);
   return { app, auth, db, storage };
-}
+};
 
-export { getFirebaseServices, app, auth, db, storage };
+// Export the function to be used across the app
+export { getFirebaseServices };
+
+// For convenience, you can also export the initialized services directly
+// These will be lazily initialized on their first import.
+const { app, auth, db, storage } = getFirebaseServices();
+export { app, auth, db, storage };
