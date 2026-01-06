@@ -3,8 +3,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ref, onValue, set, push, update, remove, get } from 'firebase/database';
-import { getFirebaseServices, auth as firebaseAuth } from '@/lib/firebase';
-import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
+import { getFirebaseServices } from '@/lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { 
@@ -109,13 +109,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 if (role !== 'admin') {
                     setActiveView('statystyki');
                 }
-
             } else {
                 setCurrentUser(null);
+                setIsLoading(true); // Reset loading state on logout
             }
-            setIsLoading(false);
         });
 
+        return () => unsubscribeAuth();
+    }, [db, auth]);
+
+
+    useEffect(() => {
+        if (!currentUser) {
+            // No user, no need to fetch data. Loading will be set to false once auth state is confirmed null.
+            setIsLoading(false);
+            return;
+        };
+
+        setIsLoading(true);
         const dataRef = ref(db);
         const unsubscribeDb = onValue(dataRef, (snapshot) => {
             const data = snapshot.val() || {};
@@ -133,18 +144,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             });
             setNotifications(objectToArray(data.notifications));
             setStatsHistory(objectToArray(data.statisticsHistory).sort((a,b) => new Date(b.id).getTime() - new Date(a.id).getTime()));
+            setIsLoading(false);
             setIsHistoryLoading(false);
         }, (error) => {
             console.error("Firebase read failed: ", error);
+            setIsLoading(false);
             setIsHistoryLoading(false);
             toast({ variant: 'destructive', title: 'Błąd Bazy Danych', description: 'Nie udało się załadować danych.'});
         });
 
-        return () => {
-            unsubscribeAuth();
-            unsubscribeDb();
-        };
-    }, [db, auth, toast]);
+        return () => unsubscribeDb();
+    }, [db, toast, currentUser]);
     
     // --- Employee Actions ---
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
