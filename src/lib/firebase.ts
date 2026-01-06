@@ -18,26 +18,22 @@ export const firebaseConfig = {
 };
 
 let app: FirebaseApp;
-let auth: Auth;
-let db: Database;
-let firestore: Firestore;
-let storage: FirebaseStorage;
 
-// Initialize Firebase only once
-if (!getApps().length) {
+// Initialize Firebase
+if (getApps().length === 0) {
   app = initializeApp(firebaseConfig);
 } else {
   app = getApp();
 }
 
-auth = getAuth(app);
-db = getDatabase(app);
-firestore = getFirestore(app);
-storage = getStorage(app);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const storage = getStorage(app);
+const firestore = getFirestore(app);
 
 // A simplified getter function to access services elsewhere
 function getFirebaseServices() {
-  return { app, auth, db, firestore, storage };
+  return { app, auth, db, storage, firestore };
 }
 
-export { getFirebaseServices, auth, db, firestore, storage };
+export { getFirebaseServices, app, auth, db, storage, firestore };

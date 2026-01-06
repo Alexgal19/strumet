@@ -3,20 +3,14 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { 
-    collection, 
-    onSnapshot, 
-    doc, 
-    setDoc, 
-    updateDoc, 
-    deleteDoc, 
-    writeBatch,
-    getDocs,
-    query,
-    where,
-    getDoc,
-    serverTimestamp,
-    type Firestore,
-} from 'firebase/firestore';
+    ref,
+    onValue,
+    set,
+    update,
+    remove,
+    push,
+    type Database,
+} from 'firebase/database';
 import { getFirebaseServices } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -39,18 +33,15 @@ import type {
     User,
     UserRole,
 } from '@/lib/types';
+import { getFirestore, doc, getDoc, collection, getDocs, setDoc, updateDoc } from 'firebase/firestore';
 
-const docToObject = (doc: any): any => {
-    if (!doc.exists()) return null;
-    return { id: doc.id, ...doc.data() };
-}
 
-const docsToArray = (snapshot: any): any[] => {
-    return snapshot.docs.map(docToObject);
-}
+const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
+  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+};
 
 interface FirebaseServices {
-    firestore: Firestore;
+    db: Database;
     auth: Auth;
 }
 
@@ -116,13 +107,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const isAdmin = currentUser?.role === 'admin';
 
     useEffect(() => {
-        // This effect only runs once to initialize Firebase services.
-        const { firestore, auth } = getFirebaseServices();
-        setServices({ firestore, auth });
+        const { db, auth } = getFirebaseServices();
+        setServices({ db, auth });
     }, []);
 
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
         if (!services) return;
+        const { db } = services;
         try {
             const { id, ...dataToSave } = employeeData;
             
@@ -133,11 +124,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }
 
             if (id) {
-                await updateDoc(doc(services.firestore, "employees", id), finalData);
+                await set(ref(db, `employees/${id}`), finalData);
                 toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
             } else {
-                const newDocRef = doc(collection(services.firestore, "employees"));
-                await setDoc(newDocRef, { ...finalData, status: 'aktywny', id: newDocRef.id });
+                const newEmployeeRef = push(ref(db, 'employees'));
+                await set(newEmployeeRef, { ...finalData, status: 'aktywny' });
                 toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
             }
         } catch (error) {
@@ -148,8 +139,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await updateDoc(doc(services.firestore, `employees/${employeeId}`), {
+            await update(ref(db, `employees/${employeeId}`), {
                 status: 'zwolniony',
                 terminationDate: format(new Date(), 'yyyy-MM-dd')
             });
@@ -159,11 +151,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
         }
     }, [services, toast]);
-
+    
     const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await updateDoc(doc(services.firestore, `employees/${employeeId}`), {
+            await update(ref(db, `employees/${employeeId}`), {
                 status: 'aktywny',
                 terminationDate: null 
             });
@@ -173,43 +166,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
         }
     }, [services, toast]);
-
+    
     const handleDeleteEmployeePermanently = useCallback(async (employeeId: string) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await deleteDoc(doc(services.firestore, `employees/${employeeId}`));
+            await remove(ref(db, `employees/${employeeId}`));
             toast({ title: 'Sukces', description: 'Pracownik został trwale usunięty z bazy danych.' });
         } catch (error) {
             console.error("Error deleting employee permanently: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracownika.' });
         }
     }, [services, toast]);
-
+    
     const handleDeleteAllHireDates = useCallback(async () => {
         if (!services) return;
+        const { db } = services;
         try {
-            const batch = writeBatch(services.firestore);
+            const updates: Record<string, any> = {};
             employees.forEach(employee => {
-                batch.update(doc(services.firestore, `employees/${employee.id}`), { hireDate: null });
+                updates[`/employees/${employee.id}/hireDate`] = null;
             });
-            await batch.commit();
+            await update(ref(db), updates);
             toast({ title: 'Sukces', description: 'Wszystkie daty zatrudnienia zostały usunięte.' });
         } catch (error) {
             console.error("Error deleting all hire dates: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć dat zatrudnienia.' });
         }
     }, [services, employees, toast]);
-
+    
     const handleUpdateHireDates = useCallback(async (dateUpdates: { fullName: string; hireDate: string }[]) => {
         if (!services) return;
-        const batch = writeBatch(services.firestore);
+        const { db } = services;
+        const updates: Record<string, any> = {};
         let updatedCount = 0;
         const notFound: string[] = [];
 
         dateUpdates.forEach(updateData => {
             const employeeToUpdate = employees.find(emp => emp.fullName === updateData.fullName);
             if (employeeToUpdate) {
-                batch.update(doc(services.firestore, `employees/${employeeToUpdate.id}`), { hireDate: updateData.hireDate });
+                updates[`/employees/${employeeToUpdate.id}/hireDate`] = updateData.hireDate;
                 updatedCount++;
             } else {
                 notFound.push(updateData.fullName);
@@ -218,7 +214,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         if (updatedCount > 0) {
             try {
-                await batch.commit();
+                await update(ref(db), updates);
                 toast({
                     title: 'Aktualizacja zakończona',
                     description: `Zaktualizowano daty zatrudnienia dla ${updatedCount} pracowników.`,
@@ -238,17 +234,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             });
         }
     }, [services, employees, toast]);
-    
+
     const handleUpdateContractEndDates = useCallback(async (dateUpdates: { fullName: string; contractEndDate: string }[]) => {
         if (!services) return;
-        const batch = writeBatch(services.firestore);
+        const { db } = services;
+        const updates: Record<string, any> = {};
         let updatedCount = 0;
         const notFound: string[] = [];
 
         dateUpdates.forEach(updateData => {
             const employeeToUpdate = employees.find(emp => emp.fullName === updateData.fullName);
             if (employeeToUpdate) {
-                batch.update(doc(services.firestore, `employees/${employeeToUpdate.id}`), { contractEndDate: updateData.contractEndDate });
+                updates[`/employees/${employeeToUpdate.id}/contractEndDate`] = updateData.contractEndDate;
                 updatedCount++;
             } else {
                 notFound.push(updateData.fullName);
@@ -257,7 +254,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         if (updatedCount > 0) {
             try {
-                await batch.commit();
+                await update(ref(db), updates);
                 toast({
                     title: 'Aktualizacja zakończona',
                     description: `Zaktualizowano daty końca umowy dla ${updatedCount} pracowników.`,
@@ -277,27 +274,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             });
         }
     }, [services, employees, toast]);
-
-
+    
     const handleDeleteAllEmployees = useCallback(async () => {
         if (!services) return;
+        const { db } = services;
         try {
-            const batch = writeBatch(services.firestore);
-            employees.forEach(employee => {
-                batch.delete(doc(services.firestore, `employees/${employee.id}`));
-            });
-            await batch.commit();
+            await set(ref(db, 'employees'), null);
             toast({ title: 'Sukces', description: 'Wszyscy pracownicy zostali usunięci.' });
         } catch (error) {
             console.error("Error deleting all employees: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracowników.' });
         }
-    }, [services, employees, toast]);
+    }, [services, toast]);
 
     const handleRestoreAllTerminatedEmployees = useCallback(async () => {
         if (!services) return;
+        const { db } = services;
         try {
-            const batch = writeBatch(services.firestore);
+            const updates: Record<string, any> = {};
             const terminatedEmployees = employees.filter(e => e.status === 'zwolniony');
             if (terminatedEmployees.length === 0) {
                 toast({ title: 'Informacja', description: 'Brak zwolnionych pracowników do przywrócenia.' });
@@ -305,9 +299,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }
 
             for (const employee of terminatedEmployees) {
-                 batch.update(doc(services.firestore, `employees/${employee.id}`), { status: 'aktywny', terminationDate: null });
+                 updates[`/employees/${employee.id}/status`] = 'aktywny';
+                 updates[`/employees/${employee.id}/terminationDate`] = null;
             }
-            await batch.commit();
+            await update(ref(db), updates);
             toast({ title: 'Sukces', description: `Przywrócono ${terminatedEmployees.length} pracowników.` });
         } catch (error) {
             console.error("Error restoring all terminated employees: ", error);
@@ -317,54 +312,57 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
         if (!services) return;
-        const batch = writeBatch(services.firestore);
+        const { db } = services;
+        const updates: Record<string, any> = {};
         items.forEach(itemName => {
-            const newDocRef = doc(collection(services.firestore, `config/${configType}/items`));
-            batch.set(newDocRef, { name: itemName });
+            const newKey = push(ref(db, `config/${configType}`)).key;
+            updates[`/config/${configType}/${newKey}`] = { name: itemName };
         });
-        await batch.commit();
+        await update(ref(db), updates);
     }, [services]);
 
     const updateConfigItem = useCallback(async (configType: ConfigType, itemId: string, newName: string) => {
         if (!services) return;
-        const itemDocRef = doc(services.firestore, `config/${configType}/items/${itemId}`);
+        const { db } = services;
         const itemToUpdate = config[configType].find(i => i.id === itemId);
         if (!itemToUpdate) return;
         
         const oldName = itemToUpdate.name;
         
         try {
-            const batch = writeBatch(services.firestore);
-            batch.update(itemDocRef, { name: newName });
+            const updates: Record<string, any> = {};
+            updates[`/config/${configType}/${itemId}/name`] = newName;
             
             const employeeFieldToUpdate = configType === 'departments' ? 'department' : configType === 'jobTitles' ? 'jobTitle' : configType === 'managers' ? 'manager' : configType === 'nationalities' ? 'nationality' : null;
             
             if (employeeFieldToUpdate) {
-                const q = query(collection(services.firestore, "employees"), where(employeeFieldToUpdate, "==", oldName));
-                const querySnapshot = await getDocs(q);
-                querySnapshot.forEach((employeeDoc) => {
-                    batch.update(employeeDoc.ref, { [employeeFieldToUpdate]: newName });
+                employees.forEach(emp => {
+                    if (emp[employeeFieldToUpdate] === oldName) {
+                        updates[`/employees/${emp.id}/${employeeFieldToUpdate}`] = newName;
+                    }
                 });
             }
             
-            await batch.commit();
+            await update(ref(db), updates);
             toast({ title: "Sukces", description: "Element został zaktualizowany."});
         } catch (error) {
             console.error("Error updating item:", error);
             toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zaktualizować elementu."});
         }
-    }, [services, config, toast]);
-
+    }, [services, config, employees, toast]);
+    
     const removeConfigItem = useCallback(async (configType: ConfigType, itemId: string) => {
         if (!services) return;
-        await deleteDoc(doc(services.firestore, `config/${configType}/items/${itemId}`));
+        const { db } = services;
+        await remove(ref(db, `/config/${configType}/${itemId}`));
         toast({ title: "Sukces", description: "Element został usunięty."});
     }, [services, toast]);
-    
+
     const handleSaveJobTitleClothingSet = useCallback(async (jobTitleId: string, description: string) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await setDoc(doc(services.firestore, `config/jobTitleClothingSets/items/${jobTitleId}`), {
+            await set(ref(db, `config/jobTitleClothingSets/${jobTitleId}`), {
                 id: jobTitleId,
                 description: description
             });
@@ -377,8 +375,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const handleSaveResendApiKey = useCallback(async (apiKey: string) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await setDoc(doc(services.firestore, 'config/resendApiKey'), { value: apiKey });
+            await set(ref(db, 'config/resendApiKey'), apiKey);
             toast({ title: "Sukces", description: "Klucz API Resend został zapisany."});
         } catch (error) {
             console.error("Error saving Resend API key:", error);
@@ -388,8 +387,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const handleUpdateUserRole = useCallback(async (userId: string, newRole: UserRole) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await updateDoc(doc(services.firestore, `users/${userId}`), { role: newRole });
+            const { firestore } = getFirebaseServices();
+            await updateDoc(doc(firestore, `users/${userId}`), { role: newRole });
             toast({ title: 'Sukces', description: 'Rola użytkownika została zaktualizowana.' });
         } catch (error) {
             console.error("Error updating user role: ", error);
@@ -399,20 +400,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const addAbsence = useCallback(async (employeeId: string, date: string) => {
         if (!services) return;
-        const newDocRef = doc(collection(services.firestore, 'absences'));
-        await setDoc(newDocRef, { employeeId, date, id: newDocRef.id });
+        const { db } = services;
+        const newRef = push(ref(db, 'absences'));
+        await set(newRef, { employeeId, date });
     }, [services]);
 
     const deleteAbsence = useCallback(async (absenceId: string) => {
         if (!services) return;
-        await deleteDoc(doc(services.firestore, `absences/${absenceId}`));
+        const { db } = services;
+        await remove(ref(db, `absences/${absenceId}`));
     }, [services]);
     
     const addAbsenceRecord = useCallback(async (record: Omit<AbsenceRecord, 'id'>) => {
         if (!services) return;
+        const { db } = services;
         try {
-            const newDocRef = doc(collection(services.firestore, 'absenceRecords'));
-            await setDoc(newDocRef, { ...record, id: newDocRef.id });
+            const newRef = push(ref(db, 'absenceRecords'));
+            await set(newRef, record);
             toast({ title: 'Sukces', description: 'Zapis został pomyślnie dodany.' });
         } catch (error) {
             console.error('Error saving record:', error);
@@ -422,24 +426,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     const deleteAbsenceRecord = useCallback(async (recordId: string) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await deleteDoc(doc(services.firestore, `absenceRecords/${recordId}`));
+            await remove(ref(db, `absenceRecords/${recordId}`));
             toast({ title: 'Sukces', description: 'Zapis został usunięty.' });
         } catch (error) {
             console.error('Error deleting record:', error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapisu.' });
         }
     }, [services, toast]);
-    
+
     const addCirculationCard = useCallback(async (employeeId: string, employeeFullName: string) => {
         if (!services) return null;
+        const { db } = services;
         try {
-            const newDocRef = doc(collection(services.firestore, 'circulationCards'));
-            const newCard: Omit<CirculationCard, 'id'> = {
+            const newRef = push(ref(db, 'circulationCards'));
+            const newCard: CirculationCard = {
+                id: newRef.key!,
                 employeeId, employeeFullName, date: new Date().toISOString(),
             };
-            await setDoc(newDocRef, { ...newCard, id: newDocRef.id });
-            return { ...newCard, id: newDocRef.id };
+            await set(newRef, newCard);
+            return newCard;
         } catch (error) {
             console.error('Error saving circulation card:', error);
             toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać karty.' });
@@ -449,45 +456,50 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     const addFingerprintAppointment = useCallback(async (appointment: Omit<FingerprintAppointment, 'id'>) => {
         if (!services) return;
+        const { db } = services;
         try {
-            const newDocRef = doc(collection(services.firestore, 'fingerprintAppointments'));
-            await setDoc(newDocRef, { ...appointment, id: newDocRef.id });
+            const newRef = push(ref(db, 'fingerprintAppointments'));
+            await set(newRef, appointment);
             toast({ title: 'Sukces', description: 'Termin został pomyślnie dodany.' });
         } catch (error) {
             console.error('Error saving appointment:', error);
             toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać terminu.' });
         }
     }, [services, toast]);
-    
+
     const deleteFingerprintAppointment = useCallback(async (appointmentId: string) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await deleteDoc(doc(services.firestore, `fingerprintAppointments/${appointmentId}`));
+            await remove(ref(db, `fingerprintAppointments/${appointmentId}`));
             toast({ title: 'Sukces', description: 'Termin został usunięty.' });
         } catch (error) {
             console.error('Error deleting appointment:', error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć terminu.' });
         }
     }, [services, toast]);
-    
+
     const addClothingIssuance = useCallback(async (issuance: Omit<ClothingIssuance, 'id'>) => {
         if (!services) return null;
+        const { db } = services;
         try {
-            const newDocRef = doc(collection(services.firestore, 'clothingIssuances'));
-            await setDoc(newDocRef, { ...issuance, id: newDocRef.id });
+            const newRef = push(ref(db, 'clothingIssuances'));
+            const newIssuance = { ...issuance, id: newRef.key! };
+            await set(newRef, newIssuance);
             toast({ title: 'Sukces', description: 'Zapis o wydaniu odzieży został zapisany.' });
-            return { ...issuance, id: newDocRef.id };
+            return newIssuance;
         } catch (error) {
             console.error('Error saving clothing issuance:', error);
             toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać danych.' });
             return null;
         }
     }, [services, toast]);
-
+    
     const deleteClothingIssuance = useCallback(async (issuanceId: string) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await deleteDoc(doc(services.firestore, `clothingIssuances/${issuanceId}`));
+            await remove(ref(db, `clothingIssuances/${issuanceId}`));
             toast({ title: 'Sukces', description: 'Zapis został usunięty.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapisu.' });
@@ -496,14 +508,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const addOrder = useCallback(async (order: Omit<Order, 'id' | 'createdAt'>) => {
         if (!services) return;
+        const { db } = services;
         try {
-            const newDocRef = doc(collection(services.firestore, 'orders'));
-            const dataToSet: Omit<Order, 'id'> = {
+            const newRef = push(ref(db, 'orders'));
+            await set(newRef, {
                 ...order,
                 createdAt: new Date().toISOString(),
                 realizedQuantity: order.realizedQuantity || 0
-            };
-            await setDoc(newDocRef, { ...dataToSet, id: newDocRef.id });
+            });
             toast({ title: 'Sukces', description: 'Nowe zamówienie zostało dodane.'});
         } catch(e) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zamówienia.'});
@@ -512,9 +524,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     const updateOrder = useCallback(async (order: Order) => {
         if (!services) return;
+        const { db } = services;
         try {
             const { id, ...dataToUpdate } = order;
-            await updateDoc(doc(services.firestore, `orders/${id}`), dataToUpdate);
+            await update(ref(db, `orders/${id}`), dataToUpdate);
             toast({ title: 'Sukces', description: 'Zamówienie zostało zaktualizowane.'});
         } catch(e) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować zamówienia.'});
@@ -523,8 +536,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const deleteOrder = useCallback(async (orderId: string) => {
         if (!services) return;
+        const { db } = services;
         try {
-            await deleteDoc(doc(services.firestore, `orders/${orderId}`));
+            await remove(ref(db, `orders/${orderId}`));
             toast({ title: 'Sukces', description: 'Zamówienie zostało usunięte.'});
         } catch(e) {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zamówienia.'});
@@ -536,89 +550,69 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         const unsubscribeAuth = onAuthStateChanged(services.auth, async (user: FirebaseUser | null) => {
             if (user) {
-                const userDocRef = doc(services.firestore, 'users', user.uid);
+                // Use Firestore only for user roles, as it's more suitable for this kind of data.
+                const { firestore } = getFirebaseServices();
+                const userDocRef = doc(firestore, 'users', user.uid);
                 const userDocSnap = await getDoc(userDocRef);
-                const role = userDocSnap.exists() ? (userDocSnap.data().role as UserRole) : 'guest';
                 
                 if (!userDocSnap.exists()) {
-                    const usersCollRef = collection(services.firestore, 'users');
+                    const usersCollRef = collection(firestore, 'users');
                     const allUsersSnap = await getDocs(usersCollRef);
                     const isFirstUser = allUsersSnap.empty;
-                    const newRole = isFirstUser ? 'admin' : 'guest';
-                    await setDoc(userDocRef, { email: user.email, role: newRole });
-                     setCurrentUser({ uid: user.uid, email: user.email, role: newRole });
+                    const role = isFirstUser ? 'admin' : 'guest';
+                    await setDoc(userDocRef, { email: user.email, role: role });
+                    setCurrentUser({ uid: user.uid, email: user.email, role });
                 } else {
-                     setCurrentUser({ uid: user.uid, email: user.email, role });
+                    const role = userDocSnap.data().role as UserRole;
+                    setCurrentUser({ uid: user.uid, email: user.email, role });
                 }
-
             } else {
                 setCurrentUser(null);
             }
+            setIsLoading(false); 
         });
 
         return () => unsubscribeAuth();
     }, [services]);
 
-
     useEffect(() => {
         if (!currentUser || !services) {
-            setIsLoading(false);
+            setEmployees([]);
+            setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
+            setAbsences([]);
+            setNotifications([]);
+            setStatsHistory([]);
             return;
-        };
+        }
 
-        setIsLoading(true);
-        
-        const { firestore } = services;
+        const { db } = services;
 
         const unsubscribes = [
-            onSnapshot(collection(firestore, "employees"), snapshot => setEmployees(docsToArray(snapshot))),
-            onSnapshot(collection(firestore, "users"), snapshot => setUsers(docsToArray(snapshot))),
-            onSnapshot(collection(firestore, "absences"), snapshot => setAbsences(docsToArray(snapshot))),
-            onSnapshot(collection(firestore, "notifications"), snapshot => setNotifications(docsToArray(snapshot))),
-            onSnapshot(collection(firestore, "statisticsHistory"), snapshot => {
-                setStatsHistory(docsToArray(snapshot).sort((a:any, b:any) => new Date(b.id).getTime() - new Date(a.id).getTime()));
+            onValue(ref(db, "employees"), snapshot => setEmployees(objectToArray(snapshot.val()))),
+            onValue(ref(db, "absences"), snapshot => setAbsences(objectToArray(snapshot.val()))),
+            onValue(ref(db, "notifications"), snapshot => setNotifications(objectToArray(snapshot.val()))),
+            onValue(ref(db, "statisticsHistory"), snapshot => {
+                setStatsHistory(objectToArray(snapshot.val()).sort((a:any, b:any) => new Date(b.id).getTime() - new Date(a.id).getTime()));
                 setIsHistoryLoading(false);
             }),
+            onValue(ref(db, "config"), snapshot => {
+                const configData = snapshot.val() || {};
+                const newConfig: AllConfig = {
+                    departments: objectToArray(configData.departments),
+                    jobTitles: objectToArray(configData.jobTitles),
+                    managers: objectToArray(configData.managers),
+                    nationalities: objectToArray(configData.nationalities),
+                    clothingItems: objectToArray(configData.clothingItems),
+                    jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
+                    resendApiKey: configData.resendApiKey || '',
+                };
+                setConfig(newConfig);
+            }),
+             onValue(ref(db, "users"), snapshot => setUsers(objectToArray(snapshot.val()))),
         ];
-
-        const configTypes: ConfigType[] = ['departments', 'jobTitles', 'managers', 'nationalities', 'clothingItems'];
-        
-        const unsubConfig = onSnapshot(doc(firestore, "config", "v1"), async (docSnap) => {
-            const newConfig: AllConfig = { departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' };
-            if (docSnap.exists()) {
-                 const configData = docSnap.data();
-                 for (const type of configTypes) {
-                    const itemsSnapshot = await getDocs(collection(firestore, `config/v1/${type}`));
-                    newConfig[type] = docsToArray(itemsSnapshot);
-                 }
-                 const clothingSetsSnapshot = await getDocs(collection(firestore, `config/v1/jobTitleClothingSets`));
-                 newConfig.jobTitleClothingSets = docsToArray(clothingSetsSnapshot);
-                 newConfig.resendApiKey = configData.resendApiKey || '';
-            }
-            setConfig(newConfig);
-        });
-        unsubscribes.push(unsubConfig);
-        
-        // This sets the initial loading state to false after the first data fetch attempt.
-        const finishLoading = () => setIsLoading(false);
-
-        const allPromises = [
-            getDocs(collection(firestore, "employees")),
-            getDocs(collection(firestore, "users")),
-            getDocs(collection(firestore, "absences")),
-            getDocs(collection(firestore, "notifications")),
-            getDocs(collection(firestore, "statisticsHistory")),
-            getDoc(doc(firestore, "config", "v1")),
-        ];
-
-        Promise.all(allPromises).then(finishLoading).catch(error => {
-            console.error("Initial data load failed: ", error);
-            toast({ variant: 'destructive', title: 'Błąd Bazy Danych', description: 'Nie udało się załadować danych.'});
-            finishLoading();
-        });
 
         return () => unsubscribes.forEach(unsub => unsub());
-    }, [services, currentUser, toast]);
+    }, [services, currentUser]);
 
     const value: AppContextType = {
         employees,
