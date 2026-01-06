@@ -2,7 +2,8 @@
 "use client";
 
 import { useState, cloneElement } from "react";
-import { generateEmployeeSummary, GenerateEmployeeSummaryInputSchema } from "@/ai/flows/generate-employee-summary";
+import { generateEmployeeSummary } from "@/ai/flows/generate-employee-summary";
+import { GenerateEmployeeSummaryInputSchema } from "@/ai/schemas/employee-summary-schemas";
 import {
   Dialog,
   DialogContent,
