@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -13,6 +14,7 @@ import {
   PackagePlus,
   ClipboardList,
   CalendarClock,
+  CalendarCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
@@ -39,6 +41,7 @@ const AppBottomNav = ({ activeView, setActiveView }: AppBottomNavProps) => {
   const allMenuItems: MenuItem[] = [
     { view: 'aktywni', icon: Users, label: 'Aktywni' },
     { view: 'planowanie', icon: CalendarClock, label: 'Planowanie'},
+    { view: 'odwiedzalnosc', icon: CalendarCheck, label: 'Obecność'},
     { view: 'statystyki', icon: BarChart3, label: 'Statystyki' },
     { view: 'konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];

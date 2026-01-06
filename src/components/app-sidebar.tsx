@@ -180,7 +180,7 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
     { view: 'wydawanie-odziezy-nowi', icon: <PackagePlus />, label: 'Wydawanie dla nowych'},
     { view: 'karty-obiegowe', icon: <FileText />, label: 'Karty obiegowe' },
     { view: 'odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
-    { view: 'brak-logowania', icon: <FileText />, label: 'Brak logowania' },
+    { view: 'brak-logowania', icon: <ClipboardList />, label: 'Brak logowania' },
     { view: 'konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
   ];
   

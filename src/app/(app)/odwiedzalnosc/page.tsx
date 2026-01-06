@@ -10,17 +10,11 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Loader2, CalendarIcon, ChevronLeft, ChevronRight, UserCheck, UserX, Percent } from 'lucide-react';
+import { Loader2, CalendarIcon, ChevronLeft, ChevronRight, UserX, Copy, Info, Users } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import type { Employee, Absence, AllConfig } from '@/lib/types';
+import type { Employee, Absence } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { add, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, setYear, setMonth, isWeekend } from 'date-fns';
+import { add, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, setYear, setMonth, isWeekend, getDaysInMonth } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
@@ -32,135 +26,58 @@ import {
 } from '@/components/ui/select';
 import { getPolishHolidays } from '@/lib/holidays';
 import { useAppContext } from '@/context/app-context';
-import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { EmployeeAttendanceCard } from '@/components/employee-attendance-card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-
-const DepartmentStats = ({ department, employees, absences }: { department: string, employees: Employee[], absences: Absence[] }) => {
-    const totalEmployees = employees.length;
-    if (totalEmployees === 0) return null;
-
-    const departmentAbsences = absences.filter(a => employees.some(e => e.id === a.employeeId));
-    const totalAbsenceDays = departmentAbsences.length;
-    const workingDaysInMonth = 21; // Uproszczenie, do poprawy
-    const totalPossibleDays = totalEmployees * workingDaysInMonth;
-    const absencePercentage = totalPossibleDays > 0 ? (totalAbsenceDays / totalPossibleDays) * 100 : 0;
-    
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Statystyki dla: {department}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div>
-                    <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm text-muted-foreground">Procent nieobecności</span>
-                        <span className="text-sm font-bold">{absencePercentage.toFixed(1)}%</span>
-                    </div>
-                    <Progress value={absencePercentage} indicatorClassName="bg-destructive" />
-                </div>
-                <div className="text-sm text-muted-foreground">
-                    <p>Całkowita liczba pracowników: <span className="font-bold text-foreground">{totalEmployees}</span></p>
-                    <p>Całkowita liczba dni absencji: <span className="font-bold text-foreground">{totalAbsenceDays}</span></p>
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
-
-
-const AttendanceCalendar = ({ employees, absences, currentDate, onDateChange, onToggleAbsence }: { employees: Employee[], absences: Absence[], currentDate: Date, onDateChange: (date: Date) => void, onToggleAbsence: (employeeId: string, date: string, isAbsent: boolean) => void }) => {
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const holidays = useMemo(() => getPolishHolidays(getYear(currentDate)), [currentDate]);
-
-  const handleDayClick = (employeeId: string, day: Date) => {
-    const dateString = format(day, 'yyyy-MM-dd');
-    const isCurrentlyAbsent = absences.some(a => a.employeeId === employeeId && a.date === dateString);
-    onToggleAbsence(employeeId, dateString, isCurrentlyAbsent);
+const DepartmentStats = ({
+  departmentData,
+  onCopy,
+}: {
+  departmentData: { name: string; percentage: number, employees: Employee[] }[];
+  onCopy: (text: string) => void;
+}) => {
+  const [openItems, setOpenItems] = useState<string[]>([]);
+  const formatListForCopy = () => {
+    return departmentData.map(d => `${d.name}: ${d.percentage.toFixed(2)}%`).join('\n');
   }
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => onDateChange(add(currentDate, { months: -1 }))}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-xl font-bold text-center capitalize">
-              {format(currentDate, 'LLLL yyyy', { locale: pl })}
-            </h2>
-            <Button variant="outline" size="icon" onClick={() => onDateChange(add(currentDate, { months: 1 }))}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Absencja wg działów</CardTitle>
+          <CardDescription>Średni % nieobecności w miesiącu.</CardDescription>
         </div>
+        <Button variant="ghost" size="sm" onClick={() => onCopy(formatListForCopy())}>
+          <Copy className="mr-2 h-4 w-4" />
+          Kopiuj listę
+        </Button>
       </CardHeader>
-      <CardContent className="flex-grow overflow-auto p-0">
-        <div className="relative">
-          <table className="w-full border-collapse">
-            <thead className="sticky top-0 bg-card z-10 shadow-sm">
-              <tr>
-                <th className="sticky left-0 bg-card p-2 border-b border-r w-52 min-w-52 text-left text-sm font-medium text-muted-foreground">Pracownik</th>
-                {days.map(day => {
-                    const isHoliday = holidays.some(h => isSameDay(h, day));
-                    const isWknd = isWeekend(day);
-                    return (
-                        <th key={day.toString()} className={cn("p-2 border-b border-l text-center text-xs font-medium min-w-[40px]", (isWknd || isHoliday) && "text-destructive")}>
-                           <div className="flex flex-col items-center">
-                             <span>{format(day, 'E', { locale: pl }).charAt(0)}</span>
-                             <span>{format(day, 'd')}</span>
-                           </div>
-                        </th>
-                    )
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map(employee => {
-                const employeeAbsences = absences.filter(a => a.employeeId === employee.id);
-                const totalAbsences = employeeAbsences.length;
-
-                return (
-                  <tr key={employee.id} className="group hover:bg-muted/50">
-                    <td className="sticky left-0 bg-card group-hover:bg-muted/50 p-2 border-b border-r w-52 min-w-52">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-sm truncate">{employee.fullName}</span>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                                <UserX className="h-3 w-3 text-destructive" />
-                                <span>{totalAbsences}</span>
-                            </div>
-                        </div>
-                      </div>
-                    </td>
-                    {days.map(day => {
-                      const dateString = format(day, 'yyyy-MM-dd');
-                      const isAbsent = employeeAbsences.some(a => a.date === dateString);
-                      const isHoliday = holidays.some(h => isSameDay(h, day));
-                      const isWknd = isWeekend(day);
-                      return (
-                        <td key={day.toString()} className="p-0 border-b border-l text-center align-middle">
-                          <button
-                            onClick={() => handleDayClick(employee.id, day)}
-                            className={cn(
-                              "w-full h-14 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:z-20",
-                              isAbsent ? "bg-destructive/80 hover:bg-destructive text-destructive-foreground" : "hover:bg-muted",
-                              (isWknd || isHoliday) && !isAbsent && "bg-muted/30"
-                            )}
-                          >
-                            {isAbsent && <UserX className="h-5 w-5" />}
-                          </button>
-                        </td>
-                      )
-                    })}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+      <CardContent>
+        {departmentData.length > 0 ? (
+          <Accordion type="multiple" value={openItems} onValueChange={setOpenItems}>
+            {departmentData.map((dept) => (
+              <AccordionItem value={dept.name} key={dept.name}>
+                <AccordionTrigger>
+                  <div className="flex w-full justify-between items-center">
+                    <span className="font-medium">{dept.name}</span>
+                    <span className={cn("font-semibold", dept.percentage > 5 && "text-destructive")}>{dept.percentage.toFixed(2)}%</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="text-sm text-muted-foreground pl-4">
+                    {dept.employees.map(emp => (
+                        <li key={emp.id} className="py-1">{emp.fullName}</li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        ) : (
+          <p className="text-center text-sm text-muted-foreground py-4">Brak danych do wyświetlenia.</p>
+        )}
       </CardContent>
     </Card>
   );
@@ -168,22 +85,107 @@ const AttendanceCalendar = ({ employees, absences, currentDate, onDateChange, on
 
 
 export default function OdwiedzalnoscPage() {
-  const { employees, absences, isLoading: isAppLoading, addAbsence, deleteAbsence, config } = useAppContext();
+  const { employees, absences, isLoading: isAppLoading, addAbsence, deleteAbsence } = useAppContext();
+  const { toast } = useToast();
   
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
-  
-  const departmentOptions = useMemo(() => {
-    const depts = new Set(activeEmployees.map(e => e.department));
-    return [{ value: "all", label: "Wszystkie działy" }, ...Array.from(depts).sort().map(d => ({ value: d, label: d }))];
-  }, [activeEmployees]);
-  
+
+  const departmentOptions = useMemo(() => [
+    { value: "all", label: "Wszystkie działy" },
+    ...[...new Set(activeEmployees.map(e => e.department).filter(Boolean))].sort().map(d => ({ value: d, label: d }))
+  ], [activeEmployees]);
+
+  const years = useMemo(() => {
+    const currentYear = getYear(new Date());
+    return Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+  }, []);
+
+  const months = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => ({
+      value: i,
+      label: format(new Date(2000, i, 1), 'LLLL', { locale: pl }),
+    }));
+  }, []);
+
+  const { workingDaysInMonth, holidays } = useMemo(() => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const daysInPeriod = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    const holidaysForYear = getPolishHolidays(getYear(currentDate));
+    
+    let workingDays = 0;
+    daysInPeriod.forEach(day => {
+      const isWknd = isWeekend(day);
+      const isHoliday = holidaysForYear.some(h => isSameDay(h, day));
+      if (!isWknd && !isHoliday) {
+        workingDays++;
+      }
+    });
+
+    return { workingDaysInMonth: workingDays, holidays: holidaysForYear };
+  }, [currentDate]);
+
   const filteredEmployees = useMemo(() => {
-    if (selectedDepartment === "all") return activeEmployees;
-    return activeEmployees.filter(e => e.department === selectedDepartment);
-  }, [activeEmployees, selectedDepartment]);
+    let filtered = activeEmployees;
+    if (selectedDepartment !== "all") {
+      filtered = filtered.filter(e => e.department === selectedDepartment);
+    }
+    if (searchTerm) {
+        const lowerCaseSearch = searchTerm.toLowerCase();
+        filtered = filtered.filter(e => e.fullName.toLowerCase().includes(lowerCaseSearch));
+    }
+    return filtered;
+  }, [activeEmployees, selectedDepartment, searchTerm]);
+
+  const { totalAbsencesInMonth, departmentStats } = useMemo(() => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    
+    const relevantAbsences = absences.filter(a => {
+        const absenceDate = new Date(a.date);
+        return absenceDate >= monthStart && absenceDate <= monthEnd;
+    });
+
+    const totalAbsences = relevantAbsences.length;
+
+    const deptStatsMap: Record<string, { absenceCount: number, employeeCount: number, employees: Employee[] }> = {};
+    activeEmployees.forEach(emp => {
+        if (!deptStatsMap[emp.department]) {
+            deptStatsMap[emp.department] = { absenceCount: 0, employeeCount: 0, employees: [] };
+        }
+        deptStatsMap[emp.department].employeeCount++;
+        deptStatsMap[emp.department].employees.push(emp);
+    });
+    
+    relevantAbsences.forEach(abs => {
+        const employee = activeEmployees.find(e => e.id === abs.employeeId);
+        if (employee && deptStatsMap[employee.department]) {
+            deptStatsMap[employee.department].absenceCount++;
+        }
+    });
+
+    const departmentStats = Object.entries(deptStatsMap)
+        .map(([name, data]) => ({
+            name,
+            percentage: data.employeeCount > 0 && workingDaysInMonth > 0
+                ? (data.absenceCount / (data.employeeCount * workingDaysInMonth)) * 100
+                : 0,
+            employees: data.employees.sort((a,b) => a.fullName.localeCompare(b.fullName))
+        }))
+        .sort((a, b) => b.percentage - a.percentage);
+
+    return { totalAbsencesInMonth: totalAbsences, departmentStats };
+  }, [absences, currentDate, activeEmployees, workingDaysInMonth]);
+  
+  const totalAbsencePercentage = useMemo(() => {
+      if (activeEmployees.length === 0 || workingDaysInMonth === 0) return 0;
+      const totalPossibleWorkDays = activeEmployees.length * workingDaysInMonth;
+      return (totalAbsencesInMonth / totalPossibleWorkDays) * 100;
+  }, [activeEmployees.length, workingDaysInMonth, totalAbsencesInMonth]);
 
   const handleToggleAbsence = async (employeeId: string, date: string, isCurrentlyAbsent: boolean) => {
       const existingAbsence = absences.find(a => a.employeeId === employeeId && a.date === date);
@@ -195,58 +197,122 @@ export default function OdwiedzalnoscPage() {
       }
   };
 
+  const handleCopy = useCallback((text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Skopiowano!",
+      description: "Statystyki działów zostały skopiowane do schowka.",
+    });
+  }, [toast]);
+  
+
   const isLoading = isAppLoading;
 
   if (isLoading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
   return (
     <div className="flex h-full flex-col">
       <PageHeader
         title="Obecność"
-        description="Zarządzaj obecnością i analizuj statystyki dla działów."
-      >
-        <div className="w-64">
-           <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-            <SelectTrigger>
-              <SelectValue placeholder="Wybierz dział" />
-            </SelectTrigger>
-            <SelectContent>
-              {departmentOptions.map(option => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </PageHeader>
+        description="Zarządzaj nieobecnościami pracowników i analizuj statystyki."
+      />
       
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-grow">
-          <div className="lg:col-span-3 h-full min-h-[600px]">
-            <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin" />}>
-                <AttendanceCalendar 
-                    employees={filteredEmployees}
-                    absences={absences}
-                    currentDate={currentDate}
-                    onDateChange={setCurrentDate}
-                    onToggleAbsence={handleToggleAbsence}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Dni robocze w miesiącu</CardTitle>
+                  <Info className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{workingDaysInMonth}</div>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Suma nieobecności (miesiąc)</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{totalAbsencesInMonth}</div>
+              </CardContent>
+          </Card>
+           <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Absencja (miesiąc)</CardTitle>
+                  <UserX className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{totalAbsencePercentage.toFixed(2)}%</div>
+              </CardContent>
+          </Card>
+      </div>
+
+       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-2xl font-bold tracking-tight capitalize">
+              {format(currentDate, 'LLLL yyyy', { locale: pl })}
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+                 <Input 
+                    placeholder="Szukaj po nazwisku, imieniu..."
+                    className="max-w-xs"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                 />
-            </Suspense>
+                 <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                      <SelectValue placeholder="Wybierz dział" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departmentOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                 <div className="flex items-center gap-1 p-1 rounded-md border bg-card">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(prev => add(prev, { months: -1 }))}><ChevronLeft /></Button>
+                      <Select value={String(getMonth(currentDate))} onValueChange={v => setCurrentDate(setMonth(currentDate, Number(v)))}>
+                        <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <Select value={String(getYear(currentDate))} onValueChange={v => setCurrentDate(setYear(currentDate, Number(v)))}>
+                        <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(prev => add(prev, { months: 1 }))}><ChevronRight /></Button>
+                 </div>
+            </div>
+        </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+          <div className="lg:col-span-2">
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredEmployees.map(emp => (
+                    <EmployeeAttendanceCard
+                        key={emp.id}
+                        employee={emp}
+                        absences={absences}
+                        currentDate={currentDate}
+                        holidays={holidays}
+                        onToggleAbsence={handleToggleAbsence}
+                    />
+                ))}
+             </div>
+             {filteredEmployees.length === 0 && (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed text-center p-12 text-muted-foreground h-full">
+                    <UserX className="h-12 w-12 mb-4" />
+                    <h3 className="text-lg font-semibold">Brak pracowników</h3>
+                    <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów.</p>
+                </div>
+             )}
           </div>
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1">
              <DepartmentStats 
-                department={selectedDepartment === 'all' ? 'Wszystkie działy' : selectedDepartment}
-                employees={filteredEmployees}
-                absences={absences.filter(a => {
-                    const emp = employees.find(e => e.id === a.employeeId);
-                    return emp && (selectedDepartment === 'all' || emp.department === selectedDepartment);
-                })}
+                departmentData={departmentStats}
+                onCopy={handleCopy}
             />
           </div>
       </div>
