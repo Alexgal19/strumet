@@ -1,0 +1,27 @@
+{
+  "services": {
+    "filesystem": {
+      "command": "node",
+      "args": [
+        "/home/user/studio/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js",
+        "/home/user/studio"
+      ]
+    },
+    "memory": {
+      "command": "node",
+      "args": [
+        "/home/user/studio/node_modules/@modelcontextprotocol/server-memory/dist/index.js"
+      ],
+      "env": {
+        "MEMORY_FILE_PATH": "/home/user/studio/memory-data/memory.json"
+      }
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    }
+  }
+}

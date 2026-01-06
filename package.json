@@ -16,6 +16,8 @@
     "@genkit-ai/firebase": "^1.25.0",
     "@genkit-ai/google-genai": "^1.25.0",
     "@genkit-ai/next": "^1.25.0",
+    "@modelcontextprotocol/server-filesystem": "^2025.12.18",
+    "@modelcontextprotocol/server-memory": "^2025.11.25",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-avatar": "^1.1.3",

@@ -1,17 +1,49 @@
 {
   "mcpServers": {
     "firebase": {
-      "command": "npx",
+      "command": "node",
       "args": [
-        "-y",
-        "firebase-tools@latest",
+        "/home/user/studio/node_modules/firebase-tools/lib/bin/firebase.js",
         "mcp"
       ]
     },
+    "genkit": {
+      "command": "genkit",
+      "args": ["mcp"],
+      "cwd": "",
+      "timeout": 30000,
+      "trust": false
+    },
     "next-devtools": {
+      "command": "node",
+      "args": [
+        "/home/user/studio/node_modules/next-devtools-mcp/dist/index.js",
+        "--port",
+        "9002",
+        "--host",
+        "0.0.0.0"
+      ]
+    },
+    "filesystem": {
+      "command": "node",
+      "args": [
+        "/home/user/studio/node_modules/@modelcontextprotocol/server-filesystem/dist/index.js",
+        "/home/user/studio"
+      ]
+    },
+    "memory": {
+      "command": "node",
+      "args": [
+        "/home/user/studio/node_modules/@modelcontextprotocol/server-memory/dist/index.js"
+      ],
+      "env": {
+        "MEMORY_FILE_PATH": "/home/user/studio/memory-data/memory.json"
+      }
+    },
+    "sequential-thinking": {
       "command": "npx",
       "args": [
-        "next-devtools-mcp@latest"
+        "/home/user/studio/.mcp-bin/sequential-thinking.js"
       ]
     }
   },
