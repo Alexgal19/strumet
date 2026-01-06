@@ -1,6 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* To mapuje Twoje zmienne CSS na klasy Tailwinda w wersji 4 */
+@theme {
+  --color-border: hsl(var(--border));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-card: hsl(var(--card));
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
 
 html, body, #__next__ {
   height: 100%;
@@ -8,118 +18,22 @@ html, body, #__next__ {
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 30 20% 98%; 
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
     --primary: 14 100% 59%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 14 100% 59%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 14 100% 59%;
-
-    --chart-1: 222.2 47.4% 11.2%;
-    --chart-2: 22 90% 50%;
-    --chart-3: 170 80% 40%;
-    --chart-4: 210 90% 55%;
-    --chart-5: 330 100% 70%;
-
-    --sidebar-background: 220 15% 97%;
-    --sidebar-foreground: 222 84% 5%;
-    --sidebar-primary: 222 70% 45%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 222 70% 45% / 0.1;
-    --sidebar-accent-foreground: 222 70% 45%;
-    --sidebar-border: 214.3 31.8% 91.4% / 0.5;
-    --sidebar-ring: 222 70% 45%;
+    --border: 220 13% 94%;
+    --radius: 1rem;
+    /* ... reszta Twoich zmiennych ... */
   }
-
-  .dark {
-    --background: 20 10% 98%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 14 100% 59%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 14 100% 59%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 14 100% 59%;
-    
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 14 100% 59%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 14 100% 59% / 0.1;
-    --sidebar-accent-foreground: 14 100% 59%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 14 100% 59%;
-    
-    --chart-1: 14 100% 59%;
-    --chart-2: 170 80% 40%;
-    --chart-3: 330 100% 70%;
-    --chart-4: 25 95% 53%;
-    --chart-5: 45 100% 50%;
-  }
-}
-
-@keyframes move-gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
 }
 
 @layer base {
   * {
+    /* Teraz 'border-border' zadziała, bo zdefiniowaliśmy '--color-border' w @theme */
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
   }
-  .dark body {
-    background: linear-gradient(135deg, hsl(30 100% 97%), hsl(20 100% 96%), hsl(10 100% 95%));
-    background-size: 200% 200%;
-    animation: move-gradient 15s ease infinite;
-  }
-}
-
-@media print {
-  @page {
-    margin: 0;
-    size: A4;
-  }
-  
-  body.printing .main-content-container,
-  body:not(.printing) .print-only,
-  .no-print,
-  [data-radix-toast-viewport] {
-    display: none;
-  }
-
-  body.printing .print-only {
-    display: block;
-  }
-}
-
-.print-only {
-    display: none;
 }
