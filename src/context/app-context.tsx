@@ -105,14 +105,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     email: user.email,
                     role: role || 'guest', 
                 });
-                
-                if (role !== 'admin') {
-                    setActiveView('statystyki');
-                }
             } else {
                 setCurrentUser(null);
-                setIsLoading(false); // Set loading to false on logout
             }
+            // We set loading to false only after auth state is resolved and data is potentially fetched or cleared.
+            // This prevents rendering components that rely on auth state before it's known.
         });
 
         return () => unsubscribeAuth();
@@ -121,7 +118,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         if (!currentUser) {
-            // No user, no need to fetch data.
+            // If user logs out, clear data and stop loading.
+            setEmployees([]);
+            setUsers([]);
+            setAbsences([]);
+            setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
+            setNotifications([]);
+            setStatsHistory([]);
+            setIsLoading(false);
+            setIsHistoryLoading(false);
             return;
         };
 
@@ -153,7 +158,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         });
 
         return () => unsubscribeDb();
-    }, [db, currentUser]);
+    }, [db, currentUser, toast]);
     
     // --- Employee Actions ---
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
