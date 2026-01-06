@@ -116,6 +116,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 const snapshot = await get(userRoleRef);
                 const role = snapshot.val() as UserRole || 'guest';
                 setCurrentUser({ uid: user.uid, email: user.email, role });
+                 // Dodaj tymczasowy testowy kod
+                const testRef = ref(db, 'test');
+                set(testRef, { message: 'Test message' })
+                  .then(() => console.log('Zapisano'))
+                  .catch(error => console.error('Błąd zapisu:', error));
             } else {
                 setCurrentUser(null);
                 setIsLoading(true); // Reset loading state on logout
@@ -138,7 +143,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         const { db } = services;
         let dataLoadedCount = 0;
-        const totalListeners = 5; // employees, users, absences, notifications, config
+        const totalListeners = 5;
 
         const handleDataLoaded = () => {
           dataLoadedCount++;
@@ -147,37 +152,41 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           }
         };
         
-        const employeesRef = ref(db, "employees");
-        const usersRef = ref(db, "users");
-        const absencesRef = ref(db, "absences");
-        const notificationsRef = ref(db, "notifications");
-        const historyRef = ref(db, "statisticsHistory");
-        const configRef = ref(db, "config");
-        
-        const unsubscribes = [
-            onValue(employeesRef, snapshot => { setEmployees(objectToArray(snapshot.val())); handleDataLoaded(); }),
-            onValue(usersRef, snapshot => { setUsers(objectToArray(snapshot.val())); handleDataLoaded(); }),
-            onValue(absencesRef, snapshot => { setAbsences(objectToArray(snapshot.val())); handleDataLoaded(); }),
-            onValue(notificationsRef, snapshot => { setNotifications(objectToArray(snapshot.val())); handleDataLoaded(); }),
-            onValue(historyRef, snapshot => {
-                setStatsHistory(objectToArray(snapshot.val()).sort((a:any, b:any) => new Date(b.id).getTime() - new Date(a.id).getTime()));
-                setIsHistoryLoading(false);
-            }),
-            onValue(configRef, snapshot => {
-                const configData = snapshot.val() || {};
-                const newConfig: AllConfig = {
-                    departments: objectToArray(configData.departments),
-                    jobTitles: objectToArray(configData.jobTitles),
-                    managers: objectToArray(configData.managers),
-                    nationalities: objectToArray(configData.nationalities),
-                    clothingItems: objectToArray(configData.clothingItems),
-                    jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
-                    resendApiKey: configData.resendApiKey || '',
-                };
-                setConfig(newConfig);
-                handleDataLoaded();
-            }),
+        const refs = [
+            { path: "employees", setter: setEmployees },
+            { path: "users", setter: setUsers },
+            { path: "absences", setter: setAbsences },
+            { path: "notifications", setter: setNotifications },
         ];
+
+        const unsubscribes = refs.map(({ path, setter }) => 
+            onValue(ref(db, path), snapshot => {
+                setter(objectToArray(snapshot.val()));
+                handleDataLoaded();
+            })
+        );
+        
+        const historyRef = ref(db, "statisticsHistory");
+        unsubscribes.push(onValue(historyRef, snapshot => {
+            setStatsHistory(objectToArray(snapshot.val()).sort((a:any, b:any) => new Date(b.id).getTime() - new Date(a.id).getTime()));
+            setIsHistoryLoading(false);
+        }));
+
+        const configRef = ref(db, "config");
+        unsubscribes.push(onValue(configRef, snapshot => {
+            const configData = snapshot.val() || {};
+            const newConfig: AllConfig = {
+                departments: objectToArray(configData.departments),
+                jobTitles: objectToArray(configData.jobTitles),
+                managers: objectToArray(configData.managers),
+                nationalities: objectToArray(configData.nationalities),
+                clothingItems: objectToArray(configData.clothingItems),
+                jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
+                resendApiKey: configData.resendApiKey || '',
+            };
+            setConfig(newConfig);
+            handleDataLoaded();
+        }));
 
         return () => {
             unsubscribes.forEach(unsub => unsub());
@@ -670,5 +679,7 @@ export const useAppContext = () => {
     }
     return context;
 };
+
+    
 
     
