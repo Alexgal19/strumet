@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
@@ -11,33 +11,21 @@ import { AppProvider, useAppContext } from '@/context/app-context';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
-// Static imports for ultra-fast navigation
-import AktywniPage from '@/app/(app)/aktywni/page';
-import ZwolnieniPage from '@/app/(app)/zwolnieni/page';
-import PlanowaniePage from '@/app/(app)/planowanie/page';
-import StatystykiPage from '@/app/(app)/statystyki/page';
-import KartyObiegowePage from '@/app/(app)/karty-obiegowe/page';
-import OdciskiPalcowPage from '@/app/(app)/odciski-palcow/page';
-import BrakLogowaniaPage from '@/app/(app)/brak-logowania/page';
-import KonfiguracjaPage from '@/app/(app)/konfiguracja/page';
-import WydawanieOdziezyPage from '@/app/(app)/wydawanie-odziezy/page';
-import WydawanieOdziezyNowiPage from '@/app/(app)/wydawanie-odziezy-nowi/page';
-import OdwiedzalnoscPage from '@/app/(app)/odwiedzalnosc/page';
-
-
-const viewComponents: Record<ActiveView, React.ComponentType<any>> = {
-  aktywni: AktywniPage,
-  zwolnieni: ZwolnieniPage,
-  planowanie: PlanowaniePage,
-  statystyki: StatystykiPage,
-  'karty-obiegowe': KartyObiegowePage,
-  'odciski-palcow': OdciskiPalcowPage,
-  'brak-logowania': BrakLogowaniaPage,
-  konfiguracja: KonfiguracjaPage,
-  'wydawanie-odziezy': WydawanieOdziezyPage,
-  'wydawanie-odziezy-nowi': WydawanieOdziezyNowiPage,
-  odwiedzalnosc: OdwiedzalnoscPage,
+// Dynamiczne importy komponentów stron
+const viewComponents: Record<ActiveView, React.LazyExoticComponent<React.ComponentType<any>>> = {
+  aktywni: lazy(() => import('@/app/(app)/aktywni/page')),
+  zwolnieni: lazy(() => import('@/app/(app)/zwolnieni/page')),
+  planowanie: lazy(() => import('@/app/(app)/planowanie/page')),
+  statystyki: lazy(() => import('@/app/(app)/statystyki/page')),
+  'karty-obiegowe': lazy(() => import('@/app/(app)/karty-obiegowe/page')),
+  'odciski-palcow': lazy(() => import('@/app/(app)/odciski-palcow/page')),
+  'brak-logowania': lazy(() => import('@/app/(app)/brak-logowania/page')),
+  konfiguracja: lazy(() => import('@/app/(app)/konfiguracja/page')),
+  'wydawanie-odziezy': lazy(() => import('@/app/(app)/wydawanie-odziezy/page')),
+  'wydawanie-odziezy-nowi': lazy(() => import('@/app/(app)/wydawanie-odziezy-nowi/page')),
+  odwiedzalnosc: lazy(() => import('@/app/(app)/odwiedzalnosc/page')),
 };
+
 
 const CenteredLoader = ({ isLoading }: { isLoading: boolean }) => (
     <div
@@ -64,7 +52,6 @@ const AppContent = () => {
 
     useEffect(() => {
         const allowedGuestViews: ActiveView[] = ['statystyki', 'planowanie'];
-        // If user is not an admin and tries to access a page they are not allowed to, redirect them to default.
         if (!isAdmin && !allowedGuestViews.includes(activeView)) {
              router.replace('/statystyki');
         }
@@ -78,13 +65,13 @@ const AppContent = () => {
                 <AppSidebar activeView={activeView} setActiveView={setActiveView} />
                 <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80">
                    <CenteredLoader isLoading={isLoading} />
-                    <React.Suspense fallback={<CenteredLoader isLoading={true} />}>
+                    <Suspense fallback={<CenteredLoader isLoading={true} />}>
                         <div className={cn('h-full', isLoading && 'opacity-0')}>
                             <ViewTransitionWrapper viewKey={activeView}>
                                 <ActiveViewComponent />
                             </ViewTransitionWrapper>
                         </div>
-                    </React.Suspense>
+                    </Suspense>
                 </SidebarInset>
                 <AppBottomNav activeView={activeView} setActiveView={setActiveView} />
             </div>
