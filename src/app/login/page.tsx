@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -36,7 +35,7 @@ export default function LoginPage() {
   useEffect(() => {
     async function initFirebase() {
       try {
-        const { auth: firebaseAuth } = await getFirebaseServices();
+        const { auth: firebaseAuth } = getFirebaseServices();
         setAuth(firebaseAuth);
       } catch(e: any) {
         setError(e.message || "Failed to initialize Firebase services.");
@@ -50,14 +49,6 @@ export default function LoginPage() {
       }
     }
     initFirebase();
-
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('SW registered: ', registration);
-        }).catch(registrationError => {
-            console.log('SW registration failed: ', registrationError);
-        });
-    }
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
