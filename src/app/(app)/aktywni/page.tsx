@@ -97,6 +97,11 @@ export default function AktywniPage() {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
   
+  // TEST: Log render time
+  useEffect(() => {
+    console.log(`Render AktywniPage: ${new Date().toISOString()}`);
+  });
+
   const activeEmployees = useMemo(() => {
     return employees
       .filter(e => e.status === 'aktywny')
