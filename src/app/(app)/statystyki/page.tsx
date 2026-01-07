@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
@@ -95,17 +96,17 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
     }, [employees]);
 
     const { stats, departmentData, nationalityData, jobTitleData } = useMemo(() => {
-        const totalActiveEmployees = activeEmployees.length;
-        
         const deptCounts: { [key: string]: number } = {};
         const nationCounts: { [key: string]: number } = {};
         const jobCounts: { [key: string]: number } = {};
 
-        for (const employee of activeEmployees) {
+        activeEmployees.forEach(employee => {
             if (employee.department) deptCounts[employee.department] = (deptCounts[employee.department] || 0) + 1;
             if (employee.nationality) nationCounts[employee.nationality] = (nationCounts[employee.nationality] || 0) + 1;
             if (employee.jobTitle) jobCounts[employee.jobTitle] = (jobCounts[employee.jobTitle] || 0) + 1;
-        }
+        });
+
+        const totalActiveEmployees = activeEmployees.length;
 
         const formatData = (counts: { [key: string]: number }) => 
             Object.entries(counts).map(([name, value], index) => ({
