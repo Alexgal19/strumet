@@ -116,11 +116,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 const snapshot = await get(userRoleRef);
                 const role = snapshot.val() as UserRole || 'guest';
                 setCurrentUser({ uid: user.uid, email: user.email, role });
-                 // Dodaj tymczasowy testowy kod
-                const testRef = ref(db, 'test');
-                set(testRef, { message: 'Test message' })
-                  .then(() => console.log('Zapisano'))
-                  .catch(error => console.error('Błąd zapisu:', error));
             } else {
                 setCurrentUser(null);
                 setIsLoading(true); // Reset loading state on logout
