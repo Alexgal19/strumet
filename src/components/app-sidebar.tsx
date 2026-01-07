@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -32,14 +31,14 @@ import {
   CalendarCheck,
 } from 'lucide-react';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
-import type { ActiveView, AppNotification } from '@/lib/types';
+import type { AppNotification } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
 import { getFirebaseServices } from '@/lib/firebase';
-import { onValue, ref, update, remove } from 'firebase/database';
+import { onValue, ref, update } from 'firebase/database';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { runManualChecks } from '@/ai/flows/run-manual-checks';
@@ -163,31 +162,30 @@ const Notifications = () => {
 }
 
 interface AppSidebarProps {
-  activeView: ActiveView;
-  setActiveView: (view: ActiveView) => void;
+  pathname: string;
 }
 
-const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
+const AppSidebar = ({ pathname }: AppSidebarProps) => {
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
   const { isAdmin } = useAppContext();
 
-  const allMenuItems: { view: ActiveView, icon: React.ReactNode, label: string }[] = [
-    { view: 'aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
-    { view: 'zwolnieni', icon: <UserX />, label: 'Pracownicy zwolnieni' },
-    { view: 'planowanie', icon: <CalendarClock />, label: 'Planowanie' },
-    { view: 'odwiedzalnosc', icon: <CalendarCheck />, label: 'Obecność' },
-    { view: 'statystyki', icon: <BarChart3 />, label: 'Statystyki' },
-    { view: 'wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
-    { view: 'wydawanie-odziezy-nowi', icon: <PackagePlus />, label: 'Wydawanie dla nowych'},
-    { view: 'karty-obiegowe', icon: <FileText />, label: 'Karty obiegowe' },
-    { view: 'odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
-    { view: 'brak-logowania', icon: <ClipboardList />, label: 'Brak logowania' },
-    { view: 'konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
+  const allMenuItems: { href: string, icon: React.ReactNode, label: string }[] = [
+    { href: '/aktywni', icon: <Users />, label: 'Pracownicy aktywni' },
+    { href: '/zwolnieni', icon: <UserX />, label: 'Pracownicy zwolnieni' },
+    { href: '/planowanie', icon: <CalendarClock />, label: 'Planowanie' },
+    { href: '/odwiedzalnosc', icon: <CalendarCheck />, label: 'Obecność' },
+    { href: '/statystyki', icon: <BarChart3 />, label: 'Statystyki' },
+    { href: '/wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
+    { href: '/wydawanie-odziezy-nowi', icon: <PackagePlus />, label: 'Wydawanie dla nowych'},
+    { href: '/karty-obiegowe', icon: <FileText />, label: 'Karty obiegowe' },
+    { href: '/odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
+    { href: '/brak-logowania', icon: <ClipboardList />, label: 'Brak logowania' },
+    { href: '/konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
   ];
   
-  const guestViews: ActiveView[] = ['statystyki', 'planowanie'];
-  const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => guestViews.includes(item.view));
+  const guestViews: string[] = ['/statystyki', '/planowanie'];
+  const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => guestViews.includes(item.href));
 
 
   if (!hasMounted || isMobile) {
@@ -207,16 +205,20 @@ const AppSidebar = ({ activeView, setActiveView }: AppSidebarProps) => {
       <SidebarContent className="flex-grow p-4">
         <SidebarMenu>
           {menuItems.map((item) => (
-             <SidebarMenuItem key={item.view} className="p-0">
-                <SidebarMenuButton 
-                  onClick={() => setActiveView(item.view)} 
-                  isActive={activeView === item.view}
-                  className="h-12 justify-start"
-                  size="lg"
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
+             <SidebarMenuItem key={item.href} className="p-0">
+                <Link href={item.href} passHref legacyBehavior>
+                    <SidebarMenuButton 
+                      asChild
+                      isActive={pathname.startsWith(item.href)}
+                      className="h-12 justify-start"
+                      size="lg"
+                    >
+                      <a>
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </a>
+                    </SidebarMenuButton>
+                </Link>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>

@@ -5,10 +5,9 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
-import type { ActiveView } from '@/lib/types';
 import { AppProvider, useAppContext } from '@/context/app-context';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 
 const CenteredLoader = ({ isLoading }: { isLoading: boolean }) => (
@@ -23,19 +22,20 @@ const CenteredLoader = ({ isLoading }: { isLoading: boolean }) => (
 );
 
 const AppContent = ({ children }: { children: React.ReactNode }) => {
-    const { activeView, setActiveView, isLoading, isAdmin } = useAppContext();
+    const { isLoading, isAdmin } = useAppContext();
+    const pathname = usePathname();
     
     return (
         <SidebarProvider>
             <div className="flex h-full flex-col md:flex-row bg-transparent">
-                <AppSidebar activeView={activeView} setActiveView={setActiveView} />
+                <AppSidebar pathname={pathname} />
                 <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80">
                    <CenteredLoader isLoading={isLoading} />
                     <div className={cn('h-full', isLoading && 'opacity-0')}>
                         {children}
                     </div>
                 </SidebarInset>
-                <AppBottomNav activeView={activeView} setActiveView={setActiveView} />
+                <AppBottomNav pathname={pathname} />
             </div>
         </SidebarProvider>
     );

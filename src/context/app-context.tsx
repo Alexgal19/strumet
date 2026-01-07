@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -25,7 +24,6 @@ import type {
     FingerprintAppointment,
     ClothingIssuance,
     AppNotification,
-    ActiveView,
     ConfigType,
     Order,
     JobTitleClothingSet,
@@ -54,8 +52,6 @@ interface AppContextType {
     statsHistory: StatsSnapshot[];
     isLoading: boolean;
     isHistoryLoading: boolean;
-    activeView: ActiveView;
-    setActiveView: (view: ActiveView) => void;
     handleSaveEmployee: (employeeData: Employee) => Promise<void>;
     handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
     handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
@@ -91,7 +87,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
-    const [activeView, setActiveView] = useState<ActiveView>('statystyki');
 
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [users, setUsers] = useState<User[]>([]);
@@ -118,7 +113,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setCurrentUser({ uid: user.uid, email: user.email, role });
             } else {
                 setCurrentUser(null);
-                setIsLoading(true);
+                setIsLoading(false); // Set loading to false if no user
             }
         });
 
@@ -127,16 +122,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         if (!services || !currentUser) {
+            // Clear data and stop loading if no user or services
             setEmployees([]);
             setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
             setAbsences([]);
             setNotifications([]);
             setStatsHistory([]);
             setUsers([]);
+            setIsLoading(!currentUser);
             return;
-        };
+        }
 
         const { db } = services;
+        
         const dataRefs = [
             { path: "employees", setter: (data: any) => setEmployees(objectToArray(data)) },
             { path: "users", setter: (data: any) => setUsers(objectToArray(data)) },
@@ -163,7 +161,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribes = dataRefs.map(({ path, setter }) => 
             onValue(ref(db, path), snapshot => {
                 setter(snapshot.val());
-                
                 loadedCount++;
                 if (loadedCount === totalToLoad) {
                     setIsLoading(false);
@@ -632,8 +629,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         statsHistory,
         isLoading,
         isHistoryLoading,
-        activeView,
-        setActiveView,
         handleSaveEmployee,
         handleTerminateEmployee,
         handleRestoreEmployee,
@@ -675,9 +670,3 @@ export const useAppContext = () => {
     }
     return context;
 };
-
-    
-
-    
-
-
