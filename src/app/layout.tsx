@@ -2,6 +2,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { AppProvider } from '@/context/app-context';
 
 
 // This metadata is now static and won't be used by the PWA manifest directly
@@ -25,8 +26,10 @@ export default function RootLayout({
         <meta name="theme-color" content="#209cee" />
       </head>
       <body className="font-body antialiased">
+          <AppProvider>
             {children}
-            <Toaster />
+          </AppProvider>
+          <Toaster />
       </body>
     </html>
   );

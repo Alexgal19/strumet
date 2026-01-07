@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -43,10 +44,8 @@ const AppContent = ({ children }: { children: React.ReactNode }) => {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AppProvider>
-        <AppContent>
-            {children}
-        </AppContent>
-    </AppProvider>
+    <AppContent>
+        {children}
+    </AppContent>
   );
 }
