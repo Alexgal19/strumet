@@ -118,7 +118,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setCurrentUser({ uid: user.uid, email: user.email, role });
             } else {
                 setCurrentUser(null);
-                setIsLoading(true); // Reset loading state on logout
+                setIsLoading(true);
             }
         });
 
@@ -137,27 +137,44 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         };
 
         const { db } = services;
-        let dataLoadedCount = 0;
-        const totalListeners = 5;
-
-        const handleDataLoaded = () => {
-          dataLoadedCount++;
-          if (dataLoadedCount === totalListeners) {
-            setIsLoading(false);
-          }
-        };
-        
-        const refs = [
+        const dataRefs = [
             { path: "employees", setter: setEmployees },
             { path: "users", setter: setUsers },
             { path: "absences", setter: setAbsences },
             { path: "notifications", setter: setNotifications },
+            { path: "config", setter: (data: any) => {
+                const configData = data || {};
+                const newConfig: AllConfig = {
+                    departments: objectToArray(configData.departments),
+                    jobTitles: objectToArray(configData.jobTitles),
+                    managers: objectToArray(configData.managers),
+                    nationalities: objectToArray(configData.nationalities),
+                    clothingItems: objectToArray(configData.clothingItems),
+                    jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
+                    resendApiKey: configData.resendApiKey || '',
+                };
+                setConfig(newConfig);
+            }},
         ];
+        
+        let loadedCount = 0;
+        const totalToLoad = dataRefs.length;
 
-        const unsubscribes = refs.map(({ path, setter }) => 
+        const unsubscribes = dataRefs.map(({ path, setter }) => 
             onValue(ref(db, path), snapshot => {
-                setter(objectToArray(snapshot.val()));
-                handleDataLoaded();
+                setter(snapshot.val());
+                
+                loadedCount++;
+                if (loadedCount === totalToLoad) {
+                    setIsLoading(false);
+                }
+            }, (error) => {
+                console.error(`Firebase read error on path ${path}:`, error);
+                toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
+                loadedCount++;
+                if (loadedCount === totalToLoad) {
+                    setIsLoading(false);
+                }
             })
         );
         
@@ -167,26 +184,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setIsHistoryLoading(false);
         }));
 
-        const configRef = ref(db, "config");
-        unsubscribes.push(onValue(configRef, snapshot => {
-            const configData = snapshot.val() || {};
-            const newConfig: AllConfig = {
-                departments: objectToArray(configData.departments),
-                jobTitles: objectToArray(configData.jobTitles),
-                managers: objectToArray(configData.managers),
-                nationalities: objectToArray(configData.nationalities),
-                clothingItems: objectToArray(configData.clothingItems),
-                jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
-                resendApiKey: configData.resendApiKey || '',
-            };
-            setConfig(newConfig);
-            handleDataLoaded();
-        }));
-
         return () => {
             unsubscribes.forEach(unsub => unsub());
         }
-    }, [services, currentUser]);
+    }, [services, currentUser, toast]);
 
 
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
@@ -678,3 +679,4 @@ export const useAppContext = () => {
     
 
     
+
