@@ -207,17 +207,17 @@ const AppSidebar = ({ pathname }: AppSidebarProps) => {
         <SidebarMenu>
           {menuItems.map((item) => (
              <SidebarMenuItem key={item.href} className="p-0">
-                <Link href={item.href} passHref>
+                <Link href={item.href}>
                     <SidebarMenuButton 
                       asChild
                       isActive={pathname.startsWith(item.href)}
                       className="h-12 justify-start"
                       size="lg"
                     >
-                      <>
+                      <div>
                         {item.icon}
                         <span>{item.label}</span>
-                      </>
+                      </div>
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
