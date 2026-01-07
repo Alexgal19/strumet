@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -206,17 +207,17 @@ const AppSidebar = ({ pathname }: AppSidebarProps) => {
         <SidebarMenu>
           {menuItems.map((item) => (
              <SidebarMenuItem key={item.href} className="p-0">
-                <Link href={item.href} passHref legacyBehavior>
+                <Link href={item.href} passHref>
                     <SidebarMenuButton 
                       asChild
                       isActive={pathname.startsWith(item.href)}
                       className="h-12 justify-start"
                       size="lg"
                     >
-                      <a>
+                      <>
                         {item.icon}
                         <span>{item.label}</span>
-                      </a>
+                      </>
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
