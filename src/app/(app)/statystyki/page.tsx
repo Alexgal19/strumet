@@ -89,64 +89,45 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const { toast } = useToast();
+
     const activeEmployees = useMemo(() => {
         return employees.filter(e => e.status === "aktywny");
     }, [employees]);
-    const totalActiveEmployees = activeEmployees.length;
-    const stats: Stats = useMemo(() => {
-        const departments = new Set(activeEmployees.map(e => e.department).filter(Boolean));
-        const jobTitles = new Set(activeEmployees.map(e => e.jobTitle).filter(Boolean));
-        return {
+
+    const { stats, departmentData, nationalityData, jobTitleData } = useMemo(() => {
+        const totalActiveEmployees = activeEmployees.length;
+        
+        const deptCounts: { [key: string]: number } = {};
+        const nationCounts: { [key: string]: number } = {};
+        const jobCounts: { [key: string]: number } = {};
+
+        for (const employee of activeEmployees) {
+            if (employee.department) deptCounts[employee.department] = (deptCounts[employee.department] || 0) + 1;
+            if (employee.nationality) nationCounts[employee.nationality] = (nationCounts[employee.nationality] || 0) + 1;
+            if (employee.jobTitle) jobCounts[employee.jobTitle] = (jobCounts[employee.jobTitle] || 0) + 1;
+        }
+
+        const formatData = (counts: { [key: string]: number }) => 
+            Object.entries(counts).map(([name, value], index) => ({
+                name,
+                value,
+                percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
+                fill: CHART_COLORS[index % CHART_COLORS.length]
+            })).sort((a, b) => b.value - a.value);
+
+        const departmentData = formatData(deptCounts);
+        const nationalityData = formatData(nationCounts);
+        const jobTitleData = formatData(jobCounts);
+
+        const stats: Stats = {
             totalActiveEmployees: totalActiveEmployees,
-            totalDepartments: departments.size,
-            totalJobTitles: jobTitles.size,
+            totalDepartments: Object.keys(deptCounts).length,
+            totalJobTitles: Object.keys(jobCounts).length,
         };
-    }, [activeEmployees, totalActiveEmployees]);
-    const departmentData = useMemo(() => {
-        const counts: {
-            [key: string]: number;
-        } = {};
-        activeEmployees.forEach(employee => {
-            if (employee.department)
-                counts[employee.department] = (counts[employee.department] || 0) + 1;
-        });
-        return Object.entries(counts).map(([name, value], index) => ({
-            name,
-            value,
-            percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
-            fill: CHART_COLORS[index % CHART_COLORS.length]
-        })).sort((a, b) => b.value - a.value);
-    }, [activeEmployees, totalActiveEmployees]);
-    const nationalityData = useMemo(() => {
-        const counts: {
-            [key: string]: number;
-        } = {};
-        activeEmployees.forEach(employee => {
-            if (employee.nationality)
-                counts[employee.nationality] = (counts[employee.nationality] || 0) + 1;
-        });
-        return Object.entries(counts).map(([name, value], index) => ({
-            name,
-            value,
-            percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
-            fill: CHART_COLORS[index % CHART_COLORS.length]
-        })).sort((a, b) => b.value - a.value);
-    }, [activeEmployees, totalActiveEmployees]);
-    const jobTitleData = useMemo(() => {
-        const counts: {
-            [key: string]: number;
-        } = {};
-        activeEmployees.forEach(employee => {
-            if (employee.jobTitle)
-                counts[employee.jobTitle] = (counts[employee.jobTitle] || 0) + 1;
-        });
-        return Object.entries(counts).map(([name, value], index) => ({
-            name,
-            value,
-            percentage: totalActiveEmployees > 0 ? (value / totalActiveEmployees) * 100 : 0,
-            fill: CHART_COLORS[index % CHART_COLORS.length]
-        })).sort((a, b) => b.value - a.value);
-    }, [activeEmployees, totalActiveEmployees]);
+        
+        return { stats, departmentData, nationalityData, jobTitleData };
+    }, [activeEmployees]);
+
     const handleChartClick = (name: string, type: "department" | "nationality" | "jobTitle") => {
         if (type === "department") {
             const departmentEmployees = activeEmployees.filter(e => e.department === name);
@@ -275,7 +256,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                             <Users className="h-4 w-4 text-muted-foreground"/>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{totalActiveEmployees}</div>
+                            <div className="text-2xl font-bold">{stats.totalActiveEmployees}</div>
                             <p className="text-xs text-muted-foreground">Całkowita liczba pracowników</p>
                         </CardContent>
                     </Card>
@@ -1071,5 +1052,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
 
     
