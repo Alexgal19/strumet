@@ -138,10 +138,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         const { db } = services;
         const dataRefs = [
-            { path: "employees", setter: setEmployees },
-            { path: "users", setter: setUsers },
-            { path: "absences", setter: setAbsences },
-            { path: "notifications", setter: setNotifications },
+            { path: "employees", setter: (data: any) => setEmployees(objectToArray(data)) },
+            { path: "users", setter: (data: any) => setUsers(objectToArray(data)) },
+            { path: "absences", setter: (data: any) => setAbsences(objectToArray(data)) },
+            { path: "notifications", setter: (data: any) => setNotifications(objectToArray(data)) },
             { path: "config", setter: (data: any) => {
                 const configData = data || {};
                 const newConfig: AllConfig = {
@@ -679,4 +679,5 @@ export const useAppContext = () => {
     
 
     
+
 
