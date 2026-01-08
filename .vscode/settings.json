@@ -1,4 +1,6 @@
 {
     "IDX.aI.showChatInEditorTab": true,
-    "IDX.agenticWorkspace": true
+    "IDX.agenticWorkspace": true,
+    "IDX.aI.enableInlineCompletion": false,
+    "IDX.aI.enableCodebaseIndexing": false
 }
