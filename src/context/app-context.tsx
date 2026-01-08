@@ -15,6 +15,7 @@ import {
     startAt,
     endAt,
     limitToFirst,
+    equalTo,
     type Database,
 } from 'firebase/database';
 import { getFirebaseServices } from '@/lib/firebase';
