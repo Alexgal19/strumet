@@ -7,7 +7,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getAdminApp, adminDb } from '@/lib/firebase-admin';
-import { format, parse, isEqual, startOfDay, endOfDay } from 'date-fns';
+import { format, parse, isEqual, startOfDay, endOfDay, isBefore } from 'date-fns';
 import type { Employee, StatsSnapshot } from '@/lib/types';
 
 
@@ -86,15 +86,14 @@ const createStatsSnapshotFlow = ai.defineFlow(
             const hireDate = startOfDay(parse(e.hireDate, 'yyyy-MM-dd', new Date()));
 
             // An employee is considered part of the company if their hire date is on or before the report date.
-            if (hireDate > reportDayStart) {
+            if (isBefore(reportDayStart, hireDate)) {
                 return false;
             }
 
             // If the employee is terminated, they are excluded only if their termination date is strictly before the report date.
-            // If they are terminated ON the report date, they are still counted for that day.
             if (e.status === 'zwolniony' && e.terminationDate) {
                 const termDate = startOfDay(parse(e.terminationDate, 'yyyy-MM-dd', new Date()));
-                if (termDate < reportDayStart) {
+                if (isBefore(termDate, reportDayStart)) {
                     return false;
                 }
             }
