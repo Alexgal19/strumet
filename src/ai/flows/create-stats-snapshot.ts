@@ -7,7 +7,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getAdminApp, adminDb } from '@/lib/firebase-admin';
-import { format, parse, isEqual } from 'date-fns';
+import { format, parse, isEqual, startOfDay, endOfDay } from 'date-fns';
 import type { Employee, StatsSnapshot } from '@/lib/types';
 
 
@@ -80,14 +80,25 @@ const createStatsSnapshotFlow = ai.defineFlow(
     const allEmployees: Employee[] = objectToArray(employeesSnapshot.val());
 
     const getActiveEmployeesOnDate = (date: Date) => {
+        const reportDayStart = startOfDay(date);
         return allEmployees.filter(e => {
             if (!e.hireDate) return false;
-            const hireDate = parse(e.hireDate, 'yyyy-MM-dd', new Date());
-            if (hireDate > date) return false;
-            if (e.status === 'zwolniony' && e.terminationDate) {
-                const termDate = parse(e.terminationDate, 'yyyy-MM-dd', new Date());
-                if (termDate < date) return false;
+            const hireDate = startOfDay(parse(e.hireDate, 'yyyy-MM-dd', new Date()));
+
+            // An employee is considered part of the company if their hire date is on or before the report date.
+            if (hireDate > reportDayStart) {
+                return false;
             }
+
+            // If the employee is terminated, they are excluded only if their termination date is strictly before the report date.
+            // If they are terminated ON the report date, they are still counted for that day.
+            if (e.status === 'zwolniony' && e.terminationDate) {
+                const termDate = startOfDay(parse(e.terminationDate, 'yyyy-MM-dd', new Date()));
+                if (termDate < reportDayStart) {
+                    return false;
+                }
+            }
+
             return true;
         });
     };
@@ -179,11 +190,11 @@ const createStatsSnapshotFlow = ai.defineFlow(
         const data = getActiveEmployeesOnDate(singleDate);
         
         const newHires = allEmployees
-            .filter(e => e.hireDate && isEqual(parse(e.hireDate, 'yyyy-MM-dd', new Date()), singleDate))
+            .filter(e => e.hireDate && isEqual(startOfDay(parse(e.hireDate, 'yyyy-MM-dd', new Date())), startOfDay(singleDate)))
             .map(emp => employeeToChangeSchema(emp, emp.hireDate));
             
         const terminated = allEmployees
-            .filter(e => e.terminationDate && isEqual(parse(e.terminationDate, 'yyyy-MM-dd', new Date()), singleDate))
+            .filter(e => e.terminationDate && isEqual(startOfDay(parse(e.terminationDate, 'yyyy-MM-dd', new Date())), startOfDay(singleDate)))
             .map(emp => employeeToChangeSchema(emp, emp.terminationDate!));
         
         const formatForSingleDay = (counts: Record<string, number>) => {
