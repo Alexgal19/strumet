@@ -86,7 +86,7 @@ const createStatsSnapshotFlow = ai.defineFlow(
             if (hireDate > date) return false;
             if (e.status === 'zwolniony' && e.terminationDate) {
                 const termDate = parse(e.terminationDate, 'yyyy-MM-dd', new Date());
-                if (termDate <= date) return false;
+                if (termDate < date) return false;
             }
             return true;
         });
