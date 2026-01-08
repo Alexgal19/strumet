@@ -54,8 +54,7 @@ interface FirebaseServices {
 interface FetchEmployeesParams {
     status: 'aktywny' | 'zwolniony';
     limit: number;
-    startAfter?: string | null; // This will now be the fullName of the last employee
-    lastEmployeeId?: string | null; // The ID of the last employee
+    startAfter?: string | null; // This will now be the composite status_fullName key
     searchTerm?: string;
     departments?: string[];
     jobTitles?: string[];
@@ -154,21 +153,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     
         const queryConstraints = [
-            orderByChild('fullName'),
-            limitToFirst(params.limit + 1)
+            orderByChild('status_fullName'),
+            limitToFirst(params.limit + 1),
+            startAt(params.startAfter || `${params.status}_`),
+            endAt(`${params.status}_\uf8ff`)
         ];
-    
-        if (params.startAfter) {
-            queryConstraints.push(startAt(params.startAfter, params.lastEmployeeId));
-        }
-    
+        
         const q = query(ref(db, 'employees'), ...queryConstraints);
         
         try {
             const snapshot = await get(q);
             let newEmployees = objectToArray(snapshot.val());
             
-            if (params.startAfter && newEmployees.length > 0) {
+            if (params.startAfter && newEmployees.length > 0 && newEmployees[0].status_fullName === params.startAfter) {
                  newEmployees.shift();
             }
 
@@ -179,8 +176,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 newEmployees.pop();
             }
             
-            let filteredEmployees = newEmployees.filter(e => e.status === params.status);
-    
+            // Client-side filtering for search and other criteria
+            let filteredEmployees = newEmployees;
             if (params.searchTerm) {
                 const lowerCaseSearch = params.searchTerm.toLowerCase();
                 filteredEmployees = filteredEmployees.filter(e => e.fullName.toLowerCase().includes(lowerCaseSearch) || (e.cardNumber && e.cardNumber.includes(lowerCaseSearch)));
@@ -195,6 +192,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                  filteredEmployees = filteredEmployees.filter(e => params.managers!.includes(e.manager));
             }
             
+            // Client-side sorting
             if (params.status === 'aktywny') {
                 filteredEmployees.sort((a, b) => new Date(b.hireDate).getTime() - new Date(a.hireDate).getTime());
             } else {
@@ -205,12 +203,42 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
         } catch (error) {
             console.error("Error fetching employees:", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać pracowników.' });
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać pracowników. Sprawdź reguły bazy danych.' });
         } finally {
             setIsFetchingNextPage(false);
             if (isLoading) setIsLoading(false);
         }
     }, [services, toast, isLoading]);
+
+    const runMigration = useCallback(async (db: Database) => {
+        console.log("Checking for necessary data migrations...");
+        const snapshot = await get(query(ref(db, 'employees'), orderByChild('status_fullName'), equalTo(null), limitToFirst(1)));
+        if (snapshot.exists()) {
+            console.log("Migration needed. Updating employees with status_fullName...");
+            toast({ title: 'Migracja danych', description: 'Aktualizujemy strukturę danych w tle. Aplikacja może działać wolniej przez chwilę.' });
+
+            const allEmployeesSnapshot = await get(ref(db, 'employees'));
+            const updates: Record<string, any> = {};
+            let count = 0;
+            allEmployeesSnapshot.forEach(childSnapshot => {
+                const employee = childSnapshot.val();
+                if (!employee.status_fullName) {
+                    updates[`/employees/${childSnapshot.key}/status_fullName`] = `${employee.status}_${employee.fullName.toLowerCase()}`;
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                await update(ref(db), updates);
+                console.log(`Migration complete. Updated ${count} employees.`);
+                toast({ title: 'Migracja zakończona', description: `Zaktualizowano ${count} pracowników.` });
+            } else {
+                 console.log("No employees needed migration.");
+            }
+        } else {
+            console.log("No migration necessary.");
+        }
+    }, [toast]);
 
 
     useEffect(() => {
@@ -225,6 +253,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const { db } = services;
+        runMigration(db);
         
         const dataRefs = [
             { path: "users", setter: (data: any) => setUsers(objectToArray(data)) },
@@ -272,7 +301,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             unsubscribes.forEach(unsub => unsub());
         }
-    }, [services, currentUser, toast, fetchEmployees]);
+    }, [services, currentUser, toast, fetchEmployees, runMigration]);
 
 
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
@@ -280,11 +309,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             const { id, ...dataToSave } = employeeData;
+            
+            const status = dataToSave.status || 'aktywny';
+            const status_fullName = `${status}_${dataToSave.fullName.toLowerCase()}`;
 
-            const finalData: { [key: string]: any } = {};
-            for (const key in dataToSave) {
-                const typedKey = key as keyof typeof dataToSave;
-                finalData[key] = dataToSave[typedKey] === undefined ? null : dataToSave[typedKey];
+            const finalData: { [key: string]: any } = { ...dataToSave, status_fullName };
+
+            for (const key in finalData) {
+                if (finalData[key] === undefined) {
+                  finalData[key] = null;
+                }
             }
 
             if (id) {
@@ -292,7 +326,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
             } else {
                 const newEmployeeRef = push(ref(db, 'employees'));
-                await set(newEmployeeRef, { ...finalData, status: 'aktywny' });
+                await set(newEmployeeRef, { ...finalData, status: 'aktywny', status_fullName: `aktywny_${finalData.fullName.toLowerCase()}` });
                 toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
             }
         } catch (error) {
@@ -307,7 +341,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             await update(ref(db, `employees/${employeeId}`), {
                 status: 'zwolniony',
-                terminationDate: format(new Date(), 'yyyy-MM-dd')
+                terminationDate: format(new Date(), 'yyyy-MM-dd'),
+                status_fullName: `zwolniony_${employeeFullName.toLowerCase()}`
             });
             toast({ title: 'Pracownik zwolniony', description: 'Status pracownika został zmieniony na "zwolniony".' });
         } catch (error) {
@@ -322,7 +357,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             await update(ref(db, `employees/${employeeId}`), {
                 status: 'aktywny',
-                terminationDate: null
+                terminationDate: null,
+                status_fullName: `aktywny_${employeeFullName.toLowerCase()}`
             });
             toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
         } catch (error) {
@@ -478,6 +514,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             for (const employee of terminatedEmployees) {
                  updates[`/employees/${employee.id}/status`] = 'aktywny';
                  updates[`/employees/${employee.id}/terminationDate`] = null;
+                 updates[`/employees/${employee.id}/status_fullName`] = `aktywny_${employee.fullName.toLowerCase()}`;
             }
             await update(ref(db), updates);
             toast({ title: 'Sukces', description: `Przywrócono ${terminatedEmployees.length} pracowników.` });

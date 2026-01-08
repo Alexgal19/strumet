@@ -26,6 +26,7 @@ export interface Employee {
   departmentLockerNumber: string;
   sealNumber: string;
   status: 'aktywny' | 'zwolniony';
+  status_fullName: string; // Composite key for queries: `${status}_${fullName}`
   avatarDataUri?: string; // For AI-generated avatars
   terminationDate?: string; // ISO string format will be present for 'zwolniony'
   plannedTerminationDate?: string; // ISO string format

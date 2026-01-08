@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -279,8 +280,7 @@ export default function AktywniPage() {
         fetchEmployees({
             status: 'aktywny',
             limit: 50,
-            startAfter: lastEmployee?.fullName,
-            lastEmployeeId: lastEmployee?.id,
+            startAfter: lastEmployee?.status_fullName,
             searchTerm,
             departments: selectedDepartments,
             jobTitles: selectedJobTitles,
