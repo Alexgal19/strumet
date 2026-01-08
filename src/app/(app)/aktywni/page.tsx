@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -105,6 +104,8 @@ export default function AktywniPage() {
     // This avoids re-setting the state on every render
     if (initialEmployees.length > 0 && initialEmployees !== employees) {
       setEmployees(initialEmployees);
+    } else if (initialEmployees.length === 0) {
+      setEmployees([]);
     }
   }, [initialEmployees]);
 
@@ -274,10 +275,12 @@ export default function AktywniPage() {
     }
 
     if (lastItem.index >= employees.length - 1 && hasMore && !isFetchingNextPage) {
+        const lastEmployee = employees[employees.length - 1];
         fetchEmployees({
             status: 'aktywny',
             limit: 50,
-            startAfter: employees[employees.length - 1]?.id,
+            startAfter: lastEmployee?.fullName,
+            lastEmployeeId: lastEmployee?.id,
             searchTerm,
             departments: selectedDepartments,
             jobTitles: selectedJobTitles,

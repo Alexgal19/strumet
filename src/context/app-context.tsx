@@ -55,6 +55,7 @@ interface FetchEmployeesParams {
     status: 'aktywny' | 'zwolniony';
     limit: number;
     startAfter?: string | null; // This will now be the fullName of the last employee
+    lastEmployeeId?: string | null; // The ID of the last employee
     searchTerm?: string;
     departments?: string[];
     jobTitles?: string[];
@@ -149,7 +150,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         
         setIsFetchingNextPage(true);
         if (!params.startAfter) {
-            setEmployees([]); // Reset if it's a new query
+            setEmployees([]);
         }
     
         const queryConstraints = [
@@ -158,7 +159,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         ];
     
         if (params.startAfter) {
-            queryConstraints.push(startAt(params.startAfter));
+            queryConstraints.push(startAt(params.startAfter, params.lastEmployeeId));
         }
     
         const q = query(ref(db, 'employees'), ...queryConstraints);
@@ -178,29 +179,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 newEmployees.pop();
             }
             
-            newEmployees = newEmployees.filter(e => e.status === params.status);
+            let filteredEmployees = newEmployees.filter(e => e.status === params.status);
     
             if (params.searchTerm) {
                 const lowerCaseSearch = params.searchTerm.toLowerCase();
-                newEmployees = newEmployees.filter(e => e.fullName.toLowerCase().includes(lowerCaseSearch) || (e.cardNumber && e.cardNumber.includes(lowerCaseSearch)));
+                filteredEmployees = filteredEmployees.filter(e => e.fullName.toLowerCase().includes(lowerCaseSearch) || (e.cardNumber && e.cardNumber.includes(lowerCaseSearch)));
             }
             if (params.departments && params.departments.length > 0) {
-                 newEmployees = newEmployees.filter(e => params.departments!.includes(e.department));
+                 filteredEmployees = filteredEmployees.filter(e => params.departments!.includes(e.department));
             }
              if (params.jobTitles && params.jobTitles.length > 0) {
-                 newEmployees = newEmployees.filter(e => params.jobTitles!.includes(e.jobTitle));
+                 filteredEmployees = filteredEmployees.filter(e => params.jobTitles!.includes(e.jobTitle));
             }
              if (params.managers && params.managers.length > 0) {
-                 newEmployees = newEmployees.filter(e => params.managers!.includes(e.manager));
+                 filteredEmployees = filteredEmployees.filter(e => params.managers!.includes(e.manager));
             }
             
             if (params.status === 'aktywny') {
-                newEmployees.sort((a, b) => new Date(b.hireDate).getTime() - new Date(a.hireDate).getTime());
+                filteredEmployees.sort((a, b) => new Date(b.hireDate).getTime() - new Date(a.hireDate).getTime());
             } else {
-                newEmployees.sort((a, b) => new Date(b.terminationDate || 0).getTime() - new Date(a.terminationDate || 0).getTime());
+                filteredEmployees.sort((a, b) => new Date(b.terminationDate || 0).getTime() - new Date(a.terminationDate || 0).getTime());
             }
             
-            setEmployees(prev => params.startAfter ? [...prev, ...newEmployees] : newEmployees);
+            setEmployees(prev => params.startAfter ? [...prev, ...filteredEmployees] : filteredEmployees);
     
         } catch (error) {
             console.error("Error fetching employees:", error);

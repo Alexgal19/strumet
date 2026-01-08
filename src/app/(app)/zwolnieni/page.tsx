@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -213,10 +212,12 @@ export default function ZwolnieniPage() {
     if (!lastItem) return;
 
     if (lastItem.index >= employees.length - 1 && hasMore && !isFetchingNextPage) {
+        const lastEmployee = employees[employees.length - 1];
         fetchEmployees({
             status: 'zwolniony',
             limit: 50,
-            startAfter: employees[employees.length - 1]?.id,
+            startAfter: lastEmployee?.fullName,
+            lastEmployeeId: lastEmployee?.id,
             searchTerm,
             departments: selectedDepartments,
             jobTitles: selectedJobTitles,
