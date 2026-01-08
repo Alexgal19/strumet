@@ -59,7 +59,7 @@ const exportColumns = [
 const BLANK_FILTER_VALUE = '(Puste)';
 
 export default function ZwolnieniPage() {
-  const { employees, config, isLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently } = useAppContext();
+  const { employees: initialEmployees, config, isLoading: isContextLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently, fetchEmployees, hasMore, isFetchingNextPage } = useAppContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -75,67 +75,33 @@ export default function ZwolnieniPage() {
 
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
+  
+  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+
+  useEffect(() => {
+    if (initialEmployees !== employees) {
+      setEmployees(initialEmployees);
+    }
+  }, [initialEmployees]);
+  
+  useEffect(() => {
+    setEmployees([]); // Reset on filter change
+    fetchEmployees({
+        status: 'zwolniony',
+        limit: 50,
+        searchTerm,
+        departments: selectedDepartments,
+        jobTitles: selectedJobTitles,
+        managers: selectedManagers,
+    });
+  }, [searchTerm, selectedDepartments, selectedJobTitles, selectedManagers, fetchEmployees]);
+
 
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
   const managerOptions: OptionType[] = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
 
-  const terminatedEmployees = useMemo(() => {
-    return employees
-      .filter(e => e.status === 'zwolniony')
-      .sort((a, b) => {
-        const dateA = parseMaybeDate(a.terminationDate);
-        const dateB = parseMaybeDate(b.terminationDate);
-        if (!dateA) return 1;
-        if (!dateB) return -1;
-        return dateB.getTime() - dateA.getTime();
-      });
-  }, [employees]);
-
-  const terminationPeriodOptions: HierarchicalOption[] = useMemo(() => {
-    const hierarchy: Record<string, Record<string, Set<string>>> = {};
-    let hasBlank = false;
   
-    terminatedEmployees.forEach(emp => {
-      const date = parseMaybeDate(emp.terminationDate);
-      if (date) {
-        const year = getYear(date).toString();
-        const monthKey = format(date, 'MM-LLLL', { locale: pl }); // e.g., "07-Lipiec"
-        const day = format(date, 'dd.MM.yyyy');
-  
-        if (!hierarchy[year]) hierarchy[year] = {};
-        if (!hierarchy[year][monthKey]) hierarchy[year][monthKey] = new Set();
-        hierarchy[year][monthKey].add(day);
-      } else {
-        hasBlank = true;
-      }
-    });
-  
-    const options: HierarchicalOption[] = Object.keys(hierarchy)
-      .sort((a, b) => b.localeCompare(a))
-      .map(year => ({
-        label: year,
-        value: year,
-        children: Object.keys(hierarchy[year]).sort().map(monthKey => {
-            const [monthNum, monthName] = monthKey.split('-');
-            return {
-                label: monthName,
-                value: `${year}-${monthNum}`,
-                children: Array.from(hierarchy[year][monthKey]).sort().map(day => ({
-                    label: day,
-                    value: day,
-                })),
-            }
-        }),
-      }));
-  
-    if (hasBlank) {
-      options.push({ label: BLANK_FILTER_VALUE, value: BLANK_FILTER_VALUE });
-    }
-  
-    return options;
-  }, [terminatedEmployees]);
-
   const handleClearFilters = () => {
     setSearchTerm('');
     setSelectedDepartments([]);
@@ -144,55 +110,11 @@ export default function ZwolnieniPage() {
     setSelectedTerminationPeriods([]);
     setRowSelection({});
   };
-
-  const filteredEmployees = useMemo(() => {
-    let filtered = terminatedEmployees;
-
-    if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        filtered = filtered.filter(employee =>
-            (employee.fullName && employee.fullName.toLowerCase().includes(searchLower)) ||
-            (employee.cardNumber && employee.cardNumber.toLowerCase().includes(searchLower))
-        );
-    }
-    
-    if (selectedDepartments.length > 0) {
-        filtered = filtered.filter(employee => selectedDepartments.includes(employee.department));
-    }
-    if (selectedManagers.length > 0) {
-        filtered = filtered.filter(employee => selectedManagers.includes(employee.manager));
-    }
-    if (selectedJobTitles.length > 0) {
-        filtered = filtered.filter(employee => selectedJobTitles.includes(employee.jobTitle));
-    }
-
-    const dateFilter = (employee: Employee, dateField: 'terminationDate', selectedPeriods: string[]) => {
-        if (selectedPeriods.length === 0) return true;
-        
-        const empDate = parseMaybeDate(employee[dateField]);
-        if (!empDate) return selectedPeriods.includes(BLANK_FILTER_VALUE);
-
-        const year = empDate.getFullYear().toString();
-        const monthYear = format(empDate, 'yyyy-MM');
-        const dayMonthYear = format(empDate, 'dd.MM.yyyy');
-        
-        return selectedPeriods.some(period => {
-            if (period.length === 4) return period === year; // Year
-            if (period.length === 7) return period === monthYear; // Month-Year
-            if (period.length === 10) return period === dayMonthYear; // Day-Month-Year
-            return false;
-        });
-    };
-    
-    filtered = filtered.filter(emp => dateFilter(emp, 'terminationDate', selectedTerminationPeriods));
-    
-    return filtered;
-  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedManagers, selectedJobTitles, selectedTerminationPeriods]);
   
   const displayedEmployees = useMemo(() => {
-    if (selectedEmployeeIds.length === 0) return filteredEmployees;
-    return filteredEmployees.filter(employee => selectedEmployeeIds.includes(employee.id));
-  }, [filteredEmployees, selectedEmployeeIds]);
+    if (selectedEmployeeIds.length === 0) return employees;
+    return employees.filter(employee => selectedEmployeeIds.includes(employee.id));
+  }, [employees, selectedEmployeeIds]);
 
   const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
     await handleRestoreEmployee(employeeId, employeeFullName);
@@ -278,14 +200,41 @@ export default function ZwolnieniPage() {
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
-    count: displayedEmployees.length,
+    count: hasMore ? employees.length + 1 : employees.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 170, // Approximate height of a card
+    estimateSize: () => isMobile ? 170 : 53,
     overscan: 5,
   });
 
+  const virtualItems = rowVirtualizer.getVirtualItems();
+
+  useEffect(() => {
+    const lastItem = virtualItems[virtualItems.length - 1];
+    if (!lastItem) return;
+
+    if (lastItem.index >= employees.length - 1 && hasMore && !isFetchingNextPage) {
+        fetchEmployees({
+            status: 'zwolniony',
+            limit: 50,
+            startAfter: employees[employees.length - 1]?.id,
+            searchTerm,
+            departments: selectedDepartments,
+            jobTitles: selectedJobTitles,
+            managers: selectedManagers,
+        });
+    }
+  }, [virtualItems, employees, hasMore, isFetchingNextPage, fetchEmployees, searchTerm, selectedDepartments, selectedJobTitles, selectedManagers]);
+
+
   const renderMobileView = () => {
-    if (displayedEmployees.length === 0) {
+    if (isContextLoading && employees.length === 0) {
+        return (
+          <div className="flex h-full w-full items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        )
+    }
+    if (employees.length === 0 && !hasMore) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
@@ -303,11 +252,12 @@ export default function ZwolnieniPage() {
             position: 'relative',
           }}
         >
-          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-            const employee = displayedEmployees[virtualItem.index];
+          {virtualItems.map((virtualItem) => {
+             const isLoaderRow = virtualItem.index > employees.length - 1;
+             const employee = employees[virtualItem.index];
             return (
               <div
-                key={employee.id}
+                key={isLoaderRow ? 'loader' : employee.id}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -317,12 +267,18 @@ export default function ZwolnieniPage() {
                 }}
                 className="p-2"
               >
-                <EmployeeCard 
-                    employee={employee}
-                    onEdit={() => handleEditEmployee(employee)}
-                    onRestore={() => onRestoreEmployee(employee.id, employee.fullName)}
-                    onDeletePermanently={() => onDeletePermanently(employee.id)}
-                />
+                {isLoaderRow ? (
+                    <div className="flex justify-center items-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                ) : (
+                    <EmployeeCard 
+                        employee={employee}
+                        onEdit={() => handleEditEmployee(employee)}
+                        onRestore={() => onRestoreEmployee(employee.id, employee.fullName)}
+                        onDeletePermanently={() => onDeletePermanently(employee.id)}
+                    />
+                )}
               </div>
             );
           })}
@@ -331,7 +287,7 @@ export default function ZwolnieniPage() {
     );
   };
   
-  if (isLoading || !hasMounted) {
+  if (isContextLoading && employees.length === 0 || !hasMounted) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
@@ -344,7 +300,7 @@ export default function ZwolnieniPage() {
         description="Przeglądaj historię zwolnionych pracowników."
       >
         <div className="hidden md:flex shrink-0 items-center space-x-2">
-            <ExcelExportButton employees={displayedEmployees} fileName="zwolnieni_pracownicy" columns={exportColumns} />
+            <ExcelExportButton employees={employees} fileName="zwolnieni_pracownicy" columns={exportColumns} />
             <TerminatedExcelImportButton />
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -436,18 +392,12 @@ export default function ZwolnieniPage() {
               selected={selectedJobTitles}
               onChange={setSelectedJobTitles}
             />
-            <MultiSelect
-              title="Okres zwolnienia"
-              options={terminationPeriodOptions}
-              selected={selectedTerminationPeriods}
-              onChange={setSelectedTerminationPeriods}
-            />
         </div>
       </div>
       
        <div className="flex items-center justify-between mb-4 text-sm text-muted-foreground">
         <span>
-          Znaleziono: <span className="font-bold text-foreground">{displayedEmployees.length}</span> z {terminatedEmployees.length}
+          Znaleziono: <span className="font-bold text-foreground">{employees.length}</span>
         </span>
       </div>
 

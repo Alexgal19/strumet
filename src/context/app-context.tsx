@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -9,6 +10,11 @@ import {
     remove,
     push,
     get,
+    query,
+    orderByChild,
+    startAt,
+    endAt,
+    limitToFirst,
     type Database,
 } from 'firebase/database';
 import { getFirebaseServices } from '@/lib/firebase';
@@ -43,6 +49,16 @@ interface FirebaseServices {
     auth: Auth;
 }
 
+interface FetchEmployeesParams {
+    status: 'aktywny' | 'zwolniony';
+    limit: number;
+    startAfter?: string | null;
+    searchTerm?: string;
+    departments?: string[];
+    jobTitles?: string[];
+    managers?: string[];
+}
+
 interface AppContextType {
     employees: Employee[];
     users: User[];
@@ -52,6 +68,9 @@ interface AppContextType {
     statsHistory: StatsSnapshot[];
     isLoading: boolean;
     isHistoryLoading: boolean;
+    isFetchingNextPage: boolean;
+    hasMore: boolean;
+    fetchEmployees: (params: FetchEmployeesParams) => Promise<void>;
     handleSaveEmployee: (employeeData: Employee) => Promise<void>;
     handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
     handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
@@ -89,6 +108,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
 
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [hasMore, setHasMore] = useState(true);
+    const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
     const [users, setUsers] = useState<User[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
@@ -120,15 +141,69 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return () => unsubscribeAuth();
     }, []);
 
+    const fetchEmployees = useCallback(async (params: FetchEmployeesParams) => {
+        if (!services) return;
+        const { db } = services;
+        
+        setIsFetchingNextPage(true);
+        if (!params.startAfter) {
+            setEmployees([]); // Reset if it's a new query
+        }
+
+        let q = query(ref(db, 'employees'), orderByChild('status'), equalTo(params.status), limitToFirst(params.limit));
+        
+        // This is a simplified example. Real-world implementation would require
+        // composite keys or a different data structure for multi-field filtering in Realtime Database.
+        // For this example, we'll do secondary filtering on the client.
+
+        try {
+            const snapshot = await get(q);
+            let newEmployees = objectToArray(snapshot.val());
+
+            // Secondary client-side filtering
+            if (params.searchTerm) {
+                const lowerCaseSearch = params.searchTerm.toLowerCase();
+                newEmployees = newEmployees.filter(e => e.fullName.toLowerCase().includes(lowerCaseSearch) || (e.cardNumber && e.cardNumber.includes(lowerCaseSearch)));
+            }
+            if (params.departments && params.departments.length > 0) {
+                 newEmployees = newEmployees.filter(e => params.departments!.includes(e.department));
+            }
+             if (params.jobTitles && params.jobTitles.length > 0) {
+                 newEmployees = newEmployees.filter(e => params.jobTitles!.includes(e.jobTitle));
+            }
+             if (params.managers && params.managers.length > 0) {
+                 newEmployees = newEmployees.filter(e => params.managers!.includes(e.manager));
+            }
+            
+            // Sort results
+            if (params.status === 'aktywny') {
+                newEmployees.sort((a, b) => new Date(b.hireDate).getTime() - new Date(a.hireDate).getTime());
+            } else {
+                newEmployees.sort((a, b) => new Date(b.terminationDate || 0).getTime() - new Date(a.terminationDate || 0).getTime());
+            }
+
+
+            setHasMore(newEmployees.length === params.limit);
+            
+            setEmployees(prev => params.startAfter ? [...prev, ...newEmployees] : newEmployees);
+
+        } catch (error) {
+            console.error("Error fetching employees:", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać pracowników.' });
+        } finally {
+            setIsFetchingNextPage(false);
+            if (isLoading) setIsLoading(false);
+        }
+    }, [services, toast, isLoading]);
+
+
     useEffect(() => {
         if (!services || !currentUser) {
-            // Clear data and stop loading if no user or services
-            setEmployees([]);
+            setUsers([]);
             setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
             setAbsences([]);
             setNotifications([]);
             setStatsHistory([]);
-            setUsers([]);
             setIsLoading(!currentUser);
             return;
         }
@@ -136,7 +211,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         
         const dataRefs = [
-            { path: "employees", setter: (data: any) => setEmployees(objectToArray(data)) },
             { path: "users", setter: (data: any) => setUsers(objectToArray(data)) },
             { path: "absences", setter: (data: any) => setAbsences(objectToArray(data)) },
             { path: "notifications", setter: (data: any) => setNotifications(objectToArray(data)) },
@@ -163,15 +237,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setter(snapshot.val());
                 loadedCount++;
                 if (loadedCount === totalToLoad) {
-                    setIsLoading(false);
+                    // Data is loaded, now we can fetch initial employees
+                    fetchEmployees({ status: 'aktywny', limit: 50 });
                 }
             }, (error) => {
                 console.error(`Firebase read error on path ${path}:`, error);
                 toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
                 loadedCount++;
-                if (loadedCount === totalToLoad) {
-                    setIsLoading(false);
-                }
+                if (loadedCount === totalToLoad) setIsLoading(false);
             })
         );
         
@@ -184,7 +257,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             unsubscribes.forEach(unsub => unsub());
         }
-    }, [services, currentUser, toast]);
+    }, [services, currentUser, toast, fetchEmployees]);
 
 
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
@@ -260,7 +333,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             const updates: Record<string, any> = {};
-            employees.forEach(employee => {
+            const allEmployeesSnapshot = await get(ref(db, 'employees'));
+            const allEmployees = objectToArray(allEmployeesSnapshot.val());
+
+            allEmployees.forEach(employee => {
                 updates[`/employees/${employee.id}/hireDate`] = null;
             });
             await update(ref(db), updates);
@@ -269,7 +345,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error deleting all hire dates: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć dat zatrudnienia.' });
         }
-    }, [services, employees, toast]);
+    }, [services, toast]);
 
     const handleUpdateHireDates = useCallback(async (dateUpdates: { fullName: string; hireDate: string }[]) => {
         if (!services) return;
@@ -278,8 +354,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         let updatedCount = 0;
         const notFound: string[] = [];
 
+        const allEmployeesSnapshot = await get(ref(db, 'employees'));
+        const allEmployees = objectToArray(allEmployeesSnapshot.val());
+
         dateUpdates.forEach(updateData => {
-            const employeeToUpdate = employees.find(emp => emp.fullName === updateData.fullName);
+            const employeeToUpdate = allEmployees.find(emp => emp.fullName === updateData.fullName);
             if (employeeToUpdate) {
                 updates[`/employees/${employeeToUpdate.id}/hireDate`] = updateData.hireDate;
                 updatedCount++;
@@ -309,7 +388,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
             });
         }
-    }, [services, employees, toast]);
+    }, [services, toast]);
 
     const handleUpdateContractEndDates = useCallback(async (dateUpdates: { fullName: string; contractEndDate: string }[]) => {
         if (!services) return;
@@ -317,9 +396,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const updates: Record<string, any> = {};
         let updatedCount = 0;
         const notFound: string[] = [];
+        
+        const allEmployeesSnapshot = await get(ref(db, 'employees'));
+        const allEmployees = objectToArray(allEmployeesSnapshot.val());
 
         dateUpdates.forEach(updateData => {
-            const employeeToUpdate = employees.find(emp => emp.fullName === updateData.fullName);
+            const employeeToUpdate = allEmployees.find(emp => emp.fullName === updateData.fullName);
             if (employeeToUpdate) {
                 updates[`/employees/${employeeToUpdate.id}/contractEndDate`] = updateData.contractEndDate;
                 updatedCount++;
@@ -349,7 +431,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
             });
         }
-    }, [services, employees, toast]);
+    }, [services, toast]);
 
     const handleDeleteAllEmployees = useCallback(async () => {
         if (!services) return;
@@ -368,7 +450,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             const updates: Record<string, any> = {};
-            const terminatedEmployees = employees.filter(e => e.status === 'zwolniony');
+            
+            const allEmployeesSnapshot = await get(ref(db, 'employees'));
+            const allEmployees = objectToArray(allEmployeesSnapshot.val());
+            const terminatedEmployees = allEmployees.filter(e => e.status === 'zwolniony');
+
             if (terminatedEmployees.length === 0) {
                 toast({ title: 'Informacja', description: 'Brak zwolnionych pracowników do przywrócenia.' });
                 return;
@@ -384,7 +470,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error restoring all terminated employees: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracowników.' });
         }
-    }, [services, employees, toast]);
+    }, [services, toast]);
 
     const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
         if (!services) return;
@@ -412,7 +498,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const employeeFieldToUpdate = configType === 'departments' ? 'department' : configType === 'jobTitles' ? 'jobTitle' : configType === 'managers' ? 'manager' : configType === 'nationalities' ? 'nationality' : null;
 
             if (employeeFieldToUpdate) {
-                employees.forEach(emp => {
+                const allEmployeesSnapshot = await get(ref(db, 'employees'));
+                const allEmployees = objectToArray(allEmployeesSnapshot.val());
+                allEmployees.forEach(emp => {
                     if (emp[employeeFieldToUpdate] === oldName) {
                         updates[`/employees/${emp.id}/${employeeFieldToUpdate}`] = newName;
                     }
@@ -425,7 +513,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error updating item:", error);
             toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zaktualizować elementu."});
         }
-    }, [services, config, employees, toast]);
+    }, [services, config, toast]);
 
     const removeConfigItem = useCallback(async (configType: ConfigType, itemId: string) => {
         if (!services) return;
@@ -629,6 +717,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         statsHistory,
         isLoading,
         isHistoryLoading,
+        isFetchingNextPage,
+        hasMore,
+        fetchEmployees,
         handleSaveEmployee,
         handleTerminateEmployee,
         handleRestoreEmployee,

@@ -7,6 +7,10 @@
         ".write": "auth != null && auth.uid == $uid"
       }
     },
+    "employees": {
+      ".read": "auth != null",
+      ".indexOn": ["status", "department", "jobTitle", "manager", "terminationDate"]
+    },
     ".read": "auth != null",
     ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
   }
