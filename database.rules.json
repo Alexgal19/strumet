@@ -15,3 +15,5 @@
     ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
   }
 }
+
+// Force re-deploy
