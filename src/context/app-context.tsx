@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -152,12 +151,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setEmployees([]); // Reset if it's a new query
         }
 
-        let q = query(ref(db, 'employees'), orderByChild('status'), limitToFirst(params.limit));
+        let q = query(ref(db, 'employees'), limitToFirst(params.limit));
         
-        // This is a simplified example. Real-world implementation would require
-        // composite keys or a different data structure for multi-field filtering in Realtime Database.
-        // For this example, we'll do secondary filtering on the client.
-
         try {
             const snapshot = await get(q);
             let newEmployees = objectToArray(snapshot.val());

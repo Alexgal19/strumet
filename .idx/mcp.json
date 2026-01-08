@@ -70,7 +70,11 @@
       "apphosting_fetch_logs",
       "remoteconfig_update_template",
       "remoteconfig_get_template",
-      "messaging_send_message"
+      "messaging_send_message",
+      "firestore_get_documents",
+      "firestore_list_collections",
+      "firestore_delete_document",
+      "firestore_query_collection"
     ],
     "genkit": [
       "lookup_genkit_docs",
