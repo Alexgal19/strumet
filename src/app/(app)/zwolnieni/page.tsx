@@ -192,13 +192,25 @@ export default function ZwolnieniPage() {
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
-    count: employees.length,
+    count: hasMore ? employees.length + 1 : employees.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => isMobile ? 170 : 53,
     overscan: 5,
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
+  
+  const lastItem = virtualItems[virtualItems.length - 1];
+  useEffect(() => {
+    if (!lastItem || isFetchingNextPage || !hasMore) {
+        return;
+    }
+    if (lastItem.index >= employees.length - 1) {
+        const lastEmployee = employees[employees.length - 1];
+        fetchEmployees({ status: 'zwolniony', limit: 50, startAfter: lastEmployee?.status_fullName, startAfterId: lastEmployee?.id, searchTerm });
+    }
+  }, [hasMore, fetchEmployees, employees, lastItem, isFetchingNextPage, searchTerm]);
+
 
   const renderMobileView = () => {
     if (isContextLoading && employees.length === 0) {
@@ -228,6 +240,17 @@ export default function ZwolnieniPage() {
         >
           {virtualItems.map((virtualItem) => {
              const employee = employees[virtualItem.index];
+            if (!employee) {
+                return (
+                    <div key={virtualItem.index} style={{
+                        position: 'absolute', top: 0, left: 0, width: '100%',
+                        height: `${virtualItem.size}px`, transform: `translateY(${virtualItem.start}px)`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                        {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin" />}
+                    </div>
+                )
+             }
             return (
               <div
                 key={employee.id}

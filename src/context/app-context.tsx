@@ -111,7 +111,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
 
-    const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [hasMore, setHasMore] = useState(true);
     const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
@@ -149,39 +148,57 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const fetchEmployees = useCallback(async (params: FetchEmployeesParams) => {
         if (!services) return;
         const { db } = services;
-
-        // Since we are fetching all employees now, we don't need pagination logic here.
-        // This function will now just filter the allEmployees list.
-        const filtered = allEmployees.filter(emp => {
-            let matches = emp.status === params.status;
-            if (params.searchTerm) {
-                 const lowerCaseSearch = params.searchTerm.toLowerCase();
-                 matches = matches && (emp.fullName.toLowerCase().includes(lowerCaseSearch) || (emp.cardNumber && emp.cardNumber.includes(lowerCaseSearch)));
-            }
-            if (params.departments && params.departments.length > 0) {
-                 matches = matches && params.departments.includes(emp.department);
-            }
-             if (params.jobTitles && params.jobTitles.length > 0) {
-                 matches = matches && params.jobTitles.includes(emp.jobTitle);
-            }
-             if (params.managers && params.managers.length > 0) {
-                 matches = matches && params.managers.includes(emp.manager);
-            }
-            return matches;
-        });
         
-        // Client-side sorting
-        if (params.status === 'aktywny') {
-            filtered.sort((a, b) => new Date(b.hireDate).getTime() - new Date(a.hireDate).getTime());
+        if (params.startAfter === undefined) { // Initial fetch
+            setIsLoading(true);
         } else {
-            filtered.sort((a, b) => new Date(b.terminationDate || 0).getTime() - new Date(a.terminationDate || 0).getTime());
+            setIsFetchingNextPage(true);
         }
 
-        setEmployees(filtered);
-        setHasMore(false); // We have all the data client-side
-        setIsFetchingNextPage(false);
+        try {
+            const employeesRef = ref(db, 'employees');
+            const searchKey = `${params.status}_${(params.searchTerm || '').toLowerCase()}`;
+            
+            let q = query(
+                employeesRef,
+                orderByChild('status_fullName'),
+                startAt(searchKey),
+                endAt(searchKey + '\uf8ff'),
+                limitToFirst(params.limit + 1)
+            );
 
-    }, [services, allEmployees]);
+            if(params.startAfter && params.startAfterId) {
+                 q = query(
+                    employeesRef,
+                    orderByChild('status_fullName'),
+                    startAt(params.startAfter, params.startAfterId),
+                    endAt(searchKey + '\uf8ff'),
+                    limitToFirst(params.limit + 1)
+                );
+            }
+           
+            const snapshot = await get(q);
+            let newEmployees = objectToArray(snapshot.val());
+            
+            const currentHasMore = newEmployees.length > params.limit;
+            if (currentHasMore) {
+                newEmployees.pop(); // Remove the extra item used for checking `hasMore`
+            }
+
+            setEmployees(prev => params.startAfter ? [...prev, ...newEmployees] : newEmployees);
+            setHasMore(currentHasMore);
+
+        } catch(error) {
+            console.error("Error fetching employees:", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać pracowników.' });
+        } finally {
+             if (params.startAfter === undefined) {
+                setIsLoading(false);
+            } else {
+                setIsFetchingNextPage(false);
+            }
+        }
+    }, [services, toast]);
 
     const runMigration = useCallback(async (db: Database) => {
         console.log("Checking for necessary data migrations...");
@@ -221,7 +238,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         if (!services || !currentUser) {
-            setAllEmployees([]);
             setEmployees([]);
             setUsers([]);
             setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
@@ -232,8 +248,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
+        setIsLoading(true);
         const { db } = services;
         runMigration(db);
+        
+        // Initial fetch for the default view ('aktywni')
+        fetchEmployees({ status: 'aktywni', limit: 50 });
         
         const dataRefs = [
             { path: "users", setter: (data: any) => setUsers(objectToArray(data)) },
@@ -253,23 +273,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setConfig(newConfig);
             }},
         ];
-        
-        // Fetch all employees once
-        const employeesRef = ref(db, 'employees');
-        const unsubscribeEmployees = onValue(employeesRef, (snapshot) => {
-            setAllEmployees(objectToArray(snapshot.val()));
-             // Initial load for default view
-            const activeEmps = objectToArray(snapshot.val()).filter((e: Employee) => e.status === 'aktywny');
-            activeEmps.sort((a, b) => new Date(b.hireDate).getTime() - new Date(a.hireDate).getTime());
-            setEmployees(activeEmps);
-            setHasMore(false);
-            
-            if (isLoading) setIsLoading(false);
-        }, (error) => {
-            console.error("Firebase read error on employees:", error);
-            toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać pracowników.` });
-             if (isLoading) setIsLoading(false);
-        });
 
         const unsubscribes = dataRefs.map(({ path, setter }) => 
             onValue(ref(db, path), snapshot => {
@@ -288,9 +291,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         return () => {
             unsubscribes.forEach(unsub => unsub());
-            unsubscribeEmployees();
         }
-    }, [services, currentUser, toast, runMigration, isLoading]);
+    }, [services, currentUser, toast, runMigration, fetchEmployees]);
 
 
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
