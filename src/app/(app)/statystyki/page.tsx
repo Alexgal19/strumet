@@ -30,11 +30,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
-import { format, parse, startOfDay, isEqual } from 'date-fns';
+import { format, startOfDay, isEqual, isBefore } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
 import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
-import { formatDate } from '@/lib/date';
+import { formatDate, parseMaybeDate } from '@/lib/date';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
@@ -416,7 +416,7 @@ const HiresAndFiresTab = () => {
     );
 
     const EmployeeChangeList = ({ title, employees, icon, emptyText }: { title: string, employees: any[], icon: React.ReactNode, emptyText: string }) => (
-        <Card>
+        <Card className="flex flex-col">
             <CardHeader>
                 <div className="flex items-center gap-3">
                     {icon}
@@ -426,9 +426,9 @@ const HiresAndFiresTab = () => {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-grow">
                 {employees.length > 0 ? (
-                    <ScrollArea className="max-h-80">
+                    <ScrollArea className="h-80">
                         <div className="space-y-4 pr-4">
                             {employees.map((emp, index) => (
                                 <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
@@ -1057,4 +1057,5 @@ export default function StatisticsPage() {
     
 
     
+
 
