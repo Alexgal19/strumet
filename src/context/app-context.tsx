@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -54,7 +55,7 @@ interface FirebaseServices {
 interface FetchEmployeesParams {
     status: 'aktywny' | 'zwolniony';
     limit: number;
-    startAfter?: string | null; // This will now be the composite status_fullName key
+    startAfter?: string | null;
     searchTerm?: string;
     departments?: string[];
     jobTitles?: string[];
@@ -165,10 +166,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const snapshot = await get(q);
             let newEmployees = objectToArray(snapshot.val());
             
-            if (params.startAfter && newEmployees.length > 0 && newEmployees[0].status_fullName === params.startAfter) {
-                 newEmployees.shift();
-            }
-
             const currentHasMore = newEmployees.length > params.limit;
             setHasMore(currentHasMore);
     
@@ -212,31 +209,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const runMigration = useCallback(async (db: Database) => {
         console.log("Checking for necessary data migrations...");
-        const snapshot = await get(query(ref(db, 'employees'), orderByChild('status_fullName'), equalTo(null), limitToFirst(1)));
-        if (snapshot.exists()) {
-            console.log("Migration needed. Updating employees with status_fullName...");
-            toast({ title: 'Migracja danych', description: 'Aktualizujemy strukturę danych w tle. Aplikacja może działać wolniej przez chwilę.' });
-
+        try {
             const allEmployeesSnapshot = await get(ref(db, 'employees'));
+            if (!allEmployeesSnapshot.exists()) {
+                console.log("No employees found, no migration necessary.");
+                return;
+            }
+
             const updates: Record<string, any> = {};
             let count = 0;
+
             allEmployeesSnapshot.forEach(childSnapshot => {
                 const employee = childSnapshot.val();
-                if (!employee.status_fullName) {
+                if (employee && !employee.status_fullName) {
                     updates[`/employees/${childSnapshot.key}/status_fullName`] = `${employee.status}_${employee.fullName.toLowerCase()}`;
                     count++;
                 }
             });
 
             if (count > 0) {
+                console.log(`Migration needed for ${count} employees. Updating...`);
+                toast({ title: 'Migracja danych', description: 'Aktualizujemy strukturę danych w tle. Aplikacja może działać wolniej przez chwilę.' });
                 await update(ref(db), updates);
                 console.log(`Migration complete. Updated ${count} employees.`);
                 toast({ title: 'Migracja zakończona', description: `Zaktualizowano ${count} pracowników.` });
             } else {
-                 console.log("No employees needed migration.");
+                console.log("No employees needed migration.");
             }
-        } else {
-            console.log("No migration necessary.");
+        } catch (error) {
+            console.error("Error during migration check:", error);
+            // Don't toast here as it might be an index issue on a large dataset during initial load
         }
     }, [toast]);
 
