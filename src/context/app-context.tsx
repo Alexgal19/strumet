@@ -16,6 +16,7 @@ import {
     endAt,
     limitToFirst,
     equalTo,
+    orderByKey,
     type Database,
 } from 'firebase/database';
 import { getFirebaseServices } from '@/lib/firebase';
@@ -150,16 +151,37 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (!params.startAfter) {
             setEmployees([]); // Reset if it's a new query
         }
-
-        let q = query(ref(db, 'employees'), limitToFirst(params.limit));
+    
+        const queryConstraints = [
+            orderByKey(),
+            limitToFirst(params.limit + 1) // Fetch one extra to check if there's more
+        ];
+    
+        if (params.startAfter) {
+            queryConstraints.push(startAt(params.startAfter));
+        }
+    
+        const q = query(ref(db, 'employees'), ...queryConstraints);
         
         try {
             const snapshot = await get(q);
             let newEmployees = objectToArray(snapshot.val());
+            
+            // The first item will be the `startAfter` key, so we remove it if paginating
+            if (params.startAfter && newEmployees.length > 0) {
+                newEmployees.shift();
+            }
 
+            const currentHasMore = newEmployees.length > params.limit;
+            setHasMore(currentHasMore);
+    
+            if (currentHasMore) {
+                newEmployees.pop(); // Remove the extra item used for hasMore check
+            }
+            
             // Secondary client-side filtering
             newEmployees = newEmployees.filter(e => e.status === params.status);
-
+    
             if (params.searchTerm) {
                 const lowerCaseSearch = params.searchTerm.toLowerCase();
                 newEmployees = newEmployees.filter(e => e.fullName.toLowerCase().includes(lowerCaseSearch) || (e.cardNumber && e.cardNumber.includes(lowerCaseSearch)));
@@ -180,12 +202,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             } else {
                 newEmployees.sort((a, b) => new Date(b.terminationDate || 0).getTime() - new Date(a.terminationDate || 0).getTime());
             }
-
-
-            setHasMore(newEmployees.length === params.limit);
             
             setEmployees(prev => params.startAfter ? [...prev, ...newEmployees] : newEmployees);
-
+    
         } catch (error) {
             console.error("Error fetching employees:", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać pracowników.' });
