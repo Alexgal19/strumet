@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -77,7 +78,7 @@ const exportColumns = [
 const BLANK_FILTER_VALUE = '(Puste)';
 
 export default function AktywniPage() {
-  const { employees: initialEmployees, config, isLoading: isContextLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently, fetchEmployees, hasMore, isFetchingNextPage } = useAppContext();
+  const { employees, config, isLoading: isContextLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently, fetchEmployees, hasMore, isFetchingNextPage } = useAppContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -97,27 +98,11 @@ export default function AktywniPage() {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
   
-  // Local state for employees to handle infinite scroll
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
-
+  // Effect for fetching filtered data
   useEffect(() => {
-    // We only update if the initialEmployees from context has actually changed
-    // This avoids re-setting the state on every render
-    if (initialEmployees.length > 0 && initialEmployees !== employees) {
-      setEmployees(initialEmployees);
-    } else if (initialEmployees.length === 0) {
-      setEmployees([]);
-    }
-  }, [initialEmployees]);
-
-
-  // Effect for fetching initial and filtered data
-  useEffect(() => {
-    // Reset employees list when filters change
-    setEmployees([]);
     fetchEmployees({
         status: 'aktywny',
-        limit: 50,
+        limit: 50, // This is now ignored, but kept for interface consistency
         searchTerm,
         departments: selectedDepartments,
         jobTitles: selectedJobTitles,
@@ -261,34 +246,13 @@ export default function AktywniPage() {
   const parentRef = useRef<HTMLDivElement>(null);
   
   const rowVirtualizer = useVirtualizer({
-    count: hasMore ? employees.length + 1 : employees.length,
+    count: employees.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => (isMobile ? 170 : 53),
     overscan: 5,
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
-
-  useEffect(() => {
-    const lastItem = virtualItems[virtualItems.length - 1];
-    if (!lastItem) {
-        return;
-    }
-
-    if (lastItem.index >= employees.length - 1 && hasMore && !isFetchingNextPage) {
-        const lastEmployee = employees[employees.length - 1];
-        fetchEmployees({
-            status: 'aktywny',
-            limit: 50,
-            startAfter: lastEmployee?.status_fullName,
-            searchTerm,
-            departments: selectedDepartments,
-            jobTitles: selectedJobTitles,
-            managers: selectedManagers,
-        });
-    }
-  }, [virtualItems, employees, hasMore, isFetchingNextPage, fetchEmployees, searchTerm, selectedDepartments, selectedJobTitles, selectedManagers]);
-
 
   const renderMobileView = () => {
     if (isContextLoading && employees.length === 0) {
@@ -299,7 +263,7 @@ export default function AktywniPage() {
       )
     }
 
-    if (employees.length === 0 && !hasMore) {
+    if (employees.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
@@ -319,11 +283,10 @@ export default function AktywniPage() {
           }}
         >
           {virtualItems.map((virtualItem) => {
-             const isLoaderRow = virtualItem.index > employees.length - 1;
              const employee = employees[virtualItem.index];
             return (
                <div
-                key={isLoaderRow ? 'loader' : employee.id}
+                key={employee.id}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -333,18 +296,12 @@ export default function AktywniPage() {
                 }}
                 className="p-2"
               >
-                {isLoaderRow ? (
-                    <div className="flex justify-center items-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-                ) : (
-                    <EmployeeCard 
-                        employee={employee} 
-                        onEdit={() => handleEditEmployee(employee)}
-                        onTerminate={() => onTerminate(employee.id, employee.fullName)}
-                        onDeletePermanently={() => onDeletePermanently(employee.id)}
-                    />
-                )}
+                <EmployeeCard 
+                    employee={employee} 
+                    onEdit={() => handleEditEmployee(employee)}
+                    onTerminate={() => onTerminate(employee.id, employee.fullName)}
+                    onDeletePermanently={() => onDeletePermanently(employee.id)}
+                />
               </div>
             );
           })}
@@ -355,7 +312,7 @@ export default function AktywniPage() {
 
   const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || selectedHirePeriods.length > 0 || selectedContractPeriods.length > 0 || selectedPlannedTerminationPeriods.length > 0;
 
-  if (isContextLoading && employees.length === 0 || !hasMounted) {
+  if (isContextLoading || !hasMounted) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-300 opacity-100">
             <Loader2 className="h-8 w-8 animate-spin" />

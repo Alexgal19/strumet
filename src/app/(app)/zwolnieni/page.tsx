@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -59,7 +60,7 @@ const exportColumns = [
 const BLANK_FILTER_VALUE = '(Puste)';
 
 export default function ZwolnieniPage() {
-  const { employees: initialEmployees, config, isLoading: isContextLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently, fetchEmployees, hasMore, isFetchingNextPage } = useAppContext();
+  const { employees, config, isLoading: isContextLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently, fetchEmployees, hasMore, isFetchingNextPage } = useAppContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -76,16 +77,7 @@ export default function ZwolnieniPage() {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
   
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
-
   useEffect(() => {
-    if (initialEmployees !== employees) {
-      setEmployees(initialEmployees);
-    }
-  }, [initialEmployees]);
-  
-  useEffect(() => {
-    setEmployees([]); // Reset on filter change
     fetchEmployees({
         status: 'zwolniony',
         limit: 50,
@@ -200,32 +192,13 @@ export default function ZwolnieniPage() {
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
-    count: hasMore ? employees.length + 1 : employees.length,
+    count: employees.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => isMobile ? 170 : 53,
     overscan: 5,
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
-
-  useEffect(() => {
-    const lastItem = virtualItems[virtualItems.length - 1];
-    if (!lastItem) return;
-
-    if (lastItem.index >= employees.length - 1 && hasMore && !isFetchingNextPage) {
-        const lastEmployee = employees[employees.length - 1];
-        fetchEmployees({
-            status: 'zwolniony',
-            limit: 50,
-            startAfter: lastEmployee?.status_fullName,
-            searchTerm,
-            departments: selectedDepartments,
-            jobTitles: selectedJobTitles,
-            managers: selectedManagers,
-        });
-    }
-  }, [virtualItems, employees, hasMore, isFetchingNextPage, fetchEmployees, searchTerm, selectedDepartments, selectedJobTitles, selectedManagers]);
-
 
   const renderMobileView = () => {
     if (isContextLoading && employees.length === 0) {
@@ -235,7 +208,7 @@ export default function ZwolnieniPage() {
           </div>
         )
     }
-    if (employees.length === 0 && !hasMore) {
+    if (employees.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
@@ -254,11 +227,10 @@ export default function ZwolnieniPage() {
           }}
         >
           {virtualItems.map((virtualItem) => {
-             const isLoaderRow = virtualItem.index > employees.length - 1;
              const employee = employees[virtualItem.index];
             return (
               <div
-                key={isLoaderRow ? 'loader' : employee.id}
+                key={employee.id}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -268,18 +240,12 @@ export default function ZwolnieniPage() {
                 }}
                 className="p-2"
               >
-                {isLoaderRow ? (
-                    <div className="flex justify-center items-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-                ) : (
-                    <EmployeeCard 
-                        employee={employee}
-                        onEdit={() => handleEditEmployee(employee)}
-                        onRestore={() => onRestoreEmployee(employee.id, employee.fullName)}
-                        onDeletePermanently={() => onDeletePermanently(employee.id)}
-                    />
-                )}
+                 <EmployeeCard 
+                    employee={employee}
+                    onEdit={() => handleEditEmployee(employee)}
+                    onRestore={() => onRestoreEmployee(employee.id, employee.fullName)}
+                    onDeletePermanently={() => onDeletePermanently(employee.id)}
+                />
               </div>
             );
           })}
@@ -288,7 +254,7 @@ export default function ZwolnieniPage() {
     );
   };
   
-  if (isContextLoading && employees.length === 0 || !hasMounted) {
+  if (isContextLoading || !hasMounted) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
