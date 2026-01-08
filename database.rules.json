@@ -9,7 +9,7 @@
     },
     "employees": {
       ".read": "auth != null",
-      ".indexOn": ["status", "department", "jobTitle", "manager", "terminationDate"]
+      ".indexOn": ["status", "department", "jobTitle", "manager", "terminationDate", "fullName"]
     },
     ".read": "auth != null",
     ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"

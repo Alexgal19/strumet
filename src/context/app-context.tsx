@@ -54,7 +54,7 @@ interface FirebaseServices {
 interface FetchEmployeesParams {
     status: 'aktywny' | 'zwolniony';
     limit: number;
-    startAfter?: string | null;
+    startAfter?: string | null; // This will now be the fullName of the last employee
     searchTerm?: string;
     departments?: string[];
     jobTitles?: string[];
@@ -153,8 +153,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     
         const queryConstraints = [
-            orderByKey(),
-            limitToFirst(params.limit + 1) // Fetch one extra to check if there's more
+            orderByChild('fullName'),
+            limitToFirst(params.limit + 1)
         ];
     
         if (params.startAfter) {
@@ -167,19 +167,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const snapshot = await get(q);
             let newEmployees = objectToArray(snapshot.val());
             
-            // The first item will be the `startAfter` key, so we remove it if paginating
             if (params.startAfter && newEmployees.length > 0) {
-                newEmployees.shift();
+                 newEmployees.shift();
             }
 
             const currentHasMore = newEmployees.length > params.limit;
             setHasMore(currentHasMore);
     
             if (currentHasMore) {
-                newEmployees.pop(); // Remove the extra item used for hasMore check
+                newEmployees.pop();
             }
             
-            // Secondary client-side filtering
             newEmployees = newEmployees.filter(e => e.status === params.status);
     
             if (params.searchTerm) {
@@ -196,7 +194,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                  newEmployees = newEmployees.filter(e => params.managers!.includes(e.manager));
             }
             
-            // Sort results
             if (params.status === 'aktywny') {
                 newEmployees.sort((a, b) => new Date(b.hireDate).getTime() - new Date(a.hireDate).getTime());
             } else {
@@ -255,7 +252,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setter(snapshot.val());
                 loadedCount++;
                 if (loadedCount === totalToLoad) {
-                    // Data is loaded, now we can fetch initial employees
                     fetchEmployees({ status: 'aktywny', limit: 50 });
                 }
             }, (error) => {
