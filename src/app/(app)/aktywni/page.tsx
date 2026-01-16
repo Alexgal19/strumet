@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -46,7 +47,6 @@ import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAppContext } from '@/context/app-context';
 import { EmployeeCard } from '@/components/employee-card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDate } from '@/lib/date';
 import { getStatusColor, legalizationStatuses } from '@/lib/legalization-statuses';
 import { Badge } from '@/components/ui/badge';
@@ -161,27 +161,10 @@ export default function AktywniPage() {
       id: 'firstName',
       header: 'Imię',
       cell: ({ row }) => {
-        const employee = row.original;
-        const nameParts = employee.fullName.trim().split(' ');
+        const nameParts = row.original.fullName.trim().split(' ');
         nameParts.pop();
         const firstName = nameParts.join(' ');
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage
-                src={
-                  employee.avatarDataUri ||
-                  `https://avatar.vercel.sh/${employee.fullName}.png`
-                }
-                alt={employee.fullName}
-              />
-              <AvatarFallback>
-                {firstName ? firstName.charAt(0) : employee.fullName.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="font-medium">{firstName}</span>
-          </div>
-        );
+        return <span className="font-medium">{firstName}</span>;
       },
     },
     { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'yyyy-MM-dd') },

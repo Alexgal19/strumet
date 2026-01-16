@@ -24,7 +24,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, Edit, UserX, RotateCcw, CalendarClock, Briefcase, Building, Trash2 } from 'lucide-react';
 import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
@@ -82,10 +81,6 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({
     <AlertDialog>
       <Card className="flex flex-col h-full animate-fade-in-up">
         <CardHeader className="flex flex-row items-start gap-4">
-          <Avatar className="w-12 h-12">
-            <AvatarImage src={employee.avatarDataUri || `https://avatar.vercel.sh/${employee.fullName}.png`} alt={employee.fullName} />
-            <AvatarFallback>{employee.fullName.charAt(0)}</AvatarFallback>
-          </Avatar>
           <div className="flex-grow">
             <CardTitle className="text-lg">{employee.fullName}</CardTitle>
             <CardDescription className="text-sm">{employee.jobTitle}</CardDescription>

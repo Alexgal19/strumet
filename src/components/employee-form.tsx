@@ -16,8 +16,6 @@ import type { Employee, AllConfig } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
-import { generateAvatar } from '@/ai/flows/generate-avatar';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 
 interface EmployeeFormProps {
@@ -41,7 +39,6 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             lockerNumber: employee.lockerNumber || '',
             departmentLockerNumber: employee.departmentLockerNumber || '',
             sealNumber: employee.sealNumber || '',
-            avatarDataUri: employee.avatarDataUri,
             plannedTerminationDate: employee.plannedTerminationDate,
             vacationStartDate: employee.vacationStartDate,
             vacationEndDate: employee.vacationEndDate,
@@ -61,7 +58,6 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
         lockerNumber: '',
         departmentLockerNumber: '',
         sealNumber: '',
-        avatarDataUri: undefined,
         plannedTerminationDate: undefined,
         vacationStartDate: undefined,
         vacationEndDate: undefined,
@@ -76,7 +72,6 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -138,40 +133,6 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleGenerateAvatar = async () => {
-        const currentFullName = `${firstName} ${lastName}`.trim();
-        if (!currentFullName || !formData.jobTitle || !formData.department) {
-            toast({
-                variant: 'destructive',
-                title: 'Błąd',
-                description: 'Wprowadź imię i nazwisko, stanowisko i dział, aby wygenerować awatar.',
-            });
-            return;
-        }
-        setIsGeneratingAvatar(true);
-        try {
-            const result = await generateAvatar({
-                fullName: currentFullName,
-                jobTitle: formData.jobTitle,
-                department: formData.department,
-            });
-            handleChange('avatarDataUri', result.avatarDataUri);
-            toast({
-                title: 'Sukces!',
-                description: 'Nowy awatar został wygenerowany.',
-            });
-        } catch (error) {
-            console.error('Avatar generation failed:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Błąd generowania',
-                description: 'Nie udało się wygenerować awatara. Spróbuj ponownie.',
-            });
-        } finally {
-            setIsGeneratingAvatar(false);
-        }
-    };
-
     const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
         const dateValue = parseMaybeDate(value);
         return (
@@ -212,137 +173,111 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="flex items-start gap-6">
-                <div className="flex flex-col items-center gap-2 w-28 flex-shrink-0">
-                    <Avatar className="h-28 w-28 border">
-                        <AvatarImage src={formData.avatarDataUri} alt={`${firstName} ${lastName}`} />
-                        <AvatarFallback className="text-3xl">
-                            {firstName ? firstName.charAt(0) : '?'}
-                        </AvatarFallback>
-                    </Avatar>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-xs"
-                        onClick={handleGenerateAvatar}
-                        disabled={isGeneratingAvatar}
-                    >
-                        {isGeneratingAvatar ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Sparkles className="mr-2 h-4 w-4" />
-                        )}
-                        Generuj
-                    </Button>
-                </div>
-
-                <div className="flex-grow space-y-4">
-                    <h3 className="text-lg font-medium text-foreground">Dane podstawowe</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
-                        <div className="md:col-span-2 grid grid-cols-2 gap-x-4">
-                            <div>
-                                <Label htmlFor="lastName">Nazwisko</Label>
-                                <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} />
-                                {renderError('lastName')}
-                            </div>
-                            <div>
-                                <Label htmlFor="firstName">Imię</Label>
-                                <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} />
-                                {renderError('firstName')}
-                            </div>
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium text-foreground">Dane podstawowe</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
+                    <div className="md:col-span-2 grid grid-cols-2 gap-x-4">
+                        <div>
+                            <Label htmlFor="lastName">Nazwisko</Label>
+                            <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} />
+                            {renderError('lastName')}
                         </div>
                         <div>
-                            <Label>Data zatrudnienia</Label>
-                            <DatePickerInput
-                                value={formData.hireDate}
-                                onChange={(date) => handleChange('hireDate', date)}
-                                placeholder="Wybierz datę"
-                            />
-                            {renderError('hireDate')}
+                            <Label htmlFor="firstName">Imię</Label>
+                            <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                            {renderError('firstName')}
                         </div>
-                         <div>
-                            <Label>Umowa do</Label>
-                            <DatePickerInput
-                                value={formData.contractEndDate}
-                                onChange={(date) => handleChange('contractEndDate', date)}
-                                placeholder="Data końcowa umowy"
-                            />
-                            {renderError('contractEndDate')}
-                        </div>
-                         <div>
-                            <Label>Stanowisko</Label>
-                            <Select value={formData.jobTitle} onValueChange={value => handleChange('jobTitle', value)}>
-                                <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
-                                <SelectContent>
-                                    {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            {renderError('jobTitle')}
-                        </div>
-                        <div>
-                            <Label>Dział</Label>
-                            <Select value={formData.department} onValueChange={value => handleChange('department', value)}>
-                                <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
-                                <SelectContent>
-                                    {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            {renderError('department')}
-                        </div>
-                         <div>
-                            <Label>Kierownik</Label>
-                            <Select value={formData.manager} onValueChange={value => handleChange('manager', value)}>
-                                <SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
-                                <SelectContent>
-                                    {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            {renderError('manager')}
-                        </div>
-                        <div>
-                            <Label>Narodowość</Label>
-                            <Select value={formData.nationality} onValueChange={value => handleChange('nationality', value)}>
-                                <SelectTrigger><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
-                                <SelectContent>
-                                    {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            {renderError('nationality')}
-                        </div>
-                        <div>
-                            <Label htmlFor="cardNumber">Numer karty</Label>
-                            <Input id="cardNumber" value={formData.cardNumber} onChange={e => handleChange('cardNumber', e.target.value)} />
-                            {renderError('cardNumber')}
-                        </div>
-                         <div>
-                            <Label htmlFor="lockerNumber">Numer szafki</Label>
-                            <Input id="lockerNumber" value={formData.lockerNumber} onChange={e => handleChange('lockerNumber', e.target.value)} />
-                        </div>
-                        <div>
-                            <Label htmlFor="departmentLockerNumber">Numer szafki w dziale</Label>
-                            <Input id="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={e => handleChange('departmentLockerNumber', e.target.value)} />
-                        </div>
-                        <div>
-                            <Label htmlFor="sealNumber">Numer pieczęci</Label>
-                            <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} />
-                        </div>
-                         <div>
-                            <Label>Status legalizacyjny</Label>
-                            <Select value={formData.legalizationStatus || 'Brak'} onValueChange={value => handleChange('legalizationStatus', value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Wybierz status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {legalizationStatuses.map(status => (
-                                        <SelectItem key={status.value} value={status.value}>
-                                            {status.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {renderError('legalizationStatus')}
-                        </div>
+                    </div>
+                    <div>
+                        <Label>Data zatrudnienia</Label>
+                        <DatePickerInput
+                            value={formData.hireDate}
+                            onChange={(date) => handleChange('hireDate', date)}
+                            placeholder="Wybierz datę"
+                        />
+                        {renderError('hireDate')}
+                    </div>
+                     <div>
+                        <Label>Umowa do</Label>
+                        <DatePickerInput
+                            value={formData.contractEndDate}
+                            onChange={(date) => handleChange('contractEndDate', date)}
+                            placeholder="Data końcowa umowy"
+                        />
+                        {renderError('contractEndDate')}
+                    </div>
+                     <div>
+                        <Label>Stanowisko</Label>
+                        <Select value={formData.jobTitle} onValueChange={value => handleChange('jobTitle', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                            <SelectContent>
+                                {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('jobTitle')}
+                    </div>
+                    <div>
+                        <Label>Dział</Label>
+                        <Select value={formData.department} onValueChange={value => handleChange('department', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                            <SelectContent>
+                                {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('department')}
+                    </div>
+                     <div>
+                        <Label>Kierownik</Label>
+                        <Select value={formData.manager} onValueChange={value => handleChange('manager', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
+                            <SelectContent>
+                                {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('manager')}
+                    </div>
+                    <div>
+                        <Label>Narodowość</Label>
+                        <Select value={formData.nationality} onValueChange={value => handleChange('nationality', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
+                            <SelectContent>
+                                {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('nationality')}
+                    </div>
+                    <div>
+                        <Label htmlFor="cardNumber">Numer karty</Label>
+                        <Input id="cardNumber" value={formData.cardNumber} onChange={e => handleChange('cardNumber', e.target.value)} />
+                        {renderError('cardNumber')}
+                    </div>
+                     <div>
+                        <Label htmlFor="lockerNumber">Numer szafki</Label>
+                        <Input id="lockerNumber" value={formData.lockerNumber} onChange={e => handleChange('lockerNumber', e.target.value)} />
+                    </div>
+                    <div>
+                        <Label htmlFor="departmentLockerNumber">Numer szafki w dziale</Label>
+                        <Input id="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={e => handleChange('departmentLockerNumber', e.target.value)} />
+                    </div>
+                    <div>
+                        <Label htmlFor="sealNumber">Numer pieczęci</Label>
+                        <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} />
+                    </div>
+                     <div>
+                        <Label>Status legalizacyjny</Label>
+                        <Select value={formData.legalizationStatus || 'Brak'} onValueChange={value => handleChange('legalizationStatus', value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Wybierz status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {legalizationStatuses.map(status => (
+                                    <SelectItem key={status.value} value={status.value}>
+                                        {status.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {renderError('legalizationStatus')}
                     </div>
                 </div>
             </div>

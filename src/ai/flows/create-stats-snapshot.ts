@@ -33,12 +33,10 @@ const EmployeeChangeSchema = z.object({
     jobTitle: z.string(),
     department: z.string(),
     date: z.string(),
-    avatarDataUri: z.string().optional(),
 });
 
 const FieldChangeSchema = z.object({
     fullName: z.string(),
-    avatarDataUri: z.string().optional(),
     date: z.string(),
     type: z.literal('department'),
     from: z.string(),
@@ -107,7 +105,6 @@ const createStatsSnapshotFlow = ai.defineFlow(
         jobTitle: emp.jobTitle,
         department: emp.department,
         date: date,
-        avatarDataUri: emp.avatarDataUri,
     });
 
     const getCounts = (employees: Employee[], key: keyof Employee) => {
@@ -147,7 +144,6 @@ const createStatsSnapshotFlow = ai.defineFlow(
             if (startEmp.department !== endEmp.department) {
                 fieldChanges.push({
                     fullName: endEmp.fullName,
-                    avatarDataUri: endEmp.avatarDataUri,
                     date: format(end, 'yyyy-MM-dd'),
                     type: 'department',
                     from: startEmp.department || 'Brak',
@@ -216,5 +212,4 @@ const createStatsSnapshotFlow = ai.defineFlow(
     }
   }
 );
-
     

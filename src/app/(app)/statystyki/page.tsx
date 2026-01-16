@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
@@ -33,7 +34,6 @@ import { pl } from 'date-fns/locale';
 import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
 import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 import { formatDate, parseMaybeDate } from '@/lib/date';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -430,10 +430,6 @@ const HiresAndFiresTab = () => {
                         <div className="space-y-4 pr-4">
                             {employees.map((emp, index) => (
                                 <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
-                                    <Avatar>
-                                        <AvatarImage src={emp.avatarDataUri} />
-                                        <AvatarFallback>{emp.fullName.charAt(0)}</AvatarFallback>
-                                    </Avatar>
                                     <div className="flex-grow">
                                         <p className="font-semibold">{emp.fullName}</p>
                                         <p className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</p>
@@ -482,10 +478,6 @@ const HiresAndFiresTab = () => {
                                         <div className="space-y-4 pr-4">
                                             {items.map((item, index) => (
                                                 <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
-                                                    <Avatar>
-                                                        <AvatarImage src={item.avatarDataUri} />
-                                                        <AvatarFallback>{item.fullName.charAt(0)}</AvatarFallback>
-                                                    </Avatar>
                                                     <div className="flex-grow">
                                                         <p className="font-semibold">{item.fullName}</p>
                                                         <div className="text-xs text-muted-foreground flex items-center gap-2">
