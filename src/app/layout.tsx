@@ -10,11 +10,13 @@ import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useHasMounted } from '@/hooks/use-mobile';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { isLoading, currentUser } = useAppContext();
   const pathname = usePathname();
   const router = useRouter();
+  const hasMounted = useHasMounted();
 
   const isAuthPage = pathname === '/login' || pathname === '/register';
 
@@ -45,7 +47,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
         */}
         {children}
         
-        {!isAuthPage && (isLoading || !currentUser) && (
+        {hasMounted && !isAuthPage && (isLoading || !currentUser) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
