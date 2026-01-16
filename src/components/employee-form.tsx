@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, UserX } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, UserX, ScanId } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ import type { Employee, AllConfig } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
+import { PassportScanner } from './passport-scanner';
 
 interface EmployeeFormProps {
   employee: Employee | null;
@@ -71,6 +72,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     useEffect(() => {
         setFormData(getInitialFormData(employee));
@@ -111,6 +113,12 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
         
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
+    };
+    
+    const handleScanComplete = (data: { firstName: string, lastName: string }) => {
+        setFirstName(data.firstName);
+        setLastName(data.lastName);
+        setIsScannerOpen(false);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -168,9 +176,16 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
     };
 
     return (
+        <>
         <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Dane osobowe</h3>
+                <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium text-foreground">Dane osobowe</h3>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setIsScannerOpen(true)}>
+                        <ScanId className="mr-2 h-4 w-4" />
+                        Skanuj Paszport
+                    </Button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
                     <div>
                         <Label htmlFor="lastName">Nazwisko</Label>
@@ -352,5 +367,14 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                 </div>
             </div>
         </form>
+        
+        {isScannerOpen && (
+            <PassportScanner
+                open={isScannerOpen}
+                onOpenChange={setIsScannerOpen}
+                onScanComplete={handleScanComplete}
+            />
+        )}
+        </>
     );
 }
