@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -151,20 +149,40 @@ export default function AktywniPage() {
 
   const columns = useMemo<ColumnDef<Employee>[]>(() => [
     {
-        accessorKey: "fullName",
-        header: "Nazwisko i imię",
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src={employee.avatarDataUri || `https://avatar.vercel.sh/${employee.fullName}.png`} alt={employee.fullName} />
-                        <AvatarFallback>{employee.fullName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium">{employee.fullName}</span>
-                </div>
-            )
-        }
+      id: 'lastName',
+      header: 'Nazwisko',
+      cell: ({ row }) => {
+        const nameParts = row.original.fullName.trim().split(' ');
+        const lastName = nameParts.pop() || '';
+        return <span className="font-medium">{lastName}</span>;
+      },
+    },
+    {
+      id: 'firstName',
+      header: 'Imię',
+      cell: ({ row }) => {
+        const employee = row.original;
+        const nameParts = employee.fullName.trim().split(' ');
+        nameParts.pop();
+        const firstName = nameParts.join(' ');
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage
+                src={
+                  employee.avatarDataUri ||
+                  `https://avatar.vercel.sh/${employee.fullName}.png`
+                }
+                alt={employee.fullName}
+              />
+              <AvatarFallback>
+                {firstName ? firstName.charAt(0) : employee.fullName.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-medium">{firstName}</span>
+          </div>
+        );
+      },
     },
     { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'yyyy-MM-dd') },
     { accessorKey: "contractEndDate", header: "Umowa do", cell: ({row}) => formatDate(row.original.contractEndDate, 'yyyy-MM-dd') },
