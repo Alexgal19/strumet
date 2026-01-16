@@ -105,21 +105,6 @@ export default function PlanningPage() {
     );
   }
 
-  const renderEmployeeList = (list: Employee[], type: 'termination' | 'vacation' | 'vacation-planned', emptyMessage: string) => {
-    if (list.length === 0) {
-      return <p className="text-center text-sm text-muted-foreground py-6">{emptyMessage}</p>;
-    }
-    return (
-      <ScrollArea className="h-full">
-        <div className="space-y-3 pr-4">
-          {list.map(employee => (
-            <EmployeeCard key={employee.id} employee={employee} type={type} />
-          ))}
-        </div>
-      </ScrollArea>
-    );
-  };
-
   return (
     <div className="h-full flex flex-col">
       <PageHeader
@@ -132,21 +117,51 @@ export default function PlanningPage() {
         <div className="flex flex-col space-y-4">
             <h2 className="text-xl font-bold tracking-tight">Planowane zwolnienia ({plannedTerminations.length})</h2>
             <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                {renderEmployeeList(plannedTerminations, 'termination', 'Brak zaplanowanych zwolnień.')}
+                 {plannedTerminations.length > 0 ? (
+                    <ScrollArea className="h-full">
+                        <div className="space-y-3 pr-4">
+                        {plannedTerminations.map(employee => (
+                            <EmployeeCard key={employee.id} employee={employee} type="termination" />
+                        ))}
+                        </div>
+                    </ScrollArea>
+                    ) : (
+                    <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych zwolnień.</p>
+                )}
             </div>
         </div>
 
         <div className="flex flex-col space-y-4">
             <h2 className="text-xl font-bold tracking-tight">Pracownicy na urlopie ({onVacation.length})</h2>
              <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                {renderEmployeeList(onVacation, 'vacation', 'Obecnie nikt nie przebywa na urlopie.')}
+                {onVacation.length > 0 ? (
+                    <ScrollArea className="h-full">
+                        <div className="space-y-3 pr-4">
+                        {onVacation.map(employee => (
+                            <EmployeeCard key={employee.id} employee={employee} type="vacation" />
+                        ))}
+                        </div>
+                    </ScrollArea>
+                    ) : (
+                    <p className="text-center text-sm text-muted-foreground py-6">Obecnie nikt nie przebywa na urlopie.</p>
+                )}
             </div>
         </div>
         
         <div className="flex flex-col space-y-4">
             <h2 className="text-xl font-bold tracking-tight">Nadchodzące urlopy ({upcomingVacations.length})</h2>
             <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                {renderEmployeeList(upcomingVacations, 'vacation-planned', 'Brak zaplanowanych urlopów.')}
+                {upcomingVacations.length > 0 ? (
+                    <ScrollArea className="h-full">
+                        <div className="space-y-3 pr-4">
+                        {upcomingVacations.map(employee => (
+                            <EmployeeCard key={employee.id} employee={employee} type="vacation-planned" />
+                        ))}
+                        </div>
+                    </ScrollArea>
+                    ) : (
+                    <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych urlopów.</p>
+                )}
             </div>
         </div>
 
