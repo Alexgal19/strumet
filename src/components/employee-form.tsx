@@ -242,14 +242,14 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
                         <div className="md:col-span-2 grid grid-cols-2 gap-x-4">
                             <div>
-                                <Label htmlFor="firstName">Imię</Label>
-                                <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} />
-                                {renderError('firstName')}
-                            </div>
-                            <div>
                                 <Label htmlFor="lastName">Nazwisko</Label>
                                 <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} />
                                 {renderError('lastName')}
+                            </div>
+                            <div>
+                                <Label htmlFor="firstName">Imię</Label>
+                                <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                                {renderError('firstName')}
                             </div>
                         </div>
                         <div>
