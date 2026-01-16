@@ -28,19 +28,19 @@ function AppContent({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  if (isLoading || !currentUser) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
+  // For app pages, we always render the main layout structure.
+  // The loading state is handled inside the SidebarInset.
   return (
     <div className="flex h-full flex-col md:flex-row bg-transparent">
       <AppSidebar pathname={pathname} />
       <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80">
-        {children}
+        {isLoading || !currentUser ? (
+          <div className="flex h-full w-full items-center justify-center">
+             <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          children
+        )}
       </SidebarInset>
       <AppBottomNav pathname={pathname} />
     </div>
