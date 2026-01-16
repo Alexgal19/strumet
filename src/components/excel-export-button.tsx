@@ -1,8 +1,6 @@
-
 'use client';
 
 import React from 'react';
-import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { FileDown } from 'lucide-react';
 import type { Employee } from '@/lib/types';
@@ -16,7 +14,8 @@ interface ExcelExportButtonProps {
 }
 
 export function ExcelExportButton({ employees, fileName = 'pracownicy', columns }: ExcelExportButtonProps) {
-  const handleExport = () => {
+  const handleExport = async () => {
+    const XLSX = await import('xlsx');
     const dataToExport = employees.map(emp => {
       const polishEmp: any = {};
       columns.forEach(col => {

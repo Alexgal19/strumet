@@ -1,8 +1,6 @@
-
 'use client';
 
 import React, { useRef, useState } from 'react';
-import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { FileUp, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +39,7 @@ export function TerminatedExcelImportButton() {
 
     reader.onload = async (e) => {
       try {
+        const XLSX = await import('xlsx');
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const sheetName = workbook.SheetNames[0];

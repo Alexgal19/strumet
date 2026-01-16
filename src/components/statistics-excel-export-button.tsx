@@ -1,8 +1,6 @@
-
 'use client';
 
 import React from 'react';
-import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { FileDown } from 'lucide-react';
 import { format } from 'date-fns';
@@ -30,7 +28,8 @@ export function StatisticsExcelExportButton({
     employees,
 }: StatisticsExcelExportButtonProps) {
 
-    const handleExport = () => {
+    const handleExport = async () => {
+        const XLSX = await import('xlsx');
         const workbook = XLSX.utils.book_new();
 
         // 1. Summary Sheet
