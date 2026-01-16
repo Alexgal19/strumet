@@ -17,6 +17,38 @@ import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
 import { PassportScanner } from './passport-scanner';
 
+const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
+    const dateValue = parseMaybeDate(value);
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant={"outline"}
+                    className={cn("w-full justify-start text-left font-normal", !dateValue && "text-muted-foreground")}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateValue ? formatDate(dateValue, "PPP") : <span>{placeholder}</span>}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 flex flex-col">
+                <Calendar
+                    mode="single"
+                    selected={dateValue || undefined}
+                    onSelect={(date) => onChange(date ? formatFns(date, 'yyyy-MM-dd') : undefined)}
+                    locale={pl}
+                    initialFocus
+                />
+                {value && (
+                   <Button variant="ghost" size="sm" className="m-2 mt-0" onClick={() => onChange(undefined)}>
+                     <Trash2 className="mr-2 h-4 w-4" />
+                     Wyczyść datę
+                   </Button>
+                )}
+            </PopoverContent>
+        </Popover>
+    );
+};
+
 interface EmployeeFormProps {
   employee: Employee | null;
   onSave: (employee: Employee) => void;
@@ -136,38 +168,6 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
 
     const handleChange = (field: keyof typeof formData, value: string | undefined) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
-        const dateValue = parseMaybeDate(value);
-        return (
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant={"outline"}
-                        className={cn("w-full justify-start text-left font-normal", !dateValue && "text-muted-foreground")}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateValue ? formatDate(dateValue, "PPP") : <span>{placeholder}</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 flex flex-col">
-                    <Calendar
-                        mode="single"
-                        selected={dateValue || undefined}
-                        onSelect={(date) => onChange(date ? formatFns(date, 'yyyy-MM-dd') : undefined)}
-                        locale={pl}
-                        initialFocus
-                    />
-                    {value && (
-                       <Button variant="ghost" size="sm" className="m-2 mt-0" onClick={() => onChange(undefined)}>
-                         <Trash2 className="mr-2 h-4 w-4" />
-                         Wyczyść datę
-                       </Button>
-                    )}
-                </PopoverContent>
-            </Popover>
-        );
     };
 
     const renderError = (field: string) => {
