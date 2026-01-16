@@ -9,6 +9,7 @@ import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { isLoading, currentUser } = useAppContext();
@@ -24,25 +25,35 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, currentUser, isAuthPage, router]);
 
-  if (isAuthPage) {
-    return <>{children}</>;
-  }
-
-  // For app pages, we always render the main layout structure.
-  // The loading state is handled inside the SidebarInset.
   return (
     <div className="flex h-full flex-col md:flex-row bg-transparent">
-      <AppSidebar pathname={pathname} />
-      <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80">
-        {isLoading || !currentUser ? (
+      {/* The component is always mounted, but its content is hidden on auth pages */}
+      <div className={cn(isAuthPage && 'hidden')}>
+        <AppSidebar pathname={pathname} />
+      </div>
+
+      <SidebarInset
+        className={cn(
+          'm-0 flex flex-1 flex-col min-w-0',
+          !isAuthPage &&
+            'md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80'
+        )}
+      >
+        {isAuthPage ? (
+          children
+        ) : isLoading || !currentUser ? (
           <div className="flex h-full w-full items-center justify-center">
-             <Loader2 className="h-8 w-8 animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
           children
         )}
       </SidebarInset>
-      <AppBottomNav pathname={pathname} />
+      
+      {/* The component is always mounted, but its content is hidden on auth pages */}
+      <div className={cn(isAuthPage && 'hidden')}>
+        <AppBottomNav pathname={pathname} />
+      </div>
     </div>
   );
 }
