@@ -1016,14 +1016,6 @@ const OrdersTab = () => {
 
 export default function StatisticsPage() {
   const { isLoading, employees } = useAppContext();
-  
-  if (isLoading && employees.length === 0) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="h-full flex flex-col w-full">
@@ -1031,22 +1023,28 @@ export default function StatisticsPage() {
         title="Statystyki i Planowanie"
         description="Kluczowe wskaźniki i zapotrzebowanie na personel."
       />
-       <Tabs defaultValue="report" className="flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-3">
+      {isLoading && employees.length === 0 ? (
+        <div className="flex h-full w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : (
+        <Tabs defaultValue="report" className="flex-grow flex flex-col">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
             <TabsTrigger value="hires_fires">Analiza</TabsTrigger>
             <TabsTrigger value="orders">Zamówienia</TabsTrigger>
-        </TabsList>
-        <TabsContent value="report" className="flex-grow mt-6">
+          </TabsList>
+          <TabsContent value="report" className="flex-grow mt-6">
             <ReportTab />
-        </TabsContent>
-        <TabsContent value="hires_fires" className="flex-grow mt-6">
+          </TabsContent>
+          <TabsContent value="hires_fires" className="flex-grow mt-6">
             <HiresAndFiresTab />
-        </TabsContent>
-        <TabsContent value="orders" className="flex-grow mt-6">
+          </TabsContent>
+          <TabsContent value="orders" className="flex-grow mt-6">
             <OrdersTab />
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }
