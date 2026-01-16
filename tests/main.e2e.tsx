@@ -65,7 +65,9 @@ async function runTest() {
     // Unique name for test entities
     const testId = Date.now();
     const newDepartmentName = `Test Dept ${testId}`;
-    const newEmployeeName = `Test Employee ${testId}`;
+    const newEmployeeFirstName = 'Test';
+    const newEmployeeLastName = `Employee ${testId}`;
+    const newEmployeeName = `${newEmployeeFirstName} ${newEmployeeLastName}`;
 
     try {
         // 1. Login
@@ -107,7 +109,8 @@ async function runTest() {
         await browser_eval({ action: 'click', element: 'button:has-text("Dodaj pracownika")' });
         await waitForSelector('h2.text-lg.font-semibold:has-text("Dodaj nowego pracownika")'); // Dialog title
         
-        await browser_eval({ action: 'type', selector: '#fullName', text: newEmployeeName });
+        await browser_eval({ action: 'type', selector: '#firstName', text: newEmployeeFirstName });
+        await browser_eval({ action: 'type', selector: '#lastName', text: newEmployeeLastName });
         await browser_eval({ action: 'type', selector: '#cardNumber', text: `${testId}` });
         
         // Select from dropdowns

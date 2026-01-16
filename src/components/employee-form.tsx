@@ -73,18 +73,31 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
 export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }: EmployeeFormProps) {
     const { departments, jobTitles, managers, nationalities } = config;
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
         setFormData(getInitialFormData(employee));
+        if (employee?.fullName) {
+            const nameParts = employee.fullName.trim().split(' ');
+            const lName = nameParts.pop() || '';
+            const fName = nameParts.join(' ');
+            setFirstName(fName);
+            setLastName(lName);
+        } else {
+            setFirstName('');
+            setLastName('');
+        }
         setErrors({});
     }, [employee]);
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
-        if (!formData.fullName.trim()) newErrors.fullName = "Imię i nazwisko jest wymagane.";
+        if (!firstName.trim()) newErrors.firstName = "Imię jest wymagane.";
+        if (!lastName.trim()) newErrors.lastName = "Nazwisko jest wymagane.";
         if (!formData.jobTitle) newErrors.jobTitle = "Stanowisko jest wymagane.";
         if (!formData.department) newErrors.department = "Dział jest wymagany.";
         if (!formData.manager) newErrors.manager = "Kierownik jest wymagany.";
@@ -110,7 +123,8 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validate()) {
-            let dataToSave = { ...formData };
+            const newFullName = `${firstName.trim()} ${lastName.trim()}`;
+            let dataToSave = { ...formData, fullName: newFullName };
             
             onSave({
                 ...dataToSave,
@@ -125,7 +139,8 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
     };
 
     const handleGenerateAvatar = async () => {
-        if (!formData.fullName || !formData.jobTitle || !formData.department) {
+        const currentFullName = `${firstName} ${lastName}`.trim();
+        if (!currentFullName || !formData.jobTitle || !formData.department) {
             toast({
                 variant: 'destructive',
                 title: 'Błąd',
@@ -136,7 +151,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
         setIsGeneratingAvatar(true);
         try {
             const result = await generateAvatar({
-                fullName: formData.fullName,
+                fullName: currentFullName,
                 jobTitle: formData.jobTitle,
                 department: formData.department,
             });
@@ -189,7 +204,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
         );
     };
 
-    const renderError = (field: keyof typeof formData) => {
+    const renderError = (field: string) => {
         return errors[field] && <p className="text-xs font-medium text-destructive mt-1">{errors[field]}</p>;
     };
 
@@ -200,9 +215,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
             <div className="flex items-start gap-6">
                 <div className="flex flex-col items-center gap-2 w-28 flex-shrink-0">
                     <Avatar className="h-28 w-28 border">
-                        <AvatarImage src={formData.avatarDataUri} alt={formData.fullName} />
+                        <AvatarImage src={formData.avatarDataUri} alt={`${firstName} ${lastName}`} />
                         <AvatarFallback className="text-3xl">
-                            {formData.fullName ? formData.fullName.charAt(0) : '?'}
+                            {firstName ? firstName.charAt(0) : '?'}
                         </AvatarFallback>
                     </Avatar>
                     <Button
@@ -225,10 +240,17 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                 <div className="flex-grow space-y-4">
                     <h3 className="text-lg font-medium text-foreground">Dane podstawowe</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
-                        <div className="md:col-span-2">
-                            <Label htmlFor="fullName">Imię i nazwisko</Label>
-                            <Input id="fullName" value={formData.fullName} onChange={e => handleChange('fullName', e.target.value)} />
-                            {renderError('fullName')}
+                        <div className="md:col-span-2 grid grid-cols-2 gap-x-4">
+                            <div>
+                                <Label htmlFor="firstName">Imię</Label>
+                                <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                                {renderError('firstName')}
+                            </div>
+                            <div>
+                                <Label htmlFor="lastName">Nazwisko</Label>
+                                <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} />
+                                {renderError('lastName')}
+                            </div>
                         </div>
                         <div>
                             <Label>Data zatrudnienia</Label>
