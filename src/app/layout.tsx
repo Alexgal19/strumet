@@ -1,6 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AppProvider, useAppContext } from '@/context/app-context';
@@ -9,7 +8,6 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 
 function AppContent({ children }: { children: React.ReactNode }) {
@@ -26,20 +24,11 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, currentUser, isAuthPage, router]);
 
-  if (isLoading && !currentUser) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   if (isAuthPage) {
     return <>{children}</>;
   }
-  
-  if (!currentUser) {
-     // This can be a brief flash before the redirect in useEffect kicks in, or a fallback.
+
+  if (isLoading || !currentUser) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -47,17 +36,14 @@ function AppContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-
   return (
-    <SidebarProvider>
-      <div className="flex h-full flex-col md:flex-row bg-transparent">
-        <AppSidebar pathname={pathname} />
-        <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80">
-          {children}
-        </SidebarInset>
-        <AppBottomNav pathname={pathname} />
-      </div>
-    </SidebarProvider>
+    <div className="flex h-full flex-col md:flex-row bg-transparent">
+      <AppSidebar pathname={pathname} />
+      <SidebarInset className="m-0 flex flex-1 flex-col min-w-0 md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80">
+        {children}
+      </SidebarInset>
+      <AppBottomNav pathname={pathname} />
+    </div>
   );
 }
 
@@ -77,9 +63,11 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
           <AppProvider>
-            <AppContent>
-              {children}
-            </AppContent>
+            <SidebarProvider>
+                <AppContent>
+                {children}
+                </AppContent>
+            </SidebarProvider>
           </AppProvider>
           <Toaster />
       </body>
