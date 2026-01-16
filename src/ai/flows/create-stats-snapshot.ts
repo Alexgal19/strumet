@@ -80,20 +80,20 @@ const createStatsSnapshotFlow = ai.defineFlow(
     const allEmployees: Employee[] = objectToArray(employeesSnapshot.val());
 
     const getActiveEmployeesOnDate = (date: Date) => {
-        const reportDayStart = startOfDay(date);
+        const reportDateString = format(date, 'yyyy-MM-dd');
         return allEmployees.filter(e => {
             if (!e.hireDate) return false;
-            const hireDate = startOfDay(parse(e.hireDate, 'yyyy-MM-dd', new Date()));
-
-            // An employee is considered part of the company if their hire date is on or before the report date.
-            if (isBefore(reportDayStart, hireDate)) {
+            
+            // Employee is active if their hire date is on or before the report date
+            const isHired = e.hireDate <= reportDateString;
+            if (!isHired) {
                 return false;
             }
 
-            // If the employee is terminated, they are excluded only if their termination date is strictly before the report date.
-            if (e.status === 'zwolniony' && e.terminationDate) {
-                const termDate = startOfDay(parse(e.terminationDate, 'yyyy-MM-dd', new Date()));
-                if (isBefore(termDate, reportDayStart)) {
+            // Employee is excluded if their termination date is strictly before the report date
+            if (e.terminationDate) {
+                const isTerminatedBefore = e.terminationDate < reportDateString;
+                if (isTerminatedBefore) {
                     return false;
                 }
             }
@@ -188,12 +188,14 @@ const createStatsSnapshotFlow = ai.defineFlow(
         const singleDate = parse(startDate, 'yyyy-MM-dd', new Date());
         const data = getActiveEmployeesOnDate(singleDate);
         
+        const singleDateString = format(singleDate, 'yyyy-MM-dd');
+        
         const newHires = allEmployees
-            .filter(e => e.hireDate && isEqual(startOfDay(parse(e.hireDate, 'yyyy-MM-dd', new Date())), startOfDay(singleDate)))
+            .filter(e => e.hireDate === singleDateString)
             .map(emp => employeeToChangeSchema(emp, emp.hireDate));
             
         const terminated = allEmployees
-            .filter(e => e.terminationDate && isEqual(startOfDay(parse(e.terminationDate, 'yyyy-MM-dd', new Date())), startOfDay(singleDate)))
+            .filter(e => e.terminationDate === singleDateString)
             .map(emp => employeeToChangeSchema(emp, emp.terminationDate!));
         
         const formatForSingleDay = (counts: Record<string, number>) => {
@@ -214,3 +216,5 @@ const createStatsSnapshotFlow = ai.defineFlow(
     }
   }
 );
+
+    
