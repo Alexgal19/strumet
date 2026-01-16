@@ -1,3 +1,4 @@
+
 /**
  * This is an end-to-end test script for the application.
  *
@@ -80,7 +81,7 @@ async function runTest() {
         });
         await takeScreenshot('login-page');
         await browser_eval({ action: 'click', element: 'button[type="submit"]' });
-        await waitForSelector('h1:has-text("Statystyki i Planowanie")');
+        await waitForSelector('h1:has-text("Pracownicy aktywni")');
         console.log('Login successful.');
         await takeScreenshot('dashboard-after-login');
 
@@ -88,9 +89,9 @@ async function runTest() {
         console.log(`Step 2: Adding new department: "${newDepartmentName}"...`);
         await browser_eval({ action: 'navigate', url: `${BASE_URL}/konfiguracja` });
         await waitForSelector('h1:has-text("Konfiguracja")');
-        await browser_eval({ action: 'click', element: 'button[data-radix-collection-item][value="lists"]' });
+        await browser_eval({ action: 'click', element: 'button[role="tab"][value="lists"]' });
         // The accordion item for "Działy"
-        await browser_eval({ action: 'click', element: 'button[data-radix-collection-item]:has-text("Działy")' });
+        await browser_eval({ action: 'click', element: 'button[data-radix-accordion-trigger]:has-text("Działy")' });
         await browser_eval({ action: 'click', element: 'button:has-text("Dodaj nowe")' });
         await waitForSelector('#new-items-text');
         await browser_eval({ action: 'type', element: '#new-items-text', text: newDepartmentName });
@@ -104,30 +105,29 @@ async function runTest() {
         await browser_eval({ action: 'navigate', url: `${BASE_URL}/aktywni` });
         await waitForSelector('h1:has-text("Pracownicy aktywni")');
         await browser_eval({ action: 'click', element: 'button:has-text("Dodaj pracownika")' });
-        await waitForSelector('h2:has-text("Dodaj nowego pracownika")'); // Dialog title
+        await waitForSelector('h2.text-lg.font-semibold:has-text("Dodaj nowego pracownika")'); // Dialog title
         
         await browser_eval({ action: 'type', selector: '#fullName', text: newEmployeeName });
         await browser_eval({ action: 'type', selector: '#cardNumber', text: `${testId}` });
         
         // Select from dropdowns
         await browser_eval({ action: 'click', element: 'button[role="combobox"]:has-text("Wybierz stanowisko")' });
-        await browser_eval({ action: 'click', element: '[data-radix-collection-item]:has-text("Operator Maszyn")' });
+        await browser_eval({ action: 'click', element: '[role="option"]:has-text("Operator Maszyn")' });
         
         await browser_eval({ action: 'click', element: 'button[role="combobox"]:has-text("Wybierz dział")' });
-        await browser_eval({ action: 'click', element: `[data-radix-collection-item]:has-text("${newDepartmentName}")` });
+        await browser_eval({ action: 'click', element: `[role="option"]:has-text("${newDepartmentName}")` });
         
         await browser_eval({ action: 'click', element: 'button[role="combobox"]:has-text("Wybierz kierownika")' });
-        await browser_eval({ action: 'click', element: '[data-radix-collection-item]:has-text("Janusz Kowalski")' });
+        await browser_eval({ action: 'click', element: '[role="option"]:has-text("Janusz Kowalski")' });
 
         await browser_eval({ action: 'click', element: 'button[role="combobox"]:has-text("Wybierz narodowość")' });
-        await browser_eval({ action: 'click', element: '[data-radix-collection-item]:has-text("Polska")' });
+        await browser_eval({ action: 'click', element: '[role="option"]:has-text("Polska")' });
 
         await browser_eval({ action: 'click', element: 'button[role="combobox"]:has-text("Wybierz status")' });
-        await browser_eval({ action: 'click', element: '[data-radix-collection-item]:has-text("Wiza")' });
+        await browser_eval({ action: 'click', element: '[role="option"]:has-text("Wiza")' });
 
         // Click a date in calendar
-        await browser_eval({ action: 'click', element: 'button[role="combobox"]:has-text("Data końcowa umowy")' });
-        await browser_eval({ action: 'click', element: '.rdp-day_today' });
+        await browser_eval({ action: 'click', element: 'button.rdp-button_today' });
         
         await browser_eval({ action: 'click', element: 'button:has-text("Zapisz")' });
 
@@ -157,7 +157,7 @@ async function runTest() {
         console.log('Step 3.3: Terminating employee...');
         await browser_eval({ action: 'click', element: `tr:has-text("${newEmployeeName}") button[aria-label="Otwórz menu"]` });
         await browser_eval({ action: 'click', element: '[role="menuitem"]:has-text("Zwolnij")' });
-        await waitForSelector('h2:has-text("Czy jesteś absolutnie pewien?")');
+        await waitForSelector('h2.text-lg.font-semibold:has-text("Czy jesteś absolutnie pewien?")');
         await browser_eval({ action: 'click', element: 'button:has-text("Kontynuuj")' });
         await waitForSelector('div[role="alert"]:has-text("Pracownik zwolniony")');
         console.log('  - OK: Employee terminated.');
@@ -172,7 +172,7 @@ async function runTest() {
         console.log('Step 4.1: Restoring employee...');
         await browser_eval({ action: 'click', element: `tr:has-text("${newEmployeeName}") button[aria-label="Otwórz menu"]` });
         await browser_eval({ action: 'click', element: '[role="menuitem"]:has-text("Przywróć")' });
-        await waitForSelector('h2:has-text("Czy jesteś absolutnie pewien?")');
+        await waitForSelector('h2.text-lg.font-semibold:has-text("Czy jesteś absolutnie pewien?")');
         await browser_eval({ action: 'click', element: 'button:has-text("Przywróć")' });
         await waitForSelector('div[role="alert"]:has-text("Pracownik został przywrócony")');
         console.log('  - OK: Employee restored.');
@@ -186,7 +186,7 @@ async function runTest() {
         console.log('Step 5.1: Permanently deleting employee...');
         await browser_eval({ action: 'click', element: `tr:has-text("${newEmployeeName}") button[aria-label="Otwórz menu"]` });
         await browser_eval({ action: 'click', element: '[role="menuitem"]:has-text("Usuń trwale")' });
-        await waitForSelector('h2:has-text("Czy jesteś absolutnie pewien?")');
+        await waitForSelector('h2.text-lg.font-semibold:has-text("Czy jesteś absolutnie pewien?")');
         await browser_eval({ action: 'click', element: 'button:has-text("Usuń trwale")' });
         await waitForSelector('div[role="alert"]:has-text("Pracownik został trwale usunięty")');
         const employeeGone = await browser_eval({ action: 'evaluate', script: `!document.querySelector('span:has-text("${newEmployeeName}")')`});
@@ -196,8 +196,8 @@ async function runTest() {
         // 6. Statistics Report Test
         console.log('Step 6: Testing statistics report generation...');
         await browser_eval({ action: 'navigate', url: `${BASE_URL}/statystyki` });
-        await waitForSelector('button:has-text("Analiza")');
-        await browser_eval({ action: 'click', element: 'button:has-text("Analiza")' });
+        await waitForSelector('button[role="tab"][value="hires_fires"]');
+        await browser_eval({ action: 'click', element: 'button[role="tab"][value="hires_fires"]' });
         await waitForSelector('#date'); // Date picker button
         await browser_eval({ action: 'click', element: '#date' });
         // Select today's date in the calendar

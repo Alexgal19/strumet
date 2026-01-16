@@ -1,4 +1,5 @@
 
+
 /**
  * Ten plik zawiera testy integralności aplikacji, które sprawdzają,
  * czy podstawowe konfiguracje i zależności działają poprawnie.
@@ -30,7 +31,6 @@ describe('App Integrity Checks', () => {
     expect(missingVars).toEqual([]);
   });
 
-  // W przyszłości można tu dodać więcej testów, np.:
   // - Sprawdzanie, czy główne obiekty konfiguracyjne (np. config.departments) ładują się poprawnie.
   // - Test "smoke" połączenia z emulatorem Firebase.
   
@@ -86,3 +86,4 @@ describe('Legalization Status Logic', () => {
     expect(getStatusColor(status, true)).toBe(expectedHighlight);
   });
 });
+
