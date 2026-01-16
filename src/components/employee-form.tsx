@@ -8,15 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, Bot, Loader2, Sparkles, UserX } from 'lucide-react';
-import { format as formatFns, parse, isValid, parseISO } from 'date-fns';
+import { Calendar as CalendarIcon, Trash2, UserX } from 'lucide-react';
+import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Employee, AllConfig } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
-import { useToast } from '@/hooks/use-toast';
 
 interface EmployeeFormProps {
   employee: Employee | null;
@@ -72,7 +71,6 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const { toast } = useToast();
 
     useEffect(() => {
         setFormData(getInitialFormData(employee));
@@ -169,72 +167,20 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
         return errors[field] && <p className="text-xs font-medium text-destructive mt-1">{errors[field]}</p>;
     };
 
-    const isTerminated = employee?.status === 'zwolniony';
-
     return (
         <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Dane podstawowe</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
-                    <div className="md:col-span-2 grid grid-cols-2 gap-x-4">
-                        <div>
-                            <Label htmlFor="lastName">Nazwisko</Label>
-                            <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} />
-                            {renderError('lastName')}
-                        </div>
-                        <div>
-                            <Label htmlFor="firstName">Imię</Label>
-                            <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} />
-                            {renderError('firstName')}
-                        </div>
+                <h3 className="text-lg font-medium text-foreground">Dane osobowe</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+                    <div>
+                        <Label htmlFor="lastName">Nazwisko</Label>
+                        <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} />
+                        {renderError('lastName')}
                     </div>
                     <div>
-                        <Label>Data zatrudnienia</Label>
-                        <DatePickerInput
-                            value={formData.hireDate}
-                            onChange={(date) => handleChange('hireDate', date)}
-                            placeholder="Wybierz datę"
-                        />
-                        {renderError('hireDate')}
-                    </div>
-                     <div>
-                        <Label>Umowa do</Label>
-                        <DatePickerInput
-                            value={formData.contractEndDate}
-                            onChange={(date) => handleChange('contractEndDate', date)}
-                            placeholder="Data końcowa umowy"
-                        />
-                        {renderError('contractEndDate')}
-                    </div>
-                     <div>
-                        <Label>Stanowisko</Label>
-                        <Select value={formData.jobTitle} onValueChange={value => handleChange('jobTitle', value)}>
-                            <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
-                            <SelectContent>
-                                {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        {renderError('jobTitle')}
-                    </div>
-                    <div>
-                        <Label>Dział</Label>
-                        <Select value={formData.department} onValueChange={value => handleChange('department', value)}>
-                            <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
-                            <SelectContent>
-                                {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        {renderError('department')}
-                    </div>
-                     <div>
-                        <Label>Kierownik</Label>
-                        <Select value={formData.manager} onValueChange={value => handleChange('manager', value)}>
-                            <SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
-                            <SelectContent>
-                                {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        {renderError('manager')}
+                        <Label htmlFor="firstName">Imię</Label>
+                        <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                        {renderError('firstName')}
                     </div>
                     <div>
                         <Label>Narodowość</Label>
@@ -245,23 +191,6 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                             </SelectContent>
                         </Select>
                         {renderError('nationality')}
-                    </div>
-                    <div>
-                        <Label htmlFor="cardNumber">Numer karty</Label>
-                        <Input id="cardNumber" value={formData.cardNumber} onChange={e => handleChange('cardNumber', e.target.value)} />
-                        {renderError('cardNumber')}
-                    </div>
-                     <div>
-                        <Label htmlFor="lockerNumber">Numer szafki</Label>
-                        <Input id="lockerNumber" value={formData.lockerNumber} onChange={e => handleChange('lockerNumber', e.target.value)} />
-                    </div>
-                    <div>
-                        <Label htmlFor="departmentLockerNumber">Numer szafki w dziale</Label>
-                        <Input id="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={e => handleChange('departmentLockerNumber', e.target.value)} />
-                    </div>
-                    <div>
-                        <Label htmlFor="sealNumber">Numer pieczęci</Label>
-                        <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} />
                     </div>
                      <div>
                         <Label>Status legalizacyjny</Label>
@@ -281,6 +210,89 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                     </div>
                 </div>
             </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium text-foreground">Dane zatrudnienia</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
+                    <div>
+                        <Label>Dział</Label>
+                        <Select value={formData.department} onValueChange={value => handleChange('department', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                            <SelectContent>
+                                {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('department')}
+                    </div>
+                    <div>
+                        <Label>Stanowisko</Label>
+                        <Select value={formData.jobTitle} onValueChange={value => handleChange('jobTitle', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                            <SelectContent>
+                                {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('jobTitle')}
+                    </div>
+                        <div>
+                        <Label>Kierownik</Label>
+                        <Select value={formData.manager} onValueChange={value => handleChange('manager', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
+                            <SelectContent>
+                                {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {renderError('manager')}
+                    </div>
+                     <div>
+                        <Label>Data zatrudnienia</Label>
+                        <DatePickerInput
+                            value={formData.hireDate}
+                            onChange={(date) => handleChange('hireDate', date)}
+                            placeholder="Wybierz datę"
+                        />
+                        {renderError('hireDate')}
+                    </div>
+                     <div>
+                        <Label>Umowa do</Label>
+                        <DatePickerInput
+                            value={formData.contractEndDate}
+                            onChange={(date) => handleChange('contractEndDate', date)}
+                            placeholder="Data końcowa umowy"
+                        />
+                        {renderError('contractEndDate')}
+                    </div>
+                </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium text-foreground">Dane identyfikacyjne</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                     <div>
+                        <Label htmlFor="cardNumber">Numer karty</Label>
+                        <Input id="cardNumber" value={formData.cardNumber} onChange={e => handleChange('cardNumber', e.target.value)} />
+                        {renderError('cardNumber')}
+                    </div>
+                        <div>
+                        <Label htmlFor="lockerNumber">Numer szafki</Label>
+                        <Input id="lockerNumber" value={formData.lockerNumber} onChange={e => handleChange('lockerNumber', e.target.value)} />
+                    </div>
+                    <div>
+                        <Label htmlFor="departmentLockerNumber">Szafka w dziale</Label>
+                        <Input id="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={e => handleChange('departmentLockerNumber', e.target.value)} />
+                    </div>
+                    <div>
+                        <Label htmlFor="sealNumber">Numer pieczęci</Label>
+                        <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} />
+                    </div>
+                </div>
+            </div>
+            
+            <Separator />
 
             <div className="space-y-4">
                 <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
