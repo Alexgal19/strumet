@@ -27,7 +27,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-full flex-col md:flex-row bg-transparent">
-      {/* The component is always mounted, but its content is hidden on auth pages */}
       <div className={cn(isAuthPage && 'hidden')}>
         <AppSidebar pathname={pathname} />
       </div>
@@ -39,18 +38,20 @@ function AppContent({ children }: { children: React.ReactNode }) {
             'md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-lg bg-card/80'
         )}
       >
-        {isAuthPage ? (
-          children
-        ) : isLoading || !currentUser ? (
-          <div className="flex h-full w-full items-center justify-center">
+        {/* 
+          Always render children to keep the component tree stable.
+          The loading state is now an overlay, which doesn't replace the component,
+          thus preventing the "Rendered more hooks than during the previous render" error.
+        */}
+        {children}
+        
+        {!isAuthPage && (isLoading || !currentUser) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-        ) : (
-          children
         )}
       </SidebarInset>
       
-      {/* The component is always mounted, but its content is hidden on auth pages */}
       <div className={cn(isAuthPage && 'hidden')}>
         <AppBottomNav pathname={pathname} />
       </div>
