@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -268,106 +266,112 @@ export default function ConfigurationPage() {
     { type: 'clothingItems', items: config.clothingItems },
   ];
 
-  if (isLoading || !hasMounted) return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-
   return (
     <div className="flex h-full flex-col">
-      <PageHeader 
-        title="Konfiguracja"
-        description="Zarządzaj opcjami dostępnymi w systemie."
-      />
-      
-      <Tabs defaultValue="lists" className="flex-grow flex flex-col">
-         <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="lists">Listy</TabsTrigger>
-            <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
-            <TabsTrigger value="api_keys">Klucze API</TabsTrigger>
-            {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
-        </TabsList>
+      {isLoading || !hasMounted ? (
+        <div className="flex h-full w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+        ) : (
+        <>
+            <PageHeader 
+                title="Konfiguracja"
+                description="Zarządzaj opcjami dostępnymi w systemie."
+            />
+            
+            <Tabs defaultValue="lists" className="flex-grow flex flex-col">
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="lists">Listy</TabsTrigger>
+                    <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
+                    <TabsTrigger value="api_keys">Klucze API</TabsTrigger>
+                    {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
+                </TabsList>
 
-        <TabsContent value="lists" className="flex-grow mt-6">
-            <Card className="flex-grow flex flex-col">
-               <CardHeader>
-                    <CardTitle>Listy Konfiguracyjne</CardTitle>
-                    <CardDescription>Zarządzaj listami działów, stanowisk, etc.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow overflow-y-auto">
-                     <Accordion type="multiple" className="w-full">
-                        {configLists.map(({ type, items }) => (
-                            <AccordionItem value={type} key={type}>
-                                <AccordionTrigger>{configLabels[type as Exclude<ConfigView, 'jobTitleClothingSets'>]}</AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="space-y-3 p-2">
-                                      <div className="space-y-2">
-                                        {items.map((item) => (
-                                          <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
-                                            <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(type, item)}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleRemoveItem(type, item.id)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                <TabsContent value="lists" className="flex-grow mt-6">
+                    <Card className="flex-grow flex flex-col">
+                    <CardHeader>
+                            <CardTitle>Listy Konfiguracyjne</CardTitle>
+                            <CardDescription>Zarządzaj listami działów, stanowisk, etc.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-grow overflow-y-auto">
+                            <Accordion type="multiple" className="w-full">
+                                {configLists.map(({ type, items }) => (
+                                    <AccordionItem value={type} key={type}>
+                                        <AccordionTrigger>{configLabels[type as Exclude<ConfigView, 'jobTitleClothingSets'>]}</AccordionTrigger>
+                                        <AccordionContent>
+                                            <div className="space-y-3 p-2">
+                                            <div className="space-y-2">
+                                                {items.map((item) => (
+                                                <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
+                                                    <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
+                                                    <div className="flex items-center gap-1 shrink-0">
+                                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(type, item)}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleRemoveItem(type, item.id)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                ))}
+                                                {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
                                             </div>
-                                          </div>
-                                        ))}
-                                        {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
-                                      </div>
-                                      <Button className="mt-2 w-full" variant="secondary" onClick={() => openAddDialog(type)}>
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Dodaj nowe
-                                      </Button>
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        ))}
-                     </Accordion>
-                </CardContent>
-            </Card>
-        </TabsContent>
+                                            <Button className="mt-2 w-full" variant="secondary" onClick={() => openAddDialog(type)}>
+                                                <PlusCircle className="mr-2 h-4 w-4" />
+                                                Dodaj nowe
+                                            </Button>
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-        <TabsContent value="clothing_sets" className="flex-grow mt-6">
-            <JobTitleClothingSetsTab />
-        </TabsContent>
+                <TabsContent value="clothing_sets" className="flex-grow mt-6">
+                    <JobTitleClothingSetsTab />
+                </TabsContent>
 
-        <TabsContent value="api_keys" className="flex-grow mt-6">
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
-                        <KeyRound className="h-6 w-6" />
-                        Klucz API Resend
-                    </CardTitle>
-                    <CardDescription>
-                        Wprowadź klucz API do wysyłania powiadomień email.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <Label htmlFor="resend-api-key">Klucz API</Label>
-                        <Input 
-                            id="resend-api-key"
-                            type="password"
-                            value={resendApiKey}
-                            onChange={(e) => setResendApiKey(e.target.value)}
-                            placeholder="re_xxxxxxxx_xxxxxxxxxxxx"
-                        />
-                    </div>
-                    <Button onClick={onSaveApiKey}>
-                        <Save className="mr-2 h-4 w-4" />
-                        Zapisz klucz
-                    </Button>
-                </CardContent>
-            </Card>
-        </TabsContent>
+                <TabsContent value="api_keys" className="flex-grow mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-3">
+                                <KeyRound className="h-6 w-6" />
+                                Klucz API Resend
+                            </CardTitle>
+                            <CardDescription>
+                                Wprowadź klucz API do wysyłania powiadomień email.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label htmlFor="resend-api-key">Klucz API</Label>
+                                <Input 
+                                    id="resend-api-key"
+                                    type="password"
+                                    value={resendApiKey}
+                                    onChange={(e) => setResendApiKey(e.target.value)}
+                                    placeholder="re_xxxxxxxx_xxxxxxxxxxxx"
+                                />
+                            </div>
+                            <Button onClick={onSaveApiKey}>
+                                <Save className="mr-2 h-4 w-4" />
+                                Zapisz klucz
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-        {isAdmin && (
-            <TabsContent value="users" className="flex-grow mt-6">
-                <UserManagementTab />
-            </TabsContent>
+                {isAdmin && (
+                    <TabsContent value="users" className="flex-grow mt-6">
+                        <UserManagementTab />
+                    </TabsContent>
+                )}
+
+            </Tabs>
+        </>
         )}
-
-      </Tabs>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>

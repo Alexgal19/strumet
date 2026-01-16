@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -245,14 +244,16 @@ export default function ZwolnieniPage() {
     );
   };
   
-  if (isContextLoading || !hasMounted) {
-    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
-
   const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0;
 
   return (
     <div className="flex h-full flex-col">
+       {(isContextLoading && !hasMounted) ? (
+        <div className="flex h-full w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : (
+      <>
       <PageHeader
         title="Pracownicy zwolnieni"
         description="Przeglądaj historię zwolnionych pracowników."
@@ -403,6 +404,8 @@ export default function ZwolnieniPage() {
            )
         }
       </div>
+      </>
+      )}
     </div>
   );
 }

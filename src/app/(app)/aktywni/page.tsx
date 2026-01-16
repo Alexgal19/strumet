@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -305,16 +304,14 @@ export default function AktywniPage() {
 
   const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0;
 
-  if (isContextLoading || !hasMounted) {
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-300 opacity-100">
-            <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-    );
-  }
-
   return (
     <div className="flex h-full w-full flex-col">
+       {(isContextLoading && !hasMounted) ? (
+        <div className="flex h-full w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : (
+      <>
       <PageHeader
         title="Pracownicy aktywni"
         description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
@@ -490,6 +487,8 @@ export default function AktywniPage() {
           )
         }
       </div>
+      </>
+      )}
     </div>
   );
 }

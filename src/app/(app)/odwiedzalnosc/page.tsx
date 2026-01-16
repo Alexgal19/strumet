@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
@@ -226,117 +225,118 @@ export default function OdwiedzalnoscPage() {
     });
   }, [toast]);
   
-
-  const isLoading = isAppLoading;
-
-  if (isLoading) {
-    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
-
   return (
     <div className="flex h-full flex-col">
-      <PageHeader
-        title="Obecność"
-        description="Zarządzaj nieobecnościami pracowników i analizuj statystyki."
-      />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Dni robocze w miesiącu</CardTitle>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{workingDaysInMonth}</div>
-              </CardContent>
-          </Card>
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Suma nieobecności (miesiąc)</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{totalAbsencesInMonth}</div>
-              </CardContent>
-          </Card>
-           <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Absencja (miesiąc)</CardTitle>
-                  <UserX className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{totalAbsencePercentage.toFixed(2)}%</div>
-              </CardContent>
-          </Card>
-      </div>
-
-       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-2xl font-bold tracking-tight capitalize">
-              {format(currentDate, 'LLLL yyyy', { locale: pl })}
-            </h2>
-            <div className="flex flex-wrap items-center gap-2">
-                 <Input 
-                    placeholder="Szukaj po nazwisku, imieniu..."
-                    className="max-w-xs"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                 <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                    <SelectTrigger className="w-full sm:w-[200px]">
-                      <SelectValue placeholder="Wybierz dział" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departmentOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                 <div className="flex items-center gap-1 p-1 rounded-md border bg-card">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(prev => add(prev, { months: -1 }))}><ChevronLeft /></Button>
-                      <Select value={String(getMonth(currentDate))} onValueChange={v => setCurrentDate(setMonth(currentDate, Number(v)))}>
-                        <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <Select value={String(getYear(currentDate))} onValueChange={v => setCurrentDate(setYear(currentDate, Number(v)))}>
-                        <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(prev => add(prev, { months: 1 }))}><ChevronRight /></Button>
-                 </div>
+        {isAppLoading ? (
+            <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-        </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
-          <div className="lg:col-span-2">
-             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredEmployees.map(emp => (
-                    <EmployeeAttendanceCard
-                        key={emp.id}
-                        employee={emp}
-                        absences={absences}
-                        currentDate={currentDate}
-                        holidays={holidays}
-                        onToggleAbsence={handleToggleAbsence}
-                    />
-                ))}
-             </div>
-             {filteredEmployees.length === 0 && (
-                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed text-center p-12 text-muted-foreground h-full">
-                    <UserX className="h-12 w-12 mb-4" />
-                    <h3 className="text-lg font-semibold">Brak pracowników</h3>
-                    <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów.</p>
+        ) : (
+            <>
+                <PageHeader
+                    title="Obecność"
+                    description="Zarządzaj nieobecnościami pracowników i analizuj statystyki."
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Dni robocze w miesiącu</CardTitle>
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{workingDaysInMonth}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Suma nieobecności (miesiąc)</CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{totalAbsencesInMonth}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Absencja (miesiąc)</CardTitle>
+                            <UserX className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{totalAbsencePercentage.toFixed(2)}%</div>
+                        </CardContent>
+                    </Card>
                 </div>
-             )}
-          </div>
-          <div className="lg:col-span-1">
-             <DepartmentStats 
-                departmentData={departmentStats}
-                onCopy={handleCopy}
-            />
-          </div>
-      </div>
+
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                    <h2 className="text-2xl font-bold tracking-tight capitalize">
+                    {format(currentDate, 'LLLL yyyy', { locale: pl })}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Input 
+                            placeholder="Szukaj po nazwisku, imieniu..."
+                            className="max-w-xs"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                            <SelectTrigger className="w-full sm:w-[200px]">
+                            <SelectValue placeholder="Wybierz dział" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {departmentOptions.map(option => (
+                                <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <div className="flex items-center gap-1 p-1 rounded-md border bg-card">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(prev => add(prev, { months: -1 }))}><ChevronLeft /></Button>
+                            <Select value={String(getMonth(currentDate))} onValueChange={v => setCurrentDate(setMonth(currentDate, Number(v)))}>
+                                <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
+                                <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <Select value={String(getYear(currentDate))} onValueChange={v => setCurrentDate(setYear(currentDate, Number(v)))}>
+                                <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+                                <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(prev => add(prev, { months: 1 }))}><ChevronRight /></Button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+                    <div className="lg:col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {filteredEmployees.map(emp => (
+                            <EmployeeAttendanceCard
+                                key={emp.id}
+                                employee={emp}
+                                absences={absences}
+                                currentDate={currentDate}
+                                holidays={holidays}
+                                onToggleAbsence={handleToggleAbsence}
+                            />
+                        ))}
+                    </div>
+                    {filteredEmployees.length === 0 && (
+                        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed text-center p-12 text-muted-foreground h-full">
+                            <UserX className="h-12 w-12 mb-4" />
+                            <h3 className="text-lg font-semibold">Brak pracowników</h3>
+                            <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów.</p>
+                        </div>
+                    )}
+                    </div>
+                    <div className="lg:col-span-1">
+                    <DepartmentStats 
+                        departmentData={departmentStats}
+                        onCopy={handleCopy}
+                    />
+                    </div>
+                </div>
+            </>
+        )}
     </div>
   );
 }

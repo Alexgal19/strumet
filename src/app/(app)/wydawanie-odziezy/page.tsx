@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -145,10 +144,6 @@ export default function ClothingIssuancePage() {
 
   const isLoading = isAppLoading || isLoadingIssuances;
 
-  if (isLoading) {
-    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
-
   const selectedEmployeeForPrint = printingIssuance 
     ? employees.find(e => e.id === printingIssuance.employeeId) 
     : null;
@@ -156,163 +151,171 @@ export default function ClothingIssuancePage() {
   return (
     <>
       <div className="main-content-container h-full flex-col flex">
-        <PageHeader
-          title="Wydawanie odzieży"
-          description="Rejestruj i drukuj potwierdzenia wydania odzieży roboczej."
-        />
+        {isLoading ? (
+            <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        ) : (
+            <>
+                <PageHeader
+                title="Wydawanie odzieży"
+                description="Rejestruj i drukuj potwierdzenia wydania odzieży roboczej."
+                />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Nowe wydanie</CardTitle>
-                <CardDescription className="text-base">Wybierz pracownika i dodaj wydane elementy odzieży.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-base font-medium">Pracownik</label>
-                  <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isComboboxOpen}
-                        className="w-full justify-between h-12 text-base"
-                      >
-                        {selectedEmployee ? selectedEmployee.fullName : "Wybierz pracownika..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder="Szukaj pracownika..." />
-                        <CommandList>
-                          <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
-                          <CommandGroup>
-                            {employees.filter(e => e.status === 'aktywny').map((employee) => (
-                              <CommandItem
-                                key={employee.id}
-                                value={employee.fullName}
-                                onSelect={() => {
-                                  setSelectedEmployeeId(employee.id);
-                                  setIsComboboxOpen(false);
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-1">
+                    <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Nowe wydanie</CardTitle>
+                        <CardDescription className="text-base">Wybierz pracownika i dodaj wydane elementy odzieży.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                        <label className="text-base font-medium">Pracownik</label>
+                        <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                            <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={isComboboxOpen}
+                                className="w-full justify-between h-12 text-base"
+                            >
+                                {selectedEmployee ? selectedEmployee.fullName : "Wybierz pracownika..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Szukaj pracownika..." />
+                                <CommandList>
+                                <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
+                                <CommandGroup>
+                                    {employees.filter(e => e.status === 'aktywny').map((employee) => (
+                                    <CommandItem
+                                        key={employee.id}
+                                        value={employee.fullName}
+                                        onSelect={() => {
+                                        setSelectedEmployeeId(employee.id);
+                                        setIsComboboxOpen(false);
+                                        }}
+                                    >
+                                        <CheckIcon className={cn("mr-2 h-4 w-4", selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0")} />
+                                        {employee.fullName}
+                                    </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                                </CommandList>
+                            </Command>
+                            </PopoverContent>
+                        </Popover>
+                        </div>
+
+                        <div className="space-y-2">
+                        <label className="text-base font-medium">Elementy odzieży</label>
+                        <MultiSelect
+                                options={clothingOptions}
+                                selected={currentItems.map(i => i.id)}
+                                onChange={(selectedIds) => {
+                                    const newItems = selectedIds.map(id => {
+                                        const existing = currentItems.find(i => i.id === id);
+                                        if (existing) return existing;
+                                        const item = config.clothingItems.find(c => c.id === id)!;
+                                        return { ...item, quantity: 1 };
+                                    });
+                                    setCurrentItems(newItems);
                                 }}
-                              >
-                                <CheckIcon className={cn("mr-2 h-4 w-4", selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0")} />
-                                {employee.fullName}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                                title="Wybierz odzież..."
+                                className="text-base"
+                            />
+                        </div>
 
-                <div className="space-y-2">
-                   <label className="text-base font-medium">Elementy odzieży</label>
-                   <MultiSelect
-                        options={clothingOptions}
-                        selected={currentItems.map(i => i.id)}
-                        onChange={(selectedIds) => {
-                            const newItems = selectedIds.map(id => {
-                                const existing = currentItems.find(i => i.id === id);
-                                if (existing) return existing;
-                                const item = config.clothingItems.find(c => c.id === id)!;
-                                return { ...item, quantity: 1 };
-                            });
-                            setCurrentItems(newItems);
-                        }}
-                        title="Wybierz odzież..."
-                        className="text-base"
-                    />
-                </div>
-
-                {currentItems.length > 0 && (
-                    <div className="space-y-3 rounded-md border p-4">
-                        {currentItems.map(item => (
-                            <div key={item.id} className="flex items-center justify-between">
-                                <span className="text-base">{item.name}</span>
-                                <div className="flex items-center gap-2">
-                                    <Input 
-                                        type="number" 
-                                        min="1"
-                                        value={item.quantity}
-                                        onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value, 10))}
-                                        className="h-10 w-20 text-center text-base"
-                                    />
-                                    <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => handleRemoveItem(item.id)}>
-                                        <Trash2 className="h-5 w-5 text-destructive" />
-                                    </Button>
-                                </div>
+                        {currentItems.length > 0 && (
+                            <div className="space-y-3 rounded-md border p-4">
+                                {currentItems.map(item => (
+                                    <div key={item.id} className="flex items-center justify-between">
+                                        <span className="text-base">{item.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <Input 
+                                                type="number" 
+                                                min="1"
+                                                value={item.quantity}
+                                                onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value, 10))}
+                                                className="h-10 w-20 text-center text-base"
+                                            />
+                                            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => handleRemoveItem(item.id)}>
+                                                <Trash2 className="h-5 w-5 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                )}
+                        )}
 
-                <Button onClick={() => handleSaveAndPrint()} disabled={!selectedEmployee || currentItems.length === 0} className="w-full h-12 text-base">
-                  <Printer className="mr-2 h-5 w-5" />
-                  Zapisz i drukuj
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-2">
-            <Card className="h-full">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <History className="h-7 w-7" />
-                  <div>
-                    <CardTitle className="text-2xl">Historia wydań</CardTitle>
-                    <CardDescription className="text-base">
-                      {selectedEmployee ? `dla ${selectedEmployee.fullName}` : 'Wybierz pracownika, aby zobaczyć historię.'}
-                    </CardDescription>
-                  </div>
+                        <Button onClick={() => handleSaveAndPrint()} disabled={!selectedEmployee || currentItems.length === 0} className="w-full h-12 text-base">
+                        <Printer className="mr-2 h-5 w-5" />
+                        Zapisz i drukuj
+                        </Button>
+                    </CardContent>
+                    </Card>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {selectedEmployee ? (
-                  employeeIssuanceHistory.length > 0 ? (
-                    <ScrollArea className="max-h-[600px] rounded-lg border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="text-base">Data</TableHead>
-                            <TableHead className="text-base">Elementy</TableHead>
-                            <TableHead className="text-right text-base">Akcje</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {employeeIssuanceHistory.map(issuance => (
-                            <TableRow key={issuance.id}>
-                              <TableCell className="font-medium text-base">{formatDateTime(issuance.date, "dd.MM.yyyy HH:mm")}</TableCell>
-                              <TableCell className="text-base">{issuance.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleSaveAndPrint(issuance)}>
-                                  <Printer className="h-5 w-5" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDeleteIssuance(issuance.id)}>
-                                  <Trash2 className="h-5 w-5 text-destructive" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </ScrollArea>
-                  ) : (
-                    <p className="text-base text-muted-foreground text-center py-10">Brak historii wydań dla tego pracownika.</p>
-                  )
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-center py-10 text-base">
-                    Wybierz pracownika, aby zobaczyć historię.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+
+                <div className="lg:col-span-2">
+                    <Card className="h-full">
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                        <History className="h-7 w-7" />
+                        <div>
+                            <CardTitle className="text-2xl">Historia wydań</CardTitle>
+                            <CardDescription className="text-base">
+                            {selectedEmployee ? `dla ${selectedEmployee.fullName}` : 'Wybierz pracownika, aby zobaczyć historię.'}
+                            </CardDescription>
+                        </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {selectedEmployee ? (
+                        employeeIssuanceHistory.length > 0 ? (
+                            <ScrollArea className="max-h-[600px] rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                <TableRow>
+                                    <TableHead className="text-base">Data</TableHead>
+                                    <TableHead className="text-base">Elementy</TableHead>
+                                    <TableHead className="text-right text-base">Akcje</TableHead>
+                                </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                {employeeIssuanceHistory.map(issuance => (
+                                    <TableRow key={issuance.id}>
+                                    <TableCell className="font-medium text-base">{formatDateTime(issuance.date, "dd.MM.yyyy HH:mm")}</TableCell>
+                                    <TableCell className="text-base">{issuance.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleSaveAndPrint(issuance)}>
+                                        <Printer className="h-5 w-5" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteIssuance(issuance.id)}>
+                                        <Trash2 className="h-5 w-5 text-destructive" />
+                                        </Button>
+                                    </TableCell>
+                                    </TableRow>
+                                ))}
+                                </TableBody>
+                            </Table>
+                            </ScrollArea>
+                        ) : (
+                            <p className="text-base text-muted-foreground text-center py-10">Brak historii wydań dla tego pracownika.</p>
+                        )
+                        ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground text-center py-10 text-base">
+                            Wybierz pracownika, aby zobaczyć historię.
+                        </div>
+                        )}
+                    </CardContent>
+                    </Card>
+                </div>
+                </div>
+            </>
+        )}
       </div>
       <div className="print-only">
         {printingIssuance && selectedEmployeeForPrint && (

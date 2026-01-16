@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -97,75 +96,75 @@ export default function PlanningPage() {
   }, [activeEmployees, onVacation]);
 
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col">
-      <PageHeader
-        title="Planowanie"
-        description="Zarządzaj nadchodzącymi zwolnieniami i urlopami pracowników."
-      />
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 flex-grow">
-        
-        <div className="flex flex-col space-y-4">
-            <h2 className="text-xl font-bold tracking-tight">Planowane zwolnienia ({plannedTerminations.length})</h2>
-            <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                 {plannedTerminations.length > 0 ? (
-                    <ScrollArea className="h-full">
-                        <div className="space-y-3 pr-4">
-                        {plannedTerminations.map(employee => (
-                            <EmployeeCard key={employee.id} employee={employee} type="termination" />
-                        ))}
-                        </div>
-                    </ScrollArea>
-                    ) : (
-                    <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych zwolnień.</p>
-                )}
-            </div>
+      {isLoading ? (
+        <div className="flex h-full w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
         </div>
+        ) : (
+        <>
+            <PageHeader
+                title="Planowanie"
+                description="Zarządzaj nadchodzącymi zwolnieniami i urlopami pracowników."
+            />
 
-        <div className="flex flex-col space-y-4">
-            <h2 className="text-xl font-bold tracking-tight">Pracownicy na urlopie ({onVacation.length})</h2>
-             <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                {onVacation.length > 0 ? (
-                    <ScrollArea className="h-full">
-                        <div className="space-y-3 pr-4">
-                        {onVacation.map(employee => (
-                            <EmployeeCard key={employee.id} employee={employee} type="vacation" />
-                        ))}
-                        </div>
-                    </ScrollArea>
-                    ) : (
-                    <p className="text-center text-sm text-muted-foreground py-6">Obecnie nikt nie przebywa na urlopie.</p>
-                )}
-            </div>
-        </div>
-        
-        <div className="flex flex-col space-y-4">
-            <h2 className="text-xl font-bold tracking-tight">Nadchodzące urlopy ({upcomingVacations.length})</h2>
-            <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                {upcomingVacations.length > 0 ? (
-                    <ScrollArea className="h-full">
-                        <div className="space-y-3 pr-4">
-                        {upcomingVacations.map(employee => (
-                            <EmployeeCard key={employee.id} employee={employee} type="vacation-planned" />
-                        ))}
-                        </div>
-                    </ScrollArea>
-                    ) : (
-                    <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych urlopów.</p>
-                )}
-            </div>
-        </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 flex-grow">
+                
+                <div className="flex flex-col space-y-4">
+                    <h2 className="text-xl font-bold tracking-tight">Planowane zwolnienia ({plannedTerminations.length})</h2>
+                    <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
+                        {plannedTerminations.length > 0 ? (
+                            <ScrollArea className="h-full">
+                                <div className="space-y-3 pr-4">
+                                {plannedTerminations.map(employee => (
+                                    <EmployeeCard key={employee.id} employee={employee} type="termination" />
+                                ))}
+                                </div>
+                            </ScrollArea>
+                            ) : (
+                            <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych zwolnień.</p>
+                        )}
+                    </div>
+                </div>
 
-      </div>
+                <div className="flex flex-col space-y-4">
+                    <h2 className="text-xl font-bold tracking-tight">Pracownicy na urlopie ({onVacation.length})</h2>
+                    <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
+                        {onVacation.length > 0 ? (
+                            <ScrollArea className="h-full">
+                                <div className="space-y-3 pr-4">
+                                {onVacation.map(employee => (
+                                    <EmployeeCard key={employee.id} employee={employee} type="vacation" />
+                                ))}
+                                </div>
+                            </ScrollArea>
+                            ) : (
+                            <p className="text-center text-sm text-muted-foreground py-6">Obecnie nikt nie przebywa na urlopie.</p>
+                        )}
+                    </div>
+                </div>
+                
+                <div className="flex flex-col space-y-4">
+                    <h2 className="text-xl font-bold tracking-tight">Nadchodzące urlopy ({upcomingVacations.length})</h2>
+                    <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
+                        {upcomingVacations.length > 0 ? (
+                            <ScrollArea className="h-full">
+                                <div className="space-y-3 pr-4">
+                                {upcomingVacations.map(employee => (
+                                    <EmployeeCard key={employee.id} employee={employee} type="vacation-planned" />
+                                ))}
+                                </div>
+                            </ScrollArea>
+                            ) : (
+                            <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych urlopów.</p>
+                        )}
+                    </div>
+                </div>
+
+            </div>
+        </>
+        )}
     </div>
   );
 }
