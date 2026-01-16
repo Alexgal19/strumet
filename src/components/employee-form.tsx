@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, UserX, ScanId } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, UserX, Scan } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -182,7 +181,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium text-foreground">Dane osobowe</h3>
                     <Button type="button" variant="outline" size="sm" onClick={() => setIsScannerOpen(true)}>
-                        <ScanId className="mr-2 h-4 w-4" />
+                        <Scan className="mr-2 h-4 w-4" />
                         Skanuj Paszport
                     </Button>
                 </div>
