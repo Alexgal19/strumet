@@ -52,17 +52,6 @@ interface FirebaseServices {
     auth: Auth;
 }
 
-interface FetchEmployeesParams {
-    status: 'aktywny' | 'zwolniony';
-    limit: number;
-    startAfter?: string | null;
-    startAfterId?: string | null; // Add this
-    searchTerm?: string;
-    departments?: string[];
-    jobTitles?: string[];
-    managers?: string[];
-}
-
 interface AppContextType {
     employees: Employee[];
     users: User[];
@@ -72,9 +61,6 @@ interface AppContextType {
     statsHistory: StatsSnapshot[];
     isLoading: boolean;
     isHistoryLoading: boolean;
-    isFetchingNextPage: boolean;
-    hasMore: boolean;
-    fetchEmployees: (params: FetchEmployeesParams) => Promise<void>;
     handleSaveEmployee: (employeeData: Employee) => Promise<void>;
     handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
     handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
@@ -112,8 +98,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
 
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [hasMore, setHasMore] = useState(true);
-    const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
     const [users, setUsers] = useState<User[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
@@ -145,97 +129,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return () => unsubscribeAuth();
     }, []);
 
-    const fetchEmployees = useCallback(async (params: FetchEmployeesParams) => {
-        if (!services) return;
-        const { db } = services;
-        
-        if (params.startAfter === undefined) { // Initial fetch
-            setIsLoading(true);
-        } else {
-            setIsFetchingNextPage(true);
-        }
-
-        try {
-            const employeesRef = ref(db, 'employees');
-            const searchKey = `${params.status}_${(params.searchTerm || '').toLowerCase()}`;
-            
-            let q = query(
-                employeesRef,
-                orderByChild('status_fullName'),
-                startAt(searchKey),
-                endAt(searchKey + '\uf8ff'),
-                limitToFirst(params.limit + 1)
-            );
-
-            if(params.startAfter && params.startAfterId) {
-                 q = query(
-                    employeesRef,
-                    orderByChild('status_fullName'),
-                    startAt(params.startAfter, params.startAfterId),
-                    endAt(searchKey + '\uf8ff'),
-                    limitToFirst(params.limit + 1)
-                );
-            }
-           
-            const snapshot = await get(q);
-            let newEmployees = objectToArray(snapshot.val());
-            
-            const currentHasMore = newEmployees.length > params.limit;
-            if (currentHasMore) {
-                newEmployees.pop(); // Remove the extra item used for checking `hasMore`
-            }
-
-            setEmployees(prev => params.startAfter ? [...prev, ...newEmployees] : newEmployees);
-            setHasMore(currentHasMore);
-
-        } catch(error) {
-            console.error("Error fetching employees:", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać pracowników.' });
-        } finally {
-             if (params.startAfter === undefined) {
-                setIsLoading(false);
-            } else {
-                setIsFetchingNextPage(false);
-            }
-        }
-    }, [services, toast]);
-
-    const runMigration = useCallback(async (db: Database) => {
-        console.log("Checking for necessary data migrations...");
-        try {
-            const allEmployeesSnapshot = await get(ref(db, 'employees'));
-            if (!allEmployeesSnapshot.exists()) {
-                console.log("No employees found, no migration necessary.");
-                return;
-            }
-
-            const updates: Record<string, any> = {};
-            let count = 0;
-
-            allEmployeesSnapshot.forEach(childSnapshot => {
-                const employee = childSnapshot.val();
-                if (employee && !employee.status_fullName) {
-                    updates[`/employees/${childSnapshot.key}/status_fullName`] = `${employee.status}_${employee.fullName.toLowerCase()}`;
-                    count++;
-                }
-            });
-
-            if (count > 0) {
-                console.log(`Migration needed for ${count} employees. Updating...`);
-                toast({ title: 'Migracja danych', description: 'Aktualizujemy strukturę danych w tle. Aplikacja może działać wolniej przez chwilę.' });
-                await update(ref(db), updates);
-                console.log(`Migration complete. Updated ${count} employees.`);
-                toast({ title: 'Migracja zakończona', description: `Zaktualizowano ${count} pracowników.` });
-            } else {
-                console.log("No employees needed migration.");
-            }
-        } catch (error) {
-            console.error("Error during migration check:", error);
-            // Don't toast here as it might be an index issue on a large dataset during initial load
-        }
-    }, [toast]);
-
-
     useEffect(() => {
         if (!services || !currentUser) {
             setEmployees([]);
@@ -250,12 +143,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         setIsLoading(true);
         const { db } = services;
-        runMigration(db);
-        
-        // Initial fetch for the default view ('aktywni')
-        fetchEmployees({ status: 'aktywni', limit: 50 });
         
         const dataRefs = [
+            { path: "employees", setter: (data: any) => setEmployees(objectToArray(data)) },
             { path: "users", setter: (data: any) => setUsers(objectToArray(data)) },
             { path: "absences", setter: (data: any) => setAbsences(objectToArray(data)) },
             { path: "notifications", setter: (data: any) => setNotifications(objectToArray(data)) },
@@ -274,9 +164,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }},
         ];
 
+        let loadedCount = 0;
         const unsubscribes = dataRefs.map(({ path, setter }) => 
             onValue(ref(db, path), snapshot => {
                 setter(snapshot.val());
+                loadedCount++;
+                if (loadedCount === dataRefs.length) {
+                    setIsLoading(false);
+                }
             }, (error) => {
                 console.error(`Firebase read error on path ${path}:`, error);
                 toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
@@ -292,7 +187,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             unsubscribes.forEach(unsub => unsub());
         }
-    }, [services, currentUser, toast, runMigration, fetchEmployees]);
+    }, [services, currentUser, toast]);
 
 
     const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
@@ -760,9 +655,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         statsHistory,
         isLoading,
         isHistoryLoading,
-        isFetchingNextPage,
-        hasMore,
-        fetchEmployees,
         handleSaveEmployee,
         handleTerminateEmployee,
         handleRestoreEmployee,

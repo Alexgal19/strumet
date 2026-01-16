@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MoreHorizontal, Search, Loader2, RotateCcw, Edit, Trash2, XCircle } from 'lucide-react';
-import type { Employee, HierarchicalOption } from '@/lib/types';
+import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
@@ -41,10 +41,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAppContext } from '@/context/app-context';
 import { EmployeeCard } from '@/components/employee-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { formatDate, parseMaybeDate } from '@/lib/date';
-import { format, getYear } from 'date-fns';
-import { pl } from 'date-fns/locale';
-
+import { formatDate } from '@/lib/date';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -57,10 +54,8 @@ const exportColumns = [
   { key: 'nationality' as keyof Employee, name: 'Narodowość' },
 ];
 
-const BLANK_FILTER_VALUE = '(Puste)';
-
 export default function ZwolnieniPage() {
-  const { employees, config, isLoading: isContextLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently, fetchEmployees, hasMore, isFetchingNextPage } = useAppContext();
+  const { employees: allEmployees, config, isLoading: isContextLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently } = useAppContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -68,45 +63,39 @@ export default function ZwolnieniPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([]);
-  const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
-  const [selectedTerminationPeriods, setSelectedTerminationPeriods] = useState<string[]>([]);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
-  
-  useEffect(() => {
-    fetchEmployees({
-        status: 'zwolniony',
-        limit: 50,
-        searchTerm,
-        departments: selectedDepartments,
-        jobTitles: selectedJobTitles,
-        managers: selectedManagers,
-    });
-  }, [searchTerm, selectedDepartments, selectedJobTitles, selectedManagers, fetchEmployees]);
-
 
   const departmentOptions: OptionType[] = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
   const jobTitleOptions: OptionType[] = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
-  const managerOptions: OptionType[] = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
 
-  
   const handleClearFilters = () => {
     setSearchTerm('');
     setSelectedDepartments([]);
     setSelectedJobTitles([]);
-    setSelectedManagers([]);
-    setSelectedTerminationPeriods([]);
     setRowSelection({});
   };
+
+  const terminatedEmployees = useMemo(() => allEmployees.filter(e => e.status === 'zwolniony'), [allEmployees]);
+  
+  const filteredEmployees = useMemo(() => {
+    return terminatedEmployees.filter(employee => {
+      const searchMatch = searchTerm ? employee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || employee.cardNumber?.includes(searchTerm) : true;
+      const departmentMatch = selectedDepartments.length > 0 ? selectedDepartments.includes(employee.department) : true;
+      const jobTitleMatch = selectedJobTitles.length > 0 ? selectedJobTitles.includes(employee.jobTitle) : true;
+
+      return searchMatch && departmentMatch && jobTitleMatch;
+    });
+  }, [terminatedEmployees, searchTerm, selectedDepartments, selectedJobTitles]);
   
   const displayedEmployees = useMemo(() => {
-    if (selectedEmployeeIds.length === 0) return employees;
-    return employees.filter(employee => selectedEmployeeIds.includes(employee.id));
-  }, [employees, selectedEmployeeIds]);
+    if (selectedEmployeeIds.length === 0) return filteredEmployees;
+    return filteredEmployees.filter(employee => selectedEmployeeIds.includes(employee.id));
+  }, [filteredEmployees, selectedEmployeeIds]);
 
   const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
     await handleRestoreEmployee(employeeId, employeeFullName);
@@ -192,35 +181,23 @@ export default function ZwolnieniPage() {
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
-    count: hasMore ? employees.length + 1 : employees.length,
+    count: displayedEmployees.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => isMobile ? 170 : 53,
     overscan: 5,
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
-  
-  const lastItem = virtualItems[virtualItems.length - 1];
-  useEffect(() => {
-    if (!lastItem || isFetchingNextPage || !hasMore) {
-        return;
-    }
-    if (lastItem.index >= employees.length - 1) {
-        const lastEmployee = employees[employees.length - 1];
-        fetchEmployees({ status: 'zwolniony', limit: 50, startAfter: lastEmployee?.status_fullName, startAfterId: lastEmployee?.id, searchTerm });
-    }
-  }, [hasMore, fetchEmployees, employees, lastItem, isFetchingNextPage, searchTerm]);
-
 
   const renderMobileView = () => {
-    if (isContextLoading && employees.length === 0) {
+    if (isContextLoading && displayedEmployees.length === 0) {
         return (
           <div className="flex h-full w-full items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         )
     }
-    if (employees.length === 0) {
+    if (displayedEmployees.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
@@ -239,18 +216,8 @@ export default function ZwolnieniPage() {
           }}
         >
           {virtualItems.map((virtualItem) => {
-             const employee = employees[virtualItem.index];
-            if (!employee) {
-                return (
-                    <div key={virtualItem.index} style={{
-                        position: 'absolute', top: 0, left: 0, width: '100%',
-                        height: `${virtualItem.size}px`, transform: `translateY(${virtualItem.start}px)`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                        {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin" />}
-                    </div>
-                )
-             }
+             const employee = displayedEmployees[virtualItem.index];
+             if (!employee) return null;
             return (
               <div
                 key={employee.id}
@@ -281,7 +248,7 @@ export default function ZwolnieniPage() {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
-  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedTerminationPeriods.length > 0;
+  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -290,7 +257,7 @@ export default function ZwolnieniPage() {
         description="Przeglądaj historię zwolnionych pracowników."
       >
         <div className="hidden md:flex shrink-0 items-center space-x-2">
-            <ExcelExportButton employees={employees} fileName="zwolnieni_pracownicy" columns={exportColumns} />
+            <ExcelExportButton employees={displayedEmployees} fileName="zwolnieni_pracownicy" columns={exportColumns} />
             <TerminatedExcelImportButton />
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -387,7 +354,7 @@ export default function ZwolnieniPage() {
       
        <div className="flex items-center justify-between mb-4 text-sm text-muted-foreground">
         <span>
-          Znaleziono: <span className="font-bold text-foreground">{employees.length}</span>
+          Znaleziono: <span className="font-bold text-foreground">{displayedEmployees.length}</span>
         </span>
       </div>
 

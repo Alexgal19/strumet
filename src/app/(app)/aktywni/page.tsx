@@ -32,7 +32,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Trash2, XCircle } from 'lucide-react';
-import type { Employee, HierarchicalOption } from '@/lib/types';
+import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -49,12 +49,9 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAppContext } from '@/context/app-context';
 import { EmployeeCard } from '@/components/employee-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { formatDate, parseMaybeDate } from '@/lib/date';
+import { formatDate } from '@/lib/date';
 import { getStatusColor, legalizationStatuses } from '@/lib/legalization-statuses';
 import { Badge } from '@/components/ui/badge';
-import { format, getYear } from 'date-fns';
-import { pl } from 'date-fns/locale';
-
 
 const EmployeeSummary = dynamic(() => import('@/components/employee-summary').then(mod => mod.EmployeeSummary), {
   ssr: false
@@ -75,10 +72,8 @@ const exportColumns = [
   { key: 'sealNumber' as keyof Employee, name: 'Nr pieczęci' },
 ];
 
-const BLANK_FILTER_VALUE = '(Puste)';
-
 export default function AktywniPage() {
-  const { employees, config, isLoading: isContextLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently, fetchEmployees, hasMore, isFetchingNextPage } = useAppContext();
+  const { employees: allEmployees, config, isLoading: isContextLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently } = useAppContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
@@ -88,28 +83,12 @@ export default function AktywniPage() {
   const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([]);
   const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
   const [selectedNationalities, setSelectedNationalities] = useState<string[]>([]);
-  const [selectedHirePeriods, setSelectedHirePeriods] = useState<string[]>([]);
-  const [selectedContractPeriods, setSelectedContractPeriods] = useState<string[]>([]);
-  const [selectedPlannedTerminationPeriods, setSelectedPlannedTerminationPeriods] = useState<string[]>([]);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
-  
-  // Effect for fetching filtered data
-  useEffect(() => {
-    fetchEmployees({
-        status: 'aktywny',
-        limit: 50,
-        searchTerm,
-        departments: selectedDepartments,
-        jobTitles: selectedJobTitles,
-        managers: selectedManagers,
-    });
-  }, [searchTerm, selectedDepartments, selectedJobTitles, selectedManagers, fetchEmployees]);
-
 
   const departmentOptions = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
   const jobTitleOptions = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
@@ -122,16 +101,27 @@ export default function AktywniPage() {
     setSelectedJobTitles([]);
     setSelectedManagers([]);
     setSelectedNationalities([]);
-    setSelectedHirePeriods([]);
-    setSelectedContractPeriods([]);
-    setSelectedPlannedTerminationPeriods([]);
     setRowSelection({});
   };
 
+  const activeEmployees = useMemo(() => allEmployees.filter(emp => emp.status === 'aktywny'), [allEmployees]);
+
+  const filteredEmployees = useMemo(() => {
+    return activeEmployees.filter(employee => {
+      const searchMatch = searchTerm ? employee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || employee.cardNumber?.includes(searchTerm) : true;
+      const departmentMatch = selectedDepartments.length > 0 ? selectedDepartments.includes(employee.department) : true;
+      const jobTitleMatch = selectedJobTitles.length > 0 ? selectedJobTitles.includes(employee.jobTitle) : true;
+      const managerMatch = selectedManagers.length > 0 ? selectedManagers.includes(employee.manager) : true;
+      const nationalityMatch = selectedNationalities.length > 0 ? selectedNationalities.includes(employee.nationality) : true;
+
+      return searchMatch && departmentMatch && jobTitleMatch && managerMatch && nationalityMatch;
+    });
+  }, [activeEmployees, searchTerm, selectedDepartments, selectedJobTitles, selectedManagers, selectedNationalities]);
+
   const displayedEmployees = useMemo(() => {
-     if (selectedEmployeeIds.length === 0) return employees;
-     return employees.filter(employee => selectedEmployeeIds.includes(employee.id));
-  }, [employees, selectedEmployeeIds]);
+     if (selectedEmployeeIds.length === 0) return filteredEmployees;
+     return filteredEmployees.filter(employee => selectedEmployeeIds.includes(employee.id));
+  }, [filteredEmployees, selectedEmployeeIds]);
 
   const onSave = async (employeeData: Employee) => {
     await handleSaveEmployee(employeeData);
@@ -246,28 +236,16 @@ export default function AktywniPage() {
   const parentRef = useRef<HTMLDivElement>(null);
   
   const rowVirtualizer = useVirtualizer({
-    count: hasMore ? employees.length + 1 : employees.length,
+    count: displayedEmployees.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => (isMobile ? 170 : 53),
     overscan: 5,
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
-  
-  const lastItem = virtualItems[virtualItems.length - 1];
-  useEffect(() => {
-    if (!lastItem || isFetchingNextPage || !hasMore) {
-        return;
-    }
-    if (lastItem.index >= employees.length - 1) {
-        const lastEmployee = employees[employees.length - 1];
-        fetchEmployees({ status: 'aktywny', limit: 50, startAfter: lastEmployee?.status_fullName, startAfterId: lastEmployee?.id, searchTerm });
-    }
-  }, [hasMore, fetchEmployees, employees, lastItem, isFetchingNextPage, searchTerm]);
-
 
   const renderMobileView = () => {
-    if (isContextLoading && employees.length === 0) {
+    if (isContextLoading && displayedEmployees.length === 0) {
       return (
         <div className="flex h-full w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -275,7 +253,7 @@ export default function AktywniPage() {
       )
     }
 
-    if (employees.length === 0) {
+    if (displayedEmployees.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
@@ -295,18 +273,9 @@ export default function AktywniPage() {
           }}
         >
           {virtualItems.map((virtualItem) => {
-             const employee = employees[virtualItem.index];
-             if (!employee) {
-                return (
-                    <div key={virtualItem.index} style={{
-                        position: 'absolute', top: 0, left: 0, width: '100%',
-                        height: `${virtualItem.size}px`, transform: `translateY(${virtualItem.start}px)`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                        {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin" />}
-                    </div>
-                )
-             }
+             const employee = displayedEmployees[virtualItem.index];
+             if (!employee) return null;
+
             return (
                <div
                 key={employee.id}
@@ -333,7 +302,7 @@ export default function AktywniPage() {
     );
   };
 
-  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0 || selectedHirePeriods.length > 0 || selectedContractPeriods.length > 0 || selectedPlannedTerminationPeriods.length > 0;
+  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0;
 
   if (isContextLoading || !hasMounted) {
     return (
@@ -350,7 +319,7 @@ export default function AktywniPage() {
         description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
       >
         <div className="hidden md:flex shrink-0 items-center space-x-2">
-            <ExcelExportButton employees={employees} fileName="aktywni_pracownicy" columns={exportColumns} />
+            <ExcelExportButton employees={displayedEmployees} fileName="aktywni_pracownicy" columns={exportColumns} />
             <ExcelImportButton />
             <HireDateImportButton />
             <ContractEndDateImportButton />
