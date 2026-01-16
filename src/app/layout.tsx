@@ -10,14 +10,23 @@ import AppSidebar from '@/components/app-sidebar';
 import AppBottomNav from '@/components/app-bottom-nav';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { isLoading, currentUser } = useAppContext();
   const pathname = usePathname();
+  const router = useRouter();
+
   const isAuthPage = pathname === '/login' || pathname === '/register';
 
-  if (isLoading) {
+  useEffect(() => {
+    // If loading is finished and there's no user, and we are not on an auth page, redirect to login
+    if (!isLoading && !currentUser && !isAuthPage) {
+      router.push('/login');
+    }
+  }, [isLoading, currentUser, isAuthPage, router]);
+
+  if (isLoading && !currentUser) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -25,9 +34,19 @@ function AppContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isAuthPage || !currentUser) {
+  if (isAuthPage) {
     return <>{children}</>;
   }
+  
+  if (!currentUser) {
+     // This can be a brief flash before the redirect in useEffect kicks in, or a fallback.
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
 
   return (
     <SidebarProvider>

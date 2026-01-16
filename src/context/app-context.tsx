@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -117,9 +115,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
             if (user) {
                 const userRoleRef = ref(db, `users/${user.uid}/role`);
-                const snapshot = await get(userRoleRef);
-                const role = snapshot.val() as UserRole || 'guest';
-                setCurrentUser({ uid: user.uid, email: user.email, role });
+                onValue(userRoleRef, (snapshot) => {
+                    const role = snapshot.val() as UserRole || 'guest';
+                    setCurrentUser({ uid: user.uid, email: user.email, role });
+                });
             } else {
                 setCurrentUser(null);
                 setIsLoading(false); // Set loading to false if no user
@@ -137,7 +136,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setAbsences([]);
             setNotifications([]);
             setStatsHistory([]);
-            setIsLoading(!currentUser);
+            if (!currentUser) setIsLoading(false);
             return;
         }
 
@@ -168,13 +167,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribes = dataRefs.map(({ path, setter }) => 
             onValue(ref(db, path), snapshot => {
                 setter(snapshot.val());
-                loadedCount++;
-                if (loadedCount === dataRefs.length) {
+                if (path === 'employees') {
+                    // This is the main data, once it's loaded we can show the app
                     setIsLoading(false);
                 }
             }, (error) => {
                 console.error(`Firebase read error on path ${path}:`, error);
                 toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
+                setIsLoading(false);
             })
         );
         

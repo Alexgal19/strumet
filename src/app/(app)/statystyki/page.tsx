@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
@@ -1018,9 +1016,9 @@ const OrdersTab = () => {
 }
 
 export default function StatisticsPage() {
-  const { isLoading, isAdmin } = useAppContext();
+  const { isLoading, employees } = useAppContext();
   
-  if (isLoading) {
+  if (isLoading && employees.length === 0) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -1053,9 +1051,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
-
-    
-
-
