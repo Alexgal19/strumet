@@ -18,6 +18,43 @@ import { useAppContext } from '@/context/app-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 
+const EmployeeCard = ({ employee, type }: { employee: Employee, type: 'termination' | 'vacation' | 'vacation-planned' }) => {
+    let dateLabel: string | undefined;
+
+    if (type === 'termination') {
+        const dateString = formatDate(employee.plannedTerminationDate, "PPP");
+        dateLabel = `Data zwolnienia: ${dateString}`;
+    } else if (type === 'vacation') {
+        const dateString = formatDate(employee.vacationEndDate, "PPP");
+        dateLabel = `Koniec urlopu: ${dateString}`;
+    } else if (type === 'vacation-planned') {
+        const startDate = formatDate(employee.vacationStartDate, "dd.MM");
+        const endDate = formatDate(employee.vacationEndDate, "dd.MM.yyyy");
+        dateLabel = `Urlop: ${startDate} - ${endDate}`;
+    }
+    
+    return (
+        <Card className={cn(
+            "w-full animate-fade-in-up",
+            type === 'termination' && 'border-destructive/50 bg-destructive/10',
+            (type === 'vacation' || type === 'vacation-planned') && 'border-yellow-500/50 bg-yellow-500/10',
+        )}>
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                    <CardTitle className="text-base">{employee.fullName}</CardTitle>
+                    <CardDescription className="text-xs">{employee.jobTitle} - {employee.department}</CardDescription>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+                 <div className="flex items-center text-muted-foreground">
+                    <CalendarClock className="mr-2 h-4 w-4" />
+                    <strong className="text-foreground text-xs">{dateLabel}</strong>
+                </div>
+            </CardContent>
+        </Card>
+    )
+};
+
 export default function PlanningPage() {
   const { employees, isLoading } = useAppContext();
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
@@ -68,43 +105,6 @@ export default function PlanningPage() {
     );
   }
 
-  const EmployeeCard = ({ employee, type }: { employee: Employee, type: 'termination' | 'vacation' | 'vacation-planned' }) => {
-    let dateLabel: string | undefined;
-
-    if (type === 'termination') {
-        const dateString = formatDate(employee.plannedTerminationDate, "PPP");
-        dateLabel = `Data zwolnienia: ${dateString}`;
-    } else if (type === 'vacation') {
-        const dateString = formatDate(employee.vacationEndDate, "PPP");
-        dateLabel = `Koniec urlopu: ${dateString}`;
-    } else if (type === 'vacation-planned') {
-        const startDate = formatDate(employee.vacationStartDate, "dd.MM");
-        const endDate = formatDate(employee.vacationEndDate, "dd.MM.yyyy");
-        dateLabel = `Urlop: ${startDate} - ${endDate}`;
-    }
-    
-    return (
-        <Card className={cn(
-            "w-full animate-fade-in-up",
-            type === 'termination' && 'border-destructive/50 bg-destructive/10',
-            (type === 'vacation' || type === 'vacation-planned') && 'border-yellow-500/50 bg-yellow-500/10',
-        )}>
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                <div className="space-y-1">
-                    <CardTitle className="text-base">{employee.fullName}</CardTitle>
-                    <CardDescription className="text-xs">{employee.jobTitle} - {employee.department}</CardDescription>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-                 <div className="flex items-center text-muted-foreground">
-                    <CalendarClock className="mr-2 h-4 w-4" />
-                    <strong className="text-foreground text-xs">{dateLabel}</strong>
-                </div>
-            </CardContent>
-        </Card>
-    )
-  };
-  
   const renderEmployeeList = (list: Employee[], type: 'termination' | 'vacation' | 'vacation-planned', emptyMessage: string) => {
     if (list.length === 0) {
       return <p className="text-center text-sm text-muted-foreground py-6">{emptyMessage}</p>;

@@ -318,6 +318,135 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 })
 ReportTab.displayName = 'ReportTab';
 
+const DiffBadge = ({ diff }: { diff: number }) => (
+    <Badge variant={diff >= 0 ? 'default' : 'destructive'} className={cn(diff >= 0 && "bg-green-500 hover:bg-green-600")}>
+        {diff > 0 ? `+${diff}` : diff}
+    </Badge>
+);
+
+const PeriodChangeCard = ({ title, data }: { title: string, data: { name: string, from: number, to: number, diff: number }[] }) => (
+    <Card>
+        <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
+        <CardContent>
+            <div className="space-y-3">
+                {data.length > 0 ? data.map(item => (
+                    <div key={item.name} className="flex justify-between items-center text-sm">
+                        <span>{item.name || 'Brak'}</span>
+                        <div className="flex items-center gap-2 font-mono">
+                            <span>{item.from}</span>
+                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-bold">{item.to}</span>
+                            <DiffBadge diff={item.diff} />
+                        </div>
+                    </div>
+                )) : <p className="text-sm text-muted-foreground text-center">Brak zmian</p>}
+            </div>
+        </CardContent>
+    </Card>
+);
+
+const SingleDayReportCard = ({ title, data }: { title: string, data: { name: string, to: number }[] }) => (
+    <Card>
+        <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
+        <CardContent>
+            <div className="space-y-3">
+                {data.length > 0 ? data.map(item => (
+                    <div key={item.name} className="flex justify-between items-center text-sm">
+                        <span>{item.name || 'Brak'}</span>
+                        <span className="font-bold font-mono">{item.to}</span>
+                    </div>
+                )) : <p className="text-sm text-muted-foreground text-center">Brak danych</p>}
+            </div>
+        </CardContent>
+    </Card>
+);
+
+const EmployeeChangeList = ({ title, employees, icon, emptyText }: { title: string, employees: any[], icon: React.ReactNode, emptyText: string }) => (
+    <Card className="flex flex-col">
+        <CardHeader>
+            <div className="flex items-center gap-3">
+                {icon}
+                <div>
+                    <CardTitle className="text-lg">{title}</CardTitle>
+                    <CardDescription>{employees.length} pracowników</CardDescription>
+                </div>
+            </div>
+        </CardHeader>
+        <CardContent className="flex-grow">
+            {employees.length > 0 ? (
+                <ScrollArea className="h-80">
+                    <div className="space-y-4 pr-4">
+                        {employees.map((emp, index) => (
+                            <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
+                                <div className="flex-grow">
+                                    <p className="font-semibold">{emp.fullName}</p>
+                                    <p className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</p>
+                                </div>
+                                <div className="text-right text-xs text-muted-foreground">
+                                    <p>{formatDate(emp.date, 'dd.MM.yyyy')}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            ) : (
+                <p className="text-sm text-muted-foreground text-center py-6">{emptyText}</p>
+            )}
+        </CardContent>
+    </Card>
+);
+
+const FieldChangeList = ({ changes }: { changes: any[]}) => {
+    const groupedChanges = changes.reduce((acc, change) => {
+        if (!acc[change.type]) acc[change.type] = [];
+        acc[change.type].push(change);
+        return acc;
+    }, {} as Record<string, any[]>);
+
+    if (changes.length === 0) return null;
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <GitCompareArrows className="h-6 w-6 text-blue-500" />
+                    <div>
+                        <CardTitle className="text-lg">Zmiany w danych pracowników</CardTitle>
+                        <CardDescription>{changes.length} zarejestrowanych zmian</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Accordion type="multiple" defaultValue={Object.keys(groupedChanges)}>
+                     {Object.entries(groupedChanges).map(([type, items]) => (
+                        <AccordionItem value={type} key={type}>
+                            <AccordionTrigger>Zmiany działów ({items.length})</AccordionTrigger>
+                            <AccordionContent>
+                                 <ScrollArea className="max-h-80">
+                                    <div className="space-y-4 pr-4">
+                                        {items.map((item, index) => (
+                                            <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
+                                                <div className="flex-grow">
+                                                    <p className="font-semibold">{item.fullName}</p>
+                                                    <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                                        <span>{item.from}</span>
+                                                        <ArrowRight className="h-3 w-3" />
+                                                        <span className="font-bold">{item.to}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </AccordionContent>
+                        </AccordionItem>
+                     ))}
+                </Accordion>
+            </CardContent>
+        </Card>
+    )
+}
+
 const HiresAndFiresTab = () => {
     const { isAdmin, currentUser } = useAppContext();
     const [isArchiving, setIsArchiving] = useState(false);
@@ -370,134 +499,6 @@ const HiresAndFiresTab = () => {
         }
     };
     
-    const DiffBadge = ({ diff }: { diff: number }) => (
-        <Badge variant={diff >= 0 ? 'default' : 'destructive'} className={cn(diff >= 0 && "bg-green-500 hover:bg-green-600")}>
-            {diff > 0 ? `+${diff}` : diff}
-        </Badge>
-    );
-    
-    const PeriodChangeCard = ({ title, data }: { title: string, data: { name: string, from: number, to: number, diff: number }[] }) => (
-        <Card>
-            <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
-            <CardContent>
-                <div className="space-y-3">
-                    {data.length > 0 ? data.map(item => (
-                        <div key={item.name} className="flex justify-between items-center text-sm">
-                            <span>{item.name || 'Brak'}</span>
-                            <div className="flex items-center gap-2 font-mono">
-                                <span>{item.from}</span>
-                                <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                                <span className="font-bold">{item.to}</span>
-                                <DiffBadge diff={item.diff} />
-                            </div>
-                        </div>
-                    )) : <p className="text-sm text-muted-foreground text-center">Brak zmian</p>}
-                </div>
-            </CardContent>
-        </Card>
-    );
-
-    const SingleDayReportCard = ({ title, data }: { title: string, data: { name: string, to: number }[] }) => (
-        <Card>
-            <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
-            <CardContent>
-                <div className="space-y-3">
-                    {data.length > 0 ? data.map(item => (
-                        <div key={item.name} className="flex justify-between items-center text-sm">
-                            <span>{item.name || 'Brak'}</span>
-                            <span className="font-bold font-mono">{item.to}</span>
-                        </div>
-                    )) : <p className="text-sm text-muted-foreground text-center">Brak danych</p>}
-                </div>
-            </CardContent>
-        </Card>
-    );
-
-    const EmployeeChangeList = ({ title, employees, icon, emptyText }: { title: string, employees: any[], icon: React.ReactNode, emptyText: string }) => (
-        <Card className="flex flex-col">
-            <CardHeader>
-                <div className="flex items-center gap-3">
-                    {icon}
-                    <div>
-                        <CardTitle className="text-lg">{title}</CardTitle>
-                        <CardDescription>{employees.length} pracowników</CardDescription>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent className="flex-grow">
-                {employees.length > 0 ? (
-                    <ScrollArea className="h-80">
-                        <div className="space-y-4 pr-4">
-                            {employees.map((emp, index) => (
-                                <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
-                                    <div className="flex-grow">
-                                        <p className="font-semibold">{emp.fullName}</p>
-                                        <p className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</p>
-                                    </div>
-                                    <div className="text-right text-xs text-muted-foreground">
-                                        <p>{formatDate(emp.date, 'dd.MM.yyyy')}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-6">{emptyText}</p>
-                )}
-            </CardContent>
-        </Card>
-    );
-    
-    const FieldChangeList = ({ changes }: { changes: any[]}) => {
-        const groupedChanges = changes.reduce((acc, change) => {
-            if (!acc[change.type]) acc[change.type] = [];
-            acc[change.type].push(change);
-            return acc;
-        }, {} as Record<string, any[]>);
-
-        if (changes.length === 0) return null;
-
-        return (
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-3">
-                        <GitCompareArrows className="h-6 w-6 text-blue-500" />
-                        <div>
-                            <CardTitle className="text-lg">Zmiany w danych pracowników</CardTitle>
-                            <CardDescription>{changes.length} zarejestrowanych zmian</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Accordion type="multiple" defaultValue={Object.keys(groupedChanges)}>
-                         {Object.entries(groupedChanges).map(([type, items]) => (
-                            <AccordionItem value={type} key={type}>
-                                <AccordionTrigger>Zmiany działów ({items.length})</AccordionTrigger>
-                                <AccordionContent>
-                                     <ScrollArea className="max-h-80">
-                                        <div className="space-y-4 pr-4">
-                                            {items.map((item, index) => (
-                                                <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
-                                                    <div className="flex-grow">
-                                                        <p className="font-semibold">{item.fullName}</p>
-                                                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                                            <span>{item.from}</span>
-                                                            <ArrowRight className="h-3 w-3" />
-                                                            <span className="font-bold">{item.to}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
-                                </AccordionContent>
-                            </AccordionItem>
-                         ))}
-                    </Accordion>
-                </CardContent>
-            </Card>
-        )
-    }
 
     const hasEvents = report && ((report.newHires && report.newHires.length > 0) || (report.terminated && report.terminated.length > 0) || (report.fieldChanges && report.fieldChanges.length > 0));
 
