@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Trash2, XCircle } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
@@ -83,7 +84,7 @@ export default function AktywniPage() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  
+
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
 
@@ -116,8 +117,8 @@ export default function AktywniPage() {
   }, [activeEmployees, searchTerm, selectedDepartments, selectedJobTitles, selectedManagers, selectedNationalities]);
 
   const displayedEmployees = useMemo(() => {
-     if (selectedEmployeeIds.length === 0) return filteredEmployees;
-     return filteredEmployees.filter(employee => selectedEmployeeIds.includes(employee.id));
+    if (selectedEmployeeIds.length === 0) return filteredEmployees;
+    return filteredEmployees.filter(employee => selectedEmployeeIds.includes(employee.id));
   }, [filteredEmployees, selectedEmployeeIds]);
 
   const onSave = async (employeeData: Employee) => {
@@ -125,12 +126,12 @@ export default function AktywniPage() {
     setEditingEmployee(null);
     setIsFormOpen(false);
   };
-  
+
   const onTerminate = async (id: string, fullName: string) => {
-     await handleTerminateEmployee(id, fullName);
-     setIsFormOpen(false);
+    await handleTerminateEmployee(id, fullName);
+    setIsFormOpen(false);
   };
-  
+
   const onDeletePermanently = async (id: string) => {
     await handleDeleteEmployeePermanently(id);
     setIsFormOpen(false);
@@ -140,7 +141,7 @@ export default function AktywniPage() {
     setEditingEmployee(employee);
     setIsFormOpen(true);
   };
-  
+
   const handleAddNew = () => {
     setEditingEmployee(null);
     setIsFormOpen(true);
@@ -166,66 +167,66 @@ export default function AktywniPage() {
         return <span className="font-medium">{firstName}</span>;
       },
     },
-    { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({row}) => formatDate(row.original.hireDate, 'yyyy-MM-dd') },
-    { accessorKey: "contractEndDate", header: "Umowa do", cell: ({row}) => formatDate(row.original.contractEndDate, 'yyyy-MM-dd') },
+    { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({ row }) => formatDate(row.original.hireDate, 'yyyy-MM-dd') },
+    { accessorKey: "contractEndDate", header: "Umowa do", cell: ({ row }) => formatDate(row.original.contractEndDate, 'yyyy-MM-dd') },
     { accessorKey: "jobTitle", header: "Stanowisko" },
     { accessorKey: "department", header: "Dział" },
     { accessorKey: "manager", header: "Kierownik" },
     { accessorKey: "cardNumber", header: "Nr karty" },
     { accessorKey: "nationality", header: "Narodowość" },
-    { 
-        accessorKey: "legalizationStatus", 
-        header: "Status legalizacyjny",
-        cell: ({ row }) => {
-            const status = row.original.legalizationStatus;
-            if (!status || status === "Brak") {
-                return <span className="text-muted-foreground">—</span>;
-            }
-            const colorClass = getStatusColor(status);
-            return (
-                <Badge className={cn("text-xs font-semibold", colorClass)}>
-                    {status}
-                </Badge>
-            );
+    {
+      accessorKey: "legalizationStatus",
+      header: "Status legalizacyjny",
+      cell: ({ row }) => {
+        const status = row.original.legalizationStatus;
+        if (!status || status === "Brak") {
+          return <span className="text-muted-foreground">—</span>;
         }
+        const colorClass = getStatusColor(status);
+        return (
+          <Badge className={cn("text-xs font-semibold", colorClass)}>
+            {status}
+          </Badge>
+        );
+      }
     },
     {
       id: "actions",
       cell: ({ row }) => {
         const employee = row.original;
         return (
-           <EmployeeSummary employee={employee}>
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Otwórz menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                  <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edytuj
+          <EmployeeSummary employee={employee}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Otwórz menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edytuj
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Bot className="mr-2 h-4 w-4" />
+                  Generuj podsumowanie
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                    <UserX className="mr-2 h-4 w-4" />
+                    Zwolnij
                   </DropdownMenuItem>
-                   <DropdownMenuItem>
-                      <Bot className="mr-2 h-4 w-4" />
-                       Generuj podsumowanie
-                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                      <UserX className="mr-2 h-4 w-4" />
-                      Zwolnij
-                    </DropdownMenuItem>
-                  </AlertDialogTrigger>
-                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Usuń trwale
-                    </DropdownMenuItem>
-                  </AlertDialogTrigger>
-                </DropdownMenuContent>
+                </AlertDialogTrigger>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Usuń trwale
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              </DropdownMenuContent>
             </DropdownMenu>
           </EmployeeSummary>
         );
@@ -234,7 +235,7 @@ export default function AktywniPage() {
   ], []);
 
   const parentRef = useRef<HTMLDivElement>(null);
-  
+
   const rowVirtualizer = useVirtualizer({
     count: displayedEmployees.length,
     getScrollElement: () => parentRef.current,
@@ -248,7 +249,7 @@ export default function AktywniPage() {
     if (isContextLoading && displayedEmployees.length === 0) {
       return (
         <div className="flex h-full w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       )
     }
@@ -273,11 +274,11 @@ export default function AktywniPage() {
           }}
         >
           {virtualItems.map((virtualItem) => {
-             const employee = displayedEmployees[virtualItem.index];
-             if (!employee) return null;
+            const employee = displayedEmployees[virtualItem.index];
+            if (!employee) return null;
 
             return (
-               <div
+              <div
                 key={employee.id}
                 style={{
                   position: 'absolute',
@@ -288,11 +289,11 @@ export default function AktywniPage() {
                 }}
                 className="p-2"
               >
-                <EmployeeCard 
-                    employee={employee} 
-                    onEdit={() => handleEditEmployee(employee)}
-                    onTerminate={() => onTerminate(employee.id, employee.fullName)}
-                    onDeletePermanently={() => onDeletePermanently(employee.id)}
+                <EmployeeCard
+                  employee={employee}
+                  onEdit={() => handleEditEmployee(employee)}
+                  onTerminate={() => onTerminate(employee.id, employee.fullName)}
+                  onDeletePermanently={() => onDeletePermanently(employee.id)}
                 />
               </div>
             );
@@ -306,188 +307,205 @@ export default function AktywniPage() {
 
   return (
     <div className="flex h-full w-full flex-col">
-       {(isContextLoading && !hasMounted) ? (
+      {(isContextLoading && !hasMounted) ? (
         <div className="flex h-full w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : (
-      <>
-      <PageHeader
-        title="Pracownicy aktywni"
-        description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
-      >
-        <div className="hidden md:flex shrink-0 items-center space-x-2">
-            <ExcelExportButton employees={displayedEmployees} fileName="aktywni_pracownicy" columns={exportColumns} />
-            <ExcelImportButton />
-            <HireDateImportButton />
-            <ContractEndDateImportButton />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Usuń daty
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                    dat zatrudnienia dla wszystkich pracowników (aktywnych i zwolnionych).
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Usuń wszystkich
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                    pracowników (aktywnych i zwolnionych) z bazy danych.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button onClick={handleAddNew}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Dodaj pracownika
-            </Button>
-        </div>
-        <div className="md:hidden">
-             <Button onClick={handleAddNew} size="sm">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Dodaj
-            </Button>
-        </div>
-      </PageHeader>
-      
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent 
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            className="sm:max-w-3xl max-h-[90vh] flex flex-col"
-        >
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{editingEmployee ? 'Edytuj pracownika' : 'Dodaj nowego pracownika'}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-grow overflow-y-auto -mr-6 pr-6">
-            <EmployeeForm
-              employee={editingEmployee}
-              onSave={onSave}
-              onCancel={() => setIsFormOpen(false)}
-              onTerminate={onTerminate}
-              config={config}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      <div className="mb-4 space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          </div>
-           {hasActiveFilters && (
-             <Button variant="outline" onClick={handleClearFilters}>
-                <XCircle className="mr-2 h-4 w-4" />
-                Wyczyść filtry
-              </Button>
-           )}
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            <MultiSelect
-              title="Dział"
-              options={departmentOptions}
-              selected={selectedDepartments}
-              onChange={setSelectedDepartments}
-            />
-            <MultiSelect
-              title="Stanowisko"
-              options={jobTitleOptions}
-              selected={selectedJobTitles}
-              onChange={setSelectedJobTitles}
-            />
-            <MultiSelect
-              title="Kierownik"
-              options={managerOptions}
-              selected={selectedManagers}
-              onChange={setSelectedManagers}
-            />
-             <MultiSelect
-              title="Narodowość"
-              options={nationalityOptions}
-              selected={selectedNationalities}
-              onChange={setSelectedNationalities}
-            />
-        </div>
-      </div>
+        <>
+          <PageHeader
+            title="Pracownicy aktywni"
+            description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
+          >
+            <div className="hidden md:flex shrink-0 items-center gap-2">
+              <ExcelExportButton employees={displayedEmployees} fileName="aktywni_pracownicy" columns={exportColumns} />
 
-       <div className="flex flex-col flex-grow">
-        {hasMounted && isMobile 
-          ? renderMobileView() 
-          : (
-            <AlertDialog>
-              <DataTable 
-                columns={columns} 
-                data={displayedEmployees} 
-                onRowClick={handleEditEmployee}
-                rowSelection={rowSelection}
-                onRowSelectionChange={setRowSelection}
-                getRowProps={(row) => {
-                  const status = row.original.legalizationStatus;
-                  if (!status || status === 'Brak') return {};
-                  const colorClass = getStatusColor(status, true); // Get background color
-                  return { className: colorClass };
-                }}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" title="Więcej opcji">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2 flex flex-col gap-1" align="end">
+                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Import i Aktualizacja</div>
+                  <ExcelImportButton variant="ghost" className="w-full justify-start h-9" />
+                  <HireDateImportButton variant="ghost" className="w-full justify-start h-9" />
+                  <ContractEndDateImportButton variant="ghost" className="w-full justify-start h-9" />
+
+                  <div className="my-1 h-px bg-border" />
+                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Zarządzanie masowe</div>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Usuń daty zatrudnienia
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                          dat zatrudnienia dla wszystkich pracowników (aktywnych i zwolnionych).
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Usuń wszystkich pracowników
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                          pracowników (aktywnych i zwolnionych) z bazy danych.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </PopoverContent>
+              </Popover>
+
+              <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Dodaj pracownika
+              </Button>
+            </div>
+            <div className="md:hidden">
+              <Button onClick={handleAddNew} size="sm">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Dodaj
+              </Button>
+            </div>
+          </PageHeader>
+
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogContent
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              className="sm:max-w-3xl max-h-[90vh] flex flex-col"
+            >
+              <DialogHeader className="flex-shrink-0">
+                <DialogTitle>{editingEmployee ? 'Edytuj pracownika' : 'Dodaj nowego pracownika'}</DialogTitle>
+              </DialogHeader>
+              <div className="flex-grow overflow-y-auto -mr-6 pr-6">
+                <EmployeeForm
+                  employee={editingEmployee}
+                  onSave={onSave}
+                  onCancel={() => setIsFormOpen(false)}
+                  onTerminate={onTerminate}
+                  config={config}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <div className="mb-4 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={handleClearFilters}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Wyczyść filtry
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <MultiSelect
+                title="Dział"
+                options={departmentOptions}
+                selected={selectedDepartments}
+                onChange={setSelectedDepartments}
               />
-               <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tej akcji nie można cofnąć. Pracownik zostanie przeniesiony do archiwum.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => displayedEmployees[0] && onTerminate(displayedEmployees[0].id, displayedEmployees[0].fullName)}>
-                    Kontynuuj
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-               <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie pracownika i wszystkich jego danych z bazy danych.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => displayedEmployees[0] && onDeletePermanently(displayedEmployees[0].id)}>
-                    Usuń trwale
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )
-        }
-      </div>
-      </>
+              <MultiSelect
+                title="Stanowisko"
+                options={jobTitleOptions}
+                selected={selectedJobTitles}
+                onChange={setSelectedJobTitles}
+              />
+              <MultiSelect
+                title="Kierownik"
+                options={managerOptions}
+                selected={selectedManagers}
+                onChange={setSelectedManagers}
+              />
+              <MultiSelect
+                title="Narodowość"
+                options={nationalityOptions}
+                selected={selectedNationalities}
+                onChange={setSelectedNationalities}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col flex-grow">
+            {hasMounted && isMobile
+              ? renderMobileView()
+              : (
+                <AlertDialog>
+                  <DataTable
+                    columns={columns}
+                    data={displayedEmployees}
+                    onRowClick={handleEditEmployee}
+                    rowSelection={rowSelection}
+                    onRowSelectionChange={setRowSelection}
+                    getRowProps={(row) => {
+                      const status = row.original.legalizationStatus;
+                      if (!status || status === 'Brak') return {};
+                      const colorClass = getStatusColor(status, true); // Get background color
+                      return { className: colorClass };
+                    }}
+                  />
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tej akcji nie można cofnąć. Pracownik zostanie przeniesiony do archiwum.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => displayedEmployees[0] && onTerminate(displayedEmployees[0].id, displayedEmployees[0].fullName)}>
+                        Kontynuuj
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie pracownika i wszystkich jego danych z bazy danych.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => displayedEmployees[0] && onDeletePermanently(displayedEmployees[0].id)}>
+                        Usuń trwale
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )
+            }
+          </div>
+        </>
       )}
     </div>
   );

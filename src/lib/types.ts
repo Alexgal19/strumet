@@ -26,7 +26,7 @@ export interface Employee {
   departmentLockerNumber: string;
   sealNumber: string;
   status: 'aktywny' | 'zwolniony';
-  status_fullName: string; // Composite key for queries: `${status}_${fullName}`
+  status_fullName?: string; // Composite key for queries: `${status}_${fullName}`
   terminationDate?: string; // ISO string format will be present for 'zwolniony'
   plannedTerminationDate?: string; // ISO string format
   vacationStartDate?: string; // ISO string format
@@ -49,8 +49,8 @@ export type ClothingItem = ConfigItem;
 export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
 
 export interface JobTitleClothingSet {
-    id: string; // Corresponds to jobTitleId
-    description: string;
+  id: string; // Corresponds to jobTitleId
+  description: string;
 }
 
 export interface AllConfig {
@@ -64,16 +64,16 @@ export interface AllConfig {
 }
 
 export interface Absence {
-    id: string;
-    employeeId: string;
-    date: string; // YYYY-MM-DD
+  id: string;
+  employeeId: string;
+  date: string; // YYYY-MM-DD
 }
 
 export interface CirculationCard {
-    id: string;
-    employeeId: string;
-    employeeFullName: string;
-    date: string; // ISO String
+  id: string;
+  employeeId: string;
+  employeeFullName: string;
+  date: string; // ISO String
 }
 
 export interface FingerprintAppointment {
@@ -103,15 +103,15 @@ export interface AppNotification {
 }
 
 export interface ClothingIssuance {
+  id: string;
+  employeeId: string;
+  employeeFullName: string;
+  date: string; // ISO String
+  items: {
     id: string;
-    employeeId: string;
-    employeeFullName: string;
-    date: string; // ISO String
-    items: {
-        id: string;
-        name: string;
-        quantity: number;
-    }[];
+    name: string;
+    quantity: number;
+  }[];
 }
 
 export interface Order {
@@ -125,13 +125,13 @@ export interface Order {
 }
 
 export interface StatsSnapshot {
-    id: string; // date in YYYY-MM-DD format
-    totalActive: number;
-    departments: Record<string, number>;
-    jobTitles: Record<string, number>;
-    nationalities: Record<string, number>;
-    newHires: number;
-    terminations: number;
+  id: string; // date in YYYY-MM-DD format
+  totalActive: number;
+  departments: Record<string, number>;
+  jobTitles: Record<string, number>;
+  nationalities: Record<string, number>;
+  newHires: number;
+  terminations: number;
 }
 
 export interface OptionType {
@@ -140,23 +140,23 @@ export interface OptionType {
 }
 
 export interface HierarchicalOption {
-    label: string;
-    value: string;
-    children?: HierarchicalOption[];
+  label: string;
+  value: string;
+  children?: HierarchicalOption[];
 }
 
 export interface Stats {
-    totalActiveEmployees: number;
-    totalDepartments: number;
-    totalJobTitles: number;
+  totalActiveEmployees: number;
+  totalDepartments: number;
+  totalJobTitles: number;
 }
 
 export type UserRole = 'admin' | 'guest';
 
 export interface AuthUser {
-    uid: string;
-    email: string | null;
-    role: UserRole;
+  uid: string;
+  email: string | null;
+  role: UserRole;
 }
 
 export interface User {

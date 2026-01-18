@@ -53,113 +53,113 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 
 
 const Notifications = () => {
-    const [notifications, setNotifications] = useState<AppNotification[]>([]);
-    const [isChecking, setIsChecking] = useState(false);
-    const { toast } = useToast();
-    const { db } = getFirebaseServices();
-    
-    useEffect(() => {
-        const notificationsRef = ref(db, 'notifications');
-        const unsubscribe = onValue(notificationsRef, (snapshot) => {
-            const data = objectToArray(snapshot.val()) as AppNotification[];
-            setNotifications(data.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-        });
-        return () => unsubscribe();
-    }, [db]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isChecking, setIsChecking] = useState(false);
+  const { toast } = useToast();
+  const { db } = getFirebaseServices();
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+  useEffect(() => {
+    const notificationsRef = ref(db, 'notifications');
+    const unsubscribe = onValue(notificationsRef, (snapshot) => {
+      const data = objectToArray(snapshot.val()) as AppNotification[];
+      setNotifications(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    });
+    return () => unsubscribe();
+  }, [db]);
 
-    const handleMarkAsRead = useCallback(async (id: string) => {
-        await update(ref(db, `notifications/${id}`), { read: true });
-    },[db]);
-    
-    const handleClearAll = useCallback(async () => {
-        if (window.confirm('Czy na pewno chcesz usunąć wszystkie powiadomienia?')) {
-             const updates: Record<string, null> = {};
-             notifications.forEach(n => {
-                 updates[`/notifications/${n.id}`] = null;
-             });
-             await update(ref(db), updates);
-        }
-    },[db, notifications]);
+  const unreadCount = notifications.filter(n => !n.read).length;
 
-    const handleManualCheck = useCallback(async () => {
-        setIsChecking(true);
-        try {
-            const result = await runManualChecks();
-            let description = `Utworzono ${result.totalNotifications} nowych powiadomień. Wysłano ${result.totalEmails} e-maili.`;
+  const handleMarkAsRead = useCallback(async (id: string) => {
+    await update(ref(db, `notifications/${id}`), { read: true });
+  }, [db]);
 
-            toast({
-                title: 'Sprawdzanie zakończone',
-                description: description,
-            });
-        } catch (error) {
-            console.error(error);
-            toast({
-                variant: 'destructive',
-                title: 'Błąd',
-                description: 'Nie udało się uruchomić sprawdzania.',
-            });
-        } finally {
-            setIsChecking(false);
-        }
-    },[toast]);
-    
-    return (
-       <Popover>
-            <PopoverTrigger asChild>
-                <button className="relative rounded-full p-2 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent">
-                    <Bell className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                        <Badge className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0">{unreadCount}</Badge>
-                    )}
-                </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="end">
-                <div className="p-4">
-                    <h4 className="font-medium text-sm">Powiadomienia</h4>
+  const handleClearAll = useCallback(async () => {
+    if (window.confirm('Czy na pewno chcesz usunąć wszystkie powiadomienia?')) {
+      const updates: Record<string, null> = {};
+      notifications.forEach(n => {
+        updates[`/notifications/${n.id}`] = null;
+      });
+      await update(ref(db), updates);
+    }
+  }, [db, notifications]);
+
+  const handleManualCheck = useCallback(async () => {
+    setIsChecking(true);
+    try {
+      const result = await runManualChecks();
+      let description = `Utworzono ${result.totalNotifications} nowych powiadomień. Wysłano ${result.totalEmails} e-maili.`;
+
+      toast({
+        title: 'Sprawdzanie zakończone',
+        description: description,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Nie udało się uruchomić sprawdzania.',
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  }, [toast]);
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="relative rounded-full p-2 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0">{unreadCount}</Badge>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0" align="end">
+        <div className="p-4">
+          <h4 className="font-medium text-sm">Powiadomienia</h4>
+        </div>
+        <Separator />
+        <ScrollArea className="h-96">
+          {notifications.length > 0 ? (
+            notifications.map(notif => (
+              <div key={notif.id} className="p-4 border-b text-sm" onClick={() => !notif.read && handleMarkAsRead(notif.id)}>
+                <div className="flex items-start gap-3">
+                  {!notif.read && <div className="h-2.5 w-2.5 rounded-full bg-primary mt-1.5 shrink-0"></div>}
+                  <div className="flex-grow">
+                    <p className="font-medium leading-tight">{notif.title}</p>
+                    <p className="text-muted-foreground mt-1">{notif.message}</p>
+                    <p className="text-xs text-muted-foreground/70 mt-2">{formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: pl })}</p>
+                  </div>
                 </div>
-                <Separator />
-                <ScrollArea className="h-96">
-                    {notifications.length > 0 ? (
-                        notifications.map(notif => (
-                            <div key={notif.id} className="p-4 border-b text-sm" onClick={() => !notif.read && handleMarkAsRead(notif.id)}>
-                               <div className="flex items-start gap-3">
-                                 {!notif.read && <div className="h-2.5 w-2.5 rounded-full bg-primary mt-1.5 shrink-0"></div>}
-                                 <div className="flex-grow">
-                                     <p className="font-medium leading-tight">{notif.title}</p>
-                                     <p className="text-muted-foreground mt-1">{notif.message}</p>
-                                     <p className="text-xs text-muted-foreground/70 mt-2">{formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: pl })}</p>
-                                 </div>
-                               </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="text-center text-muted-foreground p-8">
-                            <p>Brak nowych powiadomień</p>
-                        </div>
-                    )}
-                </ScrollArea>
-                 <Separator />
-                 <div className="p-2 space-y-1">
-                    <Button variant="ghost" size="sm" className="w-full" onClick={handleManualCheck} disabled={isChecking}>
-                        {isChecking ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                        )}
-                        Uruchom sprawdzanie
-                    </Button>
-                    {notifications.length > 0 && (
-                        <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive" onClick={handleClearAll}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Wyczyść wszystkie
-                        </Button>
-                    )}
-                </div>
-            </PopoverContent>
-        </Popover>
-    )
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-muted-foreground p-8">
+              <p>Brak nowych powiadomień</p>
+            </div>
+          )}
+        </ScrollArea>
+        <Separator />
+        <div className="p-2 space-y-1">
+          <Button variant="ghost" size="sm" className="w-full" onClick={handleManualCheck} disabled={isChecking}>
+            {isChecking ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Uruchom sprawdzanie
+          </Button>
+          {notifications.length > 0 && (
+            <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive" onClick={handleClearAll}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Wyczyść wszystkie
+            </Button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 interface AppSidebarProps {
@@ -178,13 +178,13 @@ const AppSidebar = ({ pathname }: AppSidebarProps) => {
     { href: '/odwiedzalnosc', icon: <CalendarCheck />, label: 'Obecność' },
     { href: '/statystyki', icon: <BarChart3 />, label: 'Statystyki' },
     { href: '/wydawanie-odziezy', icon: <Shirt />, label: 'Wydawanie odzieży' },
-    { href: '/wydawanie-odziezy-nowi', icon: <PackagePlus />, label: 'Wydawanie dla nowych'},
+    { href: '/wydawanie-odziezy-nowi', icon: <PackagePlus />, label: 'Wydawanie dla nowych' },
     { href: '/karty-obiegowe', icon: <FileText />, label: 'Karty obiegowe' },
     { href: '/odciski-palcow', icon: <Fingerprint />, label: 'Terminy na odciski' },
     { href: '/brak-logowania', icon: <ClipboardList />, label: 'Brak logowania' },
     { href: '/konfiguracja', icon: <Settings />, label: 'Konfiguracja' },
   ];
-  
+
   const guestViews: string[] = ['/statystyki', '/planowanie'];
   const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => guestViews.includes(item.href));
 
@@ -197,44 +197,44 @@ const AppSidebar = ({ pathname }: AppSidebarProps) => {
     <Sidebar variant="floating" collapsible="icon" className="border-r border-sidebar-border/50">
       <SidebarHeader>
         <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Database className="h-7 w-7" />
-            </div>
-            <span className="font-bold text-lg text-sidebar-accent-foreground">Baza - ST</span>
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Database className="h-7 w-7" />
+          </div>
+          <span className="font-bold text-lg text-sidebar-accent-foreground">Baza - ST</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="flex-grow p-4">
         <SidebarMenu>
           {menuItems.map((item) => (
-             <SidebarMenuItem key={item.href} className="p-0">
-                <Link href={item.href}>
-                    <SidebarMenuButton 
-                      asChild
-                      isActive={pathname.startsWith(item.href)}
-                      className="h-12 justify-start"
-                      size="lg"
-                    >
-                      <div>
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </div>
-                    </SidebarMenuButton>
-                </Link>
+            <SidebarMenuItem key={item.href} className="p-0">
+              <Link href={item.href} prefetch={true}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith(item.href)}
+                  className="h-12 justify-start"
+                  size="lg"
+                >
+                  <div>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </div>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4 flex flex-row items-center justify-between">
         <div className="flex items-center gap-1">
-            {isAdmin && <Notifications />}
+          {isAdmin && <Notifications />}
         </div>
         <SidebarMenu>
           <SidebarMenuItem className="p-0">
-             <Link href="/login">
-                <SidebarMenuButton className="h-12 justify-start" size="lg">
-                    <LogOut />
-                    <span>Wyloguj</span>
-                </SidebarMenuButton>
+            <Link href="/login">
+              <SidebarMenuButton className="h-12 justify-start" size="lg">
+                <LogOut />
+                <span>Wyloguj</span>
+              </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -14,7 +14,12 @@ interface DateUpdatePayload {
   contractEndDate: string;
 }
 
-export function ContractEndDateImportButton() {
+interface Props {
+  className?: string;
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+}
+
+export function ContractEndDateImportButton({ className, variant = "outline" }: Props) {
   const { handleUpdateContractEndDates } = useAppContext();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,7 +47,7 @@ export function ContractEndDateImportButton() {
         for (const [index, row] of jsonData.entries()) {
           const fullName = row['Nazwisko i imię']?.trim();
           const contractEndDateInput = row['Umowa do'];
-          
+
           if (!fullName || !contractEndDateInput) {
             errors.push(`Wiersz ${index + 2}: Brak imienia i nazwiska lub daty końca umowy.`);
             continue;
@@ -54,23 +59,23 @@ export function ContractEndDateImportButton() {
             errors.push(`Wiersz ${index + 2}: Nieprawidłowy format daty dla "${fullName}".`);
             continue;
           }
-          
+
           updates.push({ fullName, contractEndDate: format(contractEndDate, 'yyyy-MM-dd') });
         }
-        
+
         if (errors.length > 0) {
-            toast({
-                variant: 'destructive',
-                title: `Błędy walidacji w pliku (${errors.length})`,
-                description: (
-                    <div className="max-h-40 overflow-y-auto">
-                        {errors.slice(0, 5).map((e, i) => <p key={i}>{e}</p>)}
-                        {errors.length > 5 && <p>I więcej...</p>}
-                    </div>
-                )
-            });
-            setIsImporting(false);
-            return;
+          toast({
+            variant: 'destructive',
+            title: `Błędy walidacji w pliku (${errors.length})`,
+            description: (
+              <div className="max-h-40 overflow-y-auto">
+                {errors.slice(0, 5).map((e, i) => <p key={i}>{e}</p>)}
+                {errors.length > 5 && <p>I więcej...</p>}
+              </div>
+            )
+          });
+          setIsImporting(false);
+          return;
         }
 
         if (updates.length === 0) {
@@ -94,20 +99,20 @@ export function ContractEndDateImportButton() {
         });
       } finally {
         setIsImporting(false);
-        if(fileInputRef.current) {
-            fileInputRef.current.value = '';
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
         }
       }
     };
 
     reader.onerror = (error) => {
-        setIsImporting(false);
-        toast({
-            variant: 'destructive',
-            title: 'Błąd odczytu pliku',
-            description: 'Nie udało się odczytać pliku.',
-        });
-        console.error("FileReader error: ", error);
+      setIsImporting(false);
+      toast({
+        variant: 'destructive',
+        title: 'Błąd odczytu pliku',
+        description: 'Nie udało się odczytać pliku.',
+      });
+      console.error("FileReader error: ", error);
     };
 
     reader.readAsArrayBuffer(file);
@@ -122,11 +127,11 @@ export function ContractEndDateImportButton() {
         className="hidden"
         accept=".xlsx, .xls"
       />
-      <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+      <Button variant={variant} className={className} onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
         {isImporting ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
-            <FileUp className="mr-2 h-4 w-4" />
+          <FileUp className="mr-2 h-4 w-4" />
         )}
         Aktualizuj umowy
       </Button>

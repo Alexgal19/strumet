@@ -187,7 +187,7 @@ const Sidebar = React.forwardRef<
       return (
         <div
           className={cn(
-            "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground",
+            "flex h-full w-[--sidebar-width] flex-col bg-sidebar/80 backdrop-blur-xl text-sidebar-foreground border-r border-white/5",
             className
           )}
           ref={ref}
@@ -533,8 +533,8 @@ const sidebarMenuButtonVariants = cva(
         lg: "h-12 text-base group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:[&>span]:hidden",
       },
       isActive: {
-        true: "bg-sidebar-accent text-sidebar-accent-foreground",
-        false: "text-sidebar-foreground/80 hover:text-sidebar-foreground",
+        true: "bg-gradient-to-r from-primary/20 to-blue-600/10 text-primary border-l-2 border-primary font-medium shadow-[0_0_20px_rgba(32,156,238,0.1)]",
+        false: "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 hover:pl-3 transition-all duration-200",
       }
     },
     defaultVariants: {
@@ -569,7 +569,7 @@ const SidebarMenuButton = React.forwardRef<
     const { isMobile, state } = useSidebar()
 
     const button = (
-       <Comp
+      <Comp
         ref={ref}
         data-sidebar="menu-button"
         data-size={size}
@@ -577,7 +577,7 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size, isActive }), className)}
         {...props}
       >
-        
+
         {children}
       </Comp>
     )
@@ -629,7 +629,7 @@ const SidebarMenuAction = React.forwardRef<
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
+        "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
         className
       )}
       {...props}
@@ -777,4 +777,4 @@ export {
   useSidebar,
 }
 
-    
+

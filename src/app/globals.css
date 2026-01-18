@@ -20,20 +20,87 @@ body,
 
 @layer base {
   :root {
-    --background: 220 13% 98%;
-    --foreground: 220 10% 20%;
-    --card: 0 0% 100%;
-    --primary: 210 90% 55%;
-    --destructive: 0 84.2% 60.2%;
-    --border: 220 13% 91%;
-    --radius: 1rem;
-    --shadow-color: 220 13% 91%;
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
 
-    --chart-1: 220 80% 50%;
-    --chart-2: 166 71% 40%;
-    --chart-3: 38 96% 56%;
-    --chart-4: 341 82% 60%;
-    --chart-5: 288 71% 40%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 224 76% 48%;
+
+    --radius: 0.75rem;
+    --shadow-color: 222 47% 8%;
+
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 217 91% 60%;
+  }
+}
+
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+    /* 1rem base padding + safe area */
+  }
+
+  .touch-manipulation {
+    touch-action: manipulation;
   }
 }
 
@@ -42,12 +109,15 @@ body,
     /* Teraz 'border-border' zadziała, bo zdefiniowaliśmy '--color-border' w @theme */
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   button {
     @apply transition-all duration-300;
   }
+
   button:hover {
     box-shadow: 0 10px 30px -10px hsl(var(--shadow-color) / 0.2), 0 4px 6px -4px hsl(var(--shadow-color) / 0.1);
   }
@@ -57,9 +127,11 @@ body,
   .printing {
     @apply print:visible print:p-0;
   }
+
   .main-content-container {
     @apply print:hidden;
   }
+
   .print-only {
     @apply hidden print:block print:w-full print:h-full;
   }

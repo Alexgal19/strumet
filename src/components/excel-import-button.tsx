@@ -29,7 +29,12 @@ const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status
   'Umowa do': 'contractEndDate',
 };
 
-export function ExcelImportButton() {
+interface Props {
+  className?: string;
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+}
+
+export function ExcelImportButton({ className, variant = "outline" }: Props) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -65,7 +70,7 @@ export function ExcelImportButton() {
               englishItem[polishKey] = item[polishKey]; // Keep unmapped columns as is
             }
           }
-            
+
           const getFormattedDate = (dateInput: any): string | null => {
             const parsedDate = parseMaybeDate(dateInput);
             return parsedDate ? format(parsedDate, 'yyyy-MM-dd') : null;
@@ -89,8 +94,8 @@ export function ExcelImportButton() {
             vacationEndDate: getFormattedDate(englishItem.vacationEndDate) || undefined,
             contractEndDate: getFormattedDate(englishItem.contractEndDate) || undefined,
           };
-          
-          if(!employee.fullName) {
+
+          if (!employee.fullName) {
             console.warn("Skipping row due to missing full name:", item);
             continue;
           }
@@ -98,25 +103,25 @@ export function ExcelImportButton() {
           // Convert undefined to null for Firebase compatibility
           const finalEmployee: any = {};
           for (const key in employee) {
-              const typedKey = key as keyof typeof employee;
-              if (employee[typedKey] !== undefined) {
-                  finalEmployee[typedKey] = employee[typedKey];
-              } else {
-                  finalEmployee[typedKey] = null;
-              }
+            const typedKey = key as keyof typeof employee;
+            if (employee[typedKey] !== undefined) {
+              finalEmployee[typedKey] = employee[typedKey];
+            } else {
+              finalEmployee[typedKey] = null;
+            }
           }
 
           updates[`/employees/${employeeId}`] = finalEmployee;
         }
-        
+
         if (Object.keys(updates).length === 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Błąd importu',
-                description: 'Nie znaleziono prawidłowych danych do importu. Sprawdź strukturę pliku i nazwy kolumn.',
-            });
-            setIsImporting(false);
-            return;
+          toast({
+            variant: 'destructive',
+            title: 'Błąd importu',
+            description: 'Nie znaleziono prawidłowych danych do importu. Sprawdź strukturę pliku i nazwy kolumn.',
+          });
+          setIsImporting(false);
+          return;
         }
 
         await update(ref(db), updates);
@@ -134,20 +139,20 @@ export function ExcelImportButton() {
         });
       } finally {
         setIsImporting(false);
-        if(fileInputRef.current) {
-            fileInputRef.current.value = '';
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
         }
       }
     };
 
     reader.onerror = (error) => {
-        setIsImporting(false);
-        toast({
-            variant: 'destructive',
-            title: 'Błąd odczytu pliku',
-            description: 'Nie udało się odczytać pliku.',
-        });
-        console.error("FileReader error: ", error);
+      setIsImporting(false);
+      toast({
+        variant: 'destructive',
+        title: 'Błąd odczytu pliku',
+        description: 'Nie udało się odczytać pliku.',
+      });
+      console.error("FileReader error: ", error);
     };
 
     reader.readAsArrayBuffer(file);
@@ -162,11 +167,11 @@ export function ExcelImportButton() {
         className="hidden"
         accept=".xlsx, .xls"
       />
-      <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+      <Button variant={variant} className={className} onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
         {isImporting ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
-            <FileUp className="mr-2 h-4 w-4" />
+          <FileUp className="mr-2 h-4 w-4" />
         )}
         Importuj z Excel
       </Button>

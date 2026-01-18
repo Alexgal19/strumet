@@ -20,9 +20,9 @@ interface AppBottomNavProps {
 }
 
 interface MenuItem {
-    href: string;
-    icon: React.ElementType;
-    label: string;
+  href: string;
+  icon: React.ElementType;
+  label: string;
 }
 
 const AppBottomNav = ({ pathname }: AppBottomNavProps) => {
@@ -32,30 +32,31 @@ const AppBottomNav = ({ pathname }: AppBottomNavProps) => {
 
   const allMenuItems: MenuItem[] = [
     { href: '/aktywni', icon: Users, label: 'Aktywni' },
-    { href: '/planowanie', icon: CalendarClock, label: 'Planowanie'},
-    { href: '/odwiedzalnosc', icon: CalendarCheck, label: 'Obecność'},
+    { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
+    { href: '/odwiedzalnosc', icon: CalendarCheck, label: 'Obecność' },
     { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
     { href: '/konfiguracja', icon: Settings, label: 'Ustawienia' },
   ];
-  
+
   const guestViews: string[] = ['/statystyki', '/planowanie'];
   const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => guestViews.includes(item.href));
-  
+
   if (!hasMounted || !isMobile) {
     return null;
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-2 md:hidden">
-      <nav className="flex h-16 items-center justify-around rounded-2xl bg-card shadow-lg border border-white/10">
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:hidden pb-safe">
+      <nav className="flex h-16 items-center justify-around rounded-2xl bg-card/80 backdrop-blur-xl shadow-lg border border-white/10 ring-1 ring-black/5">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
-          
+
           return (
-            <Link 
+            <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               className={cn(
                 'flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium rounded-lg transition-all w-16 h-16 transform',
                 isActive ? 'text-primary -translate-y-2' : 'text-muted-foreground hover:text-primary'
@@ -63,9 +64,9 @@ const AppBottomNav = ({ pathname }: AppBottomNavProps) => {
             >
               <div className={cn(
                 'flex items-center justify-center w-8 h-8 rounded-full transition-colors',
-                 isActive ? 'bg-primary/10' : ''
+                isActive ? 'bg-primary/10' : ''
               )}>
-                 <Icon className="h-5 w-5" />
+                <Icon className="h-5 w-5" />
               </div>
               <span className={cn('transition-opacity text-xs', isActive ? 'opacity-100' : 'opacity-0')}>{item.label}</span>
             </Link>
