@@ -61,12 +61,12 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.52.1",
     "react-hot-toast": "^2.4.1",
+    "read-excel-file": "^6.0.1",
     "recharts": "^2.15.1",
     "resend": "^3.5.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^5.1.0",
-    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -81,6 +81,9 @@
     "prettier-plugin-tailwindcss": "^0.6.5",
     "typescript": "^5",
     "typescript-eslint": "^7.16.0"
+  },
+  "overrides": {
+    "undici": "^6.21.1"
   },
   "description": "Це програма для управління персоналом, створена за допомогою сучасного набору веб-технологій.",
   "main": "index.js",
