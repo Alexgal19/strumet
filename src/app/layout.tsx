@@ -87,7 +87,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-geist/latest/geist.css" />
         <meta name="theme-color" content="#209cee" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased bg-background text-foreground">
         <AppProvider>
           <SidebarProvider>
             <AppContent>
