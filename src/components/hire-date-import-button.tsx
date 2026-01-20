@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import readXlsxFile from 'read-excel-file';
 import { Button } from '@/components/ui/button';
 import { FileUp, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -24,97 +25,83 @@ export function HireDateImportButton({ className, variant = "outline" }: Props) 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsImporting(true);
-    const reader = new FileReader();
 
-    reader.onload = async (e) => {
-      try {
-        const XLSX = await import('xlsx');
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+    try {
+      const rows = await readXlsxFile(file);
+      const headers = rows[0];
+      const jsonData = rows.slice(1).map(row => {
+        const obj: any = {};
+        headers.forEach((header: string, i: number) => obj[header] = row[i]);
+        return obj;
+      });
 
-        const updates: DateUpdatePayload[] = [];
-        const errors: string[] = [];
+      const updates: DateUpdatePayload[] = [];
+      const errors: string[] = [];
 
-        for (const [index, row] of jsonData.entries()) {
-          const fullName = row['Nazwisko i imię']?.trim();
-          const hireDateInput = row['Data zatrudnienia'];
+      for (const [index, row] of jsonData.entries()) {
+        const fullName = row['Nazwisko i imię']?.trim();
+        const hireDateInput = row['Data zatrudnienia'];
 
-          if (!fullName || !hireDateInput) {
-            errors.push(`Wiersz ${index + 2}: Brak imienia i nazwiska lub daty zatrudnienia.`);
-            continue;
-          }
-
-          const hireDate = parseMaybeDate(hireDateInput);
-
-          if (!hireDate) {
-            errors.push(`Wiersz ${index + 2}: Nieprawidłowy format daty dla "${fullName}".`);
-            continue;
-          }
-
-          updates.push({ fullName, hireDate: format(hireDate, 'yyyy-MM-dd') });
+        if (!fullName || !hireDateInput) {
+          errors.push(`Wiersz ${index + 2}: Brak imienia i nazwiska lub daty zatrudnienia.`);
+          continue;
         }
 
-        if (errors.length > 0) {
-          toast({
-            variant: 'destructive',
-            title: `Błędy walidacji w pliku (${errors.length})`,
-            description: (
-              <div className="max-h-40 overflow-y-auto">
-                {errors.slice(0, 5).map((e, i) => <p key={i}>{e}</p>)}
-                {errors.length > 5 && <p>I więcej...</p>}
-              </div>
-            )
-          });
-          setIsImporting(false);
-          return;
+        const hireDate = parseMaybeDate(hireDateInput);
+
+        if (!hireDate) {
+          errors.push(`Wiersz ${index + 2}: Nieprawidłowy format daty dla "${fullName}".`);
+          continue;
         }
 
-        if (updates.length === 0) {
-          toast({
-            variant: 'destructive',
-            title: 'Brak danych do importu',
-            description: 'Nie znaleziono prawidłowych wierszy do zaktualizowania.',
-          });
-          setIsImporting(false);
-          return;
-        }
+        updates.push({ fullName, hireDate: format(hireDate, 'yyyy-MM-dd') });
+      }
 
-        await handleUpdateHireDates(updates);
-
-      } catch (error) {
-        console.error("Error importing hire dates from Excel: ", error);
+      if (errors.length > 0) {
         toast({
           variant: 'destructive',
-          title: 'Błąd podczas importu',
-          description: 'Nie udało się przetworzyć pliku. Upewnij się, że ma poprawny format.',
+          title: `Błędy walidacji w pliku (${errors.length})`,
+          description: (
+            <div className="max-h-40 overflow-y-auto">
+              {errors.slice(0, 5).map((e, i) => <p key={i}>{e}</p>)}
+              {errors.length > 5 && <p>I więcej...</p>}
+            </div>
+          )
         });
-      } finally {
         setIsImporting(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+        return;
       }
-    };
 
-    reader.onerror = (error) => {
-      setIsImporting(false);
+      if (updates.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Brak danych do importu',
+          description: 'Nie znaleziono prawidłowych wierszy do zaktualizowania.',
+        });
+        setIsImporting(false);
+        return;
+      }
+
+      await handleUpdateHireDates(updates);
+
+    } catch (error) {
+      console.error("Error importing hire dates from Excel: ", error);
       toast({
         variant: 'destructive',
-        title: 'Błąd odczytu pliku',
-        description: 'Nie udało się odczytać pliku.',
+        title: 'Błąd podczas importu',
+        description: 'Nie udało się przetworzyć pliku. Upewnij się, że ma poprawny format.',
       });
-      console.error("FileReader error: ", error);
-    };
-
-    reader.readAsArrayBuffer(file);
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   return (
