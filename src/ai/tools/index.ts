@@ -1,9 +1,16 @@
-
 'use server';
-
+/**
+ * @fileOverview A central place for defining AI tools for Genkit.
+ * You can add new functions here and export them to be used as tools in AI flows.
+ */
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { Resend } from 'resend';
 import { getAdminApp, adminDb } from '@/lib/firebase-admin';
+
+// //////////////////////////////////////////////////////////////////////////////////
+// Email Sending Tool
+// //////////////////////////////////////////////////////////////////////////////////
 
 const NOTIFICATION_EMAIL = 'o.holiadynets@smartwork.pl';
 
@@ -17,6 +24,9 @@ const SendEmailOutputSchema = z.object({
     message: z.string(),
 });
 
+/**
+ * An exported async function that can be called directly from other server-side code.
+ */
 export async function sendEmail(
     input: z.infer<typeof SendEmailInputSchema>
 ): Promise<z.infer<typeof SendEmailOutputSchema>> {
@@ -82,3 +92,29 @@ export async function sendEmail(
         };
     }
 }
+
+
+/**
+ * A Genkit tool definition. This can be passed to prompts to allow the AI model
+ * to decide when to call this function.
+ */
+export const sendEmailTool = ai.defineTool(
+  {
+    name: 'sendEmail',
+    description: 'Sends an email using the Resend service. The API key is automatically retrieved from configuration.',
+    inputSchema: SendEmailInputSchema,
+    outputSchema: SendEmailOutputSchema,
+  },
+  sendEmail // We reuse the same function logic
+);
+
+
+// You can add more tools here in the future
+//
+// export const anotherTool = ai.defineTool(
+//   {
+//     name: 'anotherTool',
+//     /* ... */
+//   },
+//   async (input) => { /* ... */ }
+// );

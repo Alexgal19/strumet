@@ -76,7 +76,10 @@
       "firestore_delete_document",
       "firestore_query_collection"
     ],
-    "genkit": [],
+    "genkit": [
+      "get_trace",
+      "run_flow"
+    ],
     "next-devtools": [
       "browser_eval",
       "nextjs_docs",

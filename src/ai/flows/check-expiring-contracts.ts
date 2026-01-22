@@ -12,7 +12,7 @@ import { getAdminApp, adminDb } from '@/lib/firebase-admin';
 import { startOfDay, differenceInDays } from 'date-fns';
 import type { Employee, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
-import { sendEmail } from '@/lib/email-tool';
+import { sendEmail } from '@/ai/tools';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
