@@ -8,11 +8,11 @@
 
     "dependencies": {
 
-        "@genkit-ai/firebase": "1.25.0",
+        "@genkit-ai/firebase": "^1.27.0",
 
-        "@genkit-ai/google-genai": "1.25.0",
+        "@genkit-ai/google-genai": "^1.27.0",
 
-        "@genkit-ai/next": "1.25.0",
+        "@genkit-ai/next": "^1.27.0",
 
         "@modelcontextprotocol/server-filesystem": "2025.12.18",
 
@@ -82,7 +82,7 @@
 
         "framer-motion": "^11.3.2",
 
-        "genkit": "1.25.0",
+        "genkit": "^1.27.0",
 
         "handlebars": "^4.7.8",
 
@@ -158,7 +158,7 @@
 
         "eslint-config-prettier": "^9.1.0",
 
-        "genkit-cli": "1.25.0",
+        "genkit-cli": "^1.27.0",
 
         "prettier": "^3.3.3",
 
@@ -174,7 +174,9 @@
 
         "undici": "^6.21.1",
 
-        "express": "^4.19.2"
+        "express": "^4.19.2",
+        
+        "uuid": "^9.0.1"
 
     },
 
@@ -191,4 +193,3 @@
     "license": "ISC"
 
 }
-
