@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useHasMounted } from '@/hooks/use-mobile';
+import { usePWA } from '@/hooks/use-pwa';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { isLoading, currentUser } = useAppContext();
@@ -73,23 +74,34 @@ function AppContent({ children }: { children: React.ReactNode }) {
   );
 }
 
+function PWAInitializer() {
+  'use client';
+  usePWA();
+  return null;
+}
+
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-
+}) {
   return (
-    <html lang="pl" className="dark" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <title>Baza - ST</title>
         <meta name="description" content="System do zarządzania pracownikami" />
+        <link rel="manifest" href="/manifest.json" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-geist/latest/geist.css" />
         <meta name="theme-color" content="#209cee" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <meta name="apple-mobile-web-app-title" content="Baza-ST" />
+        <link rel="apple-touch-icon" href="/favicon.ico" />
       </head>
       <body className="font-body antialiased">
         <AppProvider>
           <SidebarProvider>
+            <PWAInitializer />
             <AppContent>
               {children}
             </AppContent>

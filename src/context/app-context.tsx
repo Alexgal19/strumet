@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import {
     ref,
     onValue,
@@ -105,6 +105,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
     const [services, setServices] = useState<FirebaseServices | null>(null);
+    
+    const dataLoadedRef = useRef<Set<string>>(new Set());
 
     const isAdmin = currentUser?.role === 'admin';
 
@@ -115,13 +117,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
             if (user) {
                 const userRoleRef = ref(db, `users/${user.uid}/role`);
-                onValue(userRoleRef, (snapshot) => {
+                const unsubscribeRole = onValue(userRoleRef, (snapshot) => {
                     const role = snapshot.val() as UserRole || 'guest';
                     setCurrentUser({ uid: user.uid, email: user.email, role });
+                    // Nie ustawiaj isLoading tutaj - zostanie to ustawione gdy dane się załadują
                 });
+                return () => unsubscribeRole();
             } else {
                 setCurrentUser(null);
-                setIsLoading(false); // Set loading to false if no user
+                setIsLoading(false); // User is not logged in
             }
         });
 
@@ -136,45 +140,76 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setAbsences([]);
             setNotifications([]);
             setStatsHistory([]);
-            if (!currentUser) setIsLoading(false);
+            setIsLoading(false); // User is not authenticated
             return;
         }
 
         setIsLoading(true);
+        dataLoadedRef.current.clear();
         const { db } = services;
-        
+
         const dataRefs = [
-            { path: "employees", setter: (data: any) => setEmployees(objectToArray(data)) },
-            { path: "users", setter: (data: any) => setUsers(objectToArray(data)) },
-            { path: "absences", setter: (data: any) => setAbsences(objectToArray(data)) },
-            { path: "notifications", setter: (data: any) => setNotifications(objectToArray(data)) },
-            { path: "config", setter: (data: any) => {
-                const configData = data || {};
-                const newConfig: AllConfig = {
-                    departments: objectToArray(configData.departments),
-                    jobTitles: objectToArray(configData.jobTitles),
-                    managers: objectToArray(configData.managers),
-                    nationalities: objectToArray(configData.nationalities),
-                    clothingItems: objectToArray(configData.clothingItems),
-                    jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
-                    resendApiKey: configData.resendApiKey || '',
-                };
-                setConfig(newConfig);
-            }},
+            { 
+                path: "employees", 
+                setter: (data: any) => {
+                    setEmployees(objectToArray(data));
+                    dataLoadedRef.current.add('employees');
+                }
+            },
+            { 
+                path: "users", 
+                setter: (data: any) => {
+                    setUsers(objectToArray(data));
+                    dataLoadedRef.current.add('users');
+                }
+            },
+            { 
+                path: "absences", 
+                setter: (data: any) => {
+                    setAbsences(objectToArray(data));
+                    dataLoadedRef.current.add('absences');
+                }
+            },
+            { 
+                path: "notifications", 
+                setter: (data: any) => {
+                    setNotifications(objectToArray(data));
+                    dataLoadedRef.current.add('notifications');
+                }
+            },
+            { 
+                path: "config", 
+                setter: (data: any) => {
+                    const configData = data || {};
+                    const newConfig: AllConfig = {
+                        departments: objectToArray(configData.departments),
+                        jobTitles: objectToArray(configData.jobTitles),
+                        managers: objectToArray(configData.managers),
+                        nationalities: objectToArray(configData.nationalities),
+                        clothingItems: objectToArray(configData.clothingItems),
+                        jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
+                        resendApiKey: configData.resendApiKey || '',
+                    };
+                    setConfig(newConfig);
+                    dataLoadedRef.current.add('config');
+                }
+            },
         ];
 
-        let loadedCount = 0;
         const unsubscribes = dataRefs.map(({ path, setter }) => 
             onValue(ref(db, path), snapshot => {
                 setter(snapshot.val());
-                if (path === 'employees') {
-                    // This is the main data, once it's loaded we can show the app
+                // Check if all essential data is loaded
+                if (dataLoadedRef.current.size >= 5) {
                     setIsLoading(false);
                 }
             }, (error) => {
                 console.error(`Firebase read error on path ${path}:`, error);
                 toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
-                setIsLoading(false);
+                dataLoadedRef.current.add(path); // Mark as attempted even on error
+                if (dataLoadedRef.current.size >= 5) {
+                    setIsLoading(false);
+                }
             })
         );
         
