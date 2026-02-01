@@ -172,6 +172,7 @@ export function ExcelImportButton({ className, variant = "outline" }: Props) {
         onChange={handleFileChange}
         className="hidden"
         accept=".xlsx, .xls"
+        title="Wybierz plik Excel do importu"
       />
       <Button variant={variant} className={className} onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
         {isImporting ? (

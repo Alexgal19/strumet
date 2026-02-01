@@ -39,7 +39,11 @@ export default function LoginPage() {
   useEffect(() => {
     async function initFirebase() {
       try {
-        const { auth: firebaseAuth } = getFirebaseServices();
+        const firebaseServices = getFirebaseServices();
+        if (!firebaseServices) {
+          throw new Error("Firebase services are not initialized.");
+        }
+        const { auth: firebaseAuth } = firebaseServices;
         setAuth(firebaseAuth);
       } catch (e: any) {
         setError(e.message || "Failed to initialize Firebase services.");

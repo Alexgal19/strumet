@@ -222,6 +222,7 @@ export default function FingerprintAppointmentsPage() {
                                   type="time"
                                   className="w-full mt-1 p-2 border rounded-md h-12 text-base"
                                   value={appointmentDate ? format(appointmentDate, 'HH:mm') : ''}
+                                  placeholder="Wybierz godzinę"
                                   onChange={(e) => {
                                       const time = e.target.value;
                                       const [hours, minutes] = time.split(':').map(Number);

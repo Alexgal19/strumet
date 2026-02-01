@@ -51,3 +51,16 @@ export { getFirebaseServices };
 export const getDB = () => getFirebaseServices()?.db;
 export const getAuth_ = () => getFirebaseServices()?.auth;
 export const getStorage_ = () => getFirebaseServices()?.storage;
+
+// Direct named exports with lazy initialization
+export const db = new Proxy({} as Database, {
+  get: () => getFirebaseServices()?.db
+});
+
+export const auth = new Proxy({} as Auth, {
+  get: () => getFirebaseServices()?.auth
+});
+
+export const storage = new Proxy({} as FirebaseStorage, {
+  get: () => getFirebaseServices()?.storage
+});

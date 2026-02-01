@@ -111,7 +111,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const isAdmin = currentUser?.role === 'admin';
 
     useEffect(() => {
-        const { auth, db } = getFirebaseServices();
+        const services = getFirebaseServices();
+        if (!services) {
+            throw new Error('Firebase services are not initialized.');
+        }
+        const { auth, db } = services;
         setServices({ auth, db });
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {

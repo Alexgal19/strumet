@@ -122,7 +122,17 @@ export default function ClothingIssuancePage() {
           date: new Date().toISOString(),
           items: currentItems,
         };
-        issuance = await addClothingIssuance(newIssuanceData);
+        const result = await addClothingIssuance(newIssuanceData);
+        if (result) {
+          issuance = result;
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Błąd',
+            description: 'Nie udało się zapisać wydania odzieży.',
+          });
+          return;
+        }
         // Reset form after saving new one
         setCurrentItems([]);
         setSelectedEmployeeId('');
@@ -219,7 +229,7 @@ export default function ClothingIssuancePage() {
                                 options={clothingOptions}
                                 selected={currentItems.map(i => i.id)}
                                 onChange={(selectedIds) => {
-                                    const newItems = selectedIds.map(id => {
+                                    const newItems = (selectedIds as string[]).map(id => {
                                         const existing = currentItems.find(i => i.id === id);
                                         if (existing) return existing;
                                         const item = config.clothingItems.find(c => c.id === id)!;

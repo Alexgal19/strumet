@@ -159,6 +159,7 @@ export function TerminatedExcelImportButton() {
         onChange={handleFileChange}
         className="hidden"
         accept=".xlsx, .xls"
+        title="Wybierz plik Excel do importu"
       />
       <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
         {isImporting ? (
