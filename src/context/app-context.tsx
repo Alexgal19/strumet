@@ -1,698 +1,522 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from "react";
+import { ref, onValue } from "firebase/database";
+import { getFirebaseServices } from "@/lib/firebase";
 import {
-    ref,
-    onValue,
-    set,
-    update,
-    remove,
-    push,
-    get,
-    query,
-    orderByChild,
-    startAt,
-    endAt,
-    limitToFirst,
-    equalTo,
-    orderByKey,
-    type Database,
-} from 'firebase/database';
-import { getFirebaseServices } from '@/lib/firebase';
-import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import type {
-    Employee,
-    AllConfig,
-    Absence,
-    AbsenceRecord,
-    CirculationCard,
-    FingerprintAppointment,
-    ClothingIssuance,
-    AppNotification,
-    ConfigType,
-    Order,
-    JobTitleClothingSet,
-    StatsSnapshot,
-    AuthUser,
-    User,
-    UserRole,
-} from '@/lib/types';
+  onAuthStateChanged,
+  User as FirebaseUser,
+  type Auth,
+} from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import {
+  saveEmployee as saveEmployeeAction,
+  terminateEmployee as terminateEmployeeAction,
+  restoreEmployee as restoreEmployeeAction,
+  deleteEmployeePermanently as deleteEmployeePermanentlyAction,
+  deleteAllHireDates as deleteAllHireDatesAction,
+  deleteAllEmployees as deleteAllEmployeesAction,
+  updateHireDates as updateHireDatesAction,
+  updateContractEndDates as updateContractEndDatesAction,
+  restoreAllTerminatedEmployees as restoreAllTerminatedEmployeesAction,
+  addConfigItems as addConfigItemsAction,
+  updateConfigItem as updateConfigItemAction,
+  removeConfigItem as removeConfigItemAction,
+  handleSaveJobTitleClothingSet as handleSaveJobTitleClothingSetAction,
+  handleSaveResendApiKey as handleSaveResendApiKeyAction,
+  handleUpdateUserRole as handleUpdateUserRoleAction,
+  addAbsence as addAbsenceAction,
+  deleteAbsence as deleteAbsenceAction,
+  addAbsenceRecord as addAbsenceRecordAction,
+  deleteAbsenceRecord as deleteAbsenceRecordAction,
+  addCirculationCard as addCirculationCardAction,
+  addFingerprintAppointment as addFingerprintAppointmentAction,
+  deleteFingerprintAppointment as deleteFingerprintAppointmentAction,
+  addClothingIssuance as addClothingIssuanceAction,
+  deleteClothingIssuance as deleteClothingIssuanceAction,
+  addOrder as addOrderAction,
+  updateOrder as updateOrderAction,
+  deleteOrder as deleteOrderAction,
+} from "@/lib/actions/employee-actions";
 
+import type {
+  Employee,
+  AllConfig,
+  Absence,
+  AbsenceRecord,
+  CirculationCard,
+  FingerprintAppointment,
+  ClothingIssuance,
+  AppNotification,
+  ConfigType,
+  Order,
+  JobTitleClothingSet,
+  StatsSnapshot,
+  AuthUser,
+  User,
+  UserRole,
+} from "@/lib/types";
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+  return obj ? Object.keys(obj).map((key) => ({ id: key, ...obj[key] })) : [];
 };
 
 interface FirebaseServices {
-    db: Database;
-    auth: Auth;
+  db: any; // Using `any` to avoid deep type issues with Firebase SDK
+  auth: Auth;
 }
 
 interface AppContextType {
-    employees: Employee[];
-    users: User[];
-    absences: Absence[];
-    config: AllConfig;
-    notifications: AppNotification[];
-    statsHistory: StatsSnapshot[];
-    isLoading: boolean;
-    isHistoryLoading: boolean;
-    handleSaveEmployee: (employeeData: Employee) => Promise<void>;
-    handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
-    handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
-    handleDeleteEmployeePermanently: (employeeId: string) => Promise<void>;
-    handleDeleteAllHireDates: () => Promise<void>;
-    handleUpdateHireDates: (updates: { fullName: string; hireDate: string }[]) => Promise<void>;
-    handleUpdateContractEndDates: (updates: { fullName: string; contractEndDate: string }[]) => Promise<void>;
-    handleDeleteAllEmployees: () => Promise<void>;
-    handleRestoreAllTerminatedEmployees: () => Promise<void>;
-    addConfigItems: (configType: ConfigType, items: string[]) => Promise<void>;
-    updateConfigItem: (configType: ConfigType, itemId: string, newName: string) => Promise<void>;
-    removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
-    handleSaveJobTitleClothingSet: (jobTitleId: string, description: string) => Promise<void>;
-    handleSaveResendApiKey: (apiKey: string) => Promise<void>;
-    handleUpdateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
-    addAbsence: (employeeId: string, date: string) => Promise<void>;
-    deleteAbsence: (absenceId: string) => Promise<void>;
-    addAbsenceRecord: (record: Omit<AbsenceRecord, 'id'>) => Promise<void>;
-    deleteAbsenceRecord: (recordId: string) => Promise<void>;
-    addCirculationCard: (employeeId: string, employeeFullName: string) => Promise<CirculationCard | null>;
-    addFingerprintAppointment: (appointment: Omit<FingerprintAppointment, 'id'>) => Promise<void>;
-    deleteFingerprintAppointment: (appointmentId: string) => Promise<void>;
-    addClothingIssuance: (issuance: Omit<ClothingIssuance, 'id'>) => Promise<ClothingIssuance | null>;
-    deleteClothingIssuance: (issuanceId: string) => Promise<void>;
-    addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Promise<void>;
-    updateOrder: (order: Order) => Promise<void>;
-    deleteOrder: (orderId: string) => Promise<void>;
-    currentUser: AuthUser | null;
-    isAdmin: boolean;
+  allEmployees: Employee[];
+  users: User[];
+  absences: Absence[];
+  config: AllConfig;
+  notifications: AppNotification[];
+  statsHistory: StatsSnapshot[];
+  isLoading: boolean;
+  isHistoryLoading: boolean;
+  addConfigItems: (configType: ConfigType, items: string[]) => Promise<void>;
+  updateConfigItem: (
+    configType: ConfigType,
+    itemId: string,
+    newName: string,
+  ) => Promise<void>;
+  removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
+  handleSaveJobTitleClothingSet: (
+    jobTitleId: string,
+    description: string,
+  ) => Promise<void>;
+  handleSaveResendApiKey: (apiKey: string) => Promise<void>;
+  handleUpdateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
+  addAbsence: (employeeId: string, date: string) => Promise<void>;
+  deleteAbsence: (absenceId: string) => Promise<void>;
+  addAbsenceRecord: (record: Omit<AbsenceRecord, "id">) => Promise<void>;
+  deleteAbsenceRecord: (recordId: string) => Promise<void>;
+  addCirculationCard: (
+    employeeId: string,
+    employeeFullName: string,
+  ) => Promise<CirculationCard | null>;
+  addFingerprintAppointment: (
+    appointment: Omit<FingerprintAppointment, "id">,
+  ) => Promise<void>;
+  deleteFingerprintAppointment: (appointmentId: string) => Promise<void>;
+  addClothingIssuance: (
+    issuance: Omit<ClothingIssuance, "id">,
+  ) => Promise<ClothingIssuance | null>;
+  deleteClothingIssuance: (issuanceId: string) => Promise<void>;
+  addOrder: (order: Omit<Order, "id" | "createdAt">) => Promise<void>;
+  updateOrder: (order: Order) => Promise<void>;
+  deleteOrder: (orderId: string) => Promise<void>;
+  currentUser: AuthUser | null;
+  isAdmin: boolean;
+  handleSaveEmployee: (employeeData: Employee) => Promise<void>;
+  handleTerminateEmployee: (args: {
+    id: string;
+    fullName: string;
+  }) => Promise<void>;
+  handleRestoreEmployee: (args: {
+    id: string;
+    fullName: string;
+  }) => Promise<void>;
+  handleDeleteEmployeePermanently: (id: string) => Promise<void>;
+  handleDeleteAllHireDates: () => Promise<void>;
+  handleDeleteAllEmployees: () => Promise<void>;
+  handleUpdateHireDates: (
+    updates: { fullName: string; hireDate: string }[],
+  ) => Promise<void>;
+  handleUpdateContractEndDates: (
+    updates: { fullName: string; contractEndDate: string }[],
+  ) => Promise<void>;
+  handleRestoreAllTerminatedEmployees: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-    const { toast } = useToast();
+  const { toast } = useToast();
 
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [users, setUsers] = useState<User[]>([]);
-    const [absences, setAbsences] = useState<Absence[]>([]);
-    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
-    const [notifications, setNotifications] = useState<AppNotification[]>([]);
-    const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-    const [services, setServices] = useState<FirebaseServices | null>(null);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [absences, setAbsences] = useState<Absence[]>([]);
+  const [config, setConfig] = useState<AllConfig>({
+    departments: [],
+    jobTitles: [],
+    managers: [],
+    nationalities: [],
+    clothingItems: [],
+    jobTitleClothingSets: [],
+    resendApiKey: "",
+  });
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [services, setServices] = useState<FirebaseServices | null>(null);
 
-    const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === "admin";
 
-    useEffect(() => {
-        const { auth, db } = getFirebaseServices();
-        setServices({ auth, db });
+  useEffect(() => {
+    const { auth, db } = getFirebaseServices();
+    setServices({ auth, db });
 
-        const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
-            if (user) {
-                const userRoleRef = ref(db, `users/${user.uid}/role`);
-                onValue(userRoleRef, (snapshot) => {
-                    const role = snapshot.val() as UserRole || 'guest';
-                    setCurrentUser({ uid: user.uid, email: user.email, role });
-                });
-            } else {
-                setCurrentUser(null);
-                setIsLoading(false); // Set loading to false if no user
-            }
-        });
-
-        return () => unsubscribeAuth();
-    }, []);
-
-    useEffect(() => {
-        if (!services || !currentUser) {
-            setEmployees([]);
-            setUsers([]);
-            setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
-            setAbsences([]);
-            setNotifications([]);
-            setStatsHistory([]);
-            if (!currentUser) setIsLoading(false);
-            return;
+    const unsubscribeAuth = onAuthStateChanged(
+      auth,
+      async (user: FirebaseUser | null) => {
+        if (user) {
+          const userRoleRef = ref(db, `users/${user.uid}/role`);
+          onValue(userRoleRef, (snapshot) => {
+            const role = (snapshot.val() as UserRole) || "guest";
+            setCurrentUser({ uid: user.uid, email: user.email, role });
+          });
+        } else {
+          setCurrentUser(null);
+          setIsLoading(false); // Set loading to false if no user
         }
+      },
+    );
 
-        setIsLoading(true);
-        const { db } = services;
-        
-        const dataRefs = [
-            { path: "employees", setter: (data: any) => setEmployees(objectToArray(data)) },
-            { path: "users", setter: (data: any) => setUsers(objectToArray(data)) },
-            { path: "absences", setter: (data: any) => setAbsences(objectToArray(data)) },
-            { path: "notifications", setter: (data: any) => setNotifications(objectToArray(data)) },
-            { path: "config", setter: (data: any) => {
-                const configData = data || {};
-                const newConfig: AllConfig = {
-                    departments: objectToArray(configData.departments),
-                    jobTitles: objectToArray(configData.jobTitles),
-                    managers: objectToArray(configData.managers),
-                    nationalities: objectToArray(configData.nationalities),
-                    clothingItems: objectToArray(configData.clothingItems),
-                    jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
-                    resendApiKey: configData.resendApiKey || '',
-                };
-                setConfig(newConfig);
-            }},
-        ];
+    return () => unsubscribeAuth();
+  }, []);
 
-        let loadedCount = 0;
-        const unsubscribes = dataRefs.map(({ path, setter }) => 
-            onValue(ref(db, path), snapshot => {
-                setter(snapshot.val());
-                if (path === 'employees') {
-                    // This is the main data, once it's loaded we can show the app
-                    setIsLoading(false);
-                }
-            }, (error) => {
-                console.error(`Firebase read error on path ${path}:`, error);
-                toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
-                setIsLoading(false);
-            })
+  useEffect(() => {
+    if (!services || !currentUser) {
+      setAllEmployees([]);
+      setUsers([]);
+      setConfig({
+        departments: [],
+        jobTitles: [],
+        managers: [],
+        nationalities: [],
+        clothingItems: [],
+        jobTitleClothingSets: [],
+        resendApiKey: "",
+      });
+      setAbsences([]);
+      setNotifications([]);
+      setStatsHistory([]);
+      if (!currentUser) setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    const { db } = services;
+
+    const dataRefs = [
+      {
+        path: "employees",
+        setter: (data: any) => setAllEmployees(objectToArray(data)),
+      },
+      { path: "users", setter: (data: any) => setUsers(objectToArray(data)) },
+      {
+        path: "absences",
+        setter: (data: any) => setAbsences(objectToArray(data)),
+      },
+      {
+        path: "notifications",
+        setter: (data: any) => setNotifications(objectToArray(data)),
+      },
+      {
+        path: "config",
+        setter: (data: any) => {
+          const configData = data || {};
+          const newConfig: AllConfig = {
+            departments: objectToArray(configData.departments),
+            jobTitles: objectToArray(configData.jobTitles),
+            managers: objectToArray(configData.managers),
+            nationalities: objectToArray(configData.nationalities),
+            clothingItems: objectToArray(configData.clothingItems),
+            jobTitleClothingSets: objectToArray(
+              configData.jobTitleClothingSets,
+            ),
+            resendApiKey: configData.resendApiKey || "",
+          };
+          setConfig(newConfig);
+        },
+      },
+    ];
+
+    const unsubscribes = dataRefs.map(({ path, setter }) =>
+      onValue(
+        ref(db, path),
+        (snapshot) => {
+          setter(snapshot.val());
+          setIsLoading(false);
+        },
+        (error) => {
+          console.error(`Firebase read error on path ${path}:`, error);
+          toast({
+            variant: "destructive",
+            title: "Błąd odczytu danych",
+            description: `Nie udało się pobrać danych dla: ${path}`,
+          });
+          setIsLoading(false);
+        },
+      ),
+    );
+
+    const historyRef = ref(db, "statisticsHistory");
+    unsubscribes.push(
+      onValue(historyRef, (snapshot) => {
+        setStatsHistory(
+          objectToArray(snapshot.val()).sort(
+            (a: any, b: any) =>
+              new Date(b.id).getTime() - new Date(a.id).getTime(),
+          ),
         );
-        
-        const historyRef = ref(db, "statisticsHistory");
-        unsubscribes.push(onValue(historyRef, snapshot => {
-            setStatsHistory(objectToArray(snapshot.val()).sort((a:any, b:any) => new Date(b.id).getTime() - new Date(a.id).getTime()));
-            setIsHistoryLoading(false);
-        }));
+        setIsHistoryLoading(false);
+      }),
+    );
 
-        return () => {
-            unsubscribes.forEach(unsub => unsub());
-        }
-    }, [services, currentUser, toast]);
-
-
-    const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            const { id, ...dataToSave } = employeeData;
-            
-            const status = dataToSave.status || 'aktywny';
-            const status_fullName = `${status}_${dataToSave.fullName.toLowerCase()}`;
-
-            const finalData: { [key: string]: any } = { ...dataToSave, status_fullName };
-
-            for (const key in finalData) {
-                if (finalData[key] === undefined) {
-                  finalData[key] = null;
-                }
-            }
-
-            if (id) {
-                await set(ref(db, `employees/${id}`), finalData);
-                toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
-            } else {
-                const newEmployeeRef = push(ref(db, 'employees'));
-                await set(newEmployeeRef, { ...finalData, status: 'aktywny', status_fullName: `aktywny_${finalData.fullName.toLowerCase()}` });
-                toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
-            }
-        } catch (error) {
-            console.error("Error saving employee: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
-        }
-    }, [services, toast]);
-
-    const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await update(ref(db, `employees/${employeeId}`), {
-                status: 'zwolniony',
-                terminationDate: format(new Date(), 'yyyy-MM-dd'),
-                status_fullName: `zwolniony_${employeeFullName.toLowerCase()}`
-            });
-            toast({ title: 'Pracownik zwolniony', description: 'Status pracownika został zmieniony na "zwolniony".' });
-        } catch (error) {
-            console.error("Error terminating employee: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
-        }
-    }, [services, toast]);
-
-    const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await update(ref(db, `employees/${employeeId}`), {
-                status: 'aktywny',
-                terminationDate: null,
-                status_fullName: `aktywny_${employeeFullName.toLowerCase()}`
-            });
-            toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
-        } catch (error) {
-            console.error("Error restoring employee: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
-        }
-    }, [services, toast]);
-
-    const handleDeleteEmployeePermanently = useCallback(async (employeeId: string) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await remove(ref(db, `employees/${employeeId}`));
-            toast({ title: 'Sukces', description: 'Pracownik został trwale usunięty z bazy danych.' });
-        } catch (error) {
-            console.error("Error deleting employee permanently: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracownika.' });
-        }
-    }, [services, toast]);
-
-    const handleDeleteAllHireDates = useCallback(async () => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            const updates: Record<string, any> = {};
-            const allEmployeesSnapshot = await get(ref(db, 'employees'));
-            const allEmployees = objectToArray(allEmployeesSnapshot.val());
-
-            allEmployees.forEach(employee => {
-                updates[`/employees/${employee.id}/hireDate`] = null;
-            });
-            await update(ref(db), updates);
-            toast({ title: 'Sukces', description: 'Wszystkie daty zatrudnienia zostały usunięte.' });
-        } catch (error) {
-            console.error("Error deleting all hire dates: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć dat zatrudnienia.' });
-        }
-    }, [services, toast]);
-
-    const handleUpdateHireDates = useCallback(async (dateUpdates: { fullName: string; hireDate: string }[]) => {
-        if (!services) return;
-        const { db } = services;
-        const updates: Record<string, any> = {};
-        let updatedCount = 0;
-        const notFound: string[] = [];
-
-        const allEmployeesSnapshot = await get(ref(db, 'employees'));
-        const allEmployees = objectToArray(allEmployeesSnapshot.val());
-
-        dateUpdates.forEach(updateData => {
-            const employeeToUpdate = allEmployees.find(emp => emp.fullName === updateData.fullName);
-            if (employeeToUpdate) {
-                updates[`/employees/${employeeToUpdate.id}/hireDate`] = updateData.hireDate;
-                updatedCount++;
-            } else {
-                notFound.push(updateData.fullName);
-            }
-        });
-
-        if (updatedCount > 0) {
-            try {
-                await update(ref(db), updates);
-                toast({
-                    title: 'Aktualizacja zakończona',
-                    description: `Zaktualizowano daty zatrudnienia dla ${updatedCount} pracowników.`,
-                });
-            } catch (error) {
-                console.error("Error updating hire dates:", error);
-                toast({ variant: 'destructive', title: 'Błąd', description: 'Wystąpił błąd podczas aktualizacji dat.' });
-                return;
-            }
-        }
-
-        if (notFound.length > 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Nie znaleziono pracowników',
-                description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
-            });
-        }
-    }, [services, toast]);
-
-    const handleUpdateContractEndDates = useCallback(async (dateUpdates: { fullName: string; contractEndDate: string }[]) => {
-        if (!services) return;
-        const { db } = services;
-        const updates: Record<string, any> = {};
-        let updatedCount = 0;
-        const notFound: string[] = [];
-        
-        const allEmployeesSnapshot = await get(ref(db, 'employees'));
-        const allEmployees = objectToArray(allEmployeesSnapshot.val());
-
-        dateUpdates.forEach(updateData => {
-            const employeeToUpdate = allEmployees.find(emp => emp.fullName === updateData.fullName);
-            if (employeeToUpdate) {
-                updates[`/employees/${employeeToUpdate.id}/contractEndDate`] = updateData.contractEndDate;
-                updatedCount++;
-            } else {
-                notFound.push(updateData.fullName);
-            }
-        });
-
-        if (updatedCount > 0) {
-            try {
-                await update(ref(db), updates);
-                toast({
-                    title: 'Aktualizacja zakończona',
-                    description: `Zaktualizowano daty końca umowy dla ${updatedCount} pracowników.`,
-                });
-            } catch (error) {
-                console.error("Error updating contract end dates:", error);
-                toast({ variant: 'destructive', title: 'Błąd', description: 'Wystąpił błąd podczas aktualizacji dat.' });
-                return;
-            }
-        }
-
-        if (notFound.length > 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Nie znaleziono pracowników',
-                description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
-            });
-        }
-    }, [services, toast]);
-
-    const handleDeleteAllEmployees = useCallback(async () => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await set(ref(db, 'employees'), null);
-            toast({ title: 'Sukces', description: 'Wszyscy pracownicy zostali usunięci.' });
-        } catch (error) {
-            console.error("Error deleting all employees: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracowników.' });
-        }
-    }, [services, toast]);
-
-    const handleRestoreAllTerminatedEmployees = useCallback(async () => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            const updates: Record<string, any> = {};
-            
-            const allEmployeesSnapshot = await get(ref(db, 'employees'));
-            const allEmployees = objectToArray(allEmployeesSnapshot.val());
-            const terminatedEmployees = allEmployees.filter(e => e.status === 'zwolniony');
-
-            if (terminatedEmployees.length === 0) {
-                toast({ title: 'Informacja', description: 'Brak zwolnionych pracowników do przywrócenia.' });
-                return;
-            }
-
-            for (const employee of terminatedEmployees) {
-                 updates[`/employees/${employee.id}/status`] = 'aktywny';
-                 updates[`/employees/${employee.id}/terminationDate`] = null;
-                 updates[`/employees/${employee.id}/status_fullName`] = `aktywny_${employee.fullName.toLowerCase()}`;
-            }
-            await update(ref(db), updates);
-            toast({ title: 'Sukces', description: `Przywrócono ${terminatedEmployees.length} pracowników.` });
-        } catch (error) {
-            console.error("Error restoring all terminated employees: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracowników.' });
-        }
-    }, [services, toast]);
-
-    const addConfigItems = useCallback(async (configType: ConfigType, items: string[]) => {
-        if (!services) return;
-        const { db } = services;
-        const updates: Record<string, any> = {};
-        items.forEach(itemName => {
-            const newKey = push(ref(db, `config/${configType}`)).key;
-            updates[`/config/${configType}/${newKey}`] = { name: itemName };
-        });
-        await update(ref(db), updates);
-    }, [services]);
-
-    const updateConfigItem = useCallback(async (configType: ConfigType, itemId: string, newName: string) => {
-        if (!services) return;
-        const { db } = services;
-        const itemToUpdate = config[configType].find(i => i.id === itemId);
-        if (!itemToUpdate) return;
-
-        const oldName = itemToUpdate.name;
-
-        try {
-            const updates: Record<string, any> = {};
-            updates[`/config/${configType}/${itemId}/name`] = newName;
-
-            const employeeFieldToUpdate = configType === 'departments' ? 'department' : configType === 'jobTitles' ? 'jobTitle' : configType === 'managers' ? 'manager' : configType === 'nationalities' ? 'nationality' : null;
-
-            if (employeeFieldToUpdate) {
-                const allEmployeesSnapshot = await get(ref(db, 'employees'));
-                const allEmployees = objectToArray(allEmployeesSnapshot.val());
-                allEmployees.forEach(emp => {
-                    if (emp[employeeFieldToUpdate] === oldName) {
-                        updates[`/employees/${emp.id}/${employeeFieldToUpdate}`] = newName;
-                    }
-                });
-            }
-
-            await update(ref(db), updates);
-            toast({ title: "Sukces", description: "Element został zaktualizowany."});
-        } catch (error) {
-            console.error("Error updating item:", error);
-            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zaktualizować elementu."});
-        }
-    }, [services, config, toast]);
-
-    const removeConfigItem = useCallback(async (configType: ConfigType, itemId: string) => {
-        if (!services) return;
-        const { db } = services;
-        await remove(ref(db, `/config/${configType}/${itemId}`));
-        toast({ title: "Sukces", description: "Element został usunięty."});
-    }, [services, toast]);
-
-    const handleSaveJobTitleClothingSet = useCallback(async (jobTitleId: string, description: string) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await set(ref(db, `config/jobTitleClothingSets/${jobTitleId}`), {
-                id: jobTitleId,
-                description: description
-            });
-            toast({ title: "Sukces", description: "Zestaw odzieży dla stanowiska został zaktualizowany."});
-        } catch(error) {
-            console.error("Error saving job title clothing set:", error);
-            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać zestawu odzieży."});
-        }
-    }, [services, toast]);
-
-    const handleSaveResendApiKey = useCallback(async (apiKey: string) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await set(ref(db, 'config/resendApiKey'), apiKey);
-            toast({ title: "Sukces", description: "Klucz API Resend został zapisany."});
-        } catch (error) {
-            console.error("Error saving Resend API key:", error);
-            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać klucza API."});
-        }
-    }, [services, toast]);
-
-    const handleUpdateUserRole = useCallback(async (userId: string, newRole: UserRole) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await update(ref(db, `users/${userId}`), { role: newRole });
-            toast({ title: 'Sukces', description: 'Rola użytkownika została zaktualizowana.' });
-        } catch (error) {
-            console.error("Error updating user role: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować roli użytkownika.' });
-        }
-    }, [services, toast]);
-
-    const addAbsence = useCallback(async (employeeId: string, date: string) => {
-        if (!services) return;
-        const { db } = services;
-        const newRef = push(ref(db, 'absences'));
-        await set(newRef, { employeeId, date });
-    }, [services]);
-
-    const deleteAbsence = useCallback(async (absenceId: string) => {
-        if (!services) return;
-        const { db } = services;
-        await remove(ref(db, `absences/${absenceId}`));
-    }, [services]);
-
-    const addAbsenceRecord = useCallback(async (record: Omit<AbsenceRecord, 'id'>) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            const newRef = push(ref(db, 'absenceRecords'));
-            await set(newRef, record);
-            toast({ title: 'Sukces', description: 'Zapis został pomyślnie dodany.' });
-        } catch (error) {
-            console.error('Error saving record:', error);
-            toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać rekordu.' });
-        }
-    }, [services, toast]);
-
-    const deleteAbsenceRecord = useCallback(async (recordId: string) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await remove(ref(db, `absenceRecords/${recordId}`));
-            toast({ title: 'Sukces', description: 'Zapis został usunięty.' });
-        } catch (error) {
-            console.error('Error deleting record:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapisu.' });
-        }
-    }, [services, toast]);
-
-    const addCirculationCard = useCallback(async (employeeId: string, employeeFullName: string) => {
-        if (!services) return null;
-        const { db } = services;
-        try {
-            const newRef = push(ref(db, 'circulationCards'));
-            const newCard: CirculationCard = {
-                id: newRef.key!,
-                employeeId, employeeFullName, date: new Date().toISOString(),
-            };
-            await set(newRef, newCard);
-            return newCard;
-        } catch (error) {
-            console.error('Error saving circulation card:', error);
-            toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać karty.' });
-            return null;
-        }
-    }, [services, toast]);
-
-    const addFingerprintAppointment = useCallback(async (appointment: Omit<FingerprintAppointment, 'id'>) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            const newRef = push(ref(db, 'fingerprintAppointments'));
-            await set(newRef, appointment);
-            toast({ title: 'Sukces', description: 'Termin został pomyślnie dodany.' });
-        } catch (error) {
-            console.error('Error saving appointment:', error);
-            toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać terminu.' });
-        }
-    }, [services, toast]);
-
-    const deleteFingerprintAppointment = useCallback(async (appointmentId: string) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await remove(ref(db, `fingerprintAppointments/${appointmentId}`));
-            toast({ title: 'Sukces', description: 'Termin został usunięty.' });
-        } catch (error) {
-            console.error('Error deleting appointment:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć terminu.' });
-        }
-    }, [services, toast]);
-
-    const addClothingIssuance = useCallback(async (issuance: Omit<ClothingIssuance, 'id'>) => {
-        if (!services) return null;
-        const { db } = services;
-        try {
-            const newRef = push(ref(db, 'clothingIssuances'));
-            const newIssuance = { ...issuance, id: newRef.key! };
-            await set(newRef, newIssuance);
-            toast({ title: 'Sukces', description: 'Zapis o wydaniu odzieży został zapisany.' });
-            return newIssuance;
-        } catch (error) {
-            console.error('Error saving clothing issuance:', error);
-            toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać danych.' });
-            return null;
-        }
-    }, [services, toast]);
-
-    const deleteClothingIssuance = useCallback(async (issuanceId: string) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await remove(ref(db, `clothingIssuances/${issuanceId}`));
-            toast({ title: 'Sukces', description: 'Zapis został usunięty.' });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapisu.' });
-        }
-    }, [services, toast]);
-
-    const addOrder = useCallback(async (order: Omit<Order, 'id' | 'createdAt'>) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            const newRef = push(ref(db, 'orders'));
-            await set(newRef, {
-                ...order,
-                createdAt: new Date().toISOString(),
-                realizedQuantity: order.realizedQuantity || 0
-            });
-            toast({ title: 'Sukces', description: 'Nowe zamówienie zostało dodane.'});
-        } catch(e) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zamówienia.'});
-        }
-    }, [services, toast]);
-
-    const updateOrder = useCallback(async (order: Order) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            const { id, ...dataToUpdate } = order;
-            await update(ref(db, `orders/${id}`), dataToUpdate);
-            toast({ title: 'Sukces', description: 'Zamówienie zostało zaktualizowane.'});
-        } catch(e) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować zamówienia.'});
-        }
-    }, [services, toast]);
-
-    const deleteOrder = useCallback(async (orderId: string) => {
-        if (!services) return;
-        const { db } = services;
-        try {
-            await remove(ref(db, `orders/${orderId}`));
-            toast({ title: 'Sukces', description: 'Zamówienie zostało usunięte.'});
-        } catch(e) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zamówienia.'});
-        }
-    }, [services, toast]);
-
-    const value: AppContextType = {
-        employees,
-        users,
-        absences,
-        config,
-        notifications,
-        statsHistory,
-        isLoading,
-        isHistoryLoading,
-        handleSaveEmployee,
-        handleTerminateEmployee,
-        handleRestoreEmployee,
-        handleDeleteEmployeePermanently,
-        handleDeleteAllHireDates,
-        handleUpdateHireDates,
-        handleUpdateContractEndDates,
-        handleDeleteAllEmployees,
-        handleRestoreAllTerminatedEmployees,
-        addConfigItems,
-        updateConfigItem,
-        removeConfigItem,
-        handleSaveJobTitleClothingSet,
-        handleSaveResendApiKey,
-        handleUpdateUserRole,
-        addAbsence,
-        deleteAbsence,
-        addAbsenceRecord,
-        deleteAbsenceRecord,
-        addCirculationCard,
-        addFingerprintAppointment,
-        deleteFingerprintAppointment,
-        addClothingIssuance,
-        deleteClothingIssuance,
-        addOrder,
-        updateOrder,
-        deleteOrder,
-        currentUser,
-        isAdmin,
+    return () => {
+      unsubscribes.forEach((unsub) => unsub());
     };
+  }, [services, currentUser, toast]);
 
-    return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  // --- Employee Mutations ---
+  const handleSaveEmployee = useCallback(
+    async (employeeData: Employee) => {
+      try {
+        await saveEmployeeAction(employeeData);
+        const action = employeeData.id ? "zaktualizowane" : "dodany";
+        toast({
+          title: "Sukces",
+          description: `Dane pracownika zostały ${action}.`,
+        });
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Błąd",
+          description: "Nie udało się zapisać danych pracownika.",
+        });
+      }
+    },
+    [toast],
+  );
+
+  const handleTerminateEmployee = useCallback(
+    async ({ id, fullName }: { id: string; fullName: string }) => {
+      try {
+        await terminateEmployeeAction(id, fullName);
+        toast({
+          title: "Pracownik zwolniony",
+          description: 'Status pracownika został zmieniony na "zwolniony".',
+        });
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Błąd",
+          description: "Nie udało się zwolnić pracownika.",
+        });
+      }
+    },
+    [toast],
+  );
+
+  const handleRestoreEmployee = useCallback(
+    async ({ id, fullName }: { id: string; fullName: string }) => {
+      try {
+        await restoreEmployeeAction(id, fullName);
+        toast({
+          title: "Sukces",
+          description: "Pracownik został przywrócony.",
+        });
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Błąd",
+          description: "Nie udało się przywrócić pracownika.",
+        });
+      }
+    },
+    [toast],
+  );
+
+  const handleDeleteEmployeePermanently = useCallback(
+    async (id: string) => {
+      try {
+        await deleteEmployeePermanentlyAction(id);
+        toast({
+          title: "Sukces",
+          description: "Pracownik został trwale usunięty z bazy danych.",
+        });
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Błąd",
+          description: "Nie udało się usunąć pracownika.",
+        });
+      }
+    },
+    [toast],
+  );
+
+  const handleDeleteAllHireDates = useCallback(async () => {
+    try {
+      await deleteAllHireDatesAction();
+      toast({
+        title: "Sukces",
+        description: "Wszystkie daty zatrudnienia zostały usunięte.",
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się usunąć dat zatrudnienia.",
+      });
+    }
+  }, [toast]);
+
+  const handleUpdateHireDates = useCallback(
+    async (updates: { fullName: string; hireDate: string }[]) => {
+      try {
+        const { updatedCount, notFound } = await updateHireDatesAction(updates);
+        if (updatedCount > 0) {
+          toast({
+            title: "Aktualizacja zakończona",
+            description: `Zaktualizowano daty zatrudnienia dla ${updatedCount} pracowników.`,
+          });
+        }
+        if (notFound.length > 0) {
+          toast({
+            variant: "destructive",
+            title: "Nie znaleziono pracowników",
+            description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(", ")}...`,
+          });
+        }
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Błąd",
+          description: "Wystąpił błąd podczas aktualizacji dat.",
+        });
+      }
+    },
+    [toast],
+  );
+
+  const handleUpdateContractEndDates = useCallback(
+    async (updates: { fullName: string; contractEndDate: string }[]) => {
+      try {
+        const { updatedCount, notFound } =
+          await updateContractEndDatesAction(updates);
+        if (updatedCount > 0) {
+          toast({
+            title: "Aktualizacja zakończona",
+            description: `Zaktualizowano daty końca umowy dla ${updatedCount} pracowników.`,
+          });
+        }
+        if (notFound.length > 0) {
+          toast({
+            variant: "destructive",
+            title: "Nie znaleziono pracowników",
+            description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(", ")}...`,
+          });
+        }
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Błąd",
+          description: "Wystąpił błąd podczas aktualizacji dat.",
+        });
+      }
+    },
+    [toast],
+  );
+
+  const handleDeleteAllEmployees = useCallback(async () => {
+    try {
+      await deleteAllEmployeesAction();
+      toast({
+        title: "Sukces",
+        description: "Wszyscy pracownicy zostali usunięci.",
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się usunąć pracowników.",
+      });
+    }
+  }, [toast]);
+
+  const handleRestoreAllTerminatedEmployees = useCallback(async () => {
+    try {
+      const { restoredCount } = await restoreAllTerminatedEmployeesAction();
+      if (restoredCount === 0) {
+        toast({
+          title: "Informacja",
+          description: "Brak zwolnionych pracowników do przywrócenia.",
+        });
+      } else {
+        toast({
+          title: "Sukces",
+          description: `Przywrócono ${restoredCount} pracowników.`,
+        });
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się przywrócić pracowników.",
+      });
+    }
+  }, [toast]);
+
+  const value: AppContextType = {
+    allEmployees,
+    users,
+    absences,
+    config,
+    notifications,
+    statsHistory,
+    isLoading,
+    isHistoryLoading,
+    addConfigItems: addConfigItemsAction,
+    updateConfigItem: updateConfigItemAction,
+    removeConfigItem: removeConfigItemAction,
+    handleSaveJobTitleClothingSet: handleSaveJobTitleClothingSetAction,
+    handleSaveResendApiKey: handleSaveResendApiKeyAction,
+    handleUpdateUserRole: handleUpdateUserRoleAction,
+    addAbsence: addAbsenceAction,
+    deleteAbsence: deleteAbsenceAction,
+    addAbsenceRecord: addAbsenceRecordAction,
+    deleteAbsenceRecord: deleteAbsenceRecordAction,
+    addCirculationCard: addCirculationCardAction,
+    addFingerprintAppointment: addFingerprintAppointmentAction,
+    deleteFingerprintAppointment: deleteFingerprintAppointmentAction,
+    addClothingIssuance: addClothingIssuanceAction,
+    deleteClothingIssuance: deleteClothingIssuanceAction,
+    addOrder: addOrderAction,
+    updateOrder: updateOrderAction,
+    deleteOrder: deleteOrderAction,
+    currentUser,
+    isAdmin,
+    handleSaveEmployee,
+    handleTerminateEmployee,
+    handleRestoreEmployee,
+    handleDeleteEmployeePermanently,
+    handleDeleteAllHireDates,
+    handleDeleteAllEmployees,
+    handleUpdateHireDates,
+    handleUpdateContractEndDates,
+    handleRestoreAllTerminatedEmployees,
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
 export const useAppContext = () => {
-    const context = useContext(AppContext);
-    if (context === undefined) {
-        throw new Error('useAppContext must be used within an AppProvider');
-    }
-    return context;
+  const context = useContext(AppContext);
+  if (context === undefined) {
+    throw new Error("useAppContext must be used within an AppProvider");
+  }
+  return context;
 };

@@ -1,7 +1,13 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
+import dynamic from "next/dynamic";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,81 +26,180 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { MoreHorizontal, PlusCircle, Search, UserX, Edit, Bot, Loader2, Trash2, XCircle } from 'lucide-react';
-import type { Employee } from '@/lib/types';
-import { PageHeader } from '@/components/page-header';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import { ExcelImportButton } from '@/components/excel-import-button';
-import { HireDateImportButton } from '@/components/hire-date-import-button';
-import { ContractEndDateImportButton } from '@/components/contract-end-date-import-button';
-import { ExcelExportButton } from '@/components/excel-export-button';
-import { MultiSelect } from '@/components/ui/multi-select';
-import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
-import { EmployeeForm } from '@/components/employee-form';
-import { DataTable } from '@/components/data-table';
-import type { ColumnDef, RowSelectionState } from "@tanstack/react-table"
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { useAppContext } from '@/context/app-context';
-import { EmployeeCard } from '@/components/employee-card';
-import { formatDate } from '@/lib/date';
-import { getStatusColor, legalizationStatuses } from '@/lib/legalization-statuses';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  MoreHorizontal,
+  PlusCircle,
+  Search,
+  UserX,
+  Edit,
+  Bot,
+  Loader2,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import type { Employee } from "@/lib/types";
+import { PageHeader } from "@/components/page-header";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { ExcelImportButton } from "@/components/excel-import-button";
+import { HireDateImportButton } from "@/components/hire-date-import-button";
+import { ContractEndDateImportButton } from "@/components/contract-end-date-import-button";
+import { ExcelExportButton } from "@/components/excel-export-button";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { useIsMobile, useHasMounted } from "@/hooks/use-mobile";
+import { EmployeeForm } from "@/components/employee-form";
+import { DataTable } from "@/components/data-table";
+import type { ColumnDef, RowSelectionState } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useAppContext } from "@/context/app-context";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { EmployeeCard } from "@/components/employee-card";
+import { formatDate } from "@/lib/date";
+import {
+  getStatusColor,
+  legalizationStatuses,
+} from "@/lib/legalization-statuses";
+import { Badge } from "@/components/ui/badge";
 
-const EmployeeSummary = dynamic(() => import('@/components/employee-summary').then(mod => mod.EmployeeSummary), {
-  ssr: false
-});
+const EmployeeSummary = dynamic(
+  () =>
+    import("@/components/employee-summary").then((mod) => mod.EmployeeSummary),
+  {
+    ssr: false,
+  },
+);
 
 const exportColumns = [
-  { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
-  { key: 'hireDate' as keyof Employee, name: 'Data zatrudnienia' },
-  { key: 'contractEndDate' as keyof Employee, name: 'Umowa do' },
-  { key: 'jobTitle' as keyof Employee, name: 'Stanowisko' },
-  { key: 'department' as keyof Employee, name: 'Dział' },
-  { key: 'manager' as keyof Employee, name: 'Kierownik' },
-  { key: 'cardNumber' as keyof Employee, name: 'Nr karty' },
-  { key: 'nationality' as keyof Employee, name: 'Narodowość' },
-  { key: 'legalizationStatus' as keyof Employee, name: 'Status legalizacyjny' },
-  { key: 'lockerNumber' as keyof Employee, name: 'Nr szafki' },
-  { key: 'departmentLockerNumber' as keyof Employee, name: 'Nr szafki w dziale' },
-  { key: 'sealNumber' as keyof Employee, name: 'Nr pieczęci' },
+  { key: "fullName" as keyof Employee, name: "Nazwisko i imię" },
+  { key: "hireDate" as keyof Employee, name: "Data zatrudnienia" },
+  { key: "contractEndDate" as keyof Employee, name: "Umowa do" },
+  { key: "jobTitle" as keyof Employee, name: "Stanowisko" },
+  { key: "department" as keyof Employee, name: "Dział" },
+  { key: "manager" as keyof Employee, name: "Kierownik" },
+  { key: "cardNumber" as keyof Employee, name: "Nr karty" },
+  { key: "nationality" as keyof Employee, name: "Narodowość" },
+  { key: "legalizationStatus" as keyof Employee, name: "Status legalizacyjny" },
+  { key: "lockerNumber" as keyof Employee, name: "Nr szafki" },
+  {
+    key: "departmentLockerNumber" as keyof Employee,
+    name: "Nr szafki w dziale",
+  },
+  { key: "sealNumber" as keyof Employee, name: "Nr pieczęci" },
 ];
 
 export default function AktywniPage() {
-  const { employees: allEmployees, config, isLoading: isContextLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently } = useAppContext();
+  const {
+    config,
+    allEmployees,
+    isLoading: isContextLoading,
+    handleSaveEmployee,
+    handleTerminateEmployee,
+    handleDeleteEmployeePermanently,
+    handleDeleteAllHireDates,
+    handleDeleteAllEmployees,
+  } = useAppContext();
+
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
+
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([]);
   const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
-  const [selectedNationalities, setSelectedNationalities] = useState<string[]>([]);
+  const [selectedNationalities, setSelectedNationalities] = useState<string[]>(
+    [],
+  );
+
+  const activeEmployees = useMemo(
+    () => allEmployees.filter((e) => e.status === "aktywny"),
+    [allEmployees],
+  );
+
+  const filteredEmployees = useMemo(() => {
+    return activeEmployees
+      .filter((employee) => {
+        const searchTermMatch =
+          debouncedSearchTerm === "" ||
+          employee.fullName
+            .toLowerCase()
+            .includes(debouncedSearchTerm.toLowerCase()) ||
+          employee.cardNumber.includes(debouncedSearchTerm);
+        const departmentMatch =
+          selectedDepartments.length === 0 ||
+          selectedDepartments.includes(employee.department);
+        const jobTitleMatch =
+          selectedJobTitles.length === 0 ||
+          selectedJobTitles.includes(employee.jobTitle);
+        const managerMatch =
+          selectedManagers.length === 0 ||
+          selectedManagers.includes(employee.manager);
+        const nationalityMatch =
+          selectedNationalities.length === 0 ||
+          selectedNationalities.includes(employee.nationality);
+        return (
+          searchTermMatch &&
+          departmentMatch &&
+          jobTitleMatch &&
+          managerMatch &&
+          nationalityMatch
+        );
+      })
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+  }, [
+    activeEmployees,
+    debouncedSearchTerm,
+    selectedDepartments,
+    selectedJobTitles,
+    selectedManagers,
+    selectedNationalities,
+  ]);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const selectedEmployeeIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
 
-  const departmentOptions = useMemo(() => config.departments.map(d => ({ value: d.name, label: d.name })), [config.departments]);
-  const jobTitleOptions = useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
-  const managerOptions = useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
-  const nationalityOptions = useMemo(() => config.nationalities.map(n => ({ value: n.name, label: n.name })), [config.nationalities]);
+  const selectedEmployeeIds = useMemo(
+    () => Object.keys(rowSelection),
+    [rowSelection],
+  );
+
+  const departmentOptions = useMemo(
+    () => config.departments.map((d) => ({ value: d.name, label: d.name })),
+    [config.departments],
+  );
+  const jobTitleOptions = useMemo(
+    () => config.jobTitles.map((j) => ({ value: j.name, label: j.name })),
+    [config.jobTitles],
+  );
+  const managerOptions = useMemo(
+    () => config.managers.map((m) => ({ value: m.name, label: m.name })),
+    [config.managers],
+  );
+  const nationalityOptions = useMemo(
+    () => config.nationalities.map((n) => ({ value: n.name, label: n.name })),
+    [config.nationalities],
+  );
 
   const handleClearFilters = () => {
-    setSearchTerm('');
+    setSearchTerm("");
     setSelectedDepartments([]);
     setSelectedJobTitles([]);
     setSelectedManagers([]);
@@ -102,23 +207,11 @@ export default function AktywniPage() {
     setRowSelection({});
   };
 
-  const activeEmployees = useMemo(() => allEmployees.filter(emp => emp.status === 'aktywny'), [allEmployees]);
-
-  const filteredEmployees = useMemo(() => {
-    return activeEmployees.filter(employee => {
-      const searchMatch = searchTerm ? employee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || employee.cardNumber?.includes(searchTerm) : true;
-      const departmentMatch = selectedDepartments.length > 0 ? selectedDepartments.includes(employee.department) : true;
-      const jobTitleMatch = selectedJobTitles.length > 0 ? selectedJobTitles.includes(employee.jobTitle) : true;
-      const managerMatch = selectedManagers.length > 0 ? selectedManagers.includes(employee.manager) : true;
-      const nationalityMatch = selectedNationalities.length > 0 ? selectedNationalities.includes(employee.nationality) : true;
-
-      return searchMatch && departmentMatch && jobTitleMatch && managerMatch && nationalityMatch;
-    });
-  }, [activeEmployees, searchTerm, selectedDepartments, selectedJobTitles, selectedManagers, selectedNationalities]);
-
   const displayedEmployees = useMemo(() => {
     if (selectedEmployeeIds.length === 0) return filteredEmployees;
-    return filteredEmployees.filter(employee => selectedEmployeeIds.includes(employee.id));
+    return filteredEmployees.filter((employee) =>
+      selectedEmployeeIds.includes(employee.id),
+    );
   }, [filteredEmployees, selectedEmployeeIds]);
 
   const onSave = async (employeeData: Employee) => {
@@ -128,7 +221,7 @@ export default function AktywniPage() {
   };
 
   const onTerminate = async (id: string, fullName: string) => {
-    await handleTerminateEmployee(id, fullName);
+    await handleTerminateEmployee({ id, fullName });
     setIsFormOpen(false);
   };
 
@@ -145,94 +238,114 @@ export default function AktywniPage() {
   const handleAddNew = () => {
     setEditingEmployee(null);
     setIsFormOpen(true);
-  }
+  };
 
-  const columns = useMemo<ColumnDef<Employee>[]>(() => [
-    {
-      id: 'lastName',
-      header: 'Nazwisko',
-      cell: ({ row }) => {
-        const nameParts = row.original.fullName.trim().split(' ');
-        const lastName = nameParts.pop() || '';
-        return <span className="font-medium">{lastName}</span>;
+  const columns = useMemo<ColumnDef<Employee>[]>(
+    () => [
+      {
+        id: "lastName",
+        header: "Nazwisko",
+        cell: ({ row }) => {
+          const nameParts = row.original.fullName.trim().split(" ");
+          const lastName = nameParts.pop() || "";
+          return <span className="font-medium">{lastName}</span>;
+        },
       },
-    },
-    {
-      id: 'firstName',
-      header: 'Imię',
-      cell: ({ row }) => {
-        const nameParts = row.original.fullName.trim().split(' ');
-        nameParts.pop();
-        const firstName = nameParts.join(' ');
-        return <span className="font-medium">{firstName}</span>;
+      {
+        id: "firstName",
+        header: "Imię",
+        cell: ({ row }) => {
+          const nameParts = row.original.fullName.trim().split(" ");
+          nameParts.pop();
+          const firstName = nameParts.join(" ");
+          return <span className="font-medium">{firstName}</span>;
+        },
       },
-    },
-    { accessorKey: "hireDate", header: "Data zatrudnienia", cell: ({ row }) => formatDate(row.original.hireDate, 'yyyy-MM-dd') },
-    { accessorKey: "contractEndDate", header: "Umowa do", cell: ({ row }) => formatDate(row.original.contractEndDate, 'yyyy-MM-dd') },
-    { accessorKey: "jobTitle", header: "Stanowisko" },
-    { accessorKey: "department", header: "Dział" },
-    { accessorKey: "manager", header: "Kierownik" },
-    { accessorKey: "cardNumber", header: "Nr karty" },
-    { accessorKey: "nationality", header: "Narodowość" },
-    {
-      accessorKey: "legalizationStatus",
-      header: "Status legalizacyjny",
-      cell: ({ row }) => {
-        const status = row.original.legalizationStatus;
-        if (!status || status === "Brak") {
-          return <span className="text-muted-foreground">—</span>;
-        }
-        const colorClass = getStatusColor(status);
-        return (
-          <Badge className={cn("text-xs font-semibold", colorClass)}>
-            {status}
-          </Badge>
-        );
-      }
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const employee = row.original;
-        return (
-          <EmployeeSummary employee={employee}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Otwórz menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => handleEditEmployee(employee)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edytuj
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Bot className="mr-2 h-4 w-4" />
-                  Generuj podsumowanie
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                    <UserX className="mr-2 h-4 w-4" />
-                    Zwolnij
+      {
+        accessorKey: "hireDate",
+        header: "Data zatrudnienia",
+        cell: ({ row }) => formatDate(row.original.hireDate, "yyyy-MM-dd"),
+      },
+      {
+        accessorKey: "contractEndDate",
+        header: "Umowa do",
+        cell: ({ row }) =>
+          formatDate(row.original.contractEndDate, "yyyy-MM-dd"),
+      },
+      { accessorKey: "jobTitle", header: "Stanowisko" },
+      { accessorKey: "department", header: "Dział" },
+      { accessorKey: "manager", header: "Kierownik" },
+      { accessorKey: "cardNumber", header: "Nr karty" },
+      { accessorKey: "nationality", header: "Narodowość" },
+      {
+        accessorKey: "legalizationStatus",
+        header: "Status legalizacyjny",
+        cell: ({ row }) => {
+          const status = row.original.legalizationStatus;
+          if (!status || status === "Brak") {
+            return <span className="text-muted-foreground">—</span>;
+          }
+          const colorClass = getStatusColor(status);
+          return (
+            <Badge className={cn("text-xs font-semibold", colorClass)}>
+              {status}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => {
+          const employee = row.original;
+          return (
+            <EmployeeSummary employee={employee}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Otwórz menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onSelect={() => handleEditEmployee(employee)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edytuj
                   </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Usuń trwale
+                  <DropdownMenuItem>
+                    <Bot className="mr-2 h-4 w-4" />
+                    Generuj podsumowanie
                   </DropdownMenuItem>
-                </AlertDialogTrigger>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </EmployeeSummary>
-        );
+                  <DropdownMenuSeparator />
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      <UserX className="mr-2 h-4 w-4" />
+                      Zwolnij
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Usuń trwale
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </EmployeeSummary>
+          );
+        },
       },
-    },
-  ], []);
+    ],
+    [],
+  );
 
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -251,7 +364,7 @@ export default function AktywniPage() {
         <div className="flex h-full w-full items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
-      )
+      );
     }
 
     if (displayedEmployees.length === 0) {
@@ -259,9 +372,12 @@ export default function AktywniPage() {
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
           <h3 className="text-lg font-semibold">Brak pracowników</h3>
-          <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów filtrowania.</p>
+          <p className="text-sm">
+            Nie znaleziono pracowników pasujących do wybranych kryteriów
+            filtrowania.
+          </p>
         </div>
-      )
+      );
     }
 
     return (
@@ -269,8 +385,8 @@ export default function AktywniPage() {
         <div
           style={{
             height: `${rowVirtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
+            width: "100%",
+            position: "relative",
           }}
         >
           {virtualItems.map((virtualItem) => {
@@ -281,10 +397,10 @@ export default function AktywniPage() {
               <div
                 key={employee.id}
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: 0,
                   left: 0,
-                  width: '100%',
+                  width: "100%",
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
                 className="p-2"
@@ -292,7 +408,9 @@ export default function AktywniPage() {
                 <EmployeeCard
                   employee={employee}
                   onEdit={() => handleEditEmployee(employee)}
-                  onTerminate={() => onTerminate(employee.id, employee.fullName)}
+                  onTerminate={() =>
+                    onTerminate(employee.id, employee.fullName)
+                  }
                   onDeletePermanently={() => onDeletePermanently(employee.id)}
                 />
               </div>
@@ -303,11 +421,16 @@ export default function AktywniPage() {
     );
   };
 
-  const hasActiveFilters = searchTerm || selectedDepartments.length > 0 || selectedJobTitles.length > 0 || selectedManagers.length > 0 || selectedNationalities.length > 0;
+  const hasActiveFilters =
+    searchTerm ||
+    selectedDepartments.length > 0 ||
+    selectedJobTitles.length > 0 ||
+    selectedManagers.length > 0 ||
+    selectedNationalities.length > 0;
 
   return (
     <div className="flex h-full w-full flex-col">
-      {(isContextLoading && !hasMounted) ? (
+      {isContextLoading && !hasMounted ? (
         <div className="flex h-full w-full items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -318,7 +441,11 @@ export default function AktywniPage() {
             description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
           >
             <div className="hidden md:flex shrink-0 items-center gap-2">
-              <ExcelExportButton employees={displayedEmployees} fileName="aktywni_pracownicy" columns={exportColumns} />
+              <ExcelExportButton
+                employees={displayedEmployees}
+                fileName="aktywni_pracownicy"
+                columns={exportColumns}
+              />
 
               <Popover>
                 <PopoverTrigger asChild>
@@ -326,55 +453,91 @@ export default function AktywniPage() {
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-2 flex flex-col gap-1" align="end">
-                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Import i Aktualizacja</div>
-                  <ExcelImportButton variant="ghost" className="w-full justify-start h-9" />
-                  <HireDateImportButton variant="ghost" className="w-full justify-start h-9" />
-                  <ContractEndDateImportButton variant="ghost" className="w-full justify-start h-9" />
+                <PopoverContent
+                  className="w-64 p-2 flex flex-col gap-1"
+                  align="end"
+                >
+                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                    Import i Aktualizacja
+                  </div>
+                  <ExcelImportButton
+                    variant="ghost"
+                    className="w-full justify-start h-9"
+                  />
+                  <HireDateImportButton
+                    variant="ghost"
+                    className="w-full justify-start h-9"
+                  />
+                  <ContractEndDateImportButton
+                    variant="ghost"
+                    className="w-full justify-start h-9"
+                  />
 
                   <div className="my-1 h-px bg-border" />
-                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Zarządzanie masowe</div>
+                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                    Zarządzanie masowe
+                  </div>
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Usuń daty zatrudnienia
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                        <AlertDialogTitle>
+                          Czy jesteś absolutnie pewien?
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                          dat zatrudnienia dla wszystkich pracowników (aktywnych i zwolnionych).
+                          Tej akcji nie można cofnąć. Spowoduje to trwałe
+                          usunięcie wszystkich dat zatrudnienia dla wszystkich
+                          pracowników (aktywnych i zwolnionych).
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteAllHireDates()}
+                        >
+                          Kontynuuj
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Usuń wszystkich pracowników
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                        <AlertDialogTitle>
+                          Czy jesteś absolutnie pewien?
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                          pracowników (aktywnych i zwolnionych) z bazy danych.
+                          Tej akcji nie można cofnąć. Spowoduje to trwałe
+                          usunięcie wszystkich pracowników (aktywnych i
+                          zwolnionych) z bazy danych.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteAllEmployees()}
+                        >
+                          Kontynuuj
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -400,7 +563,11 @@ export default function AktywniPage() {
               className="sm:max-w-3xl max-h-[90vh] flex flex-col"
             >
               <DialogHeader className="flex-shrink-0">
-                <DialogTitle>{editingEmployee ? 'Edytuj pracownika' : 'Dodaj nowego pracownika'}</DialogTitle>
+                <DialogTitle>
+                  {editingEmployee
+                    ? "Edytuj pracownika"
+                    : "Dodaj nowego pracownika"}
+                </DialogTitle>
               </DialogHeader>
               <div className="flex-grow overflow-y-auto -mr-6 pr-6">
                 <EmployeeForm
@@ -418,7 +585,12 @@ export default function AktywniPage() {
             <div className="flex items-center gap-4">
               <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Szukaj po nazwisku, imieniu, karcie..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <Input
+                  placeholder="Szukaj po nazwisku, imieniu, karcie..."
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
               {hasActiveFilters && (
                 <Button variant="outline" onClick={handleClearFilters}>
@@ -456,54 +628,72 @@ export default function AktywniPage() {
           </div>
 
           <div className="flex flex-col flex-grow">
-            {hasMounted && isMobile
-              ? renderMobileView()
-              : (
-                <AlertDialog>
-                  <DataTable
-                    columns={columns}
-                    data={displayedEmployees}
-                    onRowClick={handleEditEmployee}
-                    rowSelection={rowSelection}
-                    onRowSelectionChange={setRowSelection}
-                    getRowProps={(row) => {
-                      const status = row.original.legalizationStatus;
-                      if (!status || status === 'Brak') return {};
-                      const colorClass = getStatusColor(status, true); // Get background color
-                      return { className: colorClass };
-                    }}
-                  />
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tej akcji nie można cofnąć. Pracownik zostanie przeniesiony do archiwum.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => displayedEmployees[0] && onTerminate(displayedEmployees[0].id, displayedEmployees[0].fullName)}>
-                        Kontynuuj
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie pracownika i wszystkich jego danych z bazy danych.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => displayedEmployees[0] && onDeletePermanently(displayedEmployees[0].id)}>
-                        Usuń trwale
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )
-            }
+            {hasMounted && isMobile ? (
+              renderMobileView()
+            ) : (
+              <AlertDialog>
+                <DataTable
+                  columns={columns}
+                  data={displayedEmployees}
+                  onRowClick={handleEditEmployee}
+                  rowSelection={rowSelection}
+                  onRowSelectionChange={setRowSelection}
+                  getRowProps={(row) => {
+                    const status = row.original.legalizationStatus;
+                    if (!status || status === "Brak") return {};
+                    const colorClass = getStatusColor(status, true); // Get background color
+                    return { className: colorClass };
+                  }}
+                />
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Czy jesteś absolutnie pewien?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tej akcji nie można cofnąć. Pracownik zostanie
+                      przeniesiony do archiwum.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() =>
+                        displayedEmployees[0] &&
+                        onTerminate(
+                          displayedEmployees[0].id,
+                          displayedEmployees[0].fullName,
+                        )
+                      }
+                    >
+                      Kontynuuj
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Czy jesteś absolutnie pewien?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie
+                      pracownika i wszystkich jego danych z bazy danych.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() =>
+                        displayedEmployees[0] &&
+                        onDeletePermanently(displayedEmployees[0].id)
+                      }
+                    >
+                      Usuń trwale
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </>
       )}

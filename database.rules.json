@@ -1,4 +1,3 @@
-
 {
   "rules": {
     "users": {
@@ -9,11 +8,57 @@
     },
     "employees": {
       ".read": "auth != null",
-      ".indexOn": ["status", "department", "jobTitle", "manager", "terminationDate", "fullName", "status_fullName"]
+      ".indexOn": [
+        "status",
+        "status_fullName",
+        "department",
+        "jobTitle",
+        "manager",
+        "nationality",
+        "terminationDate",
+        "hireDate",
+        "contractEndDate",
+        "plannedTerminationDate",
+        "fullName",
+        "cardNumber"
+      ]
+    },
+    "absences": {
+      ".read": "auth != null",
+      ".indexOn": ["employeeId", "date"]
+    },
+    "absenceRecords": {
+      ".read": "auth != null",
+      ".indexOn": ["employeeId", "incidentDate", "department"]
+    },
+    "circulationCards": {
+      ".read": "auth != null",
+      ".indexOn": ["employeeId", "date", "employeeFullName"]
+    },
+    "fingerprintAppointments": {
+      ".read": "auth != null",
+      ".indexOn": ["employeeId", "appointmentDate", "employeeFullName"]
+    },
+    "clothingIssuances": {
+      ".read": "auth != null",
+      ".indexOn": ["employeeId", "date", "employeeFullName"]
+    },
+    "orders": {
+      ".read": "auth != null",
+      ".indexOn": ["department", "jobTitle", "type", "createdAt"]
+    },
+    "notifications": {
+      ".read": "auth != null",
+      ".indexOn": ["createdAt", "read"]
+    },
+    "statisticsHistory": {
+      ".read": "auth != null",
+      ".indexOn": [".value"]
+    },
+    "config": {
+      ".read": "auth != null"
     },
     ".read": "auth != null",
     ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
   }
 }
-
-// Force re-deploy

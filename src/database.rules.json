@@ -1,5 +1,3 @@
-
-
 {
   "rules": {
     "users": {
@@ -10,7 +8,7 @@
     },
     "employees": {
       ".read": "auth != null",
-      ".indexOn": ["status_fullName"]
+      ".indexOn": ["status_fullName", "status"]
     },
     ".read": "auth != null",
     ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
