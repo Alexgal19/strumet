@@ -17,7 +17,13 @@ export const firebaseConfig = {
 };
 
 // Lazy initialization for Firebase services
+// Only runs on client-side, never during server-side rendering/build
 const getFirebaseServices = () => {
+  // Skip on server-side during build
+  if (typeof window === 'undefined') {
+    throw new Error('Firebase services can only be accessed on the client-side');
+  }
+  
   const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
   const auth = getAuth(app);
   const db = getDatabase(app);
@@ -27,8 +33,3 @@ const getFirebaseServices = () => {
 
 // Export the function to be used across the app
 export { getFirebaseServices };
-
-// For convenience, you can also export the initialized services directly
-// These will be lazily initialized on their first import.
-const { app, auth, db, storage } = getFirebaseServices();
-export { app, auth, db, storage };
