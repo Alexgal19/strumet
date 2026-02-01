@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatisticsExcelExportButton } from '@/components/statistics-excel-export-button';
-import { db, storage } from '@/lib/firebase';
+import { getDB, getStorage_ } from '@/lib/firebase';
 import { ref as dbRef, onValue } from 'firebase/database';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -749,6 +749,9 @@ const OrdersTab = () => {
     const [editFormData, setEditFormData] = useState<{ department: string; jobTitle: string; quantity: number; realizedQuantity: number; } | null>(null);
 
     useEffect(() => {
+        const db = getDB();
+        if (!db) return;
+        
         const ordersRef = dbRef(db, 'orders');
         const unsubscribe = onValue(ordersRef, (snapshot) => {
             setOrders(objectToArray(snapshot.val()));

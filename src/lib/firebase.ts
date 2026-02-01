@@ -18,18 +18,36 @@ export const firebaseConfig = {
 
 // Lazy initialization for Firebase services
 // Only runs on client-side, never during server-side rendering/build
-const getFirebaseServices = () => {
+let cachedServices: ReturnType<typeof initializeFirebase> | null = null;
+
+const initializeFirebase = () => {
   // Skip on server-side during build
   if (typeof window === 'undefined') {
-    throw new Error('Firebase services can only be accessed on the client-side');
+    return null;
   }
   
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  const auth = getAuth(app);
-  const db = getDatabase(app);
-  const storage = getStorage(app);
-  return { app, auth, db, storage };
+  try {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+    return { app, auth, db, storage };
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    return null;
+  }
+};
+
+const getFirebaseServices = () => {
+  if (cachedServices) return cachedServices;
+  cachedServices = initializeFirebase();
+  return cachedServices;
 };
 
 // Export the function to be used across the app
 export { getFirebaseServices };
+
+// Lazy exports for backward compatibility
+export const getDB = () => getFirebaseServices()?.db;
+export const getAuth_ = () => getFirebaseServices()?.auth;
+export const getStorage_ = () => getFirebaseServices()?.storage;

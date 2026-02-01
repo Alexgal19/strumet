@@ -51,7 +51,7 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
-import { db } from '@/lib/firebase';
+import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
 
@@ -75,6 +75,9 @@ export default function FingerprintAppointmentsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    const db = getDB();
+    if (!db) return;
+    
     const appointmentsRef = ref(db, 'fingerprintAppointments');
     const unsubscribe = onValue(appointmentsRef, (snapshot) => {
       setFingerprintAppointments(objectToArray(snapshot.val()));

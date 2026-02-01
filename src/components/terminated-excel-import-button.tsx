@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileUp, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
+import { getDB } from '@/lib/firebase';
 import { ref, update } from "firebase/database";
 import type { Employee } from '@/lib/types';
 import { push } from 'firebase/database';
@@ -39,6 +39,12 @@ export function TerminatedExcelImportButton() {
 
     reader.onload = async (e) => {
       try {
+        const db = getDB();
+        if (!db) {
+          toast({ variant: 'destructive', title: 'Błąd', description: 'Baza danych nie jest dostępna' });
+          return;
+        }
+
         const XLSX = await import('xlsx');
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });

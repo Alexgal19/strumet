@@ -55,7 +55,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AbsenceRecordPrintForm } from '@/components/absence-record-print-form';
 import { useAppContext } from '@/context/app-context';
-import { db } from '@/lib/firebase';
+import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
 
@@ -78,13 +78,15 @@ export default function NoLoginPage() {
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
   const [printingRecord, setPrintingRecord] = useState<AbsenceRecord | null>(null);
   const printComponentRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
 
   useEffect(() => {
+    const db = getDB();
+    if (!db) return;
+    
     const recordsRef = ref(db, 'absenceRecords');
     const unsubscribe = onValue(recordsRef, (snapshot) => {
       setAbsenceRecords(objectToArray(snapshot.val()));

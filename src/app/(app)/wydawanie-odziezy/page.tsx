@@ -41,7 +41,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
 import { useAppContext } from '@/context/app-context';
-import { db } from '@/lib/firebase';
+import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
 
@@ -65,6 +65,9 @@ export default function ClothingIssuancePage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    const db = getDB();
+    if (!db) return;
+    
     const issuancesRef = ref(db, 'clothingIssuances');
     const unsubscribe = onValue(issuancesRef, (snapshot) => {
       setClothingIssuances(objectToArray(snapshot.val()));

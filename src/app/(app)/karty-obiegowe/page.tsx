@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils';
 import { CirculationCardPrintForm } from '@/components/circulation-card-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppContext } from '@/context/app-context';
-import { db } from '@/lib/firebase';
+import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
 
@@ -62,6 +62,9 @@ export default function CirculationCardsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    const db = getDB();
+    if (!db) return;
+    
     const cardsRef = ref(db, 'circulationCards');
     const unsubscribe = onValue(cardsRef, (snapshot) => {
       setCirculationCards(objectToArray(snapshot.val()));
