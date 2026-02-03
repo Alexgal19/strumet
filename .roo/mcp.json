@@ -18,7 +18,8 @@
 				"/home/user/studio/.idx"
 			],
 			"alwaysAllow": [
-				"read_multiple_files"
+				"read_multiple_files",
+				"list_directory"
 			]
 		},
 		"sequentialthinking": {
