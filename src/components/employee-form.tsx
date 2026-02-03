@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +16,11 @@ import type { Employee, AllConfig } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
-import { PassportScanner } from './passport-scanner';
+
+const PassportScanner = dynamic(() => import('./passport-scanner').then(mod => mod.PassportScanner), {
+    ssr: false,
+    loading: () => <p>Loading scanner...</p>,
+});
 
 const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
     const dateValue = parseMaybeDate(value);

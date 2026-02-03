@@ -39,7 +39,8 @@ import { cn } from '@/lib/utils';
 import { CirculationCardPrintForm } from '@/components/circulation-card-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppContext } from '@/context/app-context';
-import { db } from '@/lib/firebase';
+import { useEmployees } from '@/hooks/use-employees';
+import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
 
@@ -49,7 +50,8 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 
 
 export default function CirculationCardsPage() {
-  const { employees, isLoading: isAppLoading, addCirculationCard } = useAppContext();
+  const { isLoading: isAppLoading, addCirculationCard } = useAppContext();
+  const { employees, isLoading: isEmployeesLoading } = useEmployees(); // Fetch all employees
   const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
 
@@ -62,6 +64,9 @@ export default function CirculationCardsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    const db = getDB();
+    if (!db) return;
+    
     const cardsRef = ref(db, 'circulationCards');
     const unsubscribe = onValue(cardsRef, (snapshot) => {
       setCirculationCards(objectToArray(snapshot.val()));
@@ -106,9 +111,9 @@ export default function CirculationCardsPage() {
     }
   };
 
-  const isLoading = isAppLoading || isLoadingCards;
+  const isLoading = isAppLoading || isLoadingCards || isEmployeesLoading;
 
-  const selectedEmployeeForPrint = printingCard 
+  const selectedEmployeeForPrint = printingCard
     ? employees.find(e => e.id === printingCard.employeeId) 
     : null;
 

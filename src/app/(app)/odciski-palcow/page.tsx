@@ -51,7 +51,8 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
-import { db } from '@/lib/firebase';
+import { useEmployees } from '@/hooks/use-employees';
+import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
 
@@ -61,7 +62,8 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 
 
 export default function FingerprintAppointmentsPage() {
-  const { employees, isLoading: isAppLoading, addFingerprintAppointment, deleteFingerprintAppointment } = useAppContext();
+  const { isLoading: isAppLoading, addFingerprintAppointment, deleteFingerprintAppointment } = useAppContext();
+  const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   
@@ -75,6 +77,9 @@ export default function FingerprintAppointmentsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    const db = getDB();
+    if (!db) return;
+    
     const appointmentsRef = ref(db, 'fingerprintAppointments');
     const unsubscribe = onValue(appointmentsRef, (snapshot) => {
       setFingerprintAppointments(objectToArray(snapshot.val()));
@@ -82,8 +87,6 @@ export default function FingerprintAppointmentsPage() {
     });
     return () => unsubscribe();
   }, []);
-
-  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const sortedAppointments = useMemo(() => {
     return [...fingerprintAppointments].sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
@@ -122,7 +125,7 @@ export default function FingerprintAppointmentsPage() {
     setDeletingId(null);
   };
 
-  const isLoading = isAppLoading || isLoadingAppointments;
+  const isLoading = isAppLoading || isLoadingAppointments || isEmployeesLoading;
 
   return (
     <div className="flex h-full flex-col">

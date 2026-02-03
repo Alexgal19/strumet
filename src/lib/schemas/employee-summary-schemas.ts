@@ -7,6 +7,7 @@ import {z} from 'genkit';
  */
 
 export const GenerateEmployeeSummaryInputSchema = z.object({
+  id: z.string().optional().describe('The ID of the employee for caching purposes.'),
   fullName: z.string().describe("The full name of the employee."),
   hireDate: z.string().describe('The hire date of the employee.'),
   contractEndDate: z.string().optional().describe('The contract end date of the employee.'),

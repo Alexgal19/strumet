@@ -8,6 +8,8 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { GenerateEmployeeSummaryInputSchema, GenerateEmployeeSummaryOutputSchema, type GenerateEmployeeSummaryInput, type GenerateEmployeeSummaryOutput } from '@/lib/schemas/employee-summary-schemas';
+import { adminDb } from '@/lib/firebase-admin';
+import { createHash } from 'crypto';
 
 
 export async function generateEmployeeSummary(input: GenerateEmployeeSummaryInput): Promise<GenerateEmployeeSummaryOutput> {
@@ -45,10 +47,45 @@ const generateEmployeeSummaryFlow = ai.defineFlow(
     outputSchema: GenerateEmployeeSummaryOutputSchema,
   },
   async input => {
+    const { id, ...dataForHash } = input;
+    const inputHash = createHash('sha256').update(JSON.stringify(dataForHash)).digest('hex');
+
+    if (id) {
+        try {
+            const db = adminDb();
+            const snapshot = await db.ref(`employeeSummaries/${id}`).once('value');
+            const cachedData = snapshot.val();
+
+            if (cachedData && cachedData.hash === inputHash && cachedData.summary && cachedData.keyPoints) {
+                return {
+                    summary: cachedData.summary,
+                    keyPoints: cachedData.keyPoints
+                };
+            }
+        } catch (error) {
+            console.error("Error reading cache:", error);
+            // Continue to generation if cache read fails
+        }
+    }
+
     const {output} = await prompt(input);
     if (!output) {
       throw new Error("AI failed to generate a summary.");
     }
+
+    if (id) {
+        try {
+            const db = adminDb();
+            await db.ref(`employeeSummaries/${id}`).set({
+                ...output,
+                hash: inputHash,
+                updatedAt: new Date().toISOString()
+            });
+        } catch (error) {
+            console.error("Error saving to cache:", error);
+        }
+    }
+
     return output;
   }
 );

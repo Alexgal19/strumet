@@ -41,7 +41,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
 import { useAppContext } from '@/context/app-context';
-import { db } from '@/lib/firebase';
+import { useEmployees } from '@/hooks/use-employees';
+import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
 
@@ -50,7 +51,8 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 };
 
 export default function ClothingIssuancePage() {
-  const { employees, config, isLoading: isAppLoading, addClothingIssuance, deleteClothingIssuance } = useAppContext();
+  const { config, isLoading: isAppLoading, addClothingIssuance, deleteClothingIssuance } = useAppContext();
+  const { employees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
   const [isLoadingIssuances, setIsLoadingIssuances] = useState(true);
 
@@ -65,6 +67,9 @@ export default function ClothingIssuancePage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    const db = getDB();
+    if (!db) return;
+    
     const issuancesRef = ref(db, 'clothingIssuances');
     const unsubscribe = onValue(issuancesRef, (snapshot) => {
       setClothingIssuances(objectToArray(snapshot.val()));
@@ -102,7 +107,7 @@ export default function ClothingIssuancePage() {
   }
   
   const handleSaveAndPrint = async (issuanceToPrint?: ClothingIssuance) => {
-    let issuance = issuanceToPrint;
+    let issuance: ClothingIssuance | null | undefined = issuanceToPrint;
 
     if (!issuance) {
         if (!selectedEmployee || currentItems.length === 0) {
@@ -142,9 +147,9 @@ export default function ClothingIssuancePage() {
       }
   };
 
-  const isLoading = isAppLoading || isLoadingIssuances;
+  const isLoading = isAppLoading || isLoadingIssuances || isEmployeesLoading;
 
-  const selectedEmployeeForPrint = printingIssuance 
+  const selectedEmployeeForPrint = printingIssuance
     ? employees.find(e => e.id === printingIssuance.employeeId) 
     : null;
 
@@ -190,7 +195,7 @@ export default function ClothingIssuancePage() {
                                 <CommandList>
                                 <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
                                 <CommandGroup>
-                                    {employees.filter(e => e.status === 'aktywny').map((employee) => (
+                                    {employees.map((employee) => (
                                     <CommandItem
                                         key={employee.id}
                                         value={employee.fullName}

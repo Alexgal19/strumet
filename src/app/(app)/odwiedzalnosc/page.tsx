@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { getPolishHolidays } from '@/lib/holidays';
 import { useAppContext } from '@/context/app-context';
+import { useEmployees } from '@/hooks/use-employees';
 import { Input } from '@/components/ui/input';
 import { EmployeeAttendanceCard } from '@/components/employee-attendance-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -92,14 +93,13 @@ const DepartmentStats = ({
 
 
 export default function OdwiedzalnoscPage() {
-  const { employees, absences, isLoading: isAppLoading, addAbsence, deleteAbsence } = useAppContext();
+  const { absences, isLoading: isAppLoading, addAbsence, deleteAbsence } = useAppContext();
+  const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const { toast } = useToast();
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
-  
-  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
 
   const departmentOptions = useMemo(() => [
     { value: "all", label: "Wszystkie działy" },
@@ -207,6 +207,8 @@ export default function OdwiedzalnoscPage() {
       return (totalAbsencesInMonth / totalPossibleWorkDays) * 100;
   }, [activeEmployees.length, workingDaysInMonth, totalAbsencesInMonth]);
 
+  const isLoading = isAppLoading || isEmployeesLoading;
+
   const handleToggleAbsence = async (employeeId: string, date: string, isCurrentlyAbsent: boolean) => {
       const existingAbsence = absences.find(a => a.employeeId === employeeId && a.date === date);
       
@@ -227,7 +229,7 @@ export default function OdwiedzalnoscPage() {
   
   return (
     <div className="flex h-full flex-col">
-        {isAppLoading ? (
+        {isLoading ? (
             <div className="flex h-full w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
             </div>

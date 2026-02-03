@@ -29,11 +29,14 @@ import { cn } from '@/lib/utils';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { NewHireInfoPrintForm } from '@/components/new-hire-info-print-form';
 import { useAppContext } from '@/context/app-context';
+import { useEmployees } from '@/hooks/use-employees';
 import { formatDate } from '@/lib/date';
 
 
 export default function NewHireClothingIssuancePage() {
-  const { employees, isLoading, config } = useAppContext();
+  const { isLoading: isContextLoading, config } = useAppContext();
+  const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
+  const isLoading = isContextLoading || isEmployeesLoading;
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
@@ -41,8 +44,6 @@ export default function NewHireClothingIssuancePage() {
   const [printingIssuance, setPrintingIssuance] = useState<ClothingIssuance | null>(null);
   const [printingInfoCard, setPrintingInfoCard] = useState<Employee | null>(null);
   const printComponentRef = useRef<HTMLDivElement>(null);
-  
-  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
   
   const selectedEmployee = useMemo(() => {
     return activeEmployees.find(e => e.id === selectedEmployeeId) ?? null;
@@ -103,8 +104,8 @@ export default function NewHireClothingIssuancePage() {
     }, 100);
   };
 
-  const selectedEmployeeForIssuancePrint = printingIssuance 
-    ? employees.find(e => e.id === printingIssuance.employeeId) 
+  const selectedEmployeeForIssuancePrint = printingIssuance
+    ? activeEmployees.find(e => e.id === printingIssuance.employeeId)
     : null;
 
   return (

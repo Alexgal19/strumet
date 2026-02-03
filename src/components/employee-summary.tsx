@@ -37,6 +37,7 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
 
     try {
       const inputData: GenerateEmployeeSummaryInput = {
+        id: employee.id,
         fullName: employee.fullName,
         hireDate: employee.hireDate,
         jobTitle: employee.jobTitle,

@@ -14,6 +14,7 @@ import { Employee } from '@/lib/types';
 import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
+import { useEmployees } from '@/hooks/use-employees';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 
@@ -55,8 +56,9 @@ const EmployeeCard = ({ employee, type }: { employee: Employee, type: 'terminati
 };
 
 export default function PlanningPage() {
-  const { employees, isLoading } = useAppContext();
-  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'aktywny'), [employees]);
+  const { isLoading: isContextLoading } = useAppContext();
+  const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
+  const isLoading = isContextLoading || isEmployeesLoading;
 
   const plannedTerminations = useMemo(() => {
     const today = startOfDay(new Date());

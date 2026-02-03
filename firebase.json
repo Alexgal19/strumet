@@ -8,6 +8,19 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "hosting": {
+    "headers": [
+      {
+        "source": "**/*.@(jpg|jpeg|gif|png|svg|woff2|js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, s-maxage=31536000"
+          }
+        ]
+      }
+    ]
   }
 }
 
