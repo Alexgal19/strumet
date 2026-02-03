@@ -39,7 +39,11 @@ export default function LoginPage() {
   useEffect(() => {
     async function initFirebase() {
       try {
-        const { auth: firebaseAuth } = getFirebaseServices();
+        const firebaseServices = getFirebaseServices();
+        if (!firebaseServices) {
+          throw new Error("Firebase services are not initialized.");
+        }
+        const { auth: firebaseAuth } = firebaseServices;
         setAuth(firebaseAuth);
       } catch (e: any) {
         setError(e.message || "Failed to initialize Firebase services.");
@@ -57,13 +61,16 @@ export default function LoginPage() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      console.log('beforeinstallprompt event fired and stored');
+      console.log('✅ beforeinstallprompt event fired and stored', e);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     // Check for iOS
-    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
+    const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(iosCheck);
+    console.log('iOS detected:', iosCheck);
+    console.log('beforeinstallprompt listener attached');
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -114,11 +121,19 @@ export default function LoginPage() {
     }
 
     if (!deferredPrompt) {
-      toast({
-        variant: 'destructive',
-        title: 'Błąd',
-        description: 'Nie można zainstalować aplikacji w tym momencie. Spróbuj otworzyć stronę w Chrome lub Edge.',
-      });
+      // In development, show helpful message
+      if (process.env.NODE_ENV === 'development') {
+        toast({
+          title: 'Tryb dev',
+          description: 'Na localhost zainstaluj aplikację ręcznie z menu przeglądarki (⋯ → Zainstaluj aplikację).',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Błąd',
+          description: 'Nie można zainstalować aplikacji w tym momencie. Spróbuj otworzyć stronę w Chrome lub Edge.',
+        });
+      }
       return;
     }
     deferredPrompt.prompt();
@@ -220,7 +235,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            {(deferredPrompt || isIOS) && (
+            {(deferredPrompt || isIOS || process.env.NODE_ENV === 'development') && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

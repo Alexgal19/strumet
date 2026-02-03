@@ -17,7 +17,7 @@ import { useAppContext } from '@/context/app-context';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { db } from '@/lib/firebase';
+import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -48,6 +48,9 @@ const JobTitleClothingSetsTab = () => {
     const [descriptions, setDescriptions] = useState<Record<string, string>>({});
 
     useEffect(() => {
+      const db = getDB();
+      if (!db) return;
+      
       const setsRef = ref(db, 'config/jobTitleClothingSets');
       const unsubscribe = onValue(setsRef, (snapshot) => {
         setJobTitleClothingSets(objectToArray(snapshot.val()));

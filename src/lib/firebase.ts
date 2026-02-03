@@ -17,18 +17,50 @@ export const firebaseConfig = {
 };
 
 // Lazy initialization for Firebase services
+// Only runs on client-side, never during server-side rendering/build
+let cachedServices: ReturnType<typeof initializeFirebase> | null = null;
+
+const initializeFirebase = () => {
+  // Skip on server-side during build
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  try {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+    return { app, auth, db, storage };
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    return null;
+  }
+};
+
 const getFirebaseServices = () => {
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  const auth = getAuth(app);
-  const db = getDatabase(app);
-  const storage = getStorage(app);
-  return { app, auth, db, storage };
+  if (cachedServices) return cachedServices;
+  cachedServices = initializeFirebase();
+  return cachedServices;
 };
 
 // Export the function to be used across the app
 export { getFirebaseServices };
 
-// For convenience, you can also export the initialized services directly
-// These will be lazily initialized on their first import.
-const { app, auth, db, storage } = getFirebaseServices();
-export { app, auth, db, storage };
+// Lazy exports for backward compatibility
+export const getDB = () => getFirebaseServices()?.db;
+export const getAuth_ = () => getFirebaseServices()?.auth;
+export const getStorage_ = () => getFirebaseServices()?.storage;
+
+// Direct named exports with lazy initialization
+export const db = new Proxy({} as Database, {
+  get: () => getFirebaseServices()?.db
+});
+
+export const auth = new Proxy({} as Auth, {
+  get: () => getFirebaseServices()?.auth
+});
+
+export const storage = new Proxy({} as FirebaseStorage, {
+  get: () => getFirebaseServices()?.storage
+});
