@@ -6,9 +6,11 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
   Row,
   RowSelectionState,
+  SortingState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
@@ -30,6 +32,8 @@ interface DataTableProps<TData, TValue> {
   onRowClick?: (row: TData) => void;
   rowSelection: RowSelectionState;
   onRowSelectionChange: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  sorting?: SortingState;
+  onSortingChange?: React.Dispatch<React.SetStateAction<SortingState>>;
   getRowProps?: (row: Row<TData>) => React.HTMLAttributes<HTMLTableRowElement>;
   onEndReached?: () => void;
   isLoadingMore?: boolean;
@@ -41,6 +45,8 @@ export function DataTable<TData extends { id: string }, TValue>({
   onRowClick,
   rowSelection,
   onRowSelectionChange,
+  sorting,
+  onSortingChange,
   getRowProps = () => ({}),
   onEndReached,
   isLoadingMore = false,
@@ -77,10 +83,13 @@ export function DataTable<TData extends { id: string }, TValue>({
     columns: tableColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     onRowSelectionChange: onRowSelectionChange,
+    onSortingChange: onSortingChange,
     getRowId: (row) => row.id,
     state: {
       rowSelection,
+      sorting,
     },
     initialState: {
       pagination: {

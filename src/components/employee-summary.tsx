@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, cloneElement } from "react";
-import { generateEmployeeSummary, type GenerateEmployeeSummaryInput } from "@/ai/flows/generate-employee-summary";
+import { generateEmployeeSummary } from "@/ai/flows/generate-employee-summary";
+import type { GenerateEmployeeSummaryInput } from "@/lib/schemas/employee-summary-schemas";
 import {
   Dialog,
   DialogContent,

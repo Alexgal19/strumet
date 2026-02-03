@@ -527,7 +527,7 @@ export default function AktywniPage() {
               : (
                   <DataTable
                     columns={columns}
-                    data={displayedEmployees}
+                    data={filteredEmployees}
                     onRowClick={handleEditEmployee}
                     rowSelection={rowSelection}
                     onRowSelectionChange={setRowSelection}

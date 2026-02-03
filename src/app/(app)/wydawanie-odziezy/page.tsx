@@ -91,19 +91,13 @@ export default function ClothingIssuancePage() {
   
   const clothingOptions: OptionType[] = useMemo(() => config.clothingItems.map(c => ({ value: c.id, label: c.name })), [config.clothingItems]);
 
-  const handleAddItem = (itemId: string) => {
-    const itemToAdd = config.clothingItems.find(c => c.id === itemId);
-    if(itemToAdd && !currentItems.find(i => i.id === itemId)) {
-        setCurrentItems(prev => [...prev, { ...itemToAdd, quantity: 1 }]);
-    }
-  };
-
   const handleRemoveItem = (itemId: string) => {
       setCurrentItems(prev => prev.filter(i => i.id !== itemId));
   };
   
   const handleQuantityChange = (itemId: string, quantity: number) => {
-      setCurrentItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity: Math.max(1, quantity) } : i));
+      const validQuantity = isNaN(quantity) ? 1 : Math.max(1, quantity);
+      setCurrentItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity: validQuantity } : i));
   }
   
   const handleSaveAndPrint = async (issuanceToPrint?: ClothingIssuance) => {
@@ -220,13 +214,18 @@ export default function ClothingIssuancePage() {
                         <MultiSelect
                                 options={clothingOptions}
                                 selected={currentItems.map(i => i.id)}
-                                onChange={(selectedIds) => {
+                                onChange={(val) => {
+                                    // MultiSelect onChange prop is typed as Dispatch<SetStateAction<string[]>>
+                                    // but the component implementation calls it with string[].
+                                    // We cast it to ensure TypeScript treats it as an array.
+                                    const selectedIds = val as string[];
                                     const newItems = selectedIds.map(id => {
                                         const existing = currentItems.find(i => i.id === id);
                                         if (existing) return existing;
-                                        const item = config.clothingItems.find(c => c.id === id)!;
+                                        const item = config.clothingItems.find(c => c.id === id);
+                                        if (!item) return null;
                                         return { ...item, quantity: 1 };
-                                    });
+                                    }).filter((item): item is { id: string; name: string; quantity: number } => item !== null);
                                     setCurrentItems(newItems);
                                 }}
                                 title="Wybierz odzież..."
