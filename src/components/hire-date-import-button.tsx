@@ -33,7 +33,7 @@ export function HireDateImportButton({ className, variant = "outline" }: Props) 
 
     try {
       const rows = await readXlsxFile(file);
-      const headers = rows[0];
+      const headers: string[] = rows[0] as string[];
       const jsonData = rows.slice(1).map(row => {
         const obj: any = {};
         headers.forEach((header: string, i: number) => obj[header] = row[i]);

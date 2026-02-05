@@ -29,6 +29,7 @@ import { useEmployees } from '@/hooks/use-employees';
 import { Input } from '@/components/ui/input';
 import { EmployeeAttendanceCard } from '@/components/employee-attendance-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { AttendanceExcelExportButton } from '@/components/attendance-excel-export-button';
 
 const DepartmentStats = ({
   departmentData,
@@ -275,7 +276,13 @@ export default function OdwiedzalnoscPage() {
                     {format(currentDate, 'LLLL yyyy', { locale: pl })}
                     </h2>
                     <div className="flex flex-wrap items-center gap-2">
-                        <Input 
+                        <AttendanceExcelExportButton
+                            currentDate={currentDate}
+                            employees={filteredEmployees}
+                            absences={absences}
+                            workingDays={workingDaysInMonth}
+                        />
+                        <Input
                             placeholder="Szukaj po nazwisku, imieniu..."
                             className="max-w-xs"
                             value={searchTerm}

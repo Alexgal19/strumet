@@ -67,13 +67,13 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
 
                 <section className="space-y-6 mb-10">
                     <div className="flex items-start space-x-3">
-                        <Checkbox id="reason1" checked={record.reason === 'no_card'} readOnly className="mt-1 border-black" />
+                        <Checkbox id="reason1" checked={record.reason === 'no_card'} disabled className="mt-1 border-black disabled:opacity-100" />
                         <Label htmlFor="reason1" className="text-sm leading-relaxed cursor-default">
                             Nieodbicie dyskietki spowodowane było jej brakiem / Невідбиття карти сталося з причини її відсутності в цей день.
                         </Label>
                     </div>
                     <div className="flex items-start space-x-3">
-                        <Checkbox id="reason2" checked={record.reason === 'forgot_to_scan'} readOnly className="mt-1 border-black" />
+                        <Checkbox id="reason2" checked={record.reason === 'forgot_to_scan'} disabled className="mt-1 border-black disabled:opacity-100" />
                         <Label htmlFor="reason2" className="text-sm leading-relaxed cursor-default">
                             Nieodbicie dyskietki na wejściu/wyjściu wynikło z zapomnienia / Не відбиття карти на вході/виході сталося через те, що виконавець забув карту.
                         </Label>

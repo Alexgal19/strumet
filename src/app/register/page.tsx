@@ -52,7 +52,13 @@ export default function RegisterPage() {
     setError('');
     setIsLoading(true);
 
-    const { auth, db } = getFirebaseServices();
+    const services = getFirebaseServices();
+    if (!services) {
+        setError("Firebase services are not initialized.");
+        setIsLoading(false);
+        return;
+    }
+    const { auth, db } = services;
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);

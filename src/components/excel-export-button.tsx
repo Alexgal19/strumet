@@ -35,7 +35,9 @@ export function ExcelExportButton({ employees, fileName = 'pracownicy', columns,
     const schema = columns.map(col => ({
       column: col.name,
       type: (col.key === 'hireDate' || col.key === 'terminationDate' || col.key === 'contractEndDate') ? Date : String,
-      width: Math.max(20, ...dataToExport.map(row => (row[col.name] || '').toString().length))
+      format: (col.key === 'hireDate' || col.key === 'terminationDate' || col.key === 'contractEndDate') ? 'yyyy-mm-dd' : undefined,
+      width: Math.max(20, ...dataToExport.map(row => (row[col.name] || '').toString().length)),
+      value: (row: any) => row[col.name]
     }));
 
     const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm');

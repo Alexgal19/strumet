@@ -56,9 +56,11 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const { toast } = useToast();
-  const { db } = getFirebaseServices();
+  const services = getFirebaseServices();
+  const db = services?.db;
 
   useEffect(() => {
+    if (!db) return;
     const notificationsRef = ref(db, 'notifications');
     const unsubscribe = onValue(notificationsRef, (snapshot) => {
       const data = objectToArray(snapshot.val()) as AppNotification[];
@@ -70,10 +72,12 @@ const Notifications = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleMarkAsRead = useCallback(async (id: string) => {
+    if (!db) return;
     await update(ref(db, `notifications/${id}`), { read: true });
   }, [db]);
 
   const handleClearAll = useCallback(async () => {
+    if (!db) return;
     if (window.confirm('Czy na pewno chcesz usunąć wszystkie powiadomienia?')) {
       const updates: Record<string, null> = {};
       notifications.forEach(n => {
@@ -194,7 +198,7 @@ const AppSidebar = ({ pathname }: AppSidebarProps) => {
   }
 
   return (
-    <Sidebar variant="floating" collapsible="icon" className="border-r border-sidebar-border/50">
+    <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border/50">
       <SidebarHeader>
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">

@@ -40,7 +40,8 @@ const config: Config = {
 
       // ===== DESIGN SYSTEM 2.0 - TYPOGRAPHY =====
       fontFamily: {
-        sans: ["Geist", "sans-serif"],
+        sans: ["var(--font-body)", "sans-serif"],
+        heading: ["var(--font-heading)", "serif"],
         mono: ["Geist Mono", "monospace"],
       },
 

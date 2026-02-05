@@ -4,193 +4,113 @@
 
 @layer base {
   :root {
-    /* ===== LEGACY VARIABLES (zachowane dla kompatybilności) ===== */
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
+    /* ===== CONCEPT C: SOFT ORGANIC (Light Mode) ===== */
+    --background: 48 20% 98%; /* Warm Sand #FDFCF8 */
+    --foreground: 215 14% 34%; /* Warm Grey #4B5563 */
 
-    --card: 0 0% 100% / 0.8;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 215 14% 34%;
 
-    --popover: 0 0% 100% / 0.9;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 14% 34%;
 
-    --primary: 262 83% 58%;
+    --primary: 161 94% 30%; /* Earth Green #059669 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 20% 95%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 13% 91%; /* Light Grey/Stone */
+    --secondary-foreground: 215 14% 34%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 48 20% 96%; /* Slightly darker sand */
+    --muted-foreground: 215 14% 45%;
 
-    --accent: 180 100% 50%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 32 95% 44%; /* Terracotta #D97706 */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4% / 0.5;
-    --input: 214.3 31.8% 91.4% / 0.8;
-    --ring: 262 83% 58%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 161 94% 30%; /* Earth Green Ring */
 
-    --radius: 1rem;
-    --shadow-color: 262 83% 58% / 0.2;
+    --radius: 1.5rem; /* 24px - Soft Organic */
+    --shadow-color: 48 10% 60% / 0.2;
 
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-1: 161 94% 30%;
+    --chart-2: 32 95% 44%;
+    --chart-3: 215 14% 34%;
+    --chart-4: 48 20% 80%;
+    --chart-5: 220 13% 91%;
 
-    --sidebar-background: 0 0% 100% / 0.9;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 262 83% 58%;
+    --sidebar-background: 48 20% 98%;
+    --sidebar-foreground: 215 14% 34%;
+    --sidebar-primary: 161 94% 30%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 98%;
-    --sidebar-accent-foreground: 222.2 84% 4.9%;
-    --sidebar-border: 214.3 31.8% 91.4% / 0.5;
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-accent: 48 20% 94%;
+    --sidebar-accent-foreground: 161 94% 30%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 161 94% 30%;
 
     --glass-blur: blur(20px);
-    --glass-bg: rgba(255, 255, 255, 0.25);
-    --glass-border: rgba(255, 255, 255, 0.18);
-
-    /* ===== DESIGN SYSTEM 2.0 - NEW VARIABLES (Light Mode) ===== */
-    /* Primary Scale - Blue-Purple Gradient */
-    --primary-50: 250 100% 97%;
-    --primary-100: 250 95% 93%;
-    --primary-200: 250 90% 85%;
-    --primary-300: 250 85% 75%;
-    --primary-400: 250 80% 65%;
-    --primary-500: 250 75% 55%;
-    --primary-600: 250 70% 45%;
-    --primary-700: 250 65% 35%;
-    --primary-800: 250 60% 25%;
-    --primary-900: 250 55% 15%;
-
-    /* Accent Scale - Electric Cyan */
-    --accent-50: 190 100% 97%;
-    --accent-100: 190 95% 90%;
-    --accent-200: 190 90% 80%;
-    --accent-300: 190 85% 70%;
-    --accent-400: 190 80% 60%;
-    --accent-500: 190 75% 50%;
-    --accent-600: 190 70% 40%;
-    --accent-700: 190 65% 30%;
-    --accent-800: 190 60% 20%;
-    --accent-900: 190 55% 10%;
-
-    /* Success */
-    --success: 142 76% 36%;
-    --success-light: 142 76% 46%;
-    --success-dark: 142 76% 26%;
-
-    /* Warning */
-    --warning: 38 92% 50%;
-    --warning-light: 38 92% 60%;
-    --warning-dark: 38 92% 40%;
-
-    /* Grapefruit (legacy) */
-    --grapefruit: 14 91% 58%;
+    --glass-bg: rgba(255, 255, 255, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.3);
   }
 
   .dark {
-    /* ===== LEGACY VARIABLES (zachowane dla kompatybilności) ===== */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    /* ===== CONCEPT C: SOFT ORGANIC (Dark Mode) ===== */
+    --background: 24 6% 10%; /* Warm Black/Stone 950 #1C1917 */
+    --foreground: 60 5% 90%; /* Stone 200 #E7E5E4 */
 
-    --card: 222 47% 11% / 0.8;
-    --card-foreground: 210 40% 98%;
+    --card: 24 5% 14%; /* Stone 900 */
+    --card-foreground: 60 5% 90%;
 
-    --popover: 222 47% 11% / 0.9;
-    --popover-foreground: 210 40% 98%;
+    --popover: 24 5% 14%;
+    --popover-foreground: 60 5% 90%;
 
-    --primary: 262 83% 58%;
+    --primary: 160 84% 39%; /* Emerald 500 #10B981 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 24 5% 18%; /* Stone 800 */
+    --secondary-foreground: 60 5% 90%;
 
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 24 5% 18%;
+    --muted-foreground: 24 5% 64%; /* Stone 500 */
 
-    --accent: 180 100% 50%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 32 95% 54%; /* Brighter Terracotta for Dark Mode */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 32% 17% / 0.5;
-    --input: 217 32% 17% / 0.8;
-    --ring: 262 83% 58%;
+    --border: 24 5% 18%;
+    --input: 24 5% 18%;
+    --ring: 160 84% 39%;
+
+    --chart-1: 160 84% 39%;
+    --chart-2: 32 95% 54%;
+    --chart-3: 60 5% 90%;
+    --chart-4: 24 5% 64%;
+    --chart-5: 24 5% 18%;
+
+    --sidebar-background: 24 6% 10%;
+    --sidebar-foreground: 60 5% 90%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 24 5% 18%;
+    --sidebar-accent-foreground: 160 84% 39%;
+    --sidebar-border: 24 5% 18%;
+    --sidebar-ring: 160 84% 39%;
 
     --glass-blur: blur(20px);
-    --glass-bg: rgba(0, 0, 0, 0.25);
-    --glass-border: rgba(255, 255, 255, 0.1);
-
-    /* ===== DESIGN SYSTEM 2.0 - NEW VARIABLES (Dark Mode) ===== */
-    /* Background Layers */
-    --background-primary: 240 10% 8%;
-    --background-secondary: 240 8% 12%;
-    --background-tertiary: 240 6% 16%;
-    --background-overlay: 240 10% 8% / 0.8;
-
-    /* Foreground Layers */
-    --foreground-primary: 0 0% 98%;
-    --foreground-secondary: 0 0% 70%;
-    --foreground-tertiary: 0 0% 50%;
-    --foreground-disabled: 0 0% 30%;
-
-    /* Border Layers */
-    --border-subtle: 240 6% 20%;
-    --border-default: 240 6% 25%;
-    --border-strong: 240 6% 30%;
-
-    /* Primary Scale (same as light, works in dark) */
-    --primary-50: 250 100% 97%;
-    --primary-100: 250 95% 93%;
-    --primary-200: 250 90% 85%;
-    --primary-300: 250 85% 75%;
-    --primary-400: 250 80% 65%;
-    --primary-500: 250 75% 55%;
-    --primary-600: 250 70% 45%;
-    --primary-700: 250 65% 35%;
-    --primary-800: 250 60% 25%;
-    --primary-900: 250 55% 15%;
-
-    /* Accent Scale (same as light, works in dark) */
-    --accent-50: 190 100% 97%;
-    --accent-100: 190 95% 90%;
-    --accent-200: 190 90% 80%;
-    --accent-300: 190 85% 70%;
-    --accent-400: 190 80% 60%;
-    --accent-500: 190 75% 50%;
-    --accent-600: 190 70% 40%;
-    --accent-700: 190 65% 30%;
-    --accent-800: 190 60% 20%;
-    --accent-900: 190 55% 10%;
-
-    /* Success (adjusted for dark) */
-    --success: 142 76% 46%;
-    --success-light: 142 76% 56%;
-    --success-dark: 142 76% 36%;
-
-    /* Warning (adjusted for dark) */
-    --warning: 38 92% 60%;
-    --warning-light: 38 92% 70%;
-    --warning-dark: 38 92% 50%;
-
-    /* Chart colors for dark mode */
-    --chart-1: 220 70% 60%;
-    --chart-2: 160 60% 55%;
-    --chart-3: 30 80% 65%;
-    --chart-4: 280 65% 70%;
-    --chart-5: 340 75% 65%;
+    --glass-bg: rgba(28, 25, 23, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.05);
   }
 
   /* ===== BASE STYLES ===== */
   * {
     border-color: hsl(var(--border));
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
   }
 
   body {
@@ -206,7 +126,9 @@
   h4,
   h5,
   h6 {
-    font-family: "Merriweather", serif;
+    @apply font-heading;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   /* Smooth transitions */
@@ -224,23 +146,30 @@
     box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary));
   }
 
-  /* Scrollbar styling (webkit browsers) */
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  /* Scrollbar styling - Global Mac-like style */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
   }
 
-  .scrollbar-thin::-webkit-scrollbar-track {
-    @apply bg-transparent;
+  ::-webkit-scrollbar-track {
+    background: transparent;
   }
 
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--border-default));
-    @apply rounded-full;
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border) / 0.8);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
   }
-  
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--border-strong));
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--foreground) / 0.4);
+    border-width: 2px;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   /* Selection styling */
@@ -280,11 +209,24 @@
 
   /* ===== DESIGN SYSTEM 2.0 UTILITIES ===== */
   
-  /* Glassmorphism */
+  /* Glassmorphism - Updated for Minimalist/Bento + Glass Accent */
   .glass {
     background-color: rgb(255 255 255 / 0.1);
     backdrop-filter: blur(24px);
     border: 1px solid rgb(255 255 255 / 0.2);
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
+
+  .dark .glass-panel {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .glass-dark {

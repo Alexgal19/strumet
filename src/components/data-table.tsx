@@ -126,7 +126,7 @@ export function DataTable<TData extends { id: string }, TValue>({
         className="flex-grow overflow-auto rounded-lg border"
         onScroll={handleScroll}
       >
-        <Table style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+        <Table className="border-collapse">
           <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-sm z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -150,40 +150,48 @@ export function DataTable<TData extends { id: string }, TValue>({
           </TableHeader>
           <TableBody>
             {rowVirtualizer.getVirtualItems().length > 0 ? (
-              rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const row = rows[virtualRow.index];
-                const rowProps = getRowProps(row);
-                return (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    onClick={() => onRowClick && onRowClick(row.original)}
-                    className="cursor-pointer"
-                    style={{
-                      height: `${virtualRow.size}px`,
-                      transform: `translateY(${virtualRow.start - virtualRow.index * virtualRow.size}px)`,
-                    }}
-                    {...rowProps}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        onClick={
-                          cell.column.id === "actions"
-                            ? (e) => e.stopPropagation()
-                            : undefined
-                        }
-                        style={{ width: cell.column.getSize() }}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })
+              <>
+                {rowVirtualizer.getVirtualItems()[0].start > 0 && (
+                  <tr>
+                    <td colSpan={tableColumns.length} style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px`, padding: 0, border: 0 }} />
+                  </tr>
+                )}
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const row = rows[virtualRow.index];
+                  const rowProps = getRowProps(row);
+                  return (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      onClick={() => onRowClick && onRowClick(row.original)}
+                      className="cursor-pointer"
+                      {...rowProps}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          onClick={
+                            cell.column.id === "actions"
+                              ? (e) => e.stopPropagation()
+                              : undefined
+                          }
+                          style={{ width: cell.column.getSize() }}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })}
+                {rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end > 0 && (
+                  <tr>
+                    <td colSpan={tableColumns.length} style={{ height: `${rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end}px`, padding: 0, border: 0 }} />
+                  </tr>
+                )}
+              </>
             ) : (
               <TableRow>
                 <TableCell

@@ -281,30 +281,30 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
         </div>) : (<>
             <div className="grid gap-4 md:grid-cols-3">
-                <Card>
+                <Card className="glass-panel border-0">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-base font-medium">Aktywni pracownicy</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <Users className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.totalActiveEmployees}</div>
                         <p className="text-xs text-muted-foreground">Całkowita liczba pracowników</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="glass-panel border-0">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-base font-medium">Liczba działów</CardTitle>
-                        <Building className="h-4 w-4 text-muted-foreground" />
+                        <Building className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.totalDepartments}</div>
                         <p className="text-xs text-muted-foreground">Aktywne działy w firmie</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="glass-panel border-0">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-base font-medium">Liczba stanowisk</CardTitle>
-                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                        <Briefcase className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.totalJobTitles}</div>
