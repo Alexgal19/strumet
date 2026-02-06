@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, UserX, Scan } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, UserX, Scan, ClipboardCopy } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ import type { Employee, AllConfig } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
+import { useToast } from '@/hooks/use-toast';
 
 const PassportScanner = dynamic(() => import('./passport-scanner').then(mod => mod.PassportScanner), {
     ssr: false,
@@ -104,6 +105,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
 
 export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }: EmployeeFormProps) {
     const { departments, jobTitles, managers, nationalities } = config;
+    const { toast } = useToast();
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -157,6 +159,17 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
         setIsScannerOpen(false);
     };
 
+    const handleCopyFullName = () => {
+        const fullName = `${firstName.trim()} ${lastName.trim()}`;
+        if (fullName) {
+            navigator.clipboard.writeText(fullName);
+            toast({
+                title: "Skopiowano!",
+                description: "Imię i nazwisko skopiowane do schowka.",
+            });
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validate()) {
@@ -185,10 +198,16 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
             <div className="space-y-4">
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium text-foreground">Dane osobowe</h3>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setIsScannerOpen(true)}>
-                        <Scan className="mr-2 h-4 w-4" />
-                        Skanuj Paszport
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={handleCopyFullName}>
+                            <ClipboardCopy className="mr-2 h-4 w-4" />
+                            Kopiuj imię i nazwisko
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => setIsScannerOpen(true)}>
+                            <Scan className="mr-2 h-4 w-4" />
+                            Skanuj Paszport
+                        </Button>
+                    </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
                     <div>

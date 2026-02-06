@@ -142,7 +142,10 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex w-full",
+              "group/sidebar-wrapper flex w-full has-[[data-sidebar]:not([data-state=collapsed])]:pl-[var(--sidebar-width)]",
+              "has-[[data-sidebar][data-collapsible=icon]]:pl-[var(--sidebar-width-icon)]",
+              "has-[[data-sidebar][data-variant=floating]]:pl-0",
+              "has-[[data-sidebar][data-variant=inset]]:pl-0",
               className
             )}
             ref={ref}
@@ -225,10 +228,10 @@ const Sidebar = React.forwardRef<
         data-variant={variant}
         data-side={side}
       >
-        {/* This is what handles the sidebar gap on desktop */}
+        {/* This is what handles the sidebar gap on desktop (pointer-events-none to prevent blocking content) */}
         <div
           className={cn(
-                      "duration-300 fixed inset-y-0 z-20 h-svh w-[--sidebar-width] transition-[width] ease-in-out",
+                      "duration-300 fixed inset-y-0 z-20 h-svh w-[--sidebar-width] transition-[width] ease-in-out pointer-events-none",
                       "group-data-[collapsible=offcanvas]:w-0",
                       "group-data-[side=right]:rotate-180",
                       variant === "floating" || variant === "inset"
@@ -238,7 +241,7 @@ const Sidebar = React.forwardRef<
         />
         <div
           className={cn(
-            "duration-300 relative inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-in-out md:flex",
+            "duration-300 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-in-out md:flex",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -773,5 +776,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-
