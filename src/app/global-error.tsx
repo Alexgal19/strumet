@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
 
 export default function GlobalError({
   error,
@@ -9,15 +9,25 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    // Log the error to an error reporting service
+    console.error(error);
+  }, [error]);
+
   return (
     <html>
       <body>
-        <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center">
-            <h2 className="text-2xl font-bold">Wystąpił nieoczekiwany błąd</h2>
-            <p className="text-muted-foreground max-w-md">
-                Coś poszło nie tak. Możesz spróbować odświeżyć stronę lub wrócić do niej później.
-            </p>
-            <Button onClick={() => reset()}>Spróbuj ponownie</Button>
+        <div className="flex h-screen w-full flex-col items-center justify-center gap-4">
+          <h2 className="text-2xl font-bold">Coś poszło nie tak!</h2>
+          <button
+            className="rounded bg-primary px-4 py-2 text-white hover:bg-primary/90"
+            onClick={
+              // Attempt to recover by trying to re-render the segment
+              () => reset()
+            }
+          >
+            Spróbuj ponownie
+          </button>
         </div>
       </body>
     </html>
