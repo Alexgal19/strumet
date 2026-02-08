@@ -8,11 +8,11 @@
 
     "dependencies": {
 
-        "@genkit-ai/firebase": "^0.5.1",
+        "@genkit-ai/firebase": "^1.28.0",
 
-        "@genkit-ai/google-genai": "^0.5.1",
+        "@genkit-ai/google-genai": "^1.28.0",
 
-        "@genkit-ai/next": "^0.5.1",
+        "@genkit-ai/next": "^1.28.0",
 
         "@modelcontextprotocol/server-filesystem": "2025.12.18",
 
@@ -82,7 +82,7 @@
 
         "geist": "^1.5.1",
 
-        "genkit": "^0.5.1",
+        "genkit": "^1.28.0",
 
         "handlebars": "^4.7.8",
 
