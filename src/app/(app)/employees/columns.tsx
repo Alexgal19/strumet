@@ -65,21 +65,21 @@ export function getColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Data zatrudnienia" />
       ),
-      cell: ({ row }) => formatDate(row.getValue("hireDate"), 'yyyy-MM-dd'),
+      cell: ({ row }) => formatDate(row.getValue("hireDate")),
     },
     ...(status === 'aktywny' ? [{
       accessorKey: "contractEndDate",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
         <DataTableColumnHeader column={column} title="Umowa do" />
       ),
-      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("contractEndDate"), 'yyyy-MM-dd'),
+      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("contractEndDate")),
     }] : []),
      ...(status === 'zwolniony' ? [{
       accessorKey: "terminationDate",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
         <DataTableColumnHeader column={column} title="Data zwolnienia" />
       ),
-      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("terminationDate"), 'yyyy-MM-dd'),
+      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("terminationDate")),
     }] : []),
     {
       accessorKey: "jobTitle",

@@ -1,79 +1,28 @@
-
-
 import { format as formatFns, parseISO, isValid, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 /**
- * Converts an Excel serial number to a JavaScript Date object.
+ * Converts an Excel serial number to a JavaScript Date object, correctly handling the 1900 leap year bug
+ * and avoiding timezone-related shifts.
  * @param serial The Excel serial number.
  * @returns A Date object.
  */
 function excelSerialToDate(serial: number): Date {
-  // Excel's epoch starts on 1900-01-01. JS's epoch is 1970-01-01.
-  // Excel has a bug where it thinks 1900 was a leap year.
-  const excelEpoch = new Date(1899, 11, 30);
-  const excelEpochAsNumber = excelEpoch.getTime();
-  const millisecondsInDay = 86400000;
-  
-  // Adjust for the leap year bug if the date is after Feb 28, 1900
-  const days = serial - (serial > 60 ? 1 : 0);
-
-  const date = new Date(excelEpochAsNumber + days * millisecondsInDay);
-  
-  // We need to account for the timezone offset, because creating a date from timestamp will be in UTC
-  // but we want the date to be interpreted in the local timezone.
-  const tzOffset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() + tzOffset);
+  // Excel's epoch starts on 1900-01-01. JS's is 1970-01-01.
+  // Excel incorrectly treats 1900 as a leap year.
+  // The number of days between epochs is 25569.
+  // We adjust for the 1900 bug if the date is after Feb 28, 1900 (serial > 60).
+  const days = serial > 60 ? serial - 1 : serial;
+  // Base date is 1899-12-30 (day 0 in Excel's system).
+  const date = new Date(Date.UTC(1899, 11, 30 + days));
+  return date;
 }
 
 
 /**
- * Formats a date into a string.
- * @param input - The date to format (Date object, ISO string, or timestamp).
- * @param pattern - The date-fns format pattern. Defaults to 'yyyy-MM-dd'.
- * @returns The formatted date string, or an empty string if the input is invalid.
- */
-export function formatDate(
-  input: Date | string | number | null | undefined,
-  pattern: string = 'yyyy-MM-dd'
-): string {
-  if (!input) return '';
-
-  const date = parseMaybeDate(input);
-  if (!date || !isValid(date)) return '';
-  
-  try {
-    return formatFns(date, pattern, { locale: pl });
-  } catch (e) {
-    return '';
-  }
-}
-
-/**
- * Formats a date and time into a string.
- * @param input - The date to format (Date object, ISO string, or timestamp).
- * @param pattern - The date-fns format pattern. Defaults to 'yyyy-MM-dd HH:mm'.
- * @returns The formatted date string, or an empty string if the input is invalid.
- */
-export function formatDateTime(
-  input: Date | string | number | null | undefined,
-  pattern: string = 'yyyy-MM-dd HH:mm'
-): string {
-    const date = parseMaybeDate(input);
-    if (!date || !isValid(date)) return '';
-
-    try {
-        return formatFns(date, pattern, { locale: pl });
-    } catch (e) {
-        return '';
-    }
-}
-
-/**
- * Parses a value into a Date object or null if invalid.
- * This function now reliably handles 'yyyy-MM-dd' strings, 'dd.MM.yyyy' strings,
- * and Excel's numeric date format.
- * @param input - The value to parse.
+ * Parses a value from various formats (ISO, dd.MM.yyyy, yyyy-MM-dd, Excel number) into a Date object.
+ * Returns null if the input is invalid or cannot be parsed.
+ * @param input The value to parse.
  * @returns A Date object or null.
  */
 export function parseMaybeDate(
@@ -83,44 +32,85 @@ export function parseMaybeDate(
   if (input instanceof Date) {
     return isValid(input) ? input : null;
   }
-  
+
   if (typeof input === 'number') {
-    // This is likely an Excel date serial number.
     try {
-        const date = excelSerialToDate(input);
-        return isValid(date) ? date : null;
-    } catch(e) {
-        return null;
+      const date = excelSerialToDate(input);
+      return isValid(date) ? date : null;
+    } catch (e) {
+      return null; // Invalid serial number
     }
   }
 
   if (typeof input === 'string') {
-      let date: Date | null = null;
-      
-      // Try parsing as ISO 8601 string first (e.g., "2023-12-31T00:00:00.000Z")
-      date = parseISO(input);
-      if (isValid(date)) return date;
+    const trimmedInput = input.trim();
+    let date: Date;
+    
+    // 1. Try parsing as ISO 8601 string first (most reliable)
+    date = parseISO(trimmedInput);
+    if (isValid(date)) return date;
 
-      // Try parsing 'yyyy-MM-dd'
-      if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-          date = parse(input, 'yyyy-MM-dd', new Date());
-          if(isValid(date)) return date;
-      }
-      
-      // Try parsing 'dd.MM.yyyy'
-      if (/^\d{2}\.\d{2}\.\d{4}$/.test(input)) {
-          date = parse(input, 'dd.MM.yyyy', new Date());
-          if(isValid(date)) return date;
-      }
+    // 2. Try parsing 'dd.MM.yyyy'
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(trimmedInput)) {
+        date = parse(trimmedInput, 'dd.MM.yyyy', new Date());
+        if (isValid(date)) return date;
+    }
 
-      // Add other common formats if needed
-      
-      return null;
+    // 3. Try parsing 'yyyy-MM-dd' (common DB format)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedInput)) {
+        date = parse(trimmedInput, 'yyyy-MM-dd', new Date());
+        if(isValid(date)) return date;
+    }
+    
+    // If it's a number-like string, try treating it as an Excel serial
+    if (!isNaN(Number(trimmedInput))) {
+        try {
+            const dateFromNum = excelSerialToDate(Number(trimmedInput));
+            if (isValid(dateFromNum)) return dateFromNum;
+        } catch {}
+    }
   }
   
-  return null;
+  return null; // Return null if no format matches
 }
 
+/**
+ * Formats a date into a user-friendly string (dd.MM.yyyy by default).
+ * @param input - The date to format (accepts various types).
+ * @param pattern - The date-fns format pattern.
+ * @returns The formatted date string, or an empty string if invalid.
+ */
+export function formatDate(
+  input: Date | string | number | null | undefined,
+  pattern: string = 'dd.MM.yyyy'
+): string {
+  const date = parseMaybeDate(input);
+  if (!date) return '';
+  try {
+    return formatFns(date, pattern, { locale: pl });
+  } catch (e) {
+    return '';
+  }
+}
+
+/**
+ * Formats a date and time into a user-friendly string.
+ * @param input - The date to format.
+ * @param pattern - The date-fns format pattern.
+ * @returns The formatted string, or an empty string if invalid.
+ */
+export function formatDateTime(
+  input: Date | string | number | null | undefined,
+  pattern: string = 'dd.MM.yyyy HH:mm'
+): string {
+    const date = parseMaybeDate(input);
+    if (!date) return '';
+    try {
+        return formatFns(date, pattern, { locale: pl });
+    } catch (e) {
+        return '';
+    }
+}
 
 /**
  * Checks if a value is a valid Date object.
