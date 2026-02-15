@@ -8,14 +8,12 @@ import { pl } from 'date-fns/locale';
  * @returns A Date object.
  */
 function excelSerialToDate(serial: number): Date {
-  // Excel's epoch starts on 1900-01-01. JS's is 1970-01-01.
-  // Excel incorrectly treats 1900 as a leap year.
-  // The number of days between epochs is 25569.
-  // We adjust for the 1900 bug if the date is after Feb 28, 1900 (serial > 60).
-  const days = serial > 60 ? serial - 1 : serial;
-  // Base date is 1899-12-30 (day 0 in Excel's system).
-  const date = new Date(Date.UTC(1899, 11, 30 + days));
-  return date;
+  // Excel's epoch is 1899-12-31, but it incorrectly treats 1900 as a leap year.
+  // The magic number 25569 is the number of days between 1970-01-01 and 1900-01-01.
+  // We adjust this number for dates after the "fake" leap day (Feb 28, 1900, which is serial 59).
+  const excelEpochDiff = serial > 59 ? 25568 : 25569;
+  const jsTimestamp = (serial - excelEpochDiff) * 86400 * 1000;
+  return new Date(jsTimestamp);
 }
 
 
@@ -57,8 +55,10 @@ export function parseMaybeDate(
     }
 
     // 3. Try parsing 'yyyy-MM-dd' (common DB format)
+    // This is important for UTC dates without timezones from inputs.
     if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedInput)) {
-        date = parse(trimmedInput, 'yyyy-MM-dd', new Date());
+        const [year, month, day] = trimmedInput.split('-').map(Number);
+        date = new Date(Date.UTC(year, month - 1, day));
         if(isValid(date)) return date;
     }
     
