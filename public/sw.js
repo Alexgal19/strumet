@@ -1,74 +1,52 @@
-// A simple, "cache-first" service worker
-const CACHE_NAME = 'baza-st-cache-v1';
-const urlsToCache = [
-  '/',
-  '/aktywni',
-  '/zwolnieni',
-  '/planowanie',
-  '/odwiedzalnosc',
-  '/statystyki',
-  '/konfiguracja',
-  '/login',
-  '/register',
-  '/manifest.json'
-];
+// public/sw.js
 
+const CACHE_NAME = 'baza-st-cache-v2'; // Increment version to force update
+
+// On install, perform setup.
 self.addEventListener('install', (event) => {
-  // Perform install steps
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        // Add all core assets to the cache
-        return cache.addAll(urlsToCache);
-      })
-  );
+  console.log('Service Worker: Installing...');
+  // Skip waiting to activate new service worker immediately.
+  event.waitUntil(self.skipWaiting());
 });
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(
-          (response) => {
-            // Check if we received a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        );
-      })
-  );
-});
-
+// On activate, clean up old caches.
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker: Activating...');
   const cacheWhitelist = [CACHE_NAME];
-
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Service Worker: Deleting old cache', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => self.clients.claim()) // Take control of all pages immediately.
+  );
+});
+
+// On fetch, serve from cache, falling back to network.
+self.addEventListener('fetch', (event) => {
+  // For navigation requests, use a network-first strategy.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/')) // Fallback to a root page if offline
+    );
+    return;
+  }
+
+  // For other requests (assets), use a cache-first strategy.
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request).then((fetchResponse) => {
+        // Optionally, cache new assets as they are fetched.
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, fetchResponse.clone());
+          return fetchResponse;
+        });
+      });
     })
   );
 });
