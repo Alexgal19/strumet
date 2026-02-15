@@ -18,25 +18,17 @@ interface GetColumnsProps {
   status: 'aktywny' | 'zwolniony'
 }
 
-// Custom sorting function for dates - this ensures chronological sorting
+// Custom, robust sorting function for dates.
+// It uses the same reliable `parseMaybeDate` utility as other parts of the app.
 const dateSortingFn = (rowA: any, rowB: any, columnId: string) => {
-    const valA = rowA.getValue(columnId) as string;
-    const valB = rowB.getValue(columnId) as string;
+    const dateA = parseMaybeDate(rowA.getValue(columnId));
+    const dateB = parseMaybeDate(rowB.getValue(columnId));
 
-    // Handle null, undefined, or invalid date strings
-    if (!valA && !valB) return 0;
-    if (!valA) return 1; // Put rows with no date at the end for ascending sort
-    if (!valB) return -1;
-    
-    // Create date objects for comparison. 'YYYY-MM-DD' is safely parsable.
-    const dateA = new Date(valA);
-    const dateB = new Date(valB);
+    // Treat nulls as "smaller" so they appear at the end in descending sort
+    if (dateA === null && dateB === null) return 0;
+    if (dateA === null) return 1;
+    if (dateB === null) return -1;
 
-    // Final check for invalid dates after parsing attempt
-    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
-    if (isNaN(dateA.getTime())) return 1;
-    if (isNaN(dateB.getTime())) return -1;
-    
     return dateA.getTime() - dateB.getTime();
 }
 
@@ -87,7 +79,7 @@ export function getColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Data zatrudnienia" />
       ),
-      cell: ({ row }) => formatDate(row.getValue("hireDate"), "yyyy-MM-dd"),
+      cell: ({ row }) => formatDate(row.getValue("hireDate"), "dd.MM.yyyy"),
       sortingFn: dateSortingFn,
     },
     ...(status === 'aktywny' ? [{
@@ -95,7 +87,7 @@ export function getColumns({
       header: ({ column }: HeaderContext<Employee, unknown>) => (
         <DataTableColumnHeader column={column} title="Umowa do" />
       ),
-      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("contractEndDate"), "yyyy-MM-dd"),
+      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("contractEndDate"), "dd.MM.yyyy"),
       sortingFn: dateSortingFn,
     }] : []),
      ...(status === 'zwolniony' ? [{
@@ -103,7 +95,7 @@ export function getColumns({
       header: ({ column }: HeaderContext<Employee, unknown>) => (
         <DataTableColumnHeader column={column} title="Data zwolnienia" />
       ),
-      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("terminationDate"), "yyyy-MM-dd"),
+      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("terminationDate"), "dd.MM.yyyy"),
       sortingFn: dateSortingFn,
     }] : []),
     {
