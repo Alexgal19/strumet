@@ -7,12 +7,6 @@ import AppBottomNav from '@/components/app-bottom-nav';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
-import { usePWA } from '@/hooks/use-pwa';
-
-function PWAInitializer() {
-  usePWA();
-  return null;
-}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { isLoading, currentUser } = useAppContext();
@@ -31,7 +25,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (isAuthPage) {
     return (
       <main className="h-full w-full bg-background">
-        <PWAInitializer />
         {children}
       </main>
     )
@@ -39,7 +32,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative flex h-full flex-col md:flex-row bg-background overflow-hidden">
-      <PWAInitializer />
       <div className={cn(isAuthPage && 'hidden')}>
         <AppSidebar pathname={pathname} />
       </div>
