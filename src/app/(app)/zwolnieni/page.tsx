@@ -18,12 +18,10 @@ import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
-import { useToast } from '@/hooks/use-toast';
 import { EmployeeForm } from '@/components/employee-form';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { EmployeeTable } from '../employees/employee-table';
-import { SortingState } from '@tanstack/react-table';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -39,20 +37,12 @@ const exportColumns = [
 export default function ZwolnieniPage() {
   const { config, isLoading: isContextLoading, handleSaveEmployee, handleRestoreEmployee, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently } = useAppContext();
   const { employees: terminatedEmployees, isLoading: isEmployeesLoading } = useEmployees('zwolniony');
-  const { toast } = useToast();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   
   const [restoringEmployee, setRestoringEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
-
-  const [sorting, setSorting] = useState<SortingState>([
-    {
-        id: 'terminationDate',
-        desc: true,
-    }
-  ]);
 
   const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
     await handleRestoreEmployee(employeeId, employeeFullName);
@@ -158,8 +148,7 @@ export default function ZwolnieniPage() {
             onDelete={setDeletingEmployee}
             exportColumns={exportColumns}
             exportFileName="zwolnieni_pracownicy"
-            sorting={sorting}
-            onSortingChange={setSorting}
+            initialSorting={[{ id: 'terminationDate', desc: true }]}
          />
       </div>
 

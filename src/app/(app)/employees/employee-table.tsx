@@ -44,6 +44,7 @@ interface EmployeeTableProps {
   onDelete: (employee: Employee) => void
   exportColumns?: { key: keyof Employee; name: string }[]
   exportFileName?: string
+  initialSorting?: SortingState
 }
 
 export function EmployeeTable({
@@ -57,16 +58,12 @@ export function EmployeeTable({
   onDelete,
   exportColumns,
   exportFileName,
+  initialSorting = [],
 }: EmployeeTableProps) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [sorting, setSorting] = React.useState<SortingState>([
-    {
-        id: 'hireDate',
-        desc: true,
-    }
-  ])
+  const [sorting, setSorting] = React.useState<SortingState>(initialSorting);
   const [globalFilter, setGlobalFilter] = React.useState("")
 
   const isMobile = useIsMobile()

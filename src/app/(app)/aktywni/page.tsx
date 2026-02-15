@@ -23,8 +23,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { MoreHorizontal, PlusCircle, Trash2 } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
-import { useToast } from '@/hooks/use-toast';
-import { ExcelExportButton } from '@/components/excel-export-button';
 import { ExcelImportButton } from '@/components/excel-import-button';
 import { HireDateImportButton } from '@/components/hire-date-import-button';
 import { ContractEndDateImportButton } from '@/components/contract-end-date-import-button';
@@ -51,7 +49,6 @@ const exportColumns = [
 export default function AktywniPage() {
   const { config, isLoading: isContextLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
-  const { toast } = useToast();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -102,13 +99,6 @@ export default function AktywniPage() {
                 <PopoverContent className="w-64 p-2 flex flex-col gap-1" align="end">
                   <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Import i Aktualizacja</div>
                   <ExcelImportButton variant="ghost" className="w-full justify-start h-9" />
-                  <ExcelExportButton
-                    employees={activeEmployees}
-                    columns={exportColumns}
-                    fileName="aktywni_pracownicy"
-                    variant="ghost"
-                    className="w-full justify-start h-9"
-                  />
                   <HireDateImportButton variant="ghost" className="w-full justify-start h-9" />
                   <ContractEndDateImportButton variant="ghost" className="w-full justify-start h-9" />
 
@@ -205,6 +195,7 @@ export default function AktywniPage() {
                 onDelete={setDeletingEmployee}
                 exportColumns={exportColumns}
                 exportFileName="aktywni_pracownicy"
+                initialSorting={[{ id: 'hireDate', desc: true }]}
              />
           </div>
           
