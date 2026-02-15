@@ -5,7 +5,7 @@ import { ColumnDef, HeaderContext, CellContext } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
 import { Employee } from "@/lib/types"
-import { formatDate } from "@/lib/date"
+import { formatDate, parseMaybeDate } from "@/lib/date"
 import { getStatusColor } from "@/lib/legalization-statuses"
 import { cn } from "@/lib/utils"
 import { EmployeeRowActions } from "./employee-actions"
@@ -16,6 +16,17 @@ interface GetColumnsProps {
   onRestore?: (employee: Employee) => void
   onDelete: (employee: Employee) => void
   status: 'aktywny' | 'zwolniony'
+}
+
+// Custom sorting function for dates
+const dateSortingFn = (rowA: any, rowB: any, columnId: any) => {
+    const dateA = parseMaybeDate(rowA.original[columnId] as string);
+    const dateB = parseMaybeDate(rowB.original[columnId] as string);
+    
+    if (!dateA) return -1;
+    if (!dateB) return 1;
+
+    return dateA.getTime() - dateB.getTime();
 }
 
 export function getColumns({
@@ -65,21 +76,24 @@ export function getColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Data zatrudnienia" />
       ),
-      cell: ({ row }) => formatDate(row.getValue("hireDate")),
+      cell: ({ row }) => formatDate(row.getValue("hireDate"), "dd.MM.yyyy"),
+      sortingFn: dateSortingFn,
     },
     ...(status === 'aktywny' ? [{
       accessorKey: "contractEndDate",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
         <DataTableColumnHeader column={column} title="Umowa do" />
       ),
-      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("contractEndDate")),
+      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("contractEndDate"), "dd.MM.yyyy"),
+      sortingFn: dateSortingFn,
     }] : []),
      ...(status === 'zwolniony' ? [{
       accessorKey: "terminationDate",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
         <DataTableColumnHeader column={column} title="Data zwolnienia" />
       ),
-      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("terminationDate")),
+      cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("terminationDate"), "dd.MM.yyyy"),
+      sortingFn: dateSortingFn,
     }] : []),
     {
       accessorKey: "jobTitle",
