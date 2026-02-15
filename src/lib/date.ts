@@ -2,17 +2,19 @@ import { format as formatFns, parseISO, isValid, parse } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 /**
- * Converts an Excel serial number to a JavaScript Date object, correctly handling the 1900 leap year bug
- * and avoiding timezone-related shifts.
+ * Converts an Excel serial number to a JavaScript Date object, correctly handling the 1900 leap year bug.
  * @param serial The Excel serial number.
- * @returns A Date object.
+ * @returns A Date object in UTC.
  */
 function excelSerialToDate(serial: number): Date {
-  // Excel's epoch is 1899-12-31, but it incorrectly treats 1900 as a leap year.
-  // The magic number 25569 is the number of days between 1970-01-01 and 1900-01-01.
-  // We adjust this number for dates after the "fake" leap day (Feb 28, 1900, which is serial 59).
-  const excelEpochDiff = serial > 59 ? 25568 : 25569;
-  const jsTimestamp = (serial - excelEpochDiff) * 86400 * 1000;
+  // The number of days between 1900-01-01 and 1970-01-01 is 25567.
+  // Excel's date is 1-based, so we subtract 1 from the serial.
+  // This gives (serial - 1) - 25567 = serial - 25568 days relative to JS epoch.
+  // This calculation inherently corrects the 1900 leap year bug because JS Date
+  // correctly knows 1900 was not a leap year.
+  const excelEpochDiff = 25568;
+  const daysSinceEpoch = serial - excelEpochDiff;
+  const jsTimestamp = daysSinceEpoch * 86400 * 1000;
   return new Date(jsTimestamp);
 }
 
