@@ -121,19 +121,11 @@ export default function LoginPage() {
     }
 
     if (!deferredPrompt) {
-      // In development, show helpful message
-      if (process.env.NODE_ENV === 'development') {
-        toast({
-          title: 'Tryb dev',
-          description: 'Na localhost zainstaluj aplikację ręcznie z menu przeglądarki (⋯ → Zainstaluj aplikację).',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Błąd',
-          description: 'Nie można zainstalować aplikacji w tym momencie. Spróbuj otworzyć stronę w Chrome lub Edge.',
-        });
-      }
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Nie można zainstalować aplikacji w tym momencie. Spróbuj otworzyć stronę w Chrome lub Edge.',
+      });
       return;
     }
     deferredPrompt.prompt();
@@ -235,7 +227,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            {(deferredPrompt || isIOS || process.env.NODE_ENV === 'development') && (
+            {(deferredPrompt || isIOS) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
