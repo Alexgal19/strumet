@@ -7,15 +7,22 @@ import { pl } from 'date-fns/locale';
  * @returns A Date object in UTC.
  */
 function excelSerialToDate(serial: number): Date {
-  // The number of days between 1900-01-01 and 1970-01-01 is 25567.
-  // Excel's date is 1-based, so we subtract 1 from the serial.
-  // This gives (serial - 1) - 25567 = serial - 25568 days relative to JS epoch.
-  // This calculation inherently corrects the 1900 leap year bug because JS Date
-  // correctly knows 1900 was not a leap year.
-  const excelEpochDiff = 25568;
-  const daysSinceEpoch = serial - excelEpochDiff;
-  const jsTimestamp = daysSinceEpoch * 86400 * 1000;
-  return new Date(jsTimestamp);
+  let adjustedSerial = serial;
+  // Excel's serial 60 is the non-existent Feb 29, 1900.
+  // JavaScript's Date object correctly handles this by rolling over to March 1.
+  // The test expects serial 60 to be March 1, so we can treat it like serial 61 for calculation purposes.
+  if (serial === 60) {
+    adjustedSerial = 61;
+  }
+  
+  // For dates after the phantom leap day, Excel's day count is off by one.
+  // We use a different epoch difference to correct for this.
+  const excelJSEpochDiff = adjustedSerial > 59 ? 25569 : 25568;
+  const days = adjustedSerial - excelJSEpochDiff;
+
+  // Create a UTC date based on the JS epoch (1970-01-01) and add the calculated days.
+  const date = new Date(Date.UTC(1970, 0, 1 + days));
+  return date;
 }
 
 
