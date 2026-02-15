@@ -7,8 +7,9 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getAdminApp, adminDb } from '@/lib/firebase-admin';
-import { format, parse, isEqual, startOfDay, endOfDay, isBefore } from 'date-fns';
+import { format, parse, isEqual, startOfDay, endOfDay, isBefore, isValid, isAfter } from 'date-fns';
 import type { Employee, StatsSnapshot } from '@/lib/types';
+import { parseMaybeDate } from '@/lib/date';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -123,17 +124,24 @@ const createStatsSnapshotFlow = ai.defineFlow(
         const startData = getActiveEmployeesOnDate(start);
         const endData = getActiveEmployeesOnDate(end);
 
-        const startMap = new Map(startData.map(item => [item.id, item]));
-        const endMap = new Map(endData.map(item => [item.id, item]));
-
-        const newHires = Array.from(endMap.values())
-            .filter(emp => !startMap.has(emp.id))
+        const newHires = allEmployees
+            .filter(e => {
+                if (!e.hireDate) return false;
+                // Use string comparison for yyyy-MM-dd format
+                return e.hireDate >= startDate && e.hireDate <= endDate;
+            })
             .map(emp => employeeToChangeSchema(emp, emp.hireDate));
 
-        const terminated = Array.from(startMap.values())
-             .filter(emp => !endMap.has(emp.id))
-             .map(emp => employeeToChangeSchema(emp, emp.terminationDate || format(end, 'yyyy-MM-dd')));
+        const terminated = allEmployees
+            .filter(e => {
+                if (!e.terminationDate) return false;
+                // Use string comparison for yyyy-MM-dd format
+                return e.terminationDate >= startDate && e.terminationDate <= endDate;
+            })
+            .map(emp => employeeToChangeSchema(emp, emp.terminationDate!));
              
+        const startMap = new Map(startData.map(item => [item.id, item]));
+        const endMap = new Map(endData.map(item => [item.id, item]));
         const continuingEmployeesIds = Array.from(startMap.keys()).filter(id => endMap.has(id));
         
         const fieldChanges: z.infer<typeof FieldChangeSchema>[] = [];
@@ -144,7 +152,7 @@ const createStatsSnapshotFlow = ai.defineFlow(
             if (startEmp.department !== endEmp.department) {
                 fieldChanges.push({
                     fullName: endEmp.fullName,
-                    date: format(end, 'yyyy-MM-dd'),
+                    date: format(end, 'dd.MM.yyyy'),
                     type: 'department',
                     from: startEmp.department || 'Brak',
                     to: endEmp.department || 'Brak',
@@ -212,4 +220,6 @@ const createStatsSnapshotFlow = ai.defineFlow(
     }
   }
 );
+    
+
     
