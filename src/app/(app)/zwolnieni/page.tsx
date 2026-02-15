@@ -23,6 +23,7 @@ import { EmployeeForm } from '@/components/employee-form';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { EmployeeTable } from '../employees/employee-table';
+import { SortingState } from '@tanstack/react-table';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -45,6 +46,13 @@ export default function ZwolnieniPage() {
   
   const [restoringEmployee, setRestoringEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
+
+  const [sorting, setSorting] = useState<SortingState>([
+    {
+        id: 'terminationDate',
+        desc: true,
+    }
+  ]);
 
   const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
     await handleRestoreEmployee(employeeId, employeeFullName);
@@ -150,6 +158,8 @@ export default function ZwolnieniPage() {
             onDelete={setDeletingEmployee}
             exportColumns={exportColumns}
             exportFileName="zwolnieni_pracownicy"
+            sorting={sorting}
+            onSortingChange={setSorting}
          />
       </div>
 
