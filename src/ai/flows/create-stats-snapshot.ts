@@ -1,39 +1,21 @@
 
 'use server';
 /**
- * @fileOverview A flow to create a weekly snapshot of employee statistics.
+ * @fileOverview A Server Action to generate employee statistics for a given date range or single day.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getAdminApp, adminDb } from '@/lib/firebase-admin';
-import { format, parse, isEqual, startOfDay, endOfDay, isBefore, isValid, isAfter } from 'date-fns';
-import type { Employee, StatsSnapshot } from '@/lib/types';
-import { parseMaybeDate } from '@/lib/date';
-
+import { format, parse } from 'date-fns';
+import type { Employee } from '@/lib/types';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+    return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
 const CreateSnapshotInputSchema = z.object({
-  startDate: z.string(),
-  endDate: z.string().optional(),
-});
-
-const SnapshotDataSchema = z.object({
-  total: z.number(),
-  date: z.string(),
-  deptChanges: z.array(z.object({ name: z.string(), from: z.number(), to: z.number(), diff: z.number() })),
-  jobTitleChanges: z.array(z.object({ name: z.string(), from: z.number(), to: z.number(), diff: z.number() })),
-  nationalityChanges: z.array(z.object({ name: z.string(), from: z.number(), to: z.number(), diff: z.number() })),
-});
-
-const EmployeeChangeSchema = z.object({
-    fullName: z.string(),
-    jobTitle: z.string(),
-    department: z.string(),
-    date: z.string(),
+    startDate: z.string(),
+    endDate: z.string().optional(),
 });
 
 const FieldChangeSchema = z.object({
@@ -44,33 +26,11 @@ const FieldChangeSchema = z.object({
     to: z.string(),
 });
 
+export type CreateStatsSnapshotInput = z.infer<typeof CreateSnapshotInputSchema>;
 
-const CreateSnapshotOutputSchema = z.object({
-  isRange: z.boolean(),
-  start: SnapshotDataSchema.optional(),
-  end: SnapshotDataSchema.optional(),
-  diff: z.number().optional(),
-  newHires: z.array(EmployeeChangeSchema).optional(),
-  terminated: z.array(EmployeeChangeSchema).optional(),
-  fieldChanges: z.array(FieldChangeSchema).optional(),
-  date: z.string().optional(),
-  total: z.number().optional(),
-  deptChanges: z.array(z.object({ name: z.string(), to: z.number() })).optional(),
-  jobTitleChanges: z.array(z.object({ name: z.string(), to: z.number() })).optional(),
-  nationalityChanges: z.array(z.object({ name: z.string(), to: z.number() })).optional(),
-});
+export async function createStatsSnapshot(input: CreateStatsSnapshotInput) {
+    const { startDate, endDate } = CreateSnapshotInputSchema.parse(input);
 
-export async function createStatsSnapshot(input: z.infer<typeof CreateSnapshotInputSchema>): Promise<z.infer<typeof CreateSnapshotOutputSchema>> {
-  return createStatsSnapshotFlow(input);
-}
-
-const createStatsSnapshotFlow = ai.defineFlow(
-  {
-    name: 'createStatsSnapshotFlow',
-    inputSchema: CreateSnapshotInputSchema,
-    outputSchema: CreateSnapshotOutputSchema,
-  },
-  async ({ startDate, endDate }) => {
     console.log(`Generating report for ${startDate} to ${endDate}`);
     getAdminApp();
     const db = adminDb();
@@ -82,25 +42,16 @@ const createStatsSnapshotFlow = ai.defineFlow(
         const reportDateString = format(date, 'yyyy-MM-dd');
         return allEmployees.filter(e => {
             if (!e.hireDate) return false;
-            
-            // Employee is active if their hire date is on or before the report date
             const isHired = e.hireDate <= reportDateString;
-            if (!isHired) {
-                return false;
-            }
-
-            // Employee is excluded if their termination date is strictly before the report date
+            if (!isHired) return false;
             if (e.terminationDate) {
                 const isTerminatedBefore = e.terminationDate < reportDateString;
-                if (isTerminatedBefore) {
-                    return false;
-                }
+                if (isTerminatedBefore) return false;
             }
-
             return true;
         });
     };
-    
+
     const employeeToChangeSchema = (emp: Employee, date: string) => ({
         fullName: emp.fullName,
         jobTitle: emp.jobTitle,
@@ -109,11 +60,11 @@ const createStatsSnapshotFlow = ai.defineFlow(
     });
 
     const getCounts = (employees: Employee[], key: keyof Employee) => {
-      return employees.reduce((acc, item) => {
-        const value = item[key] as string;
-        if(value) acc[value] = (acc[value] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+        return employees.reduce((acc, item) => {
+            const value = item[key] as string;
+            if (value) acc[value] = (acc[value] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
     };
 
     if (endDate) {
@@ -127,7 +78,6 @@ const createStatsSnapshotFlow = ai.defineFlow(
         const newHires = allEmployees
             .filter(e => {
                 if (!e.hireDate) return false;
-                // Use string comparison for yyyy-MM-dd format
                 return e.hireDate >= startDate && e.hireDate <= endDate;
             })
             .map(emp => employeeToChangeSchema(emp, emp.hireDate));
@@ -135,20 +85,18 @@ const createStatsSnapshotFlow = ai.defineFlow(
         const terminated = allEmployees
             .filter(e => {
                 if (!e.terminationDate) return false;
-                // Use string comparison for yyyy-MM-dd format
                 return e.terminationDate >= startDate && e.terminationDate <= endDate;
             })
             .map(emp => employeeToChangeSchema(emp, emp.terminationDate!));
-             
+
         const startMap = new Map(startData.map(item => [item.id, item]));
         const endMap = new Map(endData.map(item => [item.id, item]));
         const continuingEmployeesIds = Array.from(startMap.keys()).filter(id => endMap.has(id));
-        
+
         const fieldChanges: z.infer<typeof FieldChangeSchema>[] = [];
         continuingEmployeesIds.forEach(id => {
             const startEmp = startMap.get(id)!;
             const endEmp = endMap.get(id)!;
-
             if (startEmp.department !== endEmp.department) {
                 fieldChanges.push({
                     fullName: endEmp.fullName,
@@ -158,7 +106,6 @@ const createStatsSnapshotFlow = ai.defineFlow(
                     to: endEmp.department || 'Brak',
                 });
             }
-            // Add other fields to track here in the future
         });
 
         const compareGroups = (startCounts: Record<string, number>, endCounts: Record<string, number>) => {
@@ -171,8 +118,8 @@ const createStatsSnapshotFlow = ai.defineFlow(
                     changes.push({ name: groupName, from: startCount, to: endCount, diff: endCount - startCount });
                 }
             });
-            return changes.sort((a,b) => b.to - a.to);
-        }
+            return changes.sort((a, b) => b.to - a.to);
+        };
 
         return {
             isRange: true,
@@ -191,20 +138,19 @@ const createStatsSnapshotFlow = ai.defineFlow(
         // --- SINGLE DAY MODE ---
         const singleDate = parse(startDate, 'yyyy-MM-dd', new Date());
         const data = getActiveEmployeesOnDate(singleDate);
-        
         const singleDateString = format(singleDate, 'yyyy-MM-dd');
-        
+
         const newHires = allEmployees
             .filter(e => e.hireDate === singleDateString)
             .map(emp => employeeToChangeSchema(emp, emp.hireDate));
-            
+
         const terminated = allEmployees
             .filter(e => e.terminationDate === singleDateString)
             .map(emp => employeeToChangeSchema(emp, emp.terminationDate!));
-        
+
         const formatForSingleDay = (counts: Record<string, number>) => {
-            return Object.entries(counts).map(([name, count]) => ({ name, to: count })).sort((a,b)=>b.to - a.to);
-        }
+            return Object.entries(counts).map(([name, count]) => ({ name, to: count })).sort((a, b) => b.to - a.to);
+        };
 
         return {
             isRange: false,
@@ -212,14 +158,10 @@ const createStatsSnapshotFlow = ai.defineFlow(
             total: data.length,
             newHires,
             terminated,
-            fieldChanges: [], // No field change detection in single day mode
+            fieldChanges: [],
             deptChanges: formatForSingleDay(getCounts(data, 'department')),
             jobTitleChanges: formatForSingleDay(getCounts(data, 'jobTitle')),
             nationalityChanges: formatForSingleDay(getCounts(data, 'nationality')),
         };
     }
-  }
-);
-    
-
-    
+}
