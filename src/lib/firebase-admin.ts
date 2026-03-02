@@ -14,33 +14,42 @@ export const getAdminApp = () => {
     }
 
     if (
-        !process.env.FIREBASE_PROJECT_ID ||
-        !process.env.FIREBASE_CLIENT_EMAIL ||
-        !process.env.FIREBASE_PRIVATE_KEY
+        process.env.FIREBASE_PROJECT_ID &&
+        process.env.FIREBASE_CLIENT_EMAIL &&
+        process.env.FIREBASE_PRIVATE_KEY
     ) {
-        console.error('Firebase Admin SDK environment variables are not set.');
-        throw new Error('Firebase Admin SDK environment variables are not set. Please check your .env file.');
-    }
+        const serviceAccount: admin.ServiceAccount = {
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: (process.env.FIREBASE_PRIVATE_KEY as string).replace(/\\n/g, '\n'),
+        };
 
-    const serviceAccount: admin.ServiceAccount = {
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: (process.env.FIREBASE_PRIVATE_KEY as string).replace(/\\n/g, '\n'),
-    };
-
-    try {
-        adminApp = admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        });
-    } catch (error: any) {
-        if (!/already exists/i.test(error.message)) {
-            console.error('Firebase admin initialization error', error.stack);
-            throw new Error(`Firebase admin initialization failed: ${error.message}`);
+        try {
+            adminApp = admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+                databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            });
+        } catch (error: any) {
+            if (!/already exists/i.test(error.message)) {
+                console.error('Firebase admin initialization error', error.stack);
+            }
+        }
+    } else {
+        // Fallback to Application Default Credentials
+        // This is automatically handled by Firebase App Hosting
+        try {
+            adminApp = admin.initializeApp({
+                databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            });
+        } catch (error: any) {
+            if (!/already exists/i.test(error.message)) {
+                console.error('Firebase admin ADC initialization error', error.stack);
+            }
         }
     }
-    
+
     return admin.apps[0]!;
 };
 
