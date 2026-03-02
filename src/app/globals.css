@@ -4,106 +4,116 @@
 
 @layer base {
   :root {
-    /* ===== CONCEPT C: SOFT ORGANIC (Light Mode) ===== */
-    --background: 48 20% 98%; /* Warm Sand #FDFCF8 */
-    --foreground: 215 14% 34%; /* Warm Grey #4B5563 */
+    /* ===== NEW ULTRA-MODERN DESIGN SYSTEM (Light Mode) ===== */
+    --background: 210 40% 98%; /* Very light cool grey #F8FAFC, almost white */
+    --foreground: 222 47% 11%;
 
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 215 14% 34%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 14% 34%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 161 94% 30%; /* Earth Green #059669 */
-    --primary-foreground: 0 0% 100%;
+    /* Primary: Electric Blue */
+    --primary: 221 83% 53%; /* Blue 600 #2563EB */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 220 13% 91%; /* Light Grey/Stone */
-    --secondary-foreground: 215 14% 34%;
+    /* Secondary: Clean Neutral */
+    --secondary: 214 32% 91%; /* Slate 200 */
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 48 20% 96%; /* Slightly darker sand */
-    --muted-foreground: 215 14% 45%;
+    /* Muted: Subtle backgrounds */
+    --muted: 214 32% 91%;
+    --muted-foreground: 215 16% 47%; /* Slate 500 */
 
-    --accent: 32 95% 44%; /* Terracotta #D97706 */
+    /* Accent: Energetic Orange */
+    --accent: 24 95% 53%; /* Orange 500 #F97316 */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    /* Destructive: Bright Red/Orange */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 161 94% 30%; /* Earth Green Ring */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%; /* Blue */
 
-    --radius: 1.5rem; /* 24px - Soft Organic */
-    --shadow-color: 48 10% 60% / 0.2;
+    --radius: 0.75rem; /* 12px - Modern, sharper corners */
+    --shadow-color: 220 40% 20% / 0.1;
 
-    --chart-1: 161 94% 30%;
-    --chart-2: 32 95% 44%;
-    --chart-3: 215 14% 34%;
-    --chart-4: 48 20% 80%;
-    --chart-5: 220 13% 91%;
+    /* Charts (Blue -> Orange spectrum) */
+    --chart-1: 221 83% 53%; /* Primary Blue */
+    --chart-2: 217 91% 60%; /* Lighter Blue */
+    --chart-3: 200 90% 70%; /* Sky Blue */
+    --chart-4: 30 100% 64%; /* Muted Orange */
+    --chart-5: 24 95% 53%; /* Primary Orange */
 
-    --sidebar-background: 48 20% 98%;
-    --sidebar-foreground: 215 14% 34%;
-    --sidebar-primary: 161 94% 30%;
+    /* Sidebar - Crisp White */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 221 83% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 48 20% 94%;
-    --sidebar-accent-foreground: 161 94% 30%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 161 94% 30%;
+    --sidebar-accent: 214 32% 91%;
+    --sidebar-accent-foreground: 221 83% 53%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 221 83% 53%;
 
-    --glass-blur: blur(20px);
-    --glass-bg: rgba(255, 255, 255, 0.4);
-    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-blur: blur(16px);
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.4);
   }
 
   .dark {
-    /* ===== CONCEPT C: SOFT ORGANIC (Dark Mode) ===== */
-    --background: 24 6% 10%; /* Warm Black/Stone 950 #1C1917 */
-    --foreground: 60 5% 90%; /* Stone 200 #E7E5E4 */
+    /* ===== NEW ULTRA-MODERN DESIGN SYSTEM (Dark Mode) ===== */
+    --background: 222 47% 11%; /* Very dark slate #0F172A */
+    --foreground: 210 40% 98%; /* Slate 50 */
 
-    --card: 24 5% 14%; /* Stone 900 */
-    --card-foreground: 60 5% 90%;
+    --card: 217 33% 17%; /* Slate 800 */
+    --card-foreground: 210 40% 98%;
 
-    --popover: 24 5% 14%;
-    --popover-foreground: 60 5% 90%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 160 84% 39%; /* Emerald 500 #10B981 */
+    /* Primary: Bright Electric Blue for Dark Mode */
+    --primary: 217 91% 60%; /* Blue 500 #3B82F6 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 24 5% 18%; /* Stone 800 */
-    --secondary-foreground: 60 5% 90%;
+    --secondary: 215 28% 22%; /* Slate 700 */
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 24 5% 18%;
-    --muted-foreground: 24 5% 64%; /* Stone 500 */
+    --muted: 215 28% 22%;
+    --muted-foreground: 215 20% 65%; /* Slate 400 */
 
-    --accent: 32 95% 54%; /* Brighter Terracotta for Dark Mode */
+    /* Accent: Bright Orange */
+    --accent: 25 95% 53%; /* Orange 500 #F97316 */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 24 5% 18%;
-    --input: 24 5% 18%;
-    --ring: 160 84% 39%;
+    --border: 215 28% 22%;
+    --input: 215 28% 22%;
+    --ring: 217 91% 60%; /* Blue ring */
 
-    --chart-1: 160 84% 39%;
-    --chart-2: 32 95% 54%;
-    --chart-3: 60 5% 90%;
-    --chart-4: 24 5% 64%;
-    --chart-5: 24 5% 18%;
+    /* Charts (optimized for dark background) */
+    --chart-1: 217 91% 60%;
+    --chart-2: 213 94% 68%;
+    --chart-3: 199 89% 68%;
+    --chart-4: 32 95% 54%;
+    --chart-5: 25 95% 53%;
 
-    --sidebar-background: 24 6% 10%;
-    --sidebar-foreground: 60 5% 90%;
-    --sidebar-primary: 160 84% 39%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 24 5% 18%;
-    --sidebar-accent-foreground: 160 84% 39%;
-    --sidebar-border: 24 5% 18%;
-    --sidebar-ring: 160 84% 39%;
+    --sidebar-accent: 215 28% 22%;
+    --sidebar-accent-foreground: 217 91% 60%;
+    --sidebar-border: 215 28% 22%;
+    --sidebar-ring: 217 91% 60%;
 
     --glass-blur: blur(20px);
-    --glass-bg: rgba(28, 25, 23, 0.4);
-    --glass-border: rgba(255, 255, 255, 0.05);
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.08);
   }
 
   /* ===== BASE STYLES ===== */
@@ -120,36 +130,27 @@
   }
 
   /* Typography */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-weight: 600;
+    letter-spacing: -0.03em;
   }
 
   /* Smooth transitions */
-  button,
-  a,
-  input,
-  select,
-  textarea {
-    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  button, a, input, select, textarea {
+    transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   /* Focus visible styling */
   *:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary));
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
   }
 
-  /* Scrollbar styling - Global Mac-like style */
+  /* Scrollbar styling - Minimalist */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -157,167 +158,65 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--border) / 0.8);
+    background-color: hsl(var(--muted-foreground) / 0.3);
     border-radius: 9999px;
-    border: 3px solid transparent;
-    background-clip: content-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--foreground) / 0.4);
-    border-width: 2px;
-  }
-
-  ::-webkit-scrollbar-corner {
-    background: transparent;
+    background-color: hsl(var(--muted-foreground) / 0.6);
   }
 
   /* Selection styling */
   ::selection {
-    background-color: hsl(var(--primary-500) / 0.2);
-    color: hsl(var(--foreground-primary));
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--primary));
   }
 }
 
 @layer utilities {
-  /* ===== PRINT UTILITIES ===== */
-  .print-only {
-    display: none;
-  }
-
+  .print-only { display: none; }
   @media print {
-    .printing {
-      visibility: visible;
-      padding: 0;
-    }
-
-    .main-content-container {
-      display: none;
-    }
-
-    .print-only {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    .safe-area-bottom,
-    .pb-safe {
-      padding-bottom: 0 !important;
-    }
+    .printing { visibility: visible; padding: 0; }
+    .main-content-container { display: none; }
+    .print-only { display: block; width: 100%; height: 100%; }
+    .safe-area-bottom, .pb-safe { padding-bottom: 0 !important; }
   }
 
-  /* ===== DESIGN SYSTEM 2.0 UTILITIES ===== */
-  
-  /* Glassmorphism - Updated for Minimalist/Bento + Glass Accent */
-  .glass {
-    background-color: rgb(255 255 255 / 0.1);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgb(255 255 255 / 0.2);
-  }
-
+  /* Core Ultra-Modern Utilities */
   .glass-panel {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05), 0 2px 8px -2px rgba(0, 0, 0, 0.03);
   }
 
-  .dark .glass-panel {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .glass-dark {
-    background-color: rgb(0 0 0 / 0.1);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgb(255 255 255 / 0.1);
-  }
-
-  /* Text gradients */
   .text-gradient-primary {
-    background-image: linear-gradient(to right, hsl(var(--primary-400)), hsl(var(--primary-600)));
+    background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--chart-3)));
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
   }
 
-  .text-gradient-accent {
-    background-image: linear-gradient(to right, hsl(var(--accent-400)), hsl(var(--accent-600)));
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-  }
-
-  /* Background gradients */
   .bg-gradient-primary {
-    background-image: linear-gradient(to bottom right, hsl(var(--primary-500)), hsl(var(--primary-700)));
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--chart-3)));
   }
 
-  .bg-gradient-accent {
-    background-image: linear-gradient(to bottom right, hsl(var(--accent-500)), hsl(var(--accent-700)));
-  }
-
-  /* Skeleton shimmer effect */
-  .skeleton-shimmer {
-    background: linear-gradient(
-      90deg,
-      hsl(var(--border-subtle)) 0%,
-      hsl(var(--border-default)) 50%,
-      hsl(var(--border-subtle)) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2s linear infinite;
-  }
-
-  /* Animated blob backgrounds */
+  /* Animated Blob Backgrounds for Login/Dashboards */
   .blob-bg {
     position: fixed;
-    width: 40%;
-    height: 40%;
     border-radius: 50%;
     filter: blur(120px);
-    opacity: 0.1;
+    opacity: 0.15;
     pointer-events: none;
     z-index: -1;
   }
 
-  .blob-primary {
-    background-color: hsl(var(--primary-500));
-  }
-
-  .blob-accent {
-    background-color: hsl(var(--accent-500));
-  }
-
-  /* Safe area for mobile */
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top);
-  }
-
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .pb-safe {
-    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
-  }
-
-  /* Container queries support */
-  @supports (container-type: inline-size) {
-    .container-queries {
-      container-type: inline-size;
-    }
-  }
+  .blob-primary { background-color: hsl(var(--primary)); }
+  .blob-accent { background-color: hsl(var(--accent)); }
 }
 
-/* ===== ANIMATIONS ===== */
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

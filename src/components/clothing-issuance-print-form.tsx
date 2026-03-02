@@ -6,33 +6,33 @@ import { Employee, ClothingIssuance } from '@/lib/types';
 import { formatDate } from '@/lib/date';
 
 interface ClothingIssuancePrintFormProps {
-  employee: Employee | null;
-  issuance: ClothingIssuance | null;
+    employee: Employee | null;
+    issuance: ClothingIssuance | null;
 }
 
 export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, ClothingIssuancePrintFormProps>(
-  ({ employee, issuance }, ref) => {
-    
-    if (!employee || !issuance) {
-        return <div ref={ref} />;
-    }
+    ({ employee, issuance }, ref) => {
 
-    const isFullSetDescription = issuance.items.length === 1 && issuance.items[0].id === 'full-set';
-    
-    let itemsToRender: { name: string; quantity: number }[] = [];
+        if (!employee || !issuance) {
+            return <div ref={ref} />;
+        }
 
-    if (isFullSetDescription) {
-        const description = issuance.items[0].name || '';
-        itemsToRender = description.split('\n').map(line => line.trim()).filter(line => line).map(name => ({ name, quantity: 1 }));
-    } else {
-        itemsToRender = issuance.items;
-    }
+        const isFullSetDescription = issuance.items.length === 1 && issuance.items[0].id === 'full-set';
+
+        let itemsToRender: { name: string; quantity: number }[] = [];
+
+        if (isFullSetDescription) {
+            const description = issuance.items[0].name || '';
+            itemsToRender = description.split('\n').map(line => line.trim()).filter(line => line).map(name => ({ name, quantity: 1 }));
+        } else {
+            itemsToRender = issuance.items;
+        }
 
 
-    return (
-      <div ref={ref} className="text-black bg-white font-serif">
-         <style type="text/css" media="print">
-          {`
+        return (
+            <div ref={ref} className="text-black bg-white font-serif">
+                <style type="text/css" media="print">
+                    {`
             @page { 
               size: A4;
               margin: 1cm;
@@ -44,65 +44,52 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
               font-size: 11pt;
             }
           `}
-        </style>
-        <div className="h-full flex flex-col justify-center items-center">
-            <div className="w-full">
-                <header className="text-center mb-6">
-                    <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
-                    <p className="text-sm">(Workwear Issuance Confirmation)</p>
-                </header>
+                </style>
+                <div className="h-full flex flex-col justify-center items-center text-center">
+                    <div className="w-full">
+                        <header className="mb-6">
+                            <h1 className="text-lg font-bold">POTWIERDZENIE WYDANIA ODZIEŻY ROBOCZEJ</h1>
+                            <p className="text-sm">(Workwear Issuance Confirmation)</p>
+                        </header>
 
-                <div className="text-right mb-4">
-                    <p>Data wydania: {formatDate(issuance.date, 'dd.MM.yyyy')}</p>
-                </div>
-                
-                <section className="space-y-2 mb-4 text-sm">
-                    <p><strong>Dane Pracownika / Employee Details:</strong></p>
-                    <div className="grid grid-cols-[120px_1fr] gap-x-2 gap-y-1">
-                        <p>Imię i nazwisko:</p> <p className="font-semibold">{employee.fullName}</p>
-                        <p>Stanowisko:</p>    <p className="font-semibold">{employee.jobTitle}</p>
-                        <p>Dział:</p>          <p className="font-semibold">{employee.department}</p>
-                        <p>Numer karty:</p>   <p className="font-semibold">{employee.cardNumber}</p>
-                    </div>
-                </section>
+                        <div className="mb-4">
+                            <p>Data wydania: {formatDate(issuance.date, 'dd.MM.yyyy')}</p>
+                        </div>
 
-                <section className="mb-6">
-                    <p className="font-bold text-sm mb-2">Wydane elementy / Issued Items:</p>
-                    <div className="border border-black p-2 text-sm min-h-[140px]">
-                      {itemsToRender.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between border-b border-dotted border-gray-300 py-1.5 last:border-b-0">
-                              <div className="flex items-center">
-                                  <span className="w-8">{index + 1}.</span>
-                                  <span>{item.name}</span>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                  <span className="text-xs">(x{item.quantity})</span>
-                                  <div className="h-5 w-5 border border-black"></div>
-                              </div>
-                          </div>
-                      ))}
-                    </div>
-                </section>
-            
-                <footer className="text-sm mt-auto">
-                <div className="flex justify-between items-end pt-16">
-                    <div className="text-center w-2/5">
-                        <div className="border-t border-dotted border-black pt-1">
-                            <p className="text-xs">(data i podpis pracownika)</p>
-                        </div>
-                    </div>
-                    <div className="text-center w-2/5">
-                        <div className="border-t border-dotted border-black pt-1">
-                            <p className="text-xs">(podpis osoby wydającej)</p>
-                        </div>
+                        <section className="space-y-2 mb-6 text-sm flex flex-col items-center">
+                            <p><strong>Dane Pracownika / Employee Details:</strong></p>
+                            <div className="flex flex-col items-center gap-1">
+                                <p>Imię i nazwisko: <span className="font-semibold">{employee.fullName}</span></p>
+                                <p>Stanowisko: <span className="font-semibold">{employee.jobTitle}</span></p>
+                                <p>Dział: <span className="font-semibold">{employee.department}</span></p>
+                                <p>Numer karty: <span className="font-semibold">{employee.cardNumber}</span></p>
+                            </div>
+                        </section>
+
+                        <section className="mb-8">
+                            <p className="font-bold text-sm mb-4">Wydane elementy / Issued Items:</p>
+                            <div className="text-sm flex flex-col items-center space-y-2">
+                                {itemsToRender.map((item, index) => (
+                                    <div key={index} className="flex flex-col items-center justify-center gap-1">
+                                        <span className="font-medium">{item.name} <span className="text-xs font-normal text-gray-700">(x{item.quantity})</span></span>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        <footer className="text-sm mt-12 flex flex-col items-center gap-12 pt-8">
+                            <div>
+                                <p className="text-xs">(data i podpis pracownika)</p>
+                            </div>
+                            <div>
+                                <p className="text-xs">(podpis osoby wydającej)</p>
+                            </div>
+                        </footer>
                     </div>
                 </div>
-            </footer>
             </div>
-        </div>
-      </div>
-    );
-  }
+        );
+    }
 );
 
 ClothingIssuancePrintForm.displayName = 'ClothingIssuancePrintForm';

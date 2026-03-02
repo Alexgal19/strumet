@@ -2,20 +2,20 @@
 
 import './globals.css';
 import React from 'react';
-import { Merriweather, Nunito } from 'next/font/google';
+import { Outfit, Inter } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
 import { AppShell } from '@/components/app-shell';
 import type { Metadata, Viewport } from 'next';
 import ServiceWorkerRegister from '@/components/service-worker-register';
 
-const merriweather = Merriweather({
+const outfit = Outfit({
   subsets: ['latin'],
-  weight: ['300', '400', '700', '900'],
+  weight: ['300', '400', '500', '600', '700', '900'],
   variable: '--font-heading',
 });
 
-const nunito = Nunito({
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-body',
 });
@@ -46,9 +46,9 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" crossOrigin="use-credentials" />
       </head>
       <body className={cn(
-          "font-sans antialiased bg-background text-foreground",
-          nunito.variable,
-          merriweather.variable
+        "font-sans antialiased bg-background text-foreground tracking-tight selection:bg-primary/20",
+        inter.variable,
+        outfit.variable
       )}>
         <ServiceWorkerRegister />
         <Providers>

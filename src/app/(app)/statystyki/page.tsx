@@ -2,8 +2,9 @@
 
 import React, { useMemo, useState, useEffect, forwardRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChartContainer } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive, UserPlus, UserX, CalendarClock } from 'lucide-react';
 import { Employee, Order, AllConfig, Stats, User, UserRole, StatsSnapshot } from '@/lib/types';
@@ -183,13 +184,13 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 
     // Explicitly typed render function to avoid implicit any errors if any
     const renderPieChart = (data: any[], title: string, description: string, type: "department" | "nationality" | "jobTitle") => (
-        <Card className="flex flex-col">
+        <Card className="flex flex-col shadow-elevation-md hover:shadow-elevation-lg transition-shadow border-0 bg-background/50 backdrop-blur-xl">
             <CardHeader>
-                <CardTitle className="text-xl">{title}</CardTitle>
+                <CardTitle className="text-xl font-bold text-foreground">{title}</CardTitle>
                 <CardDescription className="text-sm">{description}</CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 flex items-center justify-center">
-                <ChartContainer config={{}} className="h-[350px] w-full">
+            <CardContent className="flex-1 flex items-center justify-center -mt-4">
+                <ChartContainer config={{}} className="h-[380px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Tooltip content={<CustomTooltip />} />
@@ -199,14 +200,18 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                 nameKey="name"
                                 cx="50%"
                                 cy="50%"
-                                outerRadius={120}
-                                innerRadius={90}
-                                paddingAngle={2}
-                                labelLine={false}
+                                outerRadius={125}
+                                innerRadius={85}
+                                paddingAngle={3}
+                                cornerRadius={6}
+                                isAnimationActive={true}
+                                animationDuration={1200}
+                                animationEasing="ease-out"
+                                stroke="none"
                                 onClick={(data: any) => handleChartClick(data.name, type)}
                             >
                                 {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} stroke={"hsl(var(--card))"} className="cursor-pointer" />
+                                    <Cell key={`cell-${index}`} fill={entry.fill} className="cursor-pointer hover:opacity-80 transition-opacity drop-shadow-sm" />
                                 ))}
                             </Pie>
                             <Legend
@@ -214,12 +219,12 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                 layout="vertical"
                                 verticalAlign="middle"
                                 align="right"
-                                iconSize={10}
-                                wrapperStyle={{ lineHeight: "1.8em" }}
+                                iconSize={12}
+                                wrapperStyle={{ lineHeight: "2em" }}
                                 onClick={(d: any) => handleChartClick(d.value, type)}
                                 formatter={(value, entry: any) => (
-                                    <span className="text-muted-foreground text-sm pl-2 cursor-pointer hover:text-foreground">
-                                        {value} <span className="font-bold">({entry.payload?.value})</span>
+                                    <span className="text-muted-foreground text-sm pl-2 cursor-pointer hover:text-primary transition-colors">
+                                        {value} <span className="font-bold text-foreground ml-1">{entry.payload?.value}</span>
                                     </span>
                                 )}
                             />
@@ -279,47 +284,63 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         </div>
         {activeEmployees.length === 0 ? (<div className="text-center text-muted-foreground py-10">
             Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
-        </div>) : (<>
+        </div>) : (<motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, staggerChildren: 0.1 }}
+            className="space-y-6"
+        >
             <div className="grid gap-4 md:grid-cols-3">
-                <Card className="glass-panel border-0">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-base font-medium">Aktywni pracownicy</CardTitle>
-                        <Users className="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalActiveEmployees}</div>
-                        <p className="text-xs text-muted-foreground">Całkowita liczba pracowników</p>
-                    </CardContent>
-                </Card>
-                <Card className="glass-panel border-0">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-base font-medium">Liczba działów</CardTitle>
-                        <Building className="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalDepartments}</div>
-                        <p className="text-xs text-muted-foreground">Aktywne działy w firmie</p>
-                    </CardContent>
-                </Card>
-                <Card className="glass-panel border-0">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-base font-medium">Liczba stanowisk</CardTitle>
-                        <Briefcase className="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalJobTitles}</div>
-                        <p className="text-xs text-muted-foreground">Liczba unikalnych stanowisk w firmie</p>
-                    </CardContent>
-                </Card>
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
+                    <Card className="glass-panel border-0 shadow-elevation-md hover:shadow-elevation-lg transition-shadow">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-base font-medium">Aktywni pracownicy</CardTitle>
+                            <Users className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold text-gradient-primary">{stats.totalActiveEmployees}</div>
+                            <p className="text-xs text-muted-foreground mt-1">Całkowita liczba pracowników</p>
+                        </CardContent>
+                    </Card>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+                    <Card className="glass-panel border-0 shadow-elevation-md hover:shadow-elevation-lg transition-shadow">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-base font-medium">Liczba działów</CardTitle>
+                            <Building className="h-4 w-4 text-accent" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold">{stats.totalDepartments}</div>
+                            <p className="text-xs text-muted-foreground mt-1">Aktywne działy w firmie</p>
+                        </CardContent>
+                    </Card>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
+                    <Card className="glass-panel border-0 shadow-elevation-md hover:shadow-elevation-lg transition-shadow">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-base font-medium">Liczba stanowisk</CardTitle>
+                            <Briefcase className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold">{stats.totalJobTitles}</div>
+                            <p className="text-xs text-muted-foreground mt-1">Liczba unikalnych stanowisk</p>
+                        </CardContent>
+                    </Card>
+                </motion.div>
             </div>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+            >
                 {renderPieChart(departmentData, "Rozkład wg Działów", "Liczba pracowników w poszczególnych działach.", "department")}
                 {renderPieChart(nationalityData, "Rozkład wg Narodowości", "Struktura pracowników z podziałem na narodowości.", "nationality")}
                 <div className="lg:col-span-2">
                     {renderPieChart(jobTitleData, "Rozkład wg Stanowisk", "Liczba pracowników na poszczególnych stanowiskach.", "jobTitle")}
                 </div>
-            </div>
-        </>)}
+            </motion.div>
+        </motion.div>)}
         <Dialog open={isStatDialogOpen} onOpenChange={setIsStatDialogOpen}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
@@ -749,7 +770,7 @@ const OrdersTab = () => {
     useEffect(() => {
         const db = getDB();
         if (!db) return;
-        
+
         const ordersRef = dbRef(db, 'orders');
         const unsubscribe = onValue(ordersRef, (snapshot) => {
             setOrders(objectToArray(snapshot.val()));
