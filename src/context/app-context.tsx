@@ -105,6 +105,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [services, setServices] = useState<FirebaseServices | null>(null);
     
     const dataLoadedRef = useRef<Set<string>>(new Set());
+    const authInitializedRef = useRef(false);
 
     const isAdmin = currentUser?.role === 'admin';
 
@@ -115,6 +116,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setServices({ auth, db });
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
+            authInitializedRef.current = true;
             if (user) {
                 const userRoleRef = ref(db, `users/${user.uid}/role`);
                 const unsubscribeRole = onValue(userRoleRef, (snapshot) => {
@@ -139,7 +141,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setAbsences([]);
             setNotifications([]);
             setStatsHistory([]);
-            setIsLoading(false); // User is not authenticated
+            // Only stop loading after Firebase auth has confirmed the user state.
+            // Without this guard, isLoading is set to false before onAuthStateChanged fires,
+            // causing a false redirect to /login on page refresh.
+            if (authInitializedRef.current) {
+                setIsLoading(false);
+            }
             return;
         }
 
