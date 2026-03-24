@@ -180,6 +180,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         await handleSaveEmployee(employeeData);
         setEditingEmployee(null);
         setIsFormOpen(false);
+        setIsStatDialogOpen(true);
     };
 
     // Explicitly typed render function to avoid implicit any errors if any
@@ -357,13 +358,13 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             </DialogContent>
         </Dialog>
 
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setIsStatDialogOpen(true); }}>
             <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-3xl max-h-[90vh] flex flex-col">
                 <DialogHeader className="flex-shrink-0">
                     <DialogTitle>Edytuj pracownika</DialogTitle>
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto -mr-6 pr-6">
-                    <EmployeeForm employee={editingEmployee} onSave={onSave} onCancel={() => setIsFormOpen(false)} config={config} />
+                    <EmployeeForm employee={editingEmployee} onSave={onSave} onCancel={() => { setIsFormOpen(false); setIsStatDialogOpen(true); }} config={config} />
                 </div>
             </DialogContent>
         </Dialog>

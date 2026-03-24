@@ -240,6 +240,7 @@ export default function OdwiedzalnoscPage() {
                     title="Obecność"
                     description="Zarządzaj nieobecnościami pracowników i analizuj statystyki."
                 />
+                <div className="flex-grow overflow-y-auto min-h-0">
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     <Card>
@@ -315,7 +316,7 @@ export default function OdwiedzalnoscPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {filteredEmployees.map(emp => (
@@ -343,6 +344,7 @@ export default function OdwiedzalnoscPage() {
                         onCopy={handleCopy}
                     />
                     </div>
+                </div>
                 </div>
             </>
         )}
