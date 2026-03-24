@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="relative flex h-dvh flex-col md:flex-row bg-background overflow-hidden">
+    <div className="relative flex h-[100dvh] flex-col md:flex-row bg-background overflow-hidden">
       <div className={cn(isAuthPage && 'hidden')}>
         <AppSidebar pathname={pathname} />
       </div>

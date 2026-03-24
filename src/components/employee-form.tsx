@@ -8,11 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, UserX, Scan, ClipboardCopy } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, UserX, Scan, ClipboardCopy, Shirt } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { Employee, AllConfig } from '@/lib/types';
+import type { Employee, AllConfig, ClothingIssuance } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
@@ -60,6 +60,7 @@ interface EmployeeFormProps {
   onSave: (employee: Employee) => void;
   onCancel: () => void;
   onTerminate?: (id: string, fullName: string) => void;
+  onPrintClothing?: (employee: Employee, issuance: ClothingIssuance) => void;
   config: AllConfig;
 }
 
@@ -103,7 +104,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
     };
 };
 
-export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }: EmployeeFormProps) {
+export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintClothing, config }: EmployeeFormProps) {
     const { departments, jobTitles, managers, nationalities } = config;
     const { toast } = useToast();
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
@@ -185,6 +186,34 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
 
     const handleChange = (field: keyof typeof formData, value: string | undefined) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const clothingSet = React.useMemo(() => {
+        if (!formData.jobTitle || !config.jobTitles || !config.jobTitleClothingSets) return null;
+        const jobTitleObj = config.jobTitles.find(jt => jt.name === formData.jobTitle);
+        if (!jobTitleObj) return null;
+        const set = config.jobTitleClothingSets.find(s => s.id === jobTitleObj.id);
+        if (!set?.description) return null;
+        return [{ id: 'full-set', name: set.description, quantity: 1 }];
+    }, [formData.jobTitle, config.jobTitles, config.jobTitleClothingSets]);
+
+    const handleOpenClothingDialog = () => {
+        if (!clothingSet || !onPrintClothing) return;
+        const fullName = `${firstName.trim()} ${lastName.trim()}`;
+        const tempEmployee: Employee = {
+            ...formData,
+            id: employee?.id || 'temp',
+            status: employee?.status || 'aktywny',
+            fullName,
+        };
+        const issuance: ClothingIssuance = {
+            id: `print-temp-${Date.now()}`,
+            employeeId: tempEmployee.id,
+            employeeFullName: fullName,
+            date: new Date().toISOString(),
+            items: clothingSet,
+        };
+        onPrintClothing(tempEmployee, issuance);
     };
 
     const renderError = (field: string) => {
@@ -364,9 +393,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
             <div className="flex justify-between items-center gap-2 pt-2">
                 <div>
                   {employee && employee.status === 'aktywny' && onTerminate && (
-                      <Button 
-                          type="button" 
-                          variant="destructive" 
+                      <Button
+                          type="button"
+                          variant="destructive"
                           onClick={() => onTerminate(employee.id, employee.fullName)}
                       >
                          <UserX className="mr-2 h-4 w-4" />
@@ -375,6 +404,16 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, config }
                   )}
                 </div>
                 <div className="flex justify-end gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleOpenClothingDialog}
+                        disabled={!clothingSet}
+                        title={!clothingSet ? 'Brak zestawu odzieży dla wybranego stanowiska' : 'Wydawanie odzieży dla nowych'}
+                    >
+                        <Shirt className="mr-2 h-4 w-4" />
+                        Wydawanie odzieży
+                    </Button>
                     <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
                     <Button type="submit">Zapisz</Button>
                 </div>

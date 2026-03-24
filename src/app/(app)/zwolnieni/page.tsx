@@ -13,8 +13,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Trash2 } from 'lucide-react';
-import type { Employee } from '@/lib/types';
+import { RotateCcw, Trash2, Printer } from 'lucide-react';
+import type { Employee, ClothingIssuance } from '@/lib/types';
+import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { PageHeader } from '@/components/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
@@ -43,6 +44,20 @@ export default function ZwolnieniPage() {
   
   const [restoringEmployee, setRestoringEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
+  const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
+  const clothingPrintRef = React.useRef<HTMLDivElement>(null);
+
+  const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
+    setClothingPrintData({ employee, issuance });
+  };
+
+  const handleDoPrint = () => {
+    document.body.classList.add('printing');
+    setTimeout(() => {
+      window.print();
+      document.body.classList.remove('printing');
+    }, 100);
+  };
 
   const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
     await handleRestoreEmployee(employeeId, employeeFullName);
@@ -131,6 +146,7 @@ export default function ZwolnieniPage() {
               employee={editingEmployee}
               onSave={onSave}
               onCancel={() => setIsFormOpen(false)}
+              onPrintClothing={handlePrintClothingIssuance}
               config={config}
             />
           </div>
@@ -195,6 +211,38 @@ export default function ZwolnieniPage() {
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={!!clothingPrintData} onOpenChange={(open) => !open && setClothingPrintData(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 flex flex-row items-center justify-between pr-8">
+            <DialogTitle>Wydawanie odzieży roboczej</DialogTitle>
+            <Button size="sm" onClick={handleDoPrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Drukuj / PDF
+            </Button>
+          </DialogHeader>
+          <div className="flex-grow overflow-y-auto">
+            {clothingPrintData && (
+              <div className="bg-white border rounded-md">
+                <ClothingIssuancePrintForm
+                  ref={clothingPrintRef}
+                  employee={clothingPrintData.employee}
+                  issuance={clothingPrintData.issuance}
+                />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="print-only">
+        {clothingPrintData && (
+          <ClothingIssuancePrintForm
+            ref={clothingPrintRef}
+            employee={clothingPrintData.employee}
+            issuance={clothingPrintData.issuance}
+          />
+        )}
+      </div>
       </>
     </div>
   );
