@@ -83,6 +83,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             contractEndDate: employee.contractEndDate,
             legalizationStatus: employee.legalizationStatus || 'Brak',
             terminationDate: employee.terminationDate,
+            welderLicense: employee.welderLicense || 'Nie',
         };
     }
     return {
@@ -101,6 +102,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
         vacationEndDate: undefined,
         contractEndDate: undefined,
         legalizationStatus: 'Brak',
+        welderLicense: 'Nie',
     };
 };
 
@@ -320,6 +322,17 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                             placeholder="Wybierz datę"
                         />
                         {renderError('hireDate')}
+                    </div>
+                     <div>
+                        <Label>Licencja spawacza</Label>
+                        <Select value={formData.welderLicense} onValueChange={value => handleChange('welderLicense', value)}>
+                            <SelectTrigger><SelectValue placeholder="Wybierz..." /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Tak">Tak</SelectItem>
+                                <SelectItem value="Nie">Nie</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {renderError('welderLicense')}
                     </div>
                 </div>
             </div>

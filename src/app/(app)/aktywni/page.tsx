@@ -45,6 +45,7 @@ const exportColumns = [
   { key: 'lockerNumber' as keyof Employee, name: 'Nr szafki' },
   { key: 'departmentLockerNumber' as keyof Employee, name: 'Nr szafki w dziale' },
   { key: 'sealNumber' as keyof Employee, name: 'Nr pieczęci' },
+  { key: 'welderLicense' as keyof Employee, name: 'Licencja spawacza' },
 ];
 
 export default function AktywniPage() {

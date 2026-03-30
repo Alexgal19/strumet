@@ -140,6 +140,22 @@ export function getColumns({
         return value.includes(row.getValue(id))
       },
     },
+    {
+      accessorKey: "welderLicense",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Licencja spraw." />
+      ),
+      cell: ({ row }) => {
+        const value = row.getValue("welderLicense") as string | undefined;
+        return <span>{value === 'Tak' ? 'Tak' : 'Nie'}</span>;
+      },
+      filterFn: (row, id, value) => {
+        if (!value || value.length === 0) return true;
+        const cellValue = row.getValue(id) as string | undefined;
+        const normalized = cellValue === 'Tak' ? 'Tak' : 'Nie';
+        return value.includes(normalized);
+      },
+    },
     ...(status === 'aktywny' ? [{
       accessorKey: "legalizationStatus",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
