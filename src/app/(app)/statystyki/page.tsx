@@ -1072,7 +1072,7 @@ export default function StatisticsPage() {
     const isLoading = isContextLoading || isEmployeesLoading;
 
     return (
-        <div className="h-full flex flex-col w-full">
+        <div className="min-h-full flex flex-col w-full">
             <PageHeader
                 title="Statystyki i Planowanie"
                 description="Kluczowe wskaźniki i zapotrzebowanie na personel."

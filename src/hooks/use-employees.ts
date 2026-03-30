@@ -8,6 +8,7 @@ import {
 } from 'firebase/database';
 import { getFirebaseServices } from '@/lib/firebase';
 import type { Employee } from '@/lib/types';
+import { useAppContext } from '@/context/app-context';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): Employee[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -17,6 +18,7 @@ export const useEmployees = (status?: 'aktywny' | 'zwolniony') => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { currentUser } = useAppContext();
   
   // Use a ref to track if the component is mounted to avoid state updates on unmount
   const isMounted = useRef(true);
@@ -25,8 +27,9 @@ export const useEmployees = (status?: 'aktywny' | 'zwolniony') => {
     isMounted.current = true;
     const services = getFirebaseServices();
     
-    if (!services) {
+    if (!services || !currentUser) {
         setIsLoading(false);
+        setEmployees([]);
         return;
     }
 
@@ -57,7 +60,7 @@ export const useEmployees = (status?: 'aktywny' | 'zwolniony') => {
       isMounted.current = false;
       unsubscribe();
     };
-  }, [status]);
+  }, [status, currentUser]);
 
   return { employees, isLoading, error };
 };

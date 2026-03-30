@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <SidebarInset
         className={cn(
-          'm-0 flex flex-1 flex-col min-w-0',
+          'm-0 flex flex-1 flex-col min-w-0 overflow-y-auto',
           !isAuthPage &&
           'md:m-2 md:p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 md:rounded-2xl bg-background border border-border shadow-lg'
         )}
