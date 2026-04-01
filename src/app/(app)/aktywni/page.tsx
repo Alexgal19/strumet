@@ -28,6 +28,7 @@ import { ExcelImportButton } from '@/components/excel-import-button';
 import { HireDateImportButton } from '@/components/hire-date-import-button';
 import { ContractEndDateImportButton } from '@/components/contract-end-date-import-button';
 import { EmployeeForm } from '@/components/employee-form';
+import { DepartmentExcelExportButton } from '@/components/department-excel-export-button';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { EmployeeTable } from '../employees/employee-table';
@@ -106,6 +107,11 @@ export default function AktywniPage() {
             description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
           >
             <div className="hidden md:flex shrink-0 items-center gap-2">
+              <DepartmentExcelExportButton
+                employees={activeEmployees}
+                departments={config.departments?.map(d => d.name) ?? []}
+                columns={exportColumns}
+              />
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="icon" title="Więcej opcji">
