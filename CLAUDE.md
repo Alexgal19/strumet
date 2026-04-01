@@ -5,7 +5,7 @@
 > All other content must be updated manually.
 
 **Last updated:** <!-- AUTO:last-updated -->
-2026-03-30 17:26
+2026-04-01 17:43
 <!-- /AUTO:last-updated -->
 
 ---
@@ -93,6 +93,7 @@ src/app/
 | `contract-end-date-import-button.tsx` | |
 | `data-table-multi-select-filter.tsx` | |
 | `data-table.tsx` | |
+| `department-excel-export-button.tsx` | |
 | `employee-attendance-card.tsx` | |
 | `employee-card.tsx` | |
 | `employee-form.tsx` | |
