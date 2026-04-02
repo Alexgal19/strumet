@@ -343,7 +343,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             </motion.div>
         </motion.div>)}
         <Dialog open={isStatDialogOpen} onOpenChange={setIsStatDialogOpen}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-2xl max-h-[90dvh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>{dialogContent?.title}</DialogTitle>
                     <DialogDescription>
@@ -359,7 +359,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         </Dialog>
 
         <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setIsStatDialogOpen(true); }}>
-            <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-3xl max-h-[90vh] flex flex-col">
+            <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-[calc(100vw-1rem)] sm:max-w-3xl max-h-[90dvh] flex flex-col">
                 <DialogHeader className="flex-shrink-0">
                     <DialogTitle>Edytuj pracownika</DialogTitle>
                 </DialogHeader>
@@ -995,7 +995,7 @@ const OrdersTab = () => {
             </div>
 
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent>
+                <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Edytuj zamówienie</DialogTitle>
                         <DialogDescription>

@@ -224,18 +224,18 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
 
     return (
         <>
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2">
                     <h3 className="text-lg font-medium text-foreground">Dane osobowe</h3>
                     <div className="flex items-center gap-2">
-                        <Button type="button" variant="outline" size="sm" onClick={handleCopyFullName}>
-                            <ClipboardCopy className="mr-2 h-4 w-4" />
-                            Kopiuj imię i nazwisko
+                        <Button type="button" variant="outline" size="sm" onClick={handleCopyFullName} title="Kopiuj imię i nazwisko">
+                            <ClipboardCopy className="h-4 w-4" />
+                            <span className="hidden sm:inline ml-2">Kopiuj</span>
                         </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={() => setIsScannerOpen(true)}>
-                            <Scan className="mr-2 h-4 w-4" />
-                            Skanuj Paszport
+                        <Button type="button" variant="outline" size="sm" onClick={() => setIsScannerOpen(true)} title="Skanuj Paszport">
+                            <Scan className="h-4 w-4" />
+                            <span className="hidden sm:inline ml-2">Skanuj</span>
                         </Button>
                     </div>
                 </div>
@@ -403,7 +403,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
             </div>
 
-            <div className="flex justify-between items-center gap-2 pt-2">
+            <div className="flex flex-wrap justify-between items-center gap-2 pt-2">
                 <div>
                   {employee && employee.status === 'aktywny' && onTerminate && (
                       <Button
@@ -416,7 +416,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                       </Button>
                   )}
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex flex-wrap justify-end gap-2">
                     <Button
                         type="button"
                         variant="outline"
@@ -425,7 +425,8 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         title={!clothingSet ? 'Brak zestawu odzieży dla wybranego stanowiska' : 'Wydawanie odzieży dla nowych'}
                     >
                         <Shirt className="mr-2 h-4 w-4" />
-                        Wydawanie odzieży
+                        <span className="hidden sm:inline">Wydawanie odzieży</span>
+                        <span className="sm:hidden">Odzież</span>
                     </Button>
                     <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
                     <Button type="submit">Zapisz</Button>

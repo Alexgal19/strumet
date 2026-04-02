@@ -136,7 +136,7 @@ export default function ZwolnieniPage() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent 
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className="sm:max-w-3xl max-h-[90vh] flex flex-col"
+          className="w-[calc(100vw-1rem)] sm:max-w-3xl max-h-[90dvh] flex flex-col"
         >
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Edytuj pracownika</DialogTitle>
@@ -212,7 +212,7 @@ export default function ZwolnieniPage() {
           </AlertDialogContent>
       </AlertDialog>
       <Dialog open={!!clothingPrintData} onOpenChange={(open) => !open && setClothingPrintData(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-3xl max-h-[90dvh] flex flex-col">
           <DialogHeader className="flex-shrink-0 flex flex-row items-center justify-between pr-8">
             <DialogTitle>Wydawanie odzieży roboczej</DialogTitle>
             <Button size="sm" onClick={handleDoPrint}>

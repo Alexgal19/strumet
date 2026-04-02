@@ -35,62 +35,15 @@ export function DataTableToolbar<TData>({
   const isFiltered = table.getState().columnFilters.length > 0
 
   return (
-    <div className="flex flex-col space-y-4">
-      <Input
-        placeholder="Szukaj..."
-        value={(table.getState().globalFilter as string) ?? ""}
-        onChange={(event) => table.setGlobalFilter(event.target.value)}
-        className="h-8 w-full lg:w-1/3"
-      />
-      <div className="flex items-center justify-between">
-        <div className="flex flex-1 items-center space-x-2 overflow-x-auto pb-2">
-          {lastNameOptions && table.getColumn("lastName") && (
-            <DataTableFacetedFilter
-              column={table.getColumn("lastName")}
-              title="Nazwisko"
-              options={lastNameOptions}
-            />
-          )}
-          {table.getColumn("department") && (
-            <DataTableFacetedFilter
-              column={table.getColumn("department")}
-              title="Dział"
-              options={departmentOptions}
-            />
-          )}
-          {table.getColumn("jobTitle") && (
-            <DataTableFacetedFilter
-              column={table.getColumn("jobTitle")}
-              title="Stanowisko"
-              options={jobTitleOptions}
-            />
-          )}
-          {table.getColumn("manager") && (
-            <DataTableFacetedFilter
-              column={table.getColumn("manager")}
-              title="Kierownik"
-              options={managerOptions}
-            />
-          )}
-          {table.getColumn("nationality") && (
-            <DataTableFacetedFilter
-              column={table.getColumn("nationality")}
-              title="Narodowość"
-              options={nationalityOptions}
-            />
-          )}
-          {isFiltered && (
-            <Button
-              variant="ghost"
-              onClick={() => table.resetColumnFilters()}
-              className="h-8 px-2 lg:px-3"
-            >
-              Wyczyść
-              <X className="ml-2 h-4 w-4" />
-            </Button>
-          )}
-        </div>
-        <div className="flex items-center space-x-2">
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-2">
+        <Input
+          placeholder="Szukaj..."
+          value={(table.getState().globalFilter as string) ?? ""}
+          onChange={(event) => table.setGlobalFilter(event.target.value)}
+          className="h-8 flex-1 lg:max-w-xs"
+        />
+        <div className="flex items-center gap-2 shrink-0">
           {exportColumns && (
             <ExcelExportButton
               employees={table.getCoreRowModel().rows.map(row => row.original as Employee)}
@@ -100,6 +53,53 @@ export function DataTableToolbar<TData>({
           )}
           <DataTableViewOptions table={table} />
         </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {lastNameOptions && table.getColumn("lastName") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("lastName")}
+            title="Nazwisko"
+            options={lastNameOptions}
+          />
+        )}
+        {table.getColumn("department") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("department")}
+            title="Dział"
+            options={departmentOptions}
+          />
+        )}
+        {table.getColumn("jobTitle") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("jobTitle")}
+            title="Stanowisko"
+            options={jobTitleOptions}
+          />
+        )}
+        {table.getColumn("manager") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("manager")}
+            title="Kierownik"
+            options={managerOptions}
+          />
+        )}
+        {table.getColumn("nationality") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("nationality")}
+            title="Narodowość"
+            options={nationalityOptions}
+          />
+        )}
+        {isFiltered && (
+          <Button
+            variant="ghost"
+            onClick={() => table.resetColumnFilters()}
+            className="h-8 px-2 lg:px-3"
+          >
+            Wyczyść
+            <X className="ml-2 h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   )

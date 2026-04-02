@@ -272,47 +272,49 @@ export default function OdwiedzalnoscPage() {
                     </Card>
                 </div>
 
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                    <h2 className="text-2xl font-bold tracking-tight capitalize">
-                    {format(currentDate, 'LLLL yyyy', { locale: pl })}
-                    </h2>
-                    <div className="flex flex-wrap items-center gap-2">
+                <div className="mb-6 flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <h2 className="text-xl sm:text-2xl font-bold tracking-tight capitalize">
+                            {format(currentDate, 'LLLL yyyy', { locale: pl })}
+                        </h2>
                         <AttendanceExcelExportButton
                             currentDate={currentDate}
                             employees={filteredEmployees}
                             absences={absences}
                             workingDays={workingDaysInMonth}
                         />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
                         <Input
-                            placeholder="Szukaj po nazwisku, imieniu..."
-                            className="max-w-xs"
+                            placeholder="Szukaj po nazwisku..."
+                            className="flex-1 min-w-[140px]"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                         <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                            <SelectTrigger className="w-full sm:w-[200px]">
-                            <SelectValue placeholder="Wybierz dział" />
+                            <SelectTrigger className="flex-1 min-w-[140px] sm:w-[200px] sm:flex-none">
+                                <SelectValue placeholder="Wybierz dział" />
                             </SelectTrigger>
                             <SelectContent>
-                            {departmentOptions.map(option => (
-                                <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                                </SelectItem>
-                            ))}
+                                {departmentOptions.map(option => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
-                        <div className="flex items-center gap-1 p-1 rounded-md border bg-card">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(prev => add(prev, { months: -1 }))}><ChevronLeft /></Button>
-                            <Select value={String(getMonth(currentDate))} onValueChange={v => setCurrentDate(setMonth(currentDate, Number(v)))}>
-                                <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
-                                <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <Select value={String(getYear(currentDate))} onValueChange={v => setCurrentDate(setYear(currentDate, Number(v)))}>
-                                <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
-                                <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(prev => add(prev, { months: 1 }))}><ChevronRight /></Button>
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-1 p-1 rounded-md border bg-card w-full sm:w-auto">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setCurrentDate(prev => add(prev, { months: -1 }))}><ChevronLeft /></Button>
+                        <Select value={String(getMonth(currentDate))} onValueChange={v => setCurrentDate(setMonth(currentDate, Number(v)))}>
+                            <SelectTrigger className="flex-1 sm:w-32 h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <Select value={String(getYear(currentDate))} onValueChange={v => setCurrentDate(setYear(currentDate, Number(v)))}>
+                            <SelectTrigger className="w-20 sm:w-24 h-8 shrink-0"><SelectValue /></SelectTrigger>
+                            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setCurrentDate(prev => add(prev, { months: 1 }))}><ChevronRight /></Button>
                     </div>
                 </div>
 
