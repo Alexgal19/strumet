@@ -80,7 +80,7 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
     let statusBadge: React.ReactNode = null;
     if (employee.status === "zwolniony") {
       statusBadge = (
-        <Badge variant="destructive" className="text-xs">
+        <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
           Zwolniony
         </Badge>
       );
@@ -88,7 +88,7 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
       statusBadge = (
         <Badge
           variant="secondary"
-          className="bg-yellow-500/20 text-yellow-700 border-yellow-500/50 text-xs"
+          className="bg-yellow-500/20 text-yellow-700 border-yellow-500/50 text-[10px] px-1.5 py-0"
         >
           Na urlopie
         </Badge>
@@ -97,16 +97,16 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
       statusBadge = (
         <Badge
           variant="destructive"
-          className="bg-orange-500/20 text-orange-700 border-orange-500/50 text-xs"
+          className="bg-orange-500/20 text-orange-700 border-orange-500/50 text-[10px] px-1.5 py-0"
         >
-          Planowane zwolnienie
+          Plan. zwolnienie
         </Badge>
       );
     } else {
       statusBadge = (
         <Badge
           variant="secondary"
-          className="bg-green-500/20 text-green-700 border-green-500/50 text-xs"
+          className="bg-green-500/20 text-green-700 border-green-500/50 text-[10px] px-1.5 py-0"
         >
           Aktywny
         </Badge>
@@ -125,20 +125,20 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
     return (
       <AlertDialog>
         <Card className="flex flex-col h-full animate-fade-in-up">
-          <CardHeader className="flex flex-row items-start gap-4">
-            <div className="flex-grow">
-              <CardTitle className="text-lg">{employee.fullName}</CardTitle>
-              <CardDescription className="text-sm">
+          <CardHeader className="flex flex-row items-start gap-2 p-3 pb-1">
+            <div className="flex-grow min-w-0">
+              <CardTitle className="text-sm font-semibold leading-tight truncate">{employee.fullName}</CardTitle>
+              <CardDescription className="text-xs truncate">
                 {employee.jobTitle}
               </CardDescription>
-              <div className="mt-2">{statusBadge}</div>
+              <div className="mt-1">{statusBadge}</div>
             </div>
-            <div className="-mr-2 -mt-2">
+            <div className="shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="h-8 w-8 p-0"
+                    className="h-7 w-7 p-0"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <span className="sr-only">Otwórz menu</span>
@@ -197,26 +197,24 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
               </DropdownMenu>
             </div>
           </CardHeader>
-          <CardContent className="flex-grow space-y-3 text-sm text-muted-foreground">
-            <div className="flex items-center">
-              <Building className="mr-3 h-4 w-4 shrink-0" />
-              <span>
-                {employee.department} / {employee.manager}
-              </span>
+          <CardContent className="flex-grow space-y-1 text-xs text-muted-foreground p-3 pt-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Building className="h-3 w-3 shrink-0" />
+              <span className="truncate">{employee.department} / {employee.manager}</span>
             </div>
-            <div className="flex items-center">
-              <CalendarClock className="mr-3 h-4 w-4 shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <CalendarClock className="h-3 w-3 shrink-0" />
               <span>Zatr. {hireDateStr}</span>
             </div>
             {employee.status === "zwolniony" && (
-              <div className="flex items-center text-destructive">
-                <CalendarClock className="mr-3 h-4 w-4 shrink-0" />
+              <div className="flex items-center gap-1.5 text-destructive">
+                <CalendarClock className="h-3 w-3 shrink-0" />
                 <span>Zwol. {terminationDateStr}</span>
               </div>
             )}
             {hasUpcomingTermination && (
-              <div className="flex items-center text-orange-600">
-                <CalendarClock className="mr-3 h-4 w-4 shrink-0" />
+              <div className="flex items-center gap-1.5 text-orange-600">
+                <CalendarClock className="h-3 w-3 shrink-0" />
                 <span>Plan. zwol. {plannedTerminationDateStr}</span>
               </div>
             )}
