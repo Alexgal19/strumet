@@ -188,8 +188,9 @@ export function EmployeeTable({
                         transform: `translateY(${virtualItem.start}px)`,
                         }}
                         className="p-2"
+                        onClick={() => onEdit(employee)}
                     >
-                         <EmployeeCard 
+                         <EmployeeCard
                             employee={employee}
                             onEdit={() => onEdit(employee)}
                             onTerminate={onTerminate ? () => onTerminate(employee) : undefined}

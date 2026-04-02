@@ -133,13 +133,12 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
               </CardDescription>
               <div className="mt-1">{statusBadge}</div>
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     className="h-7 w-7 p-0"
-                    onClick={(e) => e.stopPropagation()}
                   >
                     <span className="sr-only">Otwórz menu</span>
                     <MoreHorizontal className="h-4 w-4" />
