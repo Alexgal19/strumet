@@ -51,7 +51,7 @@ System wykorzystuje Genkit oraz zadania cron do automatyzacji kluczowych proces�
 
 Przed uruchomieniem projektu upewnij się, że masz zainstalowane:
 
-*   **Node.js:** v20 lub nowszy
+*   **Node.js:** v22 lub nowszy
 *   **npm:** v10 lub nowszy
 *   **Konto Firebase:** Projekt skonfigurowany w Firebase Console.
 
