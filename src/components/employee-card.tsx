@@ -9,17 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { MoreHorizontal, Edit, UserX, RotateCcw, Trash2, Briefcase } from "lucide-react";
 import type { Employee } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -87,98 +76,46 @@ export const EmployeeCard = React.memo(function EmployeeCard({
       <LegalizationBadge status={employee.legalizationStatus} />
 
       {/* Actions menu */}
-      <div onClick={e => e.stopPropagation()}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Akcje</span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
-            <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-            {onEdit && (
-              <DropdownMenuItem onSelect={onEdit}>
-                <Edit className="mr-2 h-4 w-4" />Edytuj
-              </DropdownMenuItem>
-            )}
-            <EmployeeSummary employee={employee}>
-              <DropdownMenuItem onSelect={e => e.preventDefault()}>
-                <Briefcase className="mr-2 h-4 w-4" />Generuj podsumowanie
-              </DropdownMenuItem>
-            </EmployeeSummary>
-            <DropdownMenuSeparator />
-            {onRestore && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem onSelect={e => e.preventDefault()}>
-                    <RotateCcw className="mr-2 h-4 w-4" />Przywróć
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Przywrócić pracownika?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      <strong>{employee.fullName}</strong> zostanie przeniesiony do listy aktywnych.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                    <AlertDialogAction onClick={onRestore}>Przywróć</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            {onTerminate && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive">
-                    <UserX className="mr-2 h-4 w-4" />Zwolnij
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Zwolnić pracownika?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      <strong>{employee.fullName}</strong> zostanie przeniesiony do archiwum.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                    <AlertDialogAction onClick={onTerminate}>Zwolnij</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            {onDeletePermanently && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />Usuń trwale
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Trwale usunąć pracownika?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-destructive">
-                      Tej akcji <strong>nie można cofnąć</strong>. <strong>{employee.fullName}</strong> zostanie usunięty z bazy.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={onDeletePermanently}
-                    >
-                      Usuń trwale
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            onClick={e => e.stopPropagation()}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+            <span className="sr-only">Akcje</span>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+          {onEdit && (
+            <DropdownMenuItem onSelect={onEdit}>
+              <Edit className="mr-2 h-4 w-4" />Edytuj
+            </DropdownMenuItem>
+          )}
+          <EmployeeSummary employee={employee}>
+            <DropdownMenuItem onSelect={e => e.preventDefault()}>
+              <Briefcase className="mr-2 h-4 w-4" />Generuj podsumowanie
+            </DropdownMenuItem>
+          </EmployeeSummary>
+          <DropdownMenuSeparator />
+          {onRestore && (
+            <DropdownMenuItem onSelect={onRestore}>
+              <RotateCcw className="mr-2 h-4 w-4" />Przywróć
+            </DropdownMenuItem>
+          )}
+          {onTerminate && (
+            <DropdownMenuItem onSelect={onTerminate} className="text-destructive">
+              <UserX className="mr-2 h-4 w-4" />Zwolnij
+            </DropdownMenuItem>
+          )}
+          {onDeletePermanently && (
+            <DropdownMenuItem onSelect={onDeletePermanently} className="text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />Usuń trwale
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 });
