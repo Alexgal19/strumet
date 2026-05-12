@@ -6,7 +6,6 @@ import { Outfit, Inter } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
 import { AppShell } from '@/components/app-shell';
-import type { Metadata, Viewport } from 'next';
 import ServiceWorkerRegister from '@/components/service-worker-register';
 
 const outfit = Outfit({
