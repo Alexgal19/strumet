@@ -13,19 +13,20 @@ interface MenuItem {
   label: string;
 }
 
+const ALL_MENU_ITEMS: MenuItem[] = [
+  { href: '/aktywni', icon: Users, label: 'Pracownicy' },
+  { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
+  { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
+];
+
+const GUEST_VIEWS = ['/statystyki', '/planowanie'];
+
 const AppBottomNav = ({ pathname }: { pathname: string }) => {
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
   const { isAdmin } = useAppContext();
 
-  const allMenuItems: MenuItem[] = [
-    { href: '/aktywni', icon: Users, label: 'Pracownicy' },
-    { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
-    { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
-  ];
-
-  const guestViews = ['/statystyki', '/planowanie'];
-  const menuItems = isAdmin ? allMenuItems : allMenuItems.filter(item => guestViews.includes(item.href));
+  const menuItems = isAdmin ? ALL_MENU_ITEMS : ALL_MENU_ITEMS.filter(item => GUEST_VIEWS.includes(item.href));
 
   if (!hasMounted || !isMobile) return null;
 
