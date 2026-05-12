@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight,
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getFirebaseServices } from '@/lib/firebase';
-import { onValue, ref, update } from 'firebase/database';
+import { ref, update } from 'firebase/database';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { runManualChecks } from '@/ai/flows/run-manual-checks';
@@ -19,27 +19,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
 import { useHasMounted, useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import type { AppNotification } from '@/lib/types';
-
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] =>
-  obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 
 function Notifications() {
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const { notifications } = useAppContext();
   const [isChecking, setIsChecking] = useState(false);
   const { toast } = useToast();
   const services = getFirebaseServices();
   const db = services?.db;
-
-  useEffect(() => {
-    if (!db) return;
-    const notificationsRef = ref(db, 'notifications');
-    const unsubscribe = onValue(notificationsRef, (snapshot) => {
-      const data = objectToArray(snapshot.val()) as AppNotification[];
-      setNotifications(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    });
-    return () => unsubscribe();
-  }, [db]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
