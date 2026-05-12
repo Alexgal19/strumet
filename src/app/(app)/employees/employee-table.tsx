@@ -187,8 +187,16 @@ export function EmployeeTable({
                         width: '100%',
                         transform: `translateY(${virtualItem.start}px)`,
                         }}
-                        className="p-2"
+                        role="button"
+                        tabIndex={0}
+                        className="p-2 cursor-pointer"
                         onClick={() => onEdit(employee)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                onEdit(employee);
+                            }
+                        }}
                     >
                          <EmployeeCard
                             employee={employee}

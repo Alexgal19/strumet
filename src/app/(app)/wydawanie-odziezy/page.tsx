@@ -127,11 +127,11 @@ export default function ClothingIssuancePage() {
     if (issuance) {
       setPrintingIssuance(issuance);
       document.body.classList.add('printing');
-      setTimeout(() => {
+      requestAnimationFrame(() => {
           window.print();
           document.body.classList.remove('printing');
           setPrintingIssuance(null);
-      }, 100);
+      });
     }
   };
   

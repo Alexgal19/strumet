@@ -40,51 +40,51 @@ export function EmployeeRowActions<TData>({
   const employee = row.original as Employee
 
   return (
-    <EmployeeSummary employee={employee}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Otwórz menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => onEdit(employee)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edytuj
-          </DropdownMenuItem>
-          {employee.status === "aktywny" && (
-            <DropdownMenuItem>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Otwórz menu</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => onEdit(employee)}>
+          <Edit className="mr-2 h-4 w-4" />
+          Edytuj
+        </DropdownMenuItem>
+        {employee.status === "aktywny" && (
+          <EmployeeSummary employee={employee}>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
               <Bot className="mr-2 h-4 w-4" />
               Generuj podsumowanie
             </DropdownMenuItem>
-          )}
-          <DropdownMenuSeparator />
-          {employee.status === "aktywny" && onTerminate && (
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() => onTerminate(employee)}
-            >
-              <UserX className="mr-2 h-4 w-4" />
-              Zwolnij
-            </DropdownMenuItem>
-          )}
-          {employee.status === "zwolniony" && onRestore && (
-            <DropdownMenuItem onClick={() => onRestore(employee)}>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Przywróć
-            </DropdownMenuItem>
-          )}
+          </EmployeeSummary>
+        )}
+        <DropdownMenuSeparator />
+        {employee.status === "aktywny" && onTerminate && (
           <DropdownMenuItem
             className="text-destructive"
-            onClick={() => onDelete(employee)}
+            onClick={() => onTerminate(employee)}
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Usuń trwale
+            <UserX className="mr-2 h-4 w-4" />
+            Zwolnij
           </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </EmployeeSummary>
+        )}
+        {employee.status === "zwolniony" && onRestore && (
+          <DropdownMenuItem onClick={() => onRestore(employee)}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Przywróć
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          className="text-destructive"
+          onClick={() => onDelete(employee)}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Usuń trwale
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

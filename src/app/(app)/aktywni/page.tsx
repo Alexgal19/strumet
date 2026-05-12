@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,10 @@ import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { EmployeeTable } from '../employees/employee-table';
 
+const PassportScanner = dynamic(() => import('@/components/passport-scanner').then(mod => mod.PassportScanner), {
+  ssr: false,
+});
+
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
   { key: 'hireDate' as keyof Employee, name: 'Data zatrudnienia' },
@@ -60,6 +65,8 @@ export default function AktywniPage() {
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
   const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [passportScanData, setPassportScanData] = useState<{ firstName: string; lastName: string } | null>(null);
 
   const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
     setClothingPrintData({ employee, issuance });
@@ -67,10 +74,10 @@ export default function AktywniPage() {
 
   const handleDoPrint = () => {
     document.body.classList.add('printing');
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       window.print();
       document.body.classList.remove('printing');
-    }, 100);
+    });
   };
 
   const onSave = async (employeeData: Employee) => {
@@ -91,11 +98,13 @@ export default function AktywniPage() {
 
   const handleEditEmployee = (employee: Employee) => {
     setEditingEmployee(employee);
+    setPassportScanData(null);
     setIsFormOpen(true);
   };
 
   const handleAddNew = () => {
     setEditingEmployee(null);
+    setPassportScanData(null);
     setIsFormOpen(true);
   }
 
@@ -201,11 +210,23 @@ export default function AktywniPage() {
                   onCancel={() => setIsFormOpen(false)}
                   onTerminate={onTerminate}
                   onPrintClothing={handlePrintClothingIssuance}
+                  onScanPassport={() => setIsScannerOpen(true)}
+                  passportScanData={passportScanData || undefined}
                   config={config}
                 />
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* PassportScanner renderowany na poziomie strony, poza dialogiem pracownika */}
+          <PassportScanner
+            open={isScannerOpen}
+            onOpenChange={setIsScannerOpen}
+            onScanComplete={(data) => {
+              setPassportScanData(data);
+              setIsScannerOpen(false);
+            }}
+          />
 
           <div className="flex flex-col flex-grow min-h-0">
              <EmployeeTable 

@@ -51,6 +51,7 @@ interface FirebaseServices {
 }
 
 interface AppContextType {
+    employees: Employee[];
     users: User[];
     absences: Absence[];
     config: AllConfig;
@@ -58,10 +59,10 @@ interface AppContextType {
     statsHistory: StatsSnapshot[];
     isLoading: boolean;
     isHistoryLoading: boolean;
-    handleSaveEmployee: (employeeData: Employee) => Promise<void>;
-    handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
-    handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<void>;
-    handleDeleteEmployeePermanently: (employeeId: string) => Promise<void>;
+    handleSaveEmployee: (employeeData: Employee) => Promise<boolean>;
+    handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<boolean>;
+    handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<boolean>;
+    handleDeleteEmployeePermanently: (employeeId: string) => Promise<boolean>;
     handleDeleteAllHireDates: () => Promise<void>;
     handleUpdateHireDates: (updates: { fullName: string; hireDate: string }[]) => Promise<void>;
     handleUpdateContractEndDates: (updates: { fullName: string; contractEndDate: string }[]) => Promise<void>;
@@ -94,6 +95,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
 
+    const [employees, setEmployees] = useState<Employee[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
@@ -115,27 +117,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { auth, db } = services;
         setServices({ auth, db });
 
+        let unsubscribeRole: (() => void) | null = null;
+
         const unsubscribeAuth = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
             authInitializedRef.current = true;
+            if (unsubscribeRole) {
+                unsubscribeRole();
+                unsubscribeRole = null;
+            }
             if (user) {
                 const userRoleRef = ref(db, `users/${user.uid}/role`);
-                const unsubscribeRole = onValue(userRoleRef, (snapshot) => {
+                unsubscribeRole = onValue(userRoleRef, (snapshot) => {
                     const role = snapshot.val() as UserRole || 'guest';
                     setCurrentUser({ uid: user.uid, email: user.email, role });
                     // Nie ustawiaj isLoading tutaj - zostanie to ustawione gdy dane się załadują
                 });
-                return () => unsubscribeRole();
             } else {
                 setCurrentUser(null);
                 setIsLoading(false); // User is not logged in
             }
         });
 
-        return () => unsubscribeAuth();
+        return () => {
+            if (unsubscribeRole) unsubscribeRole();
+            unsubscribeAuth();
+        };
     }, []);
 
     useEffect(() => {
         if (!services || !currentUser) {
+            setEmployees([]);
             setUsers([]);
             setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
             setAbsences([]);
@@ -156,28 +167,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         const dataRefs = [
             {
+                path: "employees",
+                setter: (data: any) => {
+                    setEmployees(objectToArray(data));
+                    dataLoadedRef.current.add('employees');
+                }
+            },
+            {
                 path: "users",
                 setter: (data: any) => {
                     setUsers(objectToArray(data));
                     dataLoadedRef.current.add('users');
                 }
             },
-            { 
-                path: "absences", 
+            {
+                path: "absences",
                 setter: (data: any) => {
                     setAbsences(objectToArray(data));
                     dataLoadedRef.current.add('absences');
                 }
             },
-            { 
-                path: "notifications", 
+            {
+                path: "notifications",
                 setter: (data: any) => {
                     setNotifications(objectToArray(data));
                     dataLoadedRef.current.add('notifications');
                 }
             },
-            { 
-                path: "config", 
+            {
+                path: "config",
                 setter: (data: any) => {
                     const configData = data || {};
                     const newConfig: AllConfig = {
@@ -199,14 +217,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             onValue(ref(db, path), snapshot => {
                 setter(snapshot.val());
                 // Check if all essential data is loaded (users, absences, notifications, config)
-                if (dataLoadedRef.current.size >= 4) {
+                if (dataLoadedRef.current.size >= 5) {
                     setIsLoading(false);
                 }
             }, (error) => {
                 console.error(`Firebase read error on path ${path}:`, error);
                 toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
                 dataLoadedRef.current.add(path); // Mark as attempted even on error
-                if (dataLoadedRef.current.size >= 4) {
+                if (dataLoadedRef.current.size >= 5) {
                     setIsLoading(false);
                 }
             })
@@ -224,12 +242,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }, [services, currentUser, toast]);
 
 
-    const handleSaveEmployee = useCallback(async (employeeData: Employee) => {
-        if (!services) return;
+    const handleSaveEmployee = useCallback(async (employeeData: Employee): Promise<boolean> => {
+        if (!services) return false;
         const { db } = services;
         try {
             const { id, ...dataToSave } = employeeData;
-            
+
             const status = dataToSave.status || 'aktywny';
             const status_fullName = `${status}_${dataToSave.fullName.toLowerCase()}`;
 
@@ -249,14 +267,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 await set(newEmployeeRef, { ...finalData, status: 'aktywny', status_fullName: `aktywny_${finalData.fullName.toLowerCase()}` });
                 toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
             }
+            return true;
         } catch (error) {
             console.error("Error saving employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
+            return false;
         }
     }, [services, toast]);
 
-    const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
-        if (!services) return;
+    const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
+        if (!services) return false;
         const { db } = services;
         try {
             await update(ref(db, `employees/${employeeId}`), {
@@ -265,14 +285,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 status_fullName: `zwolniony_${employeeFullName.toLowerCase()}`
             });
             toast({ title: 'Pracownik zwolniony', description: 'Status pracownika został zmieniony na "zwolniony".' });
+            return true;
         } catch (error) {
             console.error("Error terminating employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
+            return false;
         }
     }, [services, toast]);
 
-    const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string) => {
-        if (!services) return;
+    const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
+        if (!services) return false;
         const { db } = services;
         try {
             await update(ref(db, `employees/${employeeId}`), {
@@ -281,21 +303,41 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 status_fullName: `aktywny_${employeeFullName.toLowerCase()}`
             });
             toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
+            return true;
         } catch (error) {
             console.error("Error restoring employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
+            return false;
         }
     }, [services, toast]);
 
-    const handleDeleteEmployeePermanently = useCallback(async (employeeId: string) => {
-        if (!services) return;
+    const handleDeleteEmployeePermanently = useCallback(async (employeeId: string): Promise<boolean> => {
+        if (!services) return false;
         const { db } = services;
         try {
-            await remove(ref(db, `employees/${employeeId}`));
-            toast({ title: 'Sukces', description: 'Pracownik został trwale usunięty z bazy danych.' });
+            const updates: Record<string, null> = {};
+            updates[`employees/${employeeId}`] = null;
+
+            const relatedPaths = ['absences', 'absenceRecords', 'circulationCards', 'fingerprintAppointments', 'clothingIssuances'];
+            for (const path of relatedPaths) {
+                const snapshot = await get(ref(db, path));
+                const data = snapshot.val();
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        if (data[key]?.employeeId === employeeId) {
+                            updates[`${path}/${key}`] = null;
+                        }
+                    });
+                }
+            }
+
+            await update(ref(db), updates);
+            toast({ title: 'Sukces', description: 'Pracownik i wszystkie powiązane dane zostały trwale usunięte.' });
+            return true;
         } catch (error) {
             console.error("Error deleting employee permanently: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracownika.' });
+            return false;
         }
     }, [services, toast]);
 
@@ -408,8 +450,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (!services) return;
         const { db } = services;
         try {
-            await set(ref(db, 'employees'), null);
-            toast({ title: 'Sukces', description: 'Wszyscy pracownicy zostali usunięci.' });
+            const updates: Record<string, null> = {};
+            updates['employees'] = null;
+
+            const relatedPaths = ['absences', 'absenceRecords', 'circulationCards', 'fingerprintAppointments', 'clothingIssuances'];
+            for (const path of relatedPaths) {
+                updates[path] = null;
+            }
+
+            await update(ref(db), updates);
+            toast({ title: 'Sukces', description: 'Wszyscy pracownicy i powiązane dane zostały usunięci.' });
         } catch (error) {
             console.error("Error deleting all employees: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracowników.' });
@@ -681,6 +731,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }, [services, toast]);
 
     const value: AppContextType = {
+        employees,
         users,
         absences,
         config,

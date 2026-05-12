@@ -93,12 +93,13 @@ export function DataTableFacetedFilter<TData, TValue>({
                   <CommandItem
                     key={option.value}
                     onSelect={() => {
+                      const newSet = new Set(selectedValues)
                       if (isSelected) {
-                        selectedValues.delete(option.value)
+                        newSet.delete(option.value)
                       } else {
-                        selectedValues.add(option.value)
+                        newSet.add(option.value)
                       }
-                      const filterValues = Array.from(selectedValues)
+                      const filterValues = Array.from(newSet)
                       column?.setFilterValue(
                         filterValues.length ? filterValues : undefined
                       )

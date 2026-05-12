@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { Table } from "@tanstack/react-table"
 import { X } from "lucide-react"
 
@@ -22,7 +23,7 @@ interface DataTableToolbarProps<TData> {
   exportFileName?: string
 }
 
-export function DataTableToolbar<TData>({
+function DataTableToolbarComponent<TData>({
   table,
   departmentOptions,
   jobTitleOptions,
@@ -38,6 +39,7 @@ export function DataTableToolbar<TData>({
     <div className="flex flex-col gap-3">
       <div className="flex gap-2">
         <Input
+          aria-label="Szukaj pracownika"
           placeholder="Szukaj..."
           value={(table.getState().globalFilter as string) ?? ""}
           onChange={(event) => table.setGlobalFilter(event.target.value)}
@@ -104,3 +106,5 @@ export function DataTableToolbar<TData>({
     </div>
   )
 }
+
+export const DataTableToolbar = React.memo(DataTableToolbarComponent) as <TData>(props: DataTableToolbarProps<TData>) => React.JSX.Element;

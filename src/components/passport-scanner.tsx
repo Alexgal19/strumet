@@ -106,6 +106,7 @@ export const PassportScanner: React.FC<PassportScannerProps> = ({ open, onOpenCh
                 imageDataUrl,
                 'eng',
                 {
+                    // eslint-disable-next-line no-secrets/no-secrets
                     tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
                 } as any
             );

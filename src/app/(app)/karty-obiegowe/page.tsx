@@ -103,11 +103,11 @@ export default function CirculationCardsPage() {
     if(card) {
         setPrintingCard(card);
         document.body.classList.add('printing');
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             window.print();
             document.body.classList.remove('printing');
             setPrintingCard(null);
-        }, 100);
+        });
     }
   };
 

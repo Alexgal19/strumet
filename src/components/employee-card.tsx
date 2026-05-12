@@ -123,8 +123,7 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
     );
 
     return (
-      <AlertDialog>
-        <Card className="flex flex-col h-full animate-fade-in-up">
+      <Card className="flex flex-col h-full animate-fade-in-up">
           <CardHeader className="flex flex-row items-start gap-2 p-3 pb-1">
             <div className="flex-grow min-w-0">
               <CardTitle className="text-sm font-semibold leading-tight truncate">{employee.fullName}</CardTitle>
@@ -163,34 +162,95 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
                   </EmployeeSummary>
                   <DropdownMenuSeparator />
                   {onRestore && (
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        Przywróć
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Przywróć
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Czy na pewno chcesz przywrócić pracownika?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Pracownik <strong>{employee.fullName}</strong> zostanie
+                            przywrócony do listy aktywnych.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                          <AlertDialogAction onClick={onRestore}>
+                            Przywróć
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
                   {onTerminate && (
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem
-                        onSelect={(e) => e.preventDefault()}
-                        className="text-destructive"
-                      >
-                        <UserX className="mr-2 h-4 w-4" />
-                        Zwolnij
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem
+                          onSelect={(e) => e.preventDefault()}
+                          className="text-destructive"
+                        >
+                          <UserX className="mr-2 h-4 w-4" />
+                          Zwolnij
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Czy na pewno chcesz zwolnić pracownika?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Pracownik <strong>{employee.fullName}</strong> zostanie
+                            przeniesiony do archiwum zwolnionych.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                          <AlertDialogAction onClick={onTerminate}>
+                            Zwolnij
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
                   {onDeletePermanently && (
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem
-                        onSelect={(e) => e.preventDefault()}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Usuń trwale
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem
+                          onSelect={(e) => e.preventDefault()}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Usuń trwale
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Czy na pewno chcesz trwale usunąć pracownika?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription className="text-destructive">
+                            Tej akcji <strong>nie można cofnąć</strong>. Spowoduje to trwałe
+                            usunięcie pracownika <strong>{employee.fullName}</strong> i
+                            wszystkich jego danych z bazy.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={onDeletePermanently}
+                          >
+                            Usuń trwale
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -220,70 +280,6 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
           </CardContent>
         </Card>
 
-        {onTerminate && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                Czy na pewno chcesz zwolnić pracownika?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Pracownik <strong>{employee.fullName}</strong> zostanie
-                przeniesiony do archiwum zwolnionych.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Anuluj</AlertDialogCancel>
-              <AlertDialogAction onClick={onTerminate}>
-                Zwolnij
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
-
-        {onRestore && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                Czy na pewno chcesz przywrócić pracownika?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Pracownik <strong>{employee.fullName}</strong> zostanie
-                przywrócony do listy aktywnych.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Anuluj</AlertDialogCancel>
-              <AlertDialogAction onClick={onRestore}>
-                Przywróć
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
-
-        {onDeletePermanently && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                Czy na pewno chcesz trwale usunąć pracownika?
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-destructive">
-                Tej akcji <strong>nie można cofnąć</strong>. Spowoduje to trwałe
-                usunięcie pracownika <strong>{employee.fullName}</strong> i
-                wszystkich jego danych z bazy.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Anuluj</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={onDeletePermanently}
-              >
-                Usuń trwale
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
-      </AlertDialog>
     );
   },
 );

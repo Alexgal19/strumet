@@ -19,7 +19,7 @@ import { User, Briefcase, Building2, Calendar, CreditCard, Globe, ShieldCheck, D
 
 interface EmployeeSummaryProps {
   employee: Employee;
-  children: React.ReactElement;
+  children: React.ReactElement<any>;
 }
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string | null }) {

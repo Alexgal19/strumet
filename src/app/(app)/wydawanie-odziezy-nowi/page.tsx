@@ -84,11 +84,11 @@ export default function NewHireClothingIssuancePage() {
     setPrintingIssuance(issuanceToPrint);
     setPrintingInfoCard(null);
     document.body.classList.add('printing');
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         window.print();
         document.body.classList.remove('printing');
         setPrintingIssuance(null);
-    }, 100);
+    });
   };
   
   const handlePrintInfoCard = async () => {
@@ -97,11 +97,11 @@ export default function NewHireClothingIssuancePage() {
     setPrintingInfoCard(selectedEmployee);
     setPrintingIssuance(null);
     document.body.classList.add('printing');
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         window.print();
         document.body.classList.remove('printing');
         setPrintingInfoCard(null);
-    }, 100);
+    });
   };
 
   const selectedEmployeeForIssuancePrint = printingIssuance

@@ -77,7 +77,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
   callback: T,
   delay: number = 300,
 ): (...args: Parameters<T>) => void {
-  const timeoutRef = React.useRef<NodeJS.Timeout>();
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   return React.useCallback(
     (...args: Parameters<T>) => {

@@ -199,7 +199,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
     const [localValue, setLocalValue] = React.useState<string>(
       (props.value as string) || "",
     );
-    const timeoutRef = React.useRef<NodeJS.Timeout>();
+    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
     React.useEffect(() => {
       if (onSearch && debounceMs > 0) {

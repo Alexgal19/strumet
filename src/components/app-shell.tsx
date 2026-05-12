@@ -8,7 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export const AppShell = React.memo(function AppShell({ children }: { children: React.ReactNode }) {
   const { isLoading, currentUser } = useAppContext();
   const pathname = usePathname();
   const router = useRouter();
@@ -51,4 +51,4 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   );
-}
+});

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,10 +17,6 @@ import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
 import { useToast } from '@/hooks/use-toast';
 
-const PassportScanner = dynamic(() => import('./passport-scanner').then(mod => mod.PassportScanner), {
-    ssr: false,
-    loading: () => <p>Loading scanner...</p>,
-});
 
 const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
     const dateValue = parseMaybeDate(value);
@@ -61,6 +56,8 @@ interface EmployeeFormProps {
   onCancel: () => void;
   onTerminate?: (id: string, fullName: string) => void;
   onPrintClothing?: (employee: Employee, issuance: ClothingIssuance) => void;
+  onScanPassport?: () => void;
+  passportScanData?: { firstName: string; lastName: string };
   config: AllConfig;
 }
 
@@ -106,14 +103,13 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
     };
 };
 
-export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintClothing, config }: EmployeeFormProps) {
+export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintClothing, onScanPassport, passportScanData, config }: EmployeeFormProps) {
     const { departments, jobTitles, managers, nationalities } = config;
     const { toast } = useToast();
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     useEffect(() => {
         setFormData(getInitialFormData(employee));
@@ -129,6 +125,13 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
         }
         setErrors({});
     }, [employee]);
+
+    useEffect(() => {
+        if (passportScanData) {
+            setFirstName(passportScanData.firstName);
+            setLastName(passportScanData.lastName);
+        }
+    }, [passportScanData]);
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
@@ -155,12 +158,6 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
         return Object.keys(newErrors).length === 0;
     };
     
-    const handleScanComplete = (data: { firstName: string, lastName: string }) => {
-        setFirstName(data.firstName);
-        setLastName(data.lastName);
-        setIsScannerOpen(false);
-    };
-
     const handleCopyFullName = () => {
         const fullName = `${firstName.trim()} ${lastName.trim()}`;
         if (fullName) {
@@ -233,10 +230,12 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                             <ClipboardCopy className="h-4 w-4" />
                             <span className="hidden sm:inline ml-2">Kopiuj</span>
                         </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={() => setIsScannerOpen(true)} title="Skanuj Paszport">
-                            <Scan className="h-4 w-4" />
-                            <span className="hidden sm:inline ml-2">Skanuj</span>
-                        </Button>
+                        {onScanPassport && (
+                            <Button type="button" variant="outline" size="sm" onClick={onScanPassport} title="Skanuj Paszport">
+                                <Scan className="h-4 w-4" />
+                                <span className="hidden sm:inline ml-2">Skanuj</span>
+                            </Button>
+                        )}
                     </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
@@ -251,9 +250,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         {renderError('firstName')}
                     </div>
                     <div>
-                        <Label>Narodowość</Label>
+                        <Label id="label-nationality">Narodowość</Label>
                         <Select value={formData.nationality} onValueChange={value => handleChange('nationality', value)}>
-                            <SelectTrigger><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
+                            <SelectTrigger aria-labelledby="label-nationality"><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
                             <SelectContent>
                                 {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
                             </SelectContent>
@@ -261,9 +260,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         {renderError('nationality')}
                     </div>
                      <div>
-                        <Label>Status legalizacyjny</Label>
+                        <Label id="label-legalization">Status legalizacyjny</Label>
                         <Select value={formData.legalizationStatus || 'Brak'} onValueChange={value => handleChange('legalizationStatus', value)}>
-                            <SelectTrigger>
+                            <SelectTrigger aria-labelledby="label-legalization">
                                 <SelectValue placeholder="Wybierz status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -285,9 +284,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 <h3 className="text-lg font-medium text-foreground">Dane zatrudnienia</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
                     <div>
-                        <Label>Dział</Label>
+                        <Label id="label-department">Dział</Label>
                         <Select value={formData.department} onValueChange={value => handleChange('department', value)}>
-                            <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                            <SelectTrigger aria-labelledby="label-department"><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
                             <SelectContent>
                                 {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
                             </SelectContent>
@@ -295,9 +294,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         {renderError('department')}
                     </div>
                     <div>
-                        <Label>Stanowisko</Label>
+                        <Label id="label-jobTitle">Stanowisko</Label>
                         <Select value={formData.jobTitle} onValueChange={value => handleChange('jobTitle', value)}>
-                            <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                            <SelectTrigger aria-labelledby="label-jobTitle"><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
                             <SelectContent>
                                 {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
                             </SelectContent>
@@ -305,9 +304,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         {renderError('jobTitle')}
                     </div>
                         <div>
-                        <Label>Kierownik</Label>
+                        <Label id="label-manager">Kierownik</Label>
                         <Select value={formData.manager} onValueChange={value => handleChange('manager', value)}>
-                            <SelectTrigger><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
+                            <SelectTrigger aria-labelledby="label-manager"><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
                             <SelectContent>
                                 {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
                             </SelectContent>
@@ -324,9 +323,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         {renderError('hireDate')}
                     </div>
                      <div>
-                        <Label>Licencja spawacza</Label>
+                        <Label id="label-welderLicense">Licencja spawacza</Label>
                         <Select value={formData.welderLicense} onValueChange={value => handleChange('welderLicense', value)}>
-                            <SelectTrigger><SelectValue placeholder="Wybierz..." /></SelectTrigger>
+                            <SelectTrigger aria-labelledby="label-welderLicense"><SelectValue placeholder="Wybierz..." /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Tak">Tak</SelectItem>
                                 <SelectItem value="Nie">Nie</SelectItem>
@@ -434,13 +433,6 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             </div>
         </form>
         
-        {isScannerOpen && (
-            <PassportScanner
-                open={isScannerOpen}
-                onOpenChange={setIsScannerOpen}
-                onScanComplete={handleScanComplete}
-            />
-        )}
         </>
     );
 }

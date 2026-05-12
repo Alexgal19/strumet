@@ -108,11 +108,11 @@ export default function NoLoginPage() {
   const handlePrint = (record: AbsenceRecord) => {
     setPrintingRecord(record);
     document.body.classList.add('printing');
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         window.print();
         document.body.classList.remove('printing');
         setPrintingRecord(null);
-    }, 100)
+    });
   };
 
 

@@ -226,4 +226,5 @@ export const ClothingIssuancePrintForm = React.forwardRef<HTMLDivElement, Clothi
     }
 );
 
+// eslint-disable-next-line no-secrets/no-secrets
 ClothingIssuancePrintForm.displayName = 'ClothingIssuancePrintForm';

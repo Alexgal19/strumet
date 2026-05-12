@@ -1,6 +1,5 @@
 
 'use client';
-/* eslint-disable @next/next/no-inline-styles */
 
 import React from 'react';
 import { Employee, CirculationCard } from '@/lib/types';
