@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useAppContext } from '@/context/app-context';
@@ -34,7 +34,8 @@ export default function EmployeePage() {
   const employee = employees.find(e => e.id === id) ?? null;
 
   const handleSave = async (data: Employee) => {
-    await handleSaveEmployee(data);
+    const success = await handleSaveEmployee(data);
+    if (!success) return;
     if (id === 'new') {
       router.push('/aktywni');
     } else {
@@ -43,14 +44,19 @@ export default function EmployeePage() {
   };
 
   const handleTerminate = async (empId: string, fullName: string) => {
-    await handleTerminateEmployee(empId, fullName);
-    router.push('/zwolnieni');
+    const success = await handleTerminateEmployee(empId, fullName);
+    if (success) router.push('/zwolnieni');
   };
 
   const handlePrintClothing = (emp: Employee, issuance: ClothingIssuance) => {
     setClothingPrintData({ employee: emp, issuance });
-    requestAnimationFrame(() => window.print());
   };
+
+  useEffect(() => {
+    if (!clothingPrintData) return;
+    const timer = setTimeout(() => window.print(), 100);
+    return () => clearTimeout(timer);
+  }, [clothingPrintData]);
 
   if (isLoading) {
     return (
@@ -61,7 +67,7 @@ export default function EmployeePage() {
   }
 
   // Allow 'new' as a special id for creating a new employee
-  if (!isLoading && !employee && id !== 'new') {
+  if (!employee && id !== 'new') {
     return (
       <div className="flex h-full items-center justify-center text-gray-500">
         Pracownik nie został znaleziony.
