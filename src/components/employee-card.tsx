@@ -123,8 +123,11 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
     );
 
     return (
-      <Card className="flex flex-col h-full animate-fade-in-up">
-          <CardHeader className="flex flex-row items-start gap-2 p-3 pb-1">
+      <Card className="flex flex-col h-full animate-fade-in-up glass-panel border border-white/5 hover:border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+          {/* Subtle gradient overlay on hover */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
+          
+          <CardHeader className="flex flex-row items-start gap-2 p-3 pb-1 relative z-10">
             <div className="flex-grow min-w-0">
               <CardTitle className="text-sm font-semibold leading-tight truncate">{employee.fullName}</CardTitle>
               <CardDescription className="text-xs truncate">
@@ -256,7 +259,7 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = React.memo(
               </DropdownMenu>
             </div>
           </CardHeader>
-          <CardContent className="flex-grow space-y-1 text-xs text-muted-foreground p-3 pt-1">
+          <CardContent className="flex-grow space-y-1 text-xs text-muted-foreground p-3 pt-1 relative z-10">
             <div className="flex items-center gap-1.5 min-w-0">
               <Building className="h-3 w-3 shrink-0" />
               <span className="truncate">{employee.department} / {employee.manager}</span>

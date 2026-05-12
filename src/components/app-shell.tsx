@@ -32,21 +32,25 @@ export const AppShell = React.memo(function AppShell({ children }: { children: R
 
   return (
     <div className="relative flex h-[100dvh] flex-col md:flex-row bg-background overflow-hidden">
-      <div className={cn(isAuthPage && 'hidden')}>
+      {/* Background Blobs for modern aesthetic */}
+      <div className="blob-bg blob-primary w-[30rem] h-[30rem] top-[-10rem] left-[-5rem]"></div>
+      <div className="blob-bg blob-accent w-[40rem] h-[40rem] bottom-[-20rem] right-[-10rem]"></div>
+
+      <div className={cn(isAuthPage && 'hidden', 'z-10')}>
         <AppSidebar pathname={pathname} />
       </div>
 
       <SidebarInset
         className={cn(
-          'm-0 flex flex-1 flex-col min-w-0 overflow-y-auto',
+          'm-0 flex flex-1 flex-col min-w-0 overflow-y-auto z-10',
           !isAuthPage &&
-          'p-3 md:m-2 md:p-4 lg:p-8 pb-20 md:pb-8 md:rounded-2xl bg-background border border-border shadow-lg'
+          'p-3 md:m-2 md:p-4 lg:p-8 pb-20 md:pb-8 md:rounded-3xl glass-panel'
         )}
       >
         {children}
       </SidebarInset>
 
-      <div className={cn(isAuthPage && 'hidden')}>
+      <div className={cn(isAuthPage && 'hidden', 'z-20')}>
         <AppBottomNav pathname={pathname} />
       </div>
     </div>
