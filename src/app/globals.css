@@ -4,116 +4,89 @@
 
 @layer base {
   :root {
-    /* ===== NEW ULTRA-MODERN DESIGN SYSTEM (Light Mode) ===== */
-    --background: 210 40% 98%; /* Very light cool grey #F8FAFC, almost white */
-    --foreground: 222 47% 11%;
+    --background: 210 20% 98%;
+    --foreground: 220 13% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 220 13% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 220 13% 9%;
 
-    /* Primary: Electric Blue */
-    --primary: 221 83% 53%; /* Blue 600 #2563EB */
-    --primary-foreground: 210 40% 98%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Clean Neutral */
-    --secondary: 214 32% 91%; /* Slate 200 */
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 220 9% 94%;
+    --secondary-foreground: 220 13% 9%;
 
-    /* Muted: Subtle backgrounds */
-    --muted: 214 32% 91%;
-    --muted-foreground: 215 16% 47%; /* Slate 500 */
+    --muted: 220 9% 94%;
+    --muted-foreground: 220 9% 44%;
 
-    /* Accent: Energetic Orange */
-    --accent: 24 95% 53%; /* Orange 500 #F97316 */
-    --accent-foreground: 0 0% 100%;
+    --accent: 220 9% 94%;
+    --accent-foreground: 220 13% 9%;
 
-    /* Destructive: Bright Red/Orange */
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%; /* Blue */
+    --border: 220 9% 90%;
+    --input: 220 9% 90%;
+    --ring: 160 84% 39%;
 
-    --radius: 0.75rem; /* 12px - Modern, sharper corners */
-    --shadow-color: 220 40% 20% / 0.1;
+    --radius: 0.5rem;
 
-    /* Charts (Blue -> Orange spectrum) */
-    --chart-1: 221 83% 53%; /* Primary Blue */
-    --chart-2: 217 91% 60%; /* Lighter Blue */
-    --chart-3: 200 90% 70%; /* Sky Blue */
-    --chart-4: 30 100% 64%; /* Muted Orange */
-    --chart-5: 24 95% 53%; /* Primary Orange */
+    --chart-1: 160 84% 39%;
+    --chart-2: 160 84% 50%;
+    --chart-3: 160 60% 65%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 84% 60%;
 
-    /* Sidebar - Crisp White */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 221 83% 53%;
+    --sidebar-background: 220 13% 9%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 32% 91%;
-    --sidebar-accent-foreground: 221 83% 53%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 221 83% 53%;
-
-    --glass-blur: blur(16px);
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.4);
+    --sidebar-accent: 220 13% 17%;
+    --sidebar-accent-foreground: 160 84% 39%;
+    --sidebar-border: 220 13% 17%;
+    --sidebar-ring: 160 84% 39%;
   }
 
   .dark {
-    /* ===== NEW ULTRA-MODERN DESIGN SYSTEM (Dark Mode) ===== */
-    --background: 222 47% 11%; /* Very dark slate #0F172A */
-    --foreground: 210 40% 98%; /* Slate 50 */
+    --background: 220 13% 9%;
+    --foreground: 210 20% 98%;
 
-    --card: 217 33% 17%; /* Slate 800 */
-    --card-foreground: 210 40% 98%;
+    --card: 220 13% 13%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 13% 13%;
+    --popover-foreground: 210 20% 98%;
 
-    /* Primary: Bright Electric Blue for Dark Mode */
-    --primary: 217 91% 60%; /* Blue 500 #3B82F6 */
+    --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 28% 22%; /* Slate 700 */
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 13% 17%;
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 215 28% 22%;
-    --muted-foreground: 215 20% 65%; /* Slate 400 */
+    --muted: 220 13% 17%;
+    --muted-foreground: 220 9% 55%;
 
-    /* Accent: Bright Orange */
-    --accent: 25 95% 53%; /* Orange 500 #F97316 */
-    --accent-foreground: 0 0% 100%;
+    --accent: 220 13% 17%;
+    --accent-foreground: 210 20% 98%;
 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 210 20% 98%;
 
-    --border: 215 28% 22%;
-    --input: 215 28% 22%;
-    --ring: 217 91% 60%; /* Blue ring */
+    --border: 220 13% 17%;
+    --input: 220 13% 17%;
+    --ring: 160 84% 39%;
 
-    /* Charts (optimized for dark background) */
-    --chart-1: 217 91% 60%;
-    --chart-2: 213 94% 68%;
-    --chart-3: 199 89% 68%;
-    --chart-4: 32 95% 54%;
-    --chart-5: 25 95% 53%;
-
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 220 13% 9%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 28% 22%;
-    --sidebar-accent-foreground: 217 91% 60%;
-    --sidebar-border: 215 28% 22%;
-    --sidebar-ring: 217 91% 60%;
-
-    --glass-blur: blur(20px);
-    --glass-bg: rgba(15, 23, 42, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --sidebar-accent: 220 13% 17%;
+    --sidebar-accent-foreground: 160 84% 39%;
+    --sidebar-border: 220 13% 17%;
+    --sidebar-ring: 160 84% 39%;
   }
 
   /* ===== BASE STYLES ===== */
@@ -187,41 +160,4 @@
     .safe-area-bottom, .pb-safe { padding-bottom: 0 !important; }
   }
 
-  /* Core Ultra-Modern Utilities */
-  .glass-panel {
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05), 0 2px 8px -2px rgba(0, 0, 0, 0.03);
-  }
-
-  .text-gradient-primary {
-    background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--chart-3)));
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-  }
-
-  .bg-gradient-primary {
-    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--chart-3)));
-  }
-
-  /* Animated Blob Backgrounds for Login/Dashboards */
-  .blob-bg {
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.15;
-    pointer-events: none;
-    z-index: -1;
-  }
-
-  .blob-primary { background-color: hsl(var(--primary)); }
-  .blob-accent { background-color: hsl(var(--accent)); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
 }

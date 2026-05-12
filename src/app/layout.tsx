@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="pl">
       <head>
         {/* Te meta tagi są ważne dla PWA i powinny być w <head> */}
         <meta name="application-name" content="Baza-ST" />
@@ -41,7 +41,7 @@ export default function RootLayout({
         <meta name="description" content="System do zarządzania pracownikami" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#209cee" />
+        <meta name="theme-color" content="#111827" />
         <link rel="apple-touch-icon" href="/favicon.ico" />
         <link rel="manifest" href="/manifest.json" crossOrigin="use-credentials" />
       </head>
