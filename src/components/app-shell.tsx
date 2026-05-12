@@ -30,7 +30,7 @@ export const AppShell = React.memo(function AppShell({ children }: { children: R
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <AppTopBar pathname={pathname} />
-      <main className="flex-1 overflow-y-auto bg-gray-50">
+      <main className="flex-1 overflow-y-auto bg-gray-50 pb-20 md:pb-0">
         {children}
       </main>
       <AppBottomNav pathname={pathname} />

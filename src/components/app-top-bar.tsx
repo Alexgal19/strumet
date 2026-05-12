@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
 import {
   Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight,
 } from 'lucide-react';
@@ -149,6 +151,15 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
   const hasMounted = useHasMounted();
   const isMobile = useIsMobile();
   const { isAdmin } = useAppContext();
+  const router = useRouter();
+
+  const handleLogout = useCallback(async () => {
+    const services = getFirebaseServices();
+    if (services?.auth) {
+      await signOut(services.auth);
+    }
+    router.push('/login');
+  }, [router]);
 
   if (!hasMounted || isMobile) return null;
 
@@ -196,11 +207,13 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
 
       <div className="flex items-center gap-2 ml-auto shrink-0">
         {isAdmin && <Notifications />}
-        <Link href="/login">
-          <button className="rounded-md p-1.5 text-gray-400 hover:text-gray-100 hover:bg-gray-700 transition-colors" title="Wyloguj">
-            <LogOut className="h-4 w-4" />
-          </button>
-        </Link>
+        <button
+          onClick={handleLogout}
+          className="rounded-md p-1.5 text-gray-400 hover:text-gray-100 hover:bg-gray-700 transition-colors"
+          title="Wyloguj"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
       </div>
     </header>
   );
