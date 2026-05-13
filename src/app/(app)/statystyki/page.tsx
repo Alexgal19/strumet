@@ -215,7 +215,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                     dataKey="name"
                                     position="outside"
                                     className="hidden sm:block"
-                                    formatter={(value: string, entry: any) => `${entry.value}`}
+                                    formatter={(value: string, entry: any) => `${entry?.value ?? ''}`}
                                 />
                             </Pie>
                             <Legend

@@ -7,7 +7,6 @@ import { Users, BarChart3, CalendarClock, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { useAppContext } from '@/context/app-context';
-import { motion } from 'framer-motion';
 
 interface MenuItem {
   href: string;
@@ -55,11 +54,7 @@ const AppBottomNav = ({ pathname }: { pathname: string }) => {
                 <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
               </div>
               {isActive && (
-                <motion.div
-                  layoutId="bottom-nav-active"
-                  className="absolute inset-x-2 inset-y-1 bg-primary/10 rounded-xl"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
+                <div className="absolute inset-x-2 inset-y-1 bg-primary/10 rounded-xl transition-all duration-300" />
               )}
             </Link>
           );

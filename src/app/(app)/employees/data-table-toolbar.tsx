@@ -28,7 +28,7 @@ interface DataTableToolbarProps<TData> {
   exportColumns?: { key: keyof Employee; name: string }[]
   exportFileName?: string
 }
-function DataTableToolbarComponent<TData>({
+export function DataTableToolbar<TData>({
   table,
   departmentOptions,
   jobTitleOptions,
@@ -159,4 +159,3 @@ function DataTableToolbarComponent<TData>({
 }
 
 
-export const DataTableToolbar = React.memo(DataTableToolbarComponent) as <TData>(props: DataTableToolbarProps<TData>) => React.JSX.Element;

@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { getFirebaseServices } from "@/lib/firebase";
 import { signInWithEmailAndPassword, type Auth } from "firebase/auth";
-import { motion } from "framer-motion";
 
 
 interface BeforeInstallPromptEvent extends Event {
@@ -142,22 +141,12 @@ export default function LoginPage() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-500/20 rounded-full blur-[100px] animate-pulse delay-1000" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="z-10 w-full max-w-sm"
-      >
+      <div className="z-10 w-full max-w-sm animate-in fade-in slide-in-from-bottom-5 duration-500">
         <Card className="w-full border-0 bg-card/50 backdrop-blur-xl shadow-2xl ring-1 ring-white/10">
           <CardHeader className="text-center space-y-4 pb-6">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, type: "spring" }}
-              className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-primary/30"
-            >
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-primary/30 animate-in zoom-in-75 fade-in duration-300 delay-200">
               <Database className="h-10 w-10 text-white" />
-            </motion.div>
+            </div>
             <div className="space-y-1">
               <CardTitle className="text-3xl font-bold tracking-tight bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">Baza - ST</CardTitle>
               <CardDescription className="text-muted-foreground/80 text-base">Zaloguj się, aby zarządzać personelem</CardDescription>
@@ -194,13 +183,9 @@ export default function LoginPage() {
                 />
               </div>
               {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm font-medium text-destructive"
-                >
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm font-medium text-destructive animate-in fade-in duration-200">
                   {error}
-                </motion.div>
+                </div>
               )}
               <Button
                 type="submit"
@@ -228,16 +213,12 @@ export default function LoginPage() {
             </div>
 
             {(deferredPrompt || isIOS) && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="pt-2"
-              >
+              <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <Button variant="outline" className="w-full h-11 border-white/10 hover:bg-white/5" onClick={handleInstallClick}>
                   <Download className="mr-2 h-4 w-4" />
                   Zainstaluj aplikację
                 </Button>
-              </motion.div>
+              </div>
             )}
 
             <Dialog open={isIOSOpen} onOpenChange={setIsIOSOpen}>
@@ -278,7 +259,7 @@ export default function LoginPage() {
             </Dialog>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 }
