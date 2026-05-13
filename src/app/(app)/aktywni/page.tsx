@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,15 +27,11 @@ import { PageHeader } from '@/components/page-header';
 import { ExcelImportButton } from '@/components/excel-import-button';
 import { HireDateImportButton } from '@/components/hire-date-import-button';
 import { ContractEndDateImportButton } from '@/components/contract-end-date-import-button';
-import { EmployeeForm } from '@/components/employee-form';
 import { DepartmentExcelExportButton } from '@/components/department-excel-export-button';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
+import { useRouter } from 'next/navigation';
 import { EmployeeTable } from '../employees/employee-table';
-
-const PassportScanner = dynamic(() => import('@/components/passport-scanner').then(mod => mod.PassportScanner), {
-  ssr: false,
-});
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -55,18 +50,14 @@ const exportColumns = [
 ];
 
 export default function AktywniPage() {
-  const { config, isLoading: isContextLoading, handleSaveEmployee, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently } = useAppContext();
+  const { config, isLoading: isContextLoading, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
+  const router = useRouter();
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  
   const [terminatingEmployee, setTerminatingEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
   const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [passportScanData, setPassportScanData] = useState<{ firstName: string; lastName: string } | null>(null);
 
   const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
     setClothingPrintData({ employee, issuance });
@@ -80,33 +71,21 @@ export default function AktywniPage() {
     });
   };
 
-  const onSave = async (employeeData: Employee) => {
-    await handleSaveEmployee(employeeData);
-    setEditingEmployee(null);
-    setIsFormOpen(false);
-  };
-
   const onTerminate = async (id: string, fullName: string) => {
     await handleTerminateEmployee(id, fullName);
-    setIsFormOpen(false);
   };
 
   const onDeletePermanently = async (id: string) => {
     await handleDeleteEmployeePermanently(id);
-    setIsFormOpen(false);
   };
 
   const handleEditEmployee = (employee: Employee) => {
-    setEditingEmployee(employee);
-    setPassportScanData(null);
-    setIsFormOpen(true);
+    router.push(`/pracownicy/${employee.id}`);
   };
 
   const handleAddNew = () => {
-    setEditingEmployee(null);
-    setPassportScanData(null);
-    setIsFormOpen(true);
-  }
+    router.push('/pracownicy/new');
+  };
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -195,41 +174,8 @@ export default function AktywniPage() {
             </div>
           </PageHeader>
 
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogContent
-              onOpenAutoFocus={(e) => e.preventDefault()}
-              className="w-[calc(100vw-1rem)] sm:max-w-3xl max-h-[90dvh] flex flex-col"
-            >
-              <DialogHeader className="flex-shrink-0">
-                <DialogTitle>{editingEmployee ? 'Edytuj pracownika' : 'Dodaj nowego pracownika'}</DialogTitle>
-              </DialogHeader>
-              <div className="flex-grow overflow-y-auto -mr-6 pr-6">
-                <EmployeeForm
-                  employee={editingEmployee}
-                  onSave={onSave}
-                  onCancel={() => setIsFormOpen(false)}
-                  onTerminate={onTerminate}
-                  onPrintClothing={handlePrintClothingIssuance}
-                  onScanPassport={() => setIsScannerOpen(true)}
-                  passportScanData={passportScanData || undefined}
-                  config={config}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* PassportScanner renderowany na poziomie strony, poza dialogiem pracownika */}
-          <PassportScanner
-            open={isScannerOpen}
-            onOpenChange={setIsScannerOpen}
-            onScanComplete={(data) => {
-              setPassportScanData(data);
-              setIsScannerOpen(false);
-            }}
-          />
-
           <div className="flex flex-col flex-grow min-h-0">
-             <EmployeeTable 
+             <EmployeeTable
                 data={activeEmployees}
                 isLoading={isContextLoading || isEmployeesLoading}
                 status="aktywny"
@@ -242,7 +188,7 @@ export default function AktywniPage() {
                 initialSorting={[{ id: 'hireDate', desc: true }]}
              />
           </div>
-          
+
           <AlertDialog open={!!terminatingEmployee} onOpenChange={(open) => !open && setTerminatingEmployee(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
@@ -264,7 +210,7 @@ export default function AktywniPage() {
                 </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          
+
           <AlertDialog open={!!deletingEmployee} onOpenChange={(open) => !open && setDeletingEmployee(null)}>
               <AlertDialogContent>
                   <AlertDialogHeader>
