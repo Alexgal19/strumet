@@ -54,7 +54,10 @@ export default function EmployeePage() {
 
   useEffect(() => {
     if (!clothingPrintData) return;
-    const timer = setTimeout(() => window.print(), 100);
+    const timer = setTimeout(() => {
+      window.print();
+      setClothingPrintData(null);
+    }, 100);
     return () => clearTimeout(timer);
   }, [clothingPrintData]);
 

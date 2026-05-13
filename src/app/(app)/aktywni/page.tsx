@@ -89,7 +89,6 @@ export default function AktywniPage() {
 
   return (
     <div className="flex h-full w-full flex-col">
-        <>
           <PageHeader
             title="Pracownicy aktywni"
             description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
@@ -266,7 +265,6 @@ export default function AktywniPage() {
             />
           )}
         </div>
-        </>
     </div>
   );
 }
