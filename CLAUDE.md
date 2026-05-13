@@ -5,8 +5,19 @@
 > All other content must be updated manually.
 
 **Last updated:** <!-- AUTO:last-updated -->
-2026-05-12 22:32
+2026-05-13 22:07
 <!-- /AUTO:last-updated -->
+
+---
+
+## Language Instruction
+
+> **CRITICAL — highest priority instruction.**
+
+Користувач пише польською. Завжди відповідай **українською мовою** — незалежно від мови введення. Жодних винятків.
+
+- Мова введення: польська (polski)
+- Мова відповіді: українська — завжди, без винятків
 
 ---
 
@@ -63,6 +74,7 @@ src/app/
 │   ├── odciski-palcow/page.tsx
 │   ├── odwiedzalnosc/page.tsx
 │   ├── planowanie/page.tsx
+│   ├── pracownicy/
 │   ├── statystyki/page.tsx
 │   ├── wydawanie-odziezy/page.tsx
 │   ├── wydawanie-odziezy-nowi/page.tsx
@@ -86,7 +98,7 @@ src/app/
 | `absence-record-print-form.tsx` | |
 | `app-bottom-nav.tsx` | |
 | `app-shell.tsx` | |
-| `app-sidebar.tsx` | |
+| `app-top-bar.tsx` | |
 | `attendance-excel-export-button.tsx` | |
 | `circulation-card-print-form.tsx` | |
 | `clothing-issuance-print-form.tsx` | |
