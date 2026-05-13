@@ -254,7 +254,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         <Select value={formData.nationality} onValueChange={value => handleChange('nationality', value)}>
                             <SelectTrigger aria-labelledby="label-nationality"><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
                             <SelectContent>
-                                {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
+                                {nationalities.map(n => <SelectItem key={n.name} value={n.name}>{n.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         {renderError('nationality')}

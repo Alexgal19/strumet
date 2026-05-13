@@ -45,6 +45,15 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
+const dedupeByName = <T extends { name: string }>(arr: T[]): T[] => {
+  const seen = new Set<string>();
+  return arr.filter(item => {
+    if (seen.has(item.name)) return false;
+    seen.add(item.name);
+    return true;
+  });
+};
+
 interface FirebaseServices {
     db: Database;
     auth: Auth;
@@ -199,10 +208,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setter: (data: any) => {
                     const configData = data || {};
                     const newConfig: AllConfig = {
-                        departments: objectToArray(configData.departments),
-                        jobTitles: objectToArray(configData.jobTitles),
-                        managers: objectToArray(configData.managers),
-                        nationalities: objectToArray(configData.nationalities),
+                        departments: dedupeByName(objectToArray(configData.departments)),
+                        jobTitles: dedupeByName(objectToArray(configData.jobTitles)),
+                        managers: dedupeByName(objectToArray(configData.managers)),
+                        nationalities: dedupeByName(objectToArray(configData.nationalities)),
                         clothingItems: objectToArray(configData.clothingItems),
                         jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
                         resendApiKey: configData.resendApiKey || '',
