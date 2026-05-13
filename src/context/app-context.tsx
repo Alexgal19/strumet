@@ -183,28 +183,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setter: (data: any) => {
                     setEmployees(objectToArray(data));
                     dataLoadedRef.current.add('employees');
-                }
+                },
+                essential: true,
             },
             {
                 path: "users",
                 setter: (data: any) => {
                     setUsers(objectToArray(data));
                     dataLoadedRef.current.add('users');
-                }
+                },
+                essential: false,
             },
             {
                 path: "absences",
                 setter: (data: any) => {
                     setAbsences(objectToArray(data));
                     dataLoadedRef.current.add('absences');
-                }
+                },
+                essential: false,
             },
             {
                 path: "notifications",
                 setter: (data: any) => {
                     setNotifications(objectToArray(data));
                     dataLoadedRef.current.add('notifications');
-                }
+                },
+                essential: false,
             },
             {
                 path: "config",
@@ -221,22 +225,30 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     };
                     setConfig(newConfig);
                     dataLoadedRef.current.add('config');
-                }
+                },
+                essential: true,
             },
         ];
 
-        const unsubscribes = dataRefs.map(({ path, setter }) =>
+        const checkEssentialLoaded = () => {
+            const essentialPaths = dataRefs.filter(r => r.essential).map(r => r.path);
+            const loadedEssential = essentialPaths.filter(p => dataLoadedRef.current.has(p));
+            return loadedEssential.length === essentialPaths.length;
+        };
+
+        const unsubscribes = dataRefs.map(({ path, setter, essential }) =>
             onValue(ref(db, path), snapshot => {
                 setter(snapshot.val());
-                // Check if all essential data is loaded (users, absences, notifications, config)
-                if (dataLoadedRef.current.size >= 5) {
+                if (checkEssentialLoaded()) {
                     setIsLoading(false);
                 }
             }, (error) => {
                 console.error(`Firebase read error on path ${path}:`, error);
-                toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
-                dataLoadedRef.current.add(path); // Mark as attempted even on error
-                if (dataLoadedRef.current.size >= 5) {
+                if (essential) {
+                    toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
+                }
+                dataLoadedRef.current.add(path);
+                if (checkEssentialLoaded()) {
                     setIsLoading(false);
                 }
             })

@@ -15,7 +15,6 @@ import {
 } from "@tanstack/react-table"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Loader2, UserX } from "lucide-react"
-import { motion } from "framer-motion"
 
 
 import {
@@ -116,11 +115,22 @@ export function EmployeeTable({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-    globalFilterFn: (row, columnId, filterValue) => {
-        const searchValue = filterValue.toLowerCase();
-        const fullName = row.original.fullName.toLowerCase();
-        const cardNumber = row.original.cardNumber?.toLowerCase() || '';
-        return fullName.includes(searchValue) || cardNumber.includes(searchValue);
+    globalFilterFn: (row, _columnId, filterValue) => {
+        const searchValue = String(filterValue).toLowerCase().trim();
+        if (!searchValue) return true;
+
+        const employee = row.original;
+        const fullName = String(employee.fullName || "").toLowerCase();
+        const cardNumber = String(employee.cardNumber || "").toLowerCase();
+        const department = String(employee.department || "").toLowerCase();
+        const jobTitle = String(employee.jobTitle || "").toLowerCase();
+        
+        return (
+            fullName.includes(searchValue) || 
+            cardNumber.includes(searchValue) ||
+            department.includes(searchValue) ||
+            jobTitle.includes(searchValue)
+        );
     }
   })
 
@@ -132,7 +142,7 @@ export function EmployeeTable({
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => (isMobile ? 170 : 45), // Adjusted estimate
+    estimateSize: () => (isMobile ? 85 : 45),
     overscan: 5,
   })
 
@@ -158,57 +168,53 @@ export function EmployeeTable({
 
     return (
         <div className="flex flex-col h-full">
-        <div className="px-3 pt-3 pb-2 bg-white/60 backdrop-blur-xl border-b border-white/40 shadow-sm dark:bg-black/40 dark:border-white/10 relative z-10">
-          <DataTableToolbar
-            table={table}
-            departmentOptions={departmentOptions}
-            jobTitleOptions={jobTitleOptions}
-            managerOptions={managerOptions}
-            nationalityOptions={nationalityOptions}
-            lastNameOptions={lastNameOptions}
-            exportColumns={exportColumns}
-            exportFileName={exportFileName}
-          />
-        </div>
-            <div ref={parentRef} className="w-full h-full overflow-y-auto px-3 pt-2">
-                <div
-                style={{
-                    height: `${rowVirtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative',
-                }}
-                >
-                {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                    const row = rows[virtualItem.index];
-                    const employee = row.original;
-                    return (
-                    <motion.div
-                        key={virtualItem.key}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            transform: `translateY(${virtualItem.start}px)`,
-                            padding: '6px 12px'
-                        }}
-                    >
-                         <EmployeeCard
-                            employee={employee}
-                            onEdit={() => onEdit(employee)}
-                            onTerminate={onTerminate ? () => onTerminate(employee) : undefined}
-                            onRestore={onRestore ? () => onRestore(employee) : undefined}
-                            onDeletePermanently={() => onDelete(employee)}
-                        />
-                    </motion.div>
-
-                    );
-                })}
-                </div>
+          <div className="px-3 pt-2 pb-1.5 bg-background border-b border-border/40">
+            <DataTableToolbar
+              table={table}
+              departmentOptions={departmentOptions}
+              jobTitleOptions={jobTitleOptions}
+              managerOptions={managerOptions}
+              nationalityOptions={nationalityOptions}
+              lastNameOptions={lastNameOptions}
+              exportColumns={exportColumns}
+              exportFileName={exportFileName}
+            />
+          </div>
+          <div ref={parentRef} className="flex-1 overflow-y-auto">
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                const row = rows[virtualItem.index];
+                const employee = row.original;
+                return (
+                  <div
+                    key={virtualItem.key}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualItem.start}px)`,
+                      padding: '4px 12px',
+                    }}
+                  >
+                    <EmployeeCard
+                      employee={employee}
+                      onEdit={() => onEdit(employee)}
+                      onTerminate={onTerminate ? () => onTerminate(employee) : undefined}
+                      onRestore={onRestore ? () => onRestore(employee) : undefined}
+                      onDeletePermanently={() => onDelete(employee)}
+                    />
+                  </div>
+                );
+              })}
             </div>
+          </div>
         </div>
     )
   }

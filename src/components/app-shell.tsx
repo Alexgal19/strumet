@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/app-context';
 import { AppTopBar } from '@/components/app-top-bar';
 import AppBottomNav from '@/components/app-bottom-nav';
-import { motion, AnimatePresence } from 'framer-motion';
 
 function BackgroundDecorations() {
   const [mounted, setMounted] = useState(false);
@@ -59,19 +58,8 @@ export const AppShell = React.memo(function AppShell({ children }: { children: R
       
       <ClientNavigation pathname={pathname} />
 
-      <main className="flex-1 overflow-y-auto pb-24 md:pb-0 z-0 relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="h-full w-full"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+      <main className="flex-1 overflow-y-auto pb-28 md:pb-0 z-0 relative">
+        {children}
       </main>
     </div>
   );
