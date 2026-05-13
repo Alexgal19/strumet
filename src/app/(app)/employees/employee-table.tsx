@@ -155,18 +155,20 @@ export function EmployeeTable({
     }
 
     return (
-        <div className="flex flex-col h-full space-y-4">
-        <DataTableToolbar
-          table={table}
-          departmentOptions={departmentOptions}
-               jobTitleOptions={jobTitleOptions}
-               managerOptions={managerOptions}
-               nationalityOptions={nationalityOptions}
-               lastNameOptions={lastNameOptions}
-               exportColumns={exportColumns}
-               exportFileName={exportFileName}
-             />
-            <div ref={parentRef} className="w-full h-full overflow-y-auto">
+        <div className="flex flex-col h-full">
+        <div className="px-3 pt-3 bg-white border-b border-gray-200">
+          <DataTableToolbar
+            table={table}
+            departmentOptions={departmentOptions}
+            jobTitleOptions={jobTitleOptions}
+            managerOptions={managerOptions}
+            nationalityOptions={nationalityOptions}
+            lastNameOptions={lastNameOptions}
+            exportColumns={exportColumns}
+            exportFileName={exportFileName}
+          />
+        </div>
+            <div ref={parentRef} className="w-full h-full overflow-y-auto px-3 pt-2">
                 <div
                 style={{
                     height: `${rowVirtualizer.getTotalSize()}px`,
@@ -223,23 +225,25 @@ export function EmployeeTable({
       : 0
 
   return (
-    <div className="flex flex-col h-full space-y-4">
-      <DataTableToolbar
-        table={table}
-        departmentOptions={departmentOptions}
-         jobTitleOptions={jobTitleOptions}
-         managerOptions={managerOptions}
-         nationalityOptions={nationalityOptions}
-         lastNameOptions={lastNameOptions}
-         exportColumns={exportColumns}
-         exportFileName={exportFileName}
-     />
+    <div className="flex flex-col h-full rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <div className="px-4 pt-3 pb-0">
+        <DataTableToolbar
+          table={table}
+          departmentOptions={departmentOptions}
+          jobTitleOptions={jobTitleOptions}
+          managerOptions={managerOptions}
+          nationalityOptions={nationalityOptions}
+          lastNameOptions={lastNameOptions}
+          exportColumns={exportColumns}
+          exportFileName={exportFileName}
+        />
+      </div>
       <div
         ref={parentRef}
-        className="flex-grow overflow-auto rounded-md border"
+        className="flex-grow overflow-auto"
       >
         <Table>
-          <TableHeader className="sticky top-0 bg-background z-10">
+          <TableHeader className="sticky top-0 bg-gray-50 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {

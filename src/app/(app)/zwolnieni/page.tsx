@@ -70,7 +70,7 @@ export default function ZwolnieniPage() {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col px-4 pt-4 md:px-6 md:pt-5">
       <PageHeader
         title="Pracownicy zwolnieni"
         description="Przeglądaj historię zwolnionych pracowników."
