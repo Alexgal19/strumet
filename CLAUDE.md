@@ -116,7 +116,7 @@ src/app/
 | File | Purpose |
 |------|---------|
 | `app-shell.tsx` | Root layout wrapper, auth guard. Root div uses `h-dvh` (NOT `h-full`) |
-| `app-sidebar.tsx` | Desktop navigation sidebar (shadcn Sidebar) |
+| `app-top-bar.tsx` | Desktop tab navigation (sticky dark header, replaces AppSidebar) |
 | `app-bottom-nav.tsx` | Mobile bottom navigation |
 | `employee-form.tsx` | Add/edit form. Props: `employee`, `onSave`, `onCancel`, `onTerminate?`, `onPrintClothing?`, `config` |
 | `clothing-issuance-print-form.tsx` | A4 print form. Inline styles + `@media print`. Class: `clothing-print-sheet` |

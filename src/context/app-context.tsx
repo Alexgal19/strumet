@@ -48,7 +48,10 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
 const dedupeByName = <T extends { name: string }>(arr: T[]): T[] => {
   const seen = new Set<string>();
   return arr.filter(item => {
-    if (seen.has(item.name)) return false;
+    if (seen.has(item.name)) {
+      console.warn(`[config] Duplicate entry dropped: "${item.name}" (id: ${(item as any).id})`);
+      return false;
+    }
     seen.add(item.name);
     return true;
   });

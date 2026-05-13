@@ -58,7 +58,6 @@ export default function AktywniPage() {
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
   const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
-
   const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
     setClothingPrintData({ employee, issuance });
   };
