@@ -24,8 +24,9 @@ const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onC
         <Popover>
             <PopoverTrigger asChild>
                 <Button
+                    type="button"
                     variant={"outline"}
-                    className={cn("w-full justify-start text-left font-normal", !dateValue && "text-muted-foreground")}
+                    className={cn("w-full justify-start text-left font-normal h-11 transition-all", !dateValue && "text-muted-foreground")}
                 >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateValue ? formatDate(dateValue, "PPP") : <span>{placeholder}</span>}
@@ -40,7 +41,7 @@ const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onC
                     initialFocus
                 />
                 {value && (
-                   <Button variant="ghost" size="sm" className="m-2 mt-0" onClick={() => onChange(undefined)}>
+                   <Button type="button" variant="ghost" size="sm" className="m-2 mt-0" onClick={() => onChange(undefined)}>
                      <Trash2 className="mr-2 h-4 w-4" />
                      Wyczyść datę
                    </Button>
@@ -220,219 +221,211 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     };
 
     return (
-        <>
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-                <div className="flex justify-between items-center gap-2">
-                    <h3 className="text-lg font-medium text-foreground">Dane osobowe</h3>
-                    <div className="flex items-center gap-2">
-                        <Button type="button" variant="outline" size="sm" onClick={handleCopyFullName} title="Kopiuj imię i nazwisko">
-                            <ClipboardCopy className="h-4 w-4" />
-                            <span className="hidden sm:inline ml-2">Kopiuj</span>
+        <div className="flex flex-col gap-8 pb-32">
+            {/* Quick Actions Header */}
+            <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-muted/30 border border-border/50 backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={handleCopyFullName} className="h-9 gap-2 bg-background/50">
+                        <ClipboardCopy className="h-4 w-4" />
+                        <span>Kopiuj dane</span>
+                    </Button>
+                    {onScanPassport && (
+                        <Button type="button" variant="outline" size="sm" onClick={onScanPassport} className="h-9 gap-2 bg-background/50">
+                            <Scan className="h-4 w-4" />
+                            <span>Skanuj paszport</span>
                         </Button>
-                        {onScanPassport && (
-                            <Button type="button" variant="outline" size="sm" onClick={onScanPassport} title="Skanuj Paszport">
-                                <Scan className="h-4 w-4" />
-                                <span className="hidden sm:inline ml-2">Skanuj</span>
-                            </Button>
-                        )}
-                    </div>
+                    )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-                    <div>
-                        <Label htmlFor="lastName">Nazwisko</Label>
-                        <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} />
-                        {renderError('lastName')}
-                    </div>
-                    <div>
-                        <Label htmlFor="firstName">Imię</Label>
-                        <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} />
-                        {renderError('firstName')}
-                    </div>
-                    <div>
-                        <Label id="label-nationality">Narodowość</Label>
-                        <Select value={formData.nationality} onValueChange={value => handleChange('nationality', value)}>
-                            <SelectTrigger aria-labelledby="label-nationality"><SelectValue placeholder="Wybierz narodowość" /></SelectTrigger>
-                            <SelectContent>
-                                {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        {renderError('nationality')}
-                    </div>
-                     <div>
-                        <Label id="label-legalization">Status legalizacyjny</Label>
-                        <Select value={formData.legalizationStatus || 'Brak'} onValueChange={value => handleChange('legalizationStatus', value)}>
-                            <SelectTrigger aria-labelledby="label-legalization">
-                                <SelectValue placeholder="Wybierz status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {legalizationStatuses.map(status => (
-                                    <SelectItem key={status.value} value={status.value}>
-                                        {status.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {renderError('legalizationStatus')}
-                    </div>
-                </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Dane zatrudnienia</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
-                    <div>
-                        <Label id="label-department">Dział</Label>
-                        <Select value={formData.department} onValueChange={value => handleChange('department', value)}>
-                            <SelectTrigger aria-labelledby="label-department"><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
-                            <SelectContent>
-                                {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        {renderError('department')}
-                    </div>
-                    <div>
-                        <Label id="label-jobTitle">Stanowisko</Label>
-                        <Select value={formData.jobTitle} onValueChange={value => handleChange('jobTitle', value)}>
-                            <SelectTrigger aria-labelledby="label-jobTitle"><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
-                            <SelectContent>
-                                {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        {renderError('jobTitle')}
-                    </div>
-                        <div>
-                        <Label id="label-manager">Kierownik</Label>
-                        <Select value={formData.manager} onValueChange={value => handleChange('manager', value)}>
-                            <SelectTrigger aria-labelledby="label-manager"><SelectValue placeholder="Wybierz kierownika" /></SelectTrigger>
-                            <SelectContent>
-                                {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        {renderError('manager')}
-                    </div>
-                     <div>
-                        <Label>Data zatrudnienia</Label>
-                        <DatePickerInput
-                            value={formData.hireDate}
-                            onChange={(date) => handleChange('hireDate', date)}
-                            placeholder="Wybierz datę"
-                        />
-                        {renderError('hireDate')}
-                    </div>
-                     <div>
-                        <Label id="label-welderLicense">Licencja spawacza</Label>
-                        <Select value={formData.welderLicense} onValueChange={value => handleChange('welderLicense', value)}>
-                            <SelectTrigger aria-labelledby="label-welderLicense"><SelectValue placeholder="Wybierz..." /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Tak">Tak</SelectItem>
-                                <SelectItem value="Nie">Nie</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {renderError('welderLicense')}
-                    </div>
-                </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Dane identyfikacyjne</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                     <div>
-                        <Label htmlFor="cardNumber">Numer karty</Label>
-                        <Input id="cardNumber" value={formData.cardNumber} onChange={e => handleChange('cardNumber', e.target.value)} />
-                        {renderError('cardNumber')}
-                    </div>
-                        <div>
-                        <Label htmlFor="lockerNumber">Numer szafki</Label>
-                        <Input id="lockerNumber" value={formData.lockerNumber} onChange={e => handleChange('lockerNumber', e.target.value)} />
-                    </div>
-                    <div>
-                        <Label htmlFor="departmentLockerNumber">Szafka w dziale</Label>
-                        <Input id="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={e => handleChange('departmentLockerNumber', e.target.value)} />
-                    </div>
-                    <div>
-                        <Label htmlFor="sealNumber">Numer pieczęci</Label>
-                        <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} />
-                    </div>
-                </div>
-            </div>
-            
-            <Separator />
-
-            <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Planowanie</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                  <div>
-                      <Label>Planowana data zwolnienia</Label>
-                      <DatePickerInput 
-                          value={formData.plannedTerminationDate} 
-                          onChange={(date) => handleChange('plannedTerminationDate', date)}
-                          placeholder="Wybierz planowaną datę"
-                      />
-                  </div>
-                  <div>
-                      <Label>Data zwolnienia</Label>
-                      <DatePickerInput 
-                          value={formData.terminationDate} 
-                          onChange={(date) => handleChange('terminationDate', date)}
-                          placeholder="Wybierz datę zwolnienia"
-                      />
-                  </div>
-                  <div>
-                    <Label>Urlop od</Label>
-                    <DatePickerInput 
-                        value={formData.vacationStartDate} 
-                        onChange={(date) => handleChange('vacationStartDate', date)}
-                        placeholder="Początek urlopu"
-                    />
-                  </div>
-                  <div>
-                    <Label>Urlop do</Label>
-                    <DatePickerInput 
-                        value={formData.vacationEndDate} 
-                        onChange={(date) => handleChange('vacationEndDate', date)}
-                        placeholder="Koniec urlopu"
-                    />
-                    {renderError('vacationEndDate')}
-                  </div>
-                </div>
-            </div>
-
-            <div className="flex flex-wrap justify-between items-center gap-2 pt-2">
-                <div>
-                  {employee && employee.status === 'aktywny' && onTerminate && (
-                      <Button
-                          type="button"
-                          variant="destructive"
-                          onClick={() => onTerminate(employee.id, employee.fullName)}
-                      >
-                         <UserX className="mr-2 h-4 w-4" />
-                         Zwolnij
-                      </Button>
-                  )}
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
+                {clothingSet && (
                     <Button
                         type="button"
                         variant="outline"
+                        size="sm"
                         onClick={handleOpenClothingDialog}
-                        disabled={!clothingSet}
-                        title={!clothingSet ? 'Brak zestawu odzieży dla wybranego stanowiska' : 'Wydawanie odzieży dla nowych'}
+                        className="h-9 gap-2 bg-background/50"
                     >
-                        <Shirt className="mr-2 h-4 w-4" />
-                        <span className="hidden sm:inline">Wydawanie odzieży</span>
-                        <span className="sm:hidden">Odzież</span>
+                        <Shirt className="h-4 w-4" />
+                        <span>Wydaj odzież</span>
                     </Button>
-                    <Button type="button" variant="outline" onClick={onCancel}>Anuluj</Button>
-                    <Button type="submit">Zapisz</Button>
-                </div>
+                )}
             </div>
-        </form>
-        
-        </>
+
+            <form onSubmit={handleSubmit} className="space-y-10">
+                {/* Section: Personal Information */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-1 rounded-full bg-primary" />
+                        <h3 className="text-lg font-semibold tracking-tight">Dane osobowe</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="lastName" className="text-sm font-medium">Nazwisko</Label>
+                            <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} className="h-11 transition-all focus:ring-2 focus:ring-primary/20" placeholder="np. Kowalski" />
+                            {renderError('lastName')}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="firstName" className="text-sm font-medium">Imię</Label>
+                            <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} className="h-11 transition-all focus:ring-2 focus:ring-primary/20" placeholder="np. Jan" />
+                            {renderError('firstName')}
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Narodowość</Label>
+                            <Select value={formData.nationality} onValueChange={value => handleChange('nationality', value)}>
+                                <SelectTrigger className="h-11 transition-all">
+                                    <SelectValue placeholder="Wybierz narodowość" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            {renderError('nationality')}
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Status legalizacyjny</Label>
+                            <Select value={formData.legalizationStatus || 'Brak'} onValueChange={value => handleChange('legalizationStatus', value)}>
+                                <SelectTrigger className="h-11 transition-all">
+                                    <SelectValue placeholder="Wybierz status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {legalizationStatuses.map(status => (
+                                        <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {renderError('legalizationStatus')}
+                        </div>
+                    </div>
+                </div>
+
+                <Separator className="opacity-50" />
+
+                {/* Section: Employment Details */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-1 rounded-full bg-blue-500" />
+                        <h3 className="text-lg font-semibold tracking-tight">Zatrudnienie</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Dział</Label>
+                            <Select value={formData.department} onValueChange={value => handleChange('department', value)}>
+                                <SelectTrigger className="h-11 transition-all">
+                                    <SelectValue placeholder="Wybierz dział" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            {renderError('department')}
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Stanowisko</Label>
+                            <Select value={formData.jobTitle} onValueChange={value => handleChange('jobTitle', value)}>
+                                <SelectTrigger className="h-11 transition-all">
+                                    <SelectValue placeholder="Wybierz stanowisko" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            {renderError('jobTitle')}
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Kierownik</Label>
+                            <Select value={formData.manager} onValueChange={value => handleChange('manager', value)}>
+                                <SelectTrigger className="h-11 transition-all">
+                                    <SelectValue placeholder="Wybierz kierownika" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            {renderError('manager')}
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Data zatrudnienia</Label>
+                            <DatePickerInput
+                                value={formData.hireDate}
+                                onChange={(date) => handleChange('hireDate', date)}
+                                placeholder="Wybierz datę"
+                            />
+                            {renderError('hireDate')}
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Licencja spawacza</Label>
+                            <Select value={formData.welderLicense} onValueChange={value => handleChange('welderLicense', value)}>
+                                <SelectTrigger className="h-11 transition-all">
+                                    <SelectValue placeholder="Czy posiada?" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Tak">Tak, posiada</SelectItem>
+                                    <SelectItem value="Nie">Nie posiada</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+
+                <Separator className="opacity-50" />
+
+                {/* Section: Identification & Planning */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-1 rounded-full bg-purple-500" />
+                        <h3 className="text-lg font-semibold tracking-tight">Identyfikacja i Planowanie</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="cardNumber" className="text-sm font-medium">Numer karty</Label>
+                            <Input id="cardNumber" value={formData.cardNumber} onChange={e => handleChange('cardNumber', e.target.value)} className="h-11" placeholder="0000" />
+                            {renderError('cardNumber')}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="lockerNumber" className="text-sm font-medium">Szafka główna</Label>
+                            <Input id="lockerNumber" value={formData.lockerNumber} onChange={e => handleChange('lockerNumber', e.target.value)} className="h-11" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="departmentLockerNumber" className="text-sm font-medium">Szafka działowa</Label>
+                            <Input id="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={e => handleChange('departmentLockerNumber', e.target.value)} className="h-11" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="sealNumber" className="text-sm font-medium">Numer pieczątki</Label>
+                            <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} className="h-11" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Plan. zwolnienie</Label>
+                            <DatePickerInput value={formData.plannedTerminationDate} onChange={d => handleChange('plannedTerminationDate', d)} placeholder="Wybierz datę" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Urlop od</Label>
+                            <DatePickerInput value={formData.vacationStartDate} onChange={d => handleChange('vacationStartDate', d)} placeholder="Początek" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Urlop do</Label>
+                            <DatePickerInput value={formData.vacationEndDate} onChange={d => handleChange('vacationEndDate', d)} placeholder="Koniec" />
+                            {renderError('vacationEndDate')}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="fixed bottom-0 right-0 w-[calc(100%-1px)] sm:w-[575px] p-6 bg-background/80 backdrop-blur-md border-t flex justify-between items-center z-10">
+                    <div>
+                        {employee && employee.status === 'aktywny' && onTerminate && (
+                            <Button type="button" variant="ghost" onClick={() => onTerminate(employee.id, employee.fullName)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <UserX className="mr-2 h-4 w-4" />
+                                Zwolnij
+                            </Button>
+                        )}
+                    </div>
+                    <div className="flex gap-3">
+                        <Button type="button" variant="outline" onClick={onCancel} className="h-11 px-6">Anuluj</Button>
+                        <Button type="submit" className="h-11 px-10 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20">
+                            Zapisz zmiany
+                        </Button>
+                    </div>
+                </div>
+            </form>
+        </div>
     );
 }

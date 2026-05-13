@@ -2,10 +2,12 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Users, BarChart3, CalendarClock } from 'lucide-react';
+import { Users, BarChart3, CalendarClock, UserX } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { useAppContext } from '@/context/app-context';
+import { motion } from 'framer-motion';
 
 interface MenuItem {
   href: string;
@@ -15,6 +17,7 @@ interface MenuItem {
 
 const ALL_MENU_ITEMS: MenuItem[] = [
   { href: '/aktywni', icon: Users, label: 'Pracownicy' },
+  { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni' },
   { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
   { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
 ];
@@ -22,6 +25,7 @@ const ALL_MENU_ITEMS: MenuItem[] = [
 const GUEST_VIEWS = ['/statystyki', '/planowanie'];
 
 const AppBottomNav = ({ pathname }: { pathname: string }) => {
+
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
   const { isAdmin } = useAppContext();
@@ -31,32 +35,39 @@ const AppBottomNav = ({ pathname }: { pathname: string }) => {
   if (!hasMounted || !isMobile) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-14 border-t border-gray-200 bg-white md:hidden">
-      {menuItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = pathname.startsWith(item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            prefetch
-            className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors',
-              isActive ? 'text-emerald-600' : 'text-gray-400 hover:text-gray-700'
-            )}
-          >
-            <div className={cn(
-              'flex h-7 w-9 items-center justify-center rounded-lg transition-colors',
-              isActive ? 'bg-emerald-50' : ''
-            )}>
-              <Icon className="h-5 w-5" />
-            </div>
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <div className="fixed bottom-4 left-4 right-4 z-50 h-16 pointer-events-none flex justify-center md:hidden">
+      <nav className="pointer-events-auto flex w-full max-w-md items-center justify-around gap-1 px-2 glass-morphism rounded-3xl shadow-xl border border-white/20">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch
+              className={cn(
+                'relative flex flex-1 flex-col items-center justify-center py-1 transition-all duration-300 rounded-2xl overflow-hidden',
+                isActive ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <Icon className={cn("h-5 w-5 transition-transform duration-300", isActive && "scale-110")} />
+                <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
+              </div>
+              {isActive && (
+                <motion.div
+                  layoutId="bottom-nav-active"
+                  className="absolute inset-x-2 inset-y-1 bg-primary/10 rounded-xl"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 };
+
 
 export default AppBottomNav;

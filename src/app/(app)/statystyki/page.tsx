@@ -185,13 +185,13 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
 
     // Explicitly typed render function to avoid implicit any errors if any
     const renderPieChart = (data: any[], title: string, description: string, type: "department" | "nationality" | "jobTitle") => (
-        <Card className="flex flex-col shadow-elevation-md hover:shadow-elevation-lg transition-shadow border-0 bg-background/50 backdrop-blur-xl">
+        <Card className="flex flex-col glass-card border-0">
             <CardHeader>
                 <CardTitle className="text-xl font-bold text-foreground">{title}</CardTitle>
                 <CardDescription className="text-sm">{description}</CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 flex items-center justify-center -mt-4">
-                <ChartContainer config={{}} className="h-[380px] w-full">
+            <CardContent className="flex-1 flex items-center justify-center -mt-4 p-2 sm:p-6">
+                <ChartContainer config={{}} className="h-[200px] sm:h-[380px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Tooltip content={<CustomTooltip />} />
@@ -222,6 +222,8 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                 align="right"
                                 iconSize={12}
                                 wrapperStyle={{ lineHeight: "2em" }}
+                                className="hidden sm:block"
+
                                 onClick={(d: any) => handleChartClick(d.value, type)}
                                 formatter={(value, entry: any) => (
                                     <span className="text-muted-foreground text-sm pl-2 cursor-pointer hover:text-primary transition-colors">
@@ -293,7 +295,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         >
             <div className="grid gap-4 md:grid-cols-3">
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
-                    <Card className="glass-panel border-0 shadow-elevation-md hover:shadow-elevation-lg transition-shadow">
+                    <Card className="glass-card border-0 p-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-base font-medium">Aktywni pracownicy</CardTitle>
                             <Users className="h-4 w-4 text-primary" />
@@ -305,7 +307,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                     </Card>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-                    <Card className="glass-panel border-0 shadow-elevation-md hover:shadow-elevation-lg transition-shadow">
+                    <Card className="glass-card border-0 p-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-base font-medium">Liczba działów</CardTitle>
                             <Building className="h-4 w-4 text-accent" />
@@ -317,7 +319,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                     </Card>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
-                    <Card className="glass-panel border-0 shadow-elevation-md hover:shadow-elevation-lg transition-shadow">
+                    <Card className="glass-card border-0 p-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-base font-medium">Liczba stanowisk</CardTitle>
                             <Briefcase className="h-4 w-4 text-primary" />
@@ -379,7 +381,7 @@ const DiffBadge = ({ diff }: { diff: number }) => (
 );
 
 const PeriodChangeCard = ({ title, data }: { title: string, data: { name: string, from: number, to: number, diff: number }[] }) => (
-    <Card>
+    <Card className="glass-card">
         <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
         <CardContent>
             <div className="space-y-3">
@@ -400,7 +402,7 @@ const PeriodChangeCard = ({ title, data }: { title: string, data: { name: string
 );
 
 const SingleDayReportCard = ({ title, data }: { title: string, data: { name: string, to: number }[] }) => (
-    <Card>
+    <Card className="glass-card">
         <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
         <CardContent>
             <div className="space-y-3">
@@ -416,7 +418,7 @@ const SingleDayReportCard = ({ title, data }: { title: string, data: { name: str
 );
 
 const EmployeeChangeList = ({ title, employees, icon, emptyText }: { title: string, employees: any[], icon: React.ReactNode, emptyText: string }) => (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col glass-card">
         <CardHeader>
             <div className="flex items-center gap-3">
                 {icon}
@@ -460,7 +462,7 @@ const FieldChangeList = ({ changes }: { changes: any[] }) => {
     if (changes.length === 0) return null;
 
     return (
-        <Card>
+        <Card className="glass-card">
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <GitCompareArrows className="h-6 w-6 text-blue-500" />
@@ -558,7 +560,7 @@ const HiresAndFiresTab = () => {
 
     return (
         <div className="space-y-6">
-            <Card>
+            <Card className="glass-card">
                 <CardHeader>
                     <div className="flex justify-between items-start">
                         <div>

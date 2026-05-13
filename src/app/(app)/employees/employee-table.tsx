@@ -15,6 +15,8 @@ import {
 } from "@tanstack/react-table"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Loader2, UserX } from "lucide-react"
+import { motion } from "framer-motion"
+
 
 import {
   Table,
@@ -156,7 +158,7 @@ export function EmployeeTable({
 
     return (
         <div className="flex flex-col h-full">
-        <div className="px-3 pt-3 bg-white border-b border-gray-200">
+        <div className="px-3 pt-3 pb-2 bg-white/60 backdrop-blur-xl border-b border-white/40 shadow-sm dark:bg-black/40 dark:border-white/10 relative z-10">
           <DataTableToolbar
             table={table}
             departmentOptions={departmentOptions}
@@ -180,24 +182,18 @@ export function EmployeeTable({
                     const row = rows[virtualItem.index];
                     const employee = row.original;
                     return (
-                    <div
+                    <motion.div
                         key={virtualItem.key}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
                         style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        transform: `translateY(${virtualItem.start}px)`,
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        className="p-2 cursor-pointer"
-                        onClick={() => onEdit(employee)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                onEdit(employee);
-                            }
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            transform: `translateY(${virtualItem.start}px)`,
+                            padding: '6px 12px'
                         }}
                     >
                          <EmployeeCard
@@ -207,7 +203,8 @@ export function EmployeeTable({
                             onRestore={onRestore ? () => onRestore(employee) : undefined}
                             onDeletePermanently={() => onDelete(employee)}
                         />
-                    </div>
+                    </motion.div>
+
                     );
                 })}
                 </div>
@@ -225,9 +222,10 @@ export function EmployeeTable({
       : 0
 
   return (
-    <div className="flex flex-col h-full rounded-lg border border-gray-200 bg-white overflow-hidden">
-      <div className="px-4 pt-3 pb-0">
+    <div className="flex flex-col h-full glass-card overflow-hidden animate-in-slide-up">
+      <div className="px-6 py-4 border-b border-white/20 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-md relative z-10">
         <DataTableToolbar
+
           table={table}
           departmentOptions={departmentOptions}
           jobTitleOptions={jobTitleOptions}
@@ -243,7 +241,7 @@ export function EmployeeTable({
         className="flex-grow overflow-auto"
       >
         <Table>
-          <TableHeader className="sticky top-0 bg-gray-50 z-10">
+          <TableHeader className="sticky top-0 bg-white/60 dark:bg-black/40 backdrop-blur-md z-10 shadow-sm border-b border-white/40 dark:border-white/10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {

@@ -2,12 +2,18 @@
 
 import React from "react"
 import { Table } from "@tanstack/react-table"
-import { X } from "lucide-react"
-
+import { X, Filter } from "lucide-react"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { DataTableViewOptions } from "@/components/data-table/data-table-view-options"
-
 import { DataTableFacetedFilter } from "@/components/data-table/data-table-faceted-filter"
 import { ExcelExportButton } from "@/components/excel-export-button"
 import { Employee } from "@/lib/types"
@@ -22,7 +28,6 @@ interface DataTableToolbarProps<TData> {
   exportColumns?: { key: keyof Employee; name: string }[]
   exportFileName?: string
 }
-
 function DataTableToolbarComponent<TData>({
   table,
   departmentOptions,
@@ -35,15 +40,9 @@ function DataTableToolbarComponent<TData>({
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
 
-  return (
-    <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-gray-200">
-      <Input
-        aria-label="Szukaj pracownika"
-        placeholder="Szukaj..."
-        value={(table.getState().globalFilter as string) ?? ""}
-        onChange={(event) => table.setGlobalFilter(event.target.value)}
-        className="h-8 w-48 lg:w-64"
-      />
+  const filters = (
+    <>
+
       {lastNameOptions && table.getColumn("lastName") && (
         <DataTableFacetedFilter
           column={table.getColumn("lastName")}
@@ -79,16 +78,72 @@ function DataTableToolbarComponent<TData>({
           options={nationalityOptions}
         />
       )}
+    </>
+  )
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 pb-2">
+      <div className="flex-1 min-w-[150px]">
+        <Input
+          aria-label="Szukaj pracownika"
+          placeholder="Szukaj..."
+          value={(table.getState().globalFilter as string) ?? ""}
+          onChange={(event) => table.setGlobalFilter(event.target.value)}
+          className="h-9 w-full lg:w-64"
+        />
+      </div>
+      
+      {/* Desktop Filters */}
+      <div className="hidden lg:flex items-center gap-2">
+        {filters}
+      </div>
+
+      {/* Mobile Filters */}
+      <div className="lg:hidden">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9 gap-2">
+              <Filter className="h-4 w-4" />
+              Filtruj
+              {isFiltered && (
+                <Badge variant="secondary" className="ml-1 rounded-sm px-1 font-normal lg:hidden">
+                  {table.getState().columnFilters.length}
+                </Badge>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[300px] glass-morphism sm:w-[400px]">
+            <SheetHeader className="mb-6">
+              <SheetTitle>Filtrowanie</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-col gap-4">
+              {filters}
+              {isFiltered && (
+                <Button
+                  variant="ghost"
+                  onClick={() => table.resetColumnFilters()}
+                  className="mt-2 w-full justify-center"
+                >
+                  Wyczyść filtry
+                  <X className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
       {isFiltered && (
         <Button
           variant="ghost"
           onClick={() => table.resetColumnFilters()}
-          className="h-8 px-2 lg:px-3"
+          className="hidden lg:flex h-9 px-2 lg:px-3"
         >
           Wyczyść
           <X className="ml-2 h-4 w-4" />
         </Button>
       )}
+
       <div className="ml-auto flex items-center gap-2 shrink-0">
         {exportColumns && (
           <ExcelExportButton
@@ -102,5 +157,6 @@ function DataTableToolbarComponent<TData>({
     </div>
   )
 }
+
 
 export const DataTableToolbar = React.memo(DataTableToolbarComponent) as <TData>(props: DataTableToolbarProps<TData>) => React.JSX.Element;

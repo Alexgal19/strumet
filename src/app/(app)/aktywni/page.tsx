@@ -2,6 +2,12 @@
 
 import React, { useState } from 'react';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -14,11 +20,12 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MoreHorizontal, PlusCircle, Trash2, Printer } from 'lucide-react';
 import type { Employee, ClothingIssuance } from '@/lib/types';
@@ -31,7 +38,14 @@ import { DepartmentExcelExportButton } from '@/components/department-excel-expor
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { EmployeeTable } from '../employees/employee-table';
+import { EmployeeForm } from '@/components/employee-form';
+
+const PassportScanner = dynamic(
+  () => import('@/components/passport-scanner').then(m => m.PassportScanner),
+  { ssr: false }
+);
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -50,13 +64,18 @@ const exportColumns = [
 ];
 
 export default function AktywniPage() {
-  const { config, isLoading: isContextLoading, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently } = useAppContext();
+  const { config, isLoading: isContextLoading, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently, handleSaveEmployee } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const router = useRouter();
 
   const [terminatingEmployee, setTerminatingEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
   const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
+  
+  const [editingEmployee, setEditingEmployee] = useState<Employee | 'new' | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [passportScanData, setPassportScanData] = useState<{ firstName: string; lastName: string } | null>(null);
+  
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
   const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
     setClothingPrintData({ employee, issuance });
@@ -79,11 +98,13 @@ export default function AktywniPage() {
   };
 
   const handleEditEmployee = (employee: Employee) => {
-    router.push(`/pracownicy/${employee.id}`);
+    setPassportScanData(null);
+    setEditingEmployee(employee);
   };
 
   const handleAddNew = () => {
-    router.push('/pracownicy/new');
+    setPassportScanData(null);
+    setEditingEmployee('new');
   };
 
   return (
@@ -264,6 +285,46 @@ export default function AktywniPage() {
             />
           )}
         </div>
+
+        {/* Side Panel (Sheet) formularza pracownika */}
+        <Sheet open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
+          <SheetContent side="right" className="w-[calc(100vw-1rem)] sm:max-w-xl p-0 overflow-hidden flex flex-col border-l glass-morphism">
+            <SheetHeader className="p-6 border-b bg-muted/30">
+              <SheetTitle className="text-2xl font-bold tracking-tight">
+                {editingEmployee === 'new' ? 'Dodaj pracownika' : 'Edytuj pracownika'}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
+              {editingEmployee && (
+                <EmployeeForm
+                  employee={editingEmployee === 'new' ? null : editingEmployee}
+                  onSave={async (data) => {
+                    const success = await handleSaveEmployee(data);
+                    if (success) setEditingEmployee(null);
+                  }}
+                  onCancel={() => setEditingEmployee(null)}
+                  onTerminate={async (id, fullName) => {
+                    const success = await handleTerminateEmployee(id, fullName);
+                    if (success) setEditingEmployee(null);
+                  }}
+                  onPrintClothing={handlePrintClothingIssuance}
+                  onScanPassport={() => setIsScannerOpen(true)}
+                  passportScanData={passportScanData ?? undefined}
+                  config={config}
+                />
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <PassportScanner
+          open={isScannerOpen}
+          onOpenChange={setIsScannerOpen}
+          onScanComplete={(data) => {
+            setPassportScanData(data);
+            setIsScannerOpen(false);
+          }}
+        />
     </div>
   );
 }

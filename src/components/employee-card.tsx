@@ -55,10 +55,14 @@ export const EmployeeCard = React.memo(function EmployeeCard({
   const avatarColor = getAvatarColor(employee.fullName ?? '');
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+    <div className="group relative flex items-center gap-4 glass-card p-4 transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-[0.98]">
+      {/* Subtle shimmer effect on hover */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:animate-shimmer pointer-events-none z-0" />
+
+      
       {/* Avatar */}
       <div className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white',
+        'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm relative z-10',
         avatarColor
       )}>
         {initial}

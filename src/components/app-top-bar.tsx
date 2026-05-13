@@ -161,29 +161,39 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
     router.push('/login');
   }, [router]);
 
-  if (!hasMounted || isMobile) return null;
+  // On mobile or before mount, render as hidden to avoid hydration mismatch
+  const isHidden = !hasMounted || isMobile;
+
+  if (isHidden) return null;
 
   const navItems = isAdmin ? ALL_NAV_ITEMS : ALL_NAV_ITEMS.filter(item => GUEST_VIEWS.includes(item.href));
   const breadcrumb = getBreadcrumb(pathname);
 
   return (
-    <header className="sticky top-0 z-30 flex h-11 items-center border-b border-gray-800 bg-gray-900 px-4 gap-0">
-      <span className="text-xs font-black tracking-widest text-gray-100 mr-5 shrink-0">
-        STRUMET HR
-      </span>
+    <div className="sticky top-0 z-30 w-full px-4 pt-4 pointer-events-none">
+      <header className="pointer-events-auto flex h-14 items-center px-6 gap-6 glass-morphism rounded-2xl shadow-lg border border-white/20 dark:border-white/10">
+
+      <div className="flex items-center gap-2 group cursor-default">
+        <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-[0_0_15px_hsl(var(--primary)_/_0.3)] group-hover:scale-110 transition-transform duration-300">
+           <span className="text-[10px] font-black text-white">S</span>
+        </div>
+        <span className="text-sm font-bold tracking-tight text-foreground/90">
+          STRUMET <span className="text-primary">HR</span>
+        </span>
+      </div>
+
+      <Separator orientation="vertical" className="h-6 bg-border/50" />
 
       {breadcrumb ? (
-        // Detail page: show breadcrumb instead of tabs
-        <nav className="flex items-center gap-1.5 text-sm flex-1">
-          <Link href={breadcrumb.parentHref} className="text-gray-400 hover:text-gray-100 transition-colors">
+        <nav className="flex items-center gap-2 text-sm flex-1">
+          <Link href={breadcrumb.parentHref} className="text-muted-foreground hover:text-foreground transition-colors font-medium">
             {breadcrumb.parent}
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-600" />
-          <span className="text-emerald-400 font-semibold">{breadcrumb.current}</span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          <span className="text-primary font-bold">{breadcrumb.current}</span>
         </nav>
       ) : (
-        // List pages: show tab navigation
-        <nav className="flex items-stretch h-11 flex-1 overflow-x-auto scrollbar-none">
+        <nav className="flex items-center h-full flex-1 overflow-x-auto scrollbar-none gap-1">
           {navItems.map(item => {
             const isActive = pathname.startsWith(item.href);
             return (
@@ -192,29 +202,38 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
                 href={item.href}
                 prefetch
                 className={cn(
-                  'flex items-center px-3 text-sm whitespace-nowrap transition-colors border-b-2 h-full',
+                  'relative flex items-center px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all duration-300 rounded-full',
                   isActive
-                    ? 'text-emerald-400 font-semibold border-emerald-500'
-                    : 'text-gray-400 hover:text-gray-100 border-transparent'
+                    ? 'text-primary bg-primary/10'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 )}
               >
                 {item.label}
+                {isActive && (
+                   <div className="absolute inset-0 border border-primary/20 rounded-full transition-all duration-300" />
+                )}
               </Link>
             );
           })}
         </nav>
       )}
 
-      <div className="flex items-center gap-2 ml-auto shrink-0">
+      <div className="flex items-center gap-3 ml-auto shrink-0">
         {isAdmin && <Notifications />}
-        <button
+        <Separator orientation="vertical" className="h-6 bg-border/50" />
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleLogout}
-          className="rounded-md p-1.5 text-gray-400 hover:text-gray-100 hover:bg-gray-700 transition-colors"
+          className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
           title="Wyloguj"
         >
           <LogOut className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </header>
+    </div>
   );
 }
+
+
