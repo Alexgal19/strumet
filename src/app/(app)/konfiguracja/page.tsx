@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Trash2, Loader2, Edit, Save, KeyRound, Users, ShieldCheck } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Edit, Save, KeyRound, Users, ShieldCheck, Mail, Send, Eye, EyeOff } from 'lucide-react';
 import type { ConfigItem, ConfigType, JobTitle, JobTitleClothingSet, User, UserRole } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
@@ -22,6 +22,7 @@ import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { sendEmail } from '@/ai/tools';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -196,24 +197,31 @@ const UserManagementTab = () => {
 
 
 export default function ConfigurationPage() {
-  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, handleSaveResendApiKey, isAdmin } = useAppContext();
+  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, handleSaveGmailCredentials, updateRecipientEmails, isAdmin } = useAppContext();
   const hasMounted = useHasMounted();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const [currentConfigType, setCurrentConfigType] = useState<ConfigType | null>(null);
   const [newItemsText, setNewItemsText] = useState('');
-  
+
   const [editingItem, setEditingItem] = useState<{ id: string; name: string } | null>(null);
   const [editedItemName, setEditedItemName] = useState('');
-  
-  const [resendApiKey, setResendApiKey] = useState('');
+
+  const [gmailUser, setGmailUser] = useState('');
+  const [gmailAppPassword, setGmailAppPassword] = useState('');
+  const [recipientEmails, setRecipientEmails] = useState<string[]>([]);
+  const [newEmail, setNewEmail] = useState('');
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { toast } = useToast();
   
   useEffect(() => {
-    setResendApiKey(config.resendApiKey || '');
-  }, [config.resendApiKey]);
+    setGmailUser(config.gmailUser || '');
+    setGmailAppPassword(config.gmailAppPassword || '');
+    setRecipientEmails(config.recipientEmails || []);
+  }, [config.gmailUser, config.gmailAppPassword, config.recipientEmails]);
 
 
   const openAddDialog = (configType: ConfigType) => {
@@ -272,8 +280,58 @@ export default function ConfigurationPage() {
     }
   };
 
-  const onSaveApiKey = async () => {
-    await handleSaveResendApiKey(resendApiKey);
+  const onSaveGmailCredentials = async () => {
+    await handleSaveGmailCredentials(gmailUser, gmailAppPassword);
+  };
+
+  const addEmail = async () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email) return;
+    if (!email.includes('@')) {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Podaj prawidłowy adres email.' });
+      return;
+    }
+    if (recipientEmails.includes(email)) {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Ten adres już istnieje.' });
+      return;
+    }
+    const newList = [...recipientEmails, email];
+    await updateRecipientEmails(newList);
+    setRecipientEmails(newList);
+    setNewEmail('');
+  };
+
+  const removeEmail = async (emailToRemove: string) => {
+    const newList = recipientEmails.filter(e => e !== emailToRemove);
+    await updateRecipientEmails(newList);
+    setRecipientEmails(newList);
+  };
+
+  const handleSendTestEmail = async () => {
+    if (recipientEmails.length === 0) {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Brak adresów email do wysłania.' });
+      return;
+    }
+    setIsSendingTest(true);
+    try {
+      const result = await sendEmail({
+        subject: 'Test powiadomienia – Strumet HR',
+        body: '<p>To jest testowa wiadomość z systemu <strong>Strumet HR</strong>.</p><p>Powiadomienia email działają poprawnie.</p>',
+        gmailUser: gmailUser,
+        gmailAppPassword: gmailAppPassword,
+        recipientEmails: recipientEmails,
+      });
+      if (result.success) {
+        toast({ title: 'Sukces', description: result.message });
+      } else {
+        toast({ variant: 'destructive', title: 'Błąd wysyłki', description: result.message });
+      }
+    } catch (error: any) {
+      console.error("Test email error:", error);
+      toast({ variant: 'destructive', title: 'Błąd', description: error?.message || 'Wystąpił nieoczekiwany błąd serwera.' });
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   const configLists: { type: ConfigType; items: ConfigItem[] }[] = [
@@ -298,10 +356,11 @@ export default function ConfigurationPage() {
             />
             
             <Tabs defaultValue="lists" className="flex-grow flex flex-col">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="lists">Listy</TabsTrigger>
                     <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
-                    <TabsTrigger value="api_keys">Klucze API</TabsTrigger>
+                    <TabsTrigger value="api_keys">Email SMTP (Gmail)</TabsTrigger>
+                    <TabsTrigger value="emails">Adresy email</TabsTrigger>
                     {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
                 </TabsList>
 
@@ -356,27 +415,127 @@ export default function ConfigurationPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-3">
                                 <KeyRound className="h-6 w-6" />
-                                Klucz API Resend
+                                Poświadczenia Gmail (Nodemailer)
                             </CardTitle>
                             <CardDescription>
-                                Wprowadź klucz API do wysyłania powiadomień email.
+                                Wprowadź login (adres email) oraz Hasło Aplikacji (App Password) wygenerowane w ustawieniach konta Google.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <Label htmlFor="resend-api-key">Klucz API</Label>
+                                <Label htmlFor="gmail-user">Adres Gmail</Label>
                                 <Input 
-                                    id="resend-api-key"
-                                    type="password"
-                                    value={resendApiKey}
-                                    onChange={(e) => setResendApiKey(e.target.value)}
-                                    placeholder="re_xxxxxxxx_xxxxxxxxxxxx"
+                                    id="gmail-user"
+                                    type="email"
+                                    value={gmailUser}
+                                    onChange={(e) => setGmailUser(e.target.value)}
+                                    placeholder="twoj-email@gmail.com"
                                 />
                             </div>
-                            <Button onClick={onSaveApiKey}>
+                            <div>
+                                <Label htmlFor="gmail-app-password">Hasło Aplikacji</Label>
+                                <div className="relative">
+                                    <Input 
+                                        id="gmail-app-password"
+                                        type={showPassword ? "text" : "password"}
+                                        value={gmailAppPassword}
+                                        onChange={(e) => setGmailAppPassword(e.target.value)}
+                                        placeholder="xxxx xxxx xxxx xxxx"
+                                        className="pr-10"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                        <span className="sr-only">
+                                            {showPassword ? "Ukryj hasło" : "Pokaż hasło"}
+                                        </span>
+                                    </Button>
+                                </div>
+                            </div>
+                            <Button onClick={onSaveGmailCredentials}>
                                 <Save className="mr-2 h-4 w-4" />
-                                Zapisz klucz
+                                Zapisz poświadczenia
                             </Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="emails" className="flex-grow mt-6">
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <CardTitle className="flex items-center gap-3">
+                                        <Mail className="h-6 w-6" />
+                                        Adresy email do powiadomień
+                                    </CardTitle>
+                                    <CardDescription className="mt-1.5">
+                                        Dodaj adresy, na które będą wysyłane powiadomienia email.
+                                    </CardDescription>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleSendTestEmail}
+                                    disabled={isSendingTest || recipientEmails.length === 0}
+                                    className="shrink-0"
+                                >
+                                    {isSendingTest ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Send className="mr-2 h-4 w-4" />
+                                    )}
+                                    Wyślij test
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex gap-2">
+                                <Input
+                                    type="email"
+                                    value={newEmail}
+                                    onChange={(e) => setNewEmail(e.target.value)}
+                                    placeholder="email@example.com"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            addEmail();
+                                        }
+                                    }}
+                                />
+                                <Button onClick={addEmail} variant="secondary">
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Dodaj
+                                </Button>
+                            </div>
+                            <div className="space-y-2">
+                                {recipientEmails.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground text-center py-4">Brak adresów email. Dodaj pierwszy.</p>
+                                ) : (
+                                    recipientEmails.map(email => (
+                                        <div key={email} className="flex items-center justify-between rounded-md border p-3">
+                                            <span className="font-medium text-sm">{email}</span>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-destructive hover:text-destructive h-8 w-8"
+                                                onClick={() => removeEmail(email)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

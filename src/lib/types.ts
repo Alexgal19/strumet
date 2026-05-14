@@ -61,7 +61,9 @@ export interface AllConfig {
   nationalities: Nationality[];
   clothingItems: ClothingItem[];
   jobTitleClothingSets: JobTitleClothingSet[];
-  resendApiKey?: string;
+  gmailUser?: string;
+  gmailAppPassword?: string;
+  recipientEmails?: string[];
 }
 
 export interface Absence {
@@ -164,4 +166,42 @@ export interface User {
   id: string;
   email: string;
   role: UserRole;
+}
+
+// Email Templates
+export type EmailTriggerType = 'scheduled' | 'manual' | 'event';
+export type EmailTriggerEvent =
+  | 'contractExpiry'
+  | 'fingerprintReminder'
+  | 'newHire'
+  | 'plannedTermination'
+  | 'legalisationWarning';
+
+export interface EmailTriggerConfig {
+  event: EmailTriggerEvent;
+  daysBefore?: number;
+  active: boolean;
+}
+
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  triggerType: EmailTriggerType;
+  triggerConfig: EmailTriggerConfig;
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface EmailLog {
+  id: string;
+  templateId: string;
+  templateName: string;
+  employeeId: string;
+  employeeFullName: string;
+  recipientEmail: string;
+  sentAt: string;
+  status: 'sent' | 'failed';
+  errorMessage?: string | null;
 }

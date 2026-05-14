@@ -7,6 +7,7 @@ import { signOut } from 'firebase/auth';
 import {
   Users, BarChart3, CalendarClock, UserX, CalendarDays,
   Shirt, CreditCard, Fingerprint, FileWarning, Settings, LogOut, Menu,
+  LayoutDashboard,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -28,13 +29,14 @@ interface MenuItem {
 }
 
 const ADMIN_PRIMARY: MenuItem[] = [
+  { href: '/pulpit', icon: LayoutDashboard, label: 'Pulpit' },
   { href: '/aktywni', icon: Users, label: 'Pracownicy' },
   { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni' },
   { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
-  { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
 ];
 
 const ADMIN_MORE: MenuItem[] = [
+  { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
   { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
   { href: '/wydawanie-odziezy', icon: Shirt, label: 'Odzież' },
   { href: '/wydawanie-odziezy-nowi', icon: Shirt, label: 'Odzież — nowi' },
@@ -45,7 +47,7 @@ const ADMIN_MORE: MenuItem[] = [
 ];
 
 const GUEST_PRIMARY: MenuItem[] = [
-  { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
+  { href: '/pulpit', icon: LayoutDashboard, label: 'Pulpit' },
   { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
 ];
 

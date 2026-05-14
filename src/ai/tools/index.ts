@@ -1,17 +1,17 @@
 'use server';
 /**
- * @fileOverview Server-side email sending utility using Resend.
- * No longer uses Genkit — plain async function.
+ * @fileOverview Server-side email sending utility using Nodemailer.
  */
 import { z } from 'zod';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { getAdminApp, adminDb } from '@/lib/firebase-admin';
-
-const NOTIFICATION_EMAIL = 'o.holiadynets@smartwork.pl';
 
 const SendEmailInputSchema = z.object({
     subject: z.string(),
     body: z.string(),
+    gmailUser: z.string().optional(),
+    gmailAppPassword: z.string().optional(),
+    recipientEmails: z.array(z.string()).optional(),
 });
 
 const SendEmailOutputSchema = z.object({
@@ -22,47 +22,75 @@ const SendEmailOutputSchema = z.object({
 export async function sendEmail(
     input: z.infer<typeof SendEmailInputSchema>
 ): Promise<z.infer<typeof SendEmailOutputSchema>> {
-    let apiKey: string | undefined | null;
-    getAdminApp();
-    const db = adminDb();
+    let gmailUser: string | undefined | null = input.gmailUser;
+    let gmailAppPassword: string | undefined | null = input.gmailAppPassword;
+    let recipientEmails: string[] = input.recipientEmails || [];
 
-    try {
-        const apiKeySnapshot = await db.ref('config/resendApiKey').get();
-        if (apiKeySnapshot.exists()) {
-            apiKey = apiKeySnapshot.val();
-        } else {
-            apiKey = process.env.RESEND_API_KEY;
+    if (!gmailUser || !gmailAppPassword || recipientEmails.length === 0) {
+        try {
+            getAdminApp();
+            const db = adminDb();
+            
+            const fetchWithTimeout = <T>(promise: Promise<T>, ms: number) => {
+                return Promise.race([
+                    promise,
+                    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Firebase DB fetch timeout')), ms))
+                ]);
+            };
+
+            const configSnapshot = await fetchWithTimeout(db.ref('config').get(), 5000);
+            if (configSnapshot.exists()) {
+                const config = configSnapshot.val();
+                if (!gmailUser) gmailUser = config.gmailUser || process.env.GMAIL_USER;
+                if (!gmailAppPassword) gmailAppPassword = config.gmailAppPassword || process.env.GMAIL_APP_PASSWORD;
+                if (recipientEmails.length === 0) recipientEmails = config.recipientEmails || [];
+            }
+        } catch (dbError) {
+            console.warn('Could not fetch config from DB (or timeout), falling back to env:', dbError);
+            if (!gmailUser) gmailUser = process.env.GMAIL_USER;
+            if (!gmailAppPassword) gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
         }
-    } catch (dbError) {
-        console.warn('Could not fetch Resend API key from DB, falling back to env:', dbError);
-        apiKey = process.env.RESEND_API_KEY;
     }
 
-    if (!apiKey) {
-        const msg = 'Resend API key not found. Skipping email.';
+    if (!gmailUser || !gmailAppPassword) {
+        const msg = 'Brak danych logowania Gmail. Skonfiguruj e-mail i hasło aplikacji.';
         console.warn(msg);
         return { success: false, message: msg };
     }
 
-    const resend = new Resend(apiKey);
+    if (recipientEmails.length === 0) {
+        const msg = 'No recipient emails configured. Skipping email.';
+        console.warn(msg);
+        return { success: false, message: msg };
+    }
+
     try {
-        const { data, error } = await resend.emails.send({
-            from: 'Baza ST <onboarding@resend.dev>',
-            to: [NOTIFICATION_EMAIL],
+        const cleanPassword = gmailAppPassword.replace(/\s+/g, '');
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: gmailUser,
+                pass: cleanPassword,
+            },
+        });
+
+        const info = await transporter.sendMail({
+            from: `"Strumet HR" <${gmailUser}>`,
+            to: recipientEmails.join(', '),
             subject: input.subject,
             html: input.body,
         });
 
-        if (error) {
-            console.error('Resend API error:', error);
-            return { success: false, message: `Resend error: ${error.message}` };
-        }
-
-        console.log('Email sent:', data);
-        return { success: true, message: `Email sent to ${NOTIFICATION_EMAIL}.` };
-    } catch (error) {
+        console.log('Email sent:', info.messageId);
+        return { success: true, message: `Email wysłany do ${recipientEmails.join(', ')}.` };
+    } catch (error: any) {
         const msg = error instanceof Error ? error.message : 'Unknown error';
         console.error('Email send error:', error);
+        
+        if (error.code === 'EAUTH') {
+            return { success: false, message: 'Błąd autoryzacji. Sprawdź, czy "Hasło Aplikacji" jest poprawne.' };
+        }
+        
         return { success: false, message: msg };
     }
 }

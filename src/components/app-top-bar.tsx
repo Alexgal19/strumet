@@ -124,6 +124,7 @@ interface AppTopBarProps {
 }
 
 const ALL_NAV_ITEMS = [
+  { href: '/pulpit', label: 'Pulpit' },
   { href: '/aktywni', label: 'Pracownicy aktywni' },
   { href: '/zwolnieni', label: 'Zwolnieni' },
   { href: '/planowanie', label: 'Planowanie' },
@@ -135,9 +136,11 @@ const ALL_NAV_ITEMS = [
   { href: '/odciski-palcow', label: 'Odciski palców' },
   { href: '/brak-logowania', label: 'Brak logowania' },
   { href: '/konfiguracja', label: 'Konfiguracja' },
+  { href: '/szablony-email', label: 'Szablony email' },
+  { href: '/historia-email', label: 'Historia email' },
 ];
 
-const GUEST_VIEWS = ['/statystyki', '/planowanie'];
+const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie'];
 
 // Returns the breadcrumb label for detail pages (e.g. /pracownicy/[id])
 function getBreadcrumb(pathname: string): { parent: string; parentHref: string; current: string } | null {

@@ -38,6 +38,8 @@ import type {
     AuthUser,
     User,
     UserRole,
+    EmailTemplate,
+    EmailLog,
 } from '@/lib/types';
 
 
@@ -52,6 +54,8 @@ const STORAGE_KEYS = {
   circulationCards: 'strumet_circulationCards',
   clothingIssuances: 'strumet_clothingIssuances',
   fingerprintAppointments: 'strumet_fingerprintAppointments',
+  emailTemplates: 'strumet_emailTemplates',
+  emailLogs: 'strumet_emailLogs',
 };
 
 const loadFromStorage = (key: string): any | null => {
@@ -106,6 +110,8 @@ interface AppContextType {
     circulationCards: CirculationCard[];
     clothingIssuances: ClothingIssuance[];
     fingerprintAppointments: FingerprintAppointment[];
+    emailTemplates: EmailTemplate[];
+    emailLogs: EmailLog[];
     isLoading: boolean;
     isHistoryLoading: boolean;
     handleSaveEmployee: (employeeData: Employee) => Promise<boolean>;
@@ -121,7 +127,7 @@ interface AppContextType {
     updateConfigItem: (configType: ConfigType, itemId: string, newName: string) => Promise<void>;
     removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
     handleSaveJobTitleClothingSet: (jobTitleId: string, description: string) => Promise<void>;
-    handleSaveResendApiKey: (apiKey: string) => Promise<void>;
+    handleSaveGmailCredentials: (user: string, pass: string) => Promise<void>;
     handleUpdateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
     addAbsence: (employeeId: string, date: string) => Promise<void>;
     deleteAbsence: (absenceId: string) => Promise<void>;
@@ -135,6 +141,11 @@ interface AppContextType {
     addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Promise<void>;
     updateOrder: (order: Order) => Promise<void>;
     deleteOrder: (orderId: string) => Promise<void>;
+    addEmailTemplate: (template: Omit<EmailTemplate, 'id'>) => Promise<string | null>;
+    updateEmailTemplate: (templateId: string, updates: Partial<EmailTemplate>) => Promise<void>;
+    deleteEmailTemplate: (templateId: string) => Promise<void>;
+    addEmailLog: (log: Omit<EmailLog, 'id'>) => Promise<void>;
+    updateRecipientEmails: (emails: string[]) => Promise<boolean>;
     currentUser: AuthUser | null;
     isAdmin: boolean;
 }
@@ -147,13 +158,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
-    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
+    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], gmailUser: '', gmailAppPassword: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
     const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
     const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
     const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
     const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
+    const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+    const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -201,7 +214,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (!services || !currentUser) {
             setEmployees([]);
             setUsers([]);
-            setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
+            setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], gmailUser: '', gmailAppPassword: '' });
             setAbsences([]);
             setNotifications([]);
             setStatsHistory([]);
@@ -236,7 +249,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 nationalities: dedupeByName(cachedConfig.nationalities || []),
                 clothingItems: cachedConfig.clothingItems || [],
                 jobTitleClothingSets: cachedConfig.jobTitleClothingSets || [],
-                resendApiKey: cachedConfig.resendApiKey || '',
+                gmailUser: cachedConfig.gmailUser || '',
+                gmailAppPassword: cachedConfig.gmailAppPassword || '',
             });
         }
         if (cachedUsers) setUsers(cachedUsers);
@@ -247,6 +261,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (cachedCirculationCards) setCirculationCards(cachedCirculationCards);
         if (cachedClothingIssuances) setClothingIssuances(cachedClothingIssuances);
         if (cachedFingerprintAppointments) setFingerprintAppointments(cachedFingerprintAppointments);
+        const cachedEmailTemplates = loadFromStorage(STORAGE_KEYS.emailTemplates);
+        const cachedEmailLogs = loadFromStorage(STORAGE_KEYS.emailLogs);
+        if (cachedEmailTemplates) setEmailTemplates(cachedEmailTemplates);
+        if (cachedEmailLogs) setEmailLogs(cachedEmailLogs);
 
         // If we have cached essential data, show UI immediately
         const hasCachedEssential = cachedEmployees && cachedConfig;
@@ -314,7 +332,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         nationalities: dedupeByName(objectToArray(configData.nationalities)),
                         clothingItems: objectToArray(configData.clothingItems),
                         jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
-                        resendApiKey: configData.resendApiKey || '',
+                        gmailUser: configData.gmailUser || '',
+                        gmailAppPassword: configData.gmailAppPassword || '',
+                        recipientEmails: configData.recipientEmails || [],
                     };
                     setConfig(newConfig);
                     saveToStorage(STORAGE_KEYS.config, newConfig);
@@ -359,6 +379,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     setFingerprintAppointments(arr);
                     saveToStorage(STORAGE_KEYS.fingerprintAppointments, arr);
                     dataLoadedRef.current.add('fingerprintAppointments');
+                },
+                essential: false,
+            },
+            {
+                path: "emailTemplates",
+                setter: (data: any) => {
+                    const arr = objectToArray(data);
+                    setEmailTemplates(arr);
+                    saveToStorage(STORAGE_KEYS.emailTemplates, arr);
+                    dataLoadedRef.current.add('emailTemplates');
+                },
+                essential: false,
+            },
+            {
+                path: "emailLogs",
+                setter: (data: any) => {
+                    const arr = objectToArray(data);
+                    setEmailLogs(arr);
+                    saveToStorage(STORAGE_KEYS.emailLogs, arr);
+                    dataLoadedRef.current.add('emailLogs');
                 },
                 essential: false,
             },
@@ -719,15 +759,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [services, toast]);
 
-    const handleSaveResendApiKey = useCallback(async (apiKey: string) => {
+    const handleSaveGmailCredentials = useCallback(async (user: string, pass: string) => {
         if (!services) return;
         const { db } = services;
         try {
-            await set(ref(db, 'config/resendApiKey'), apiKey);
-            toast({ title: "Sukces", description: "Klucz API Resend został zapisany."});
+            await update(ref(db, 'config'), {
+                gmailUser: user,
+                gmailAppPassword: pass
+            });
+            toast({ title: "Sukces", description: "Dane logowania Gmail zostały zapisane."});
         } catch (error) {
-            console.error("Error saving Resend API key:", error);
-            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać klucza API."});
+            console.error("Error saving Gmail credentials:", error);
+            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać danych."});
         }
     }, [services, toast]);
 
@@ -890,6 +933,70 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [services, toast]);
 
+    const addEmailTemplate = useCallback(async (template: Omit<EmailTemplate, 'id'>): Promise<string | null> => {
+        if (!services) return null;
+        const { db } = services;
+        try {
+            const newRef = push(ref(db, 'emailTemplates'));
+            await set(newRef, template);
+            toast({ title: 'Sukces', description: 'Szablon został dodany.' });
+            return newRef.key;
+        } catch (error) {
+            console.error('Error adding email template:', error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać szablonu.' });
+            return null;
+        }
+    }, [services, toast]);
+
+    const updateEmailTemplate = useCallback(async (templateId: string, updates: Partial<EmailTemplate>) => {
+        if (!services) return;
+        const { db } = services;
+        try {
+            await update(ref(db, `emailTemplates/${templateId}`), updates);
+            toast({ title: 'Sukces', description: 'Szablon został zaktualizowany.' });
+        } catch (error) {
+            console.error('Error updating email template:', error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować szablonu.' });
+        }
+    }, [services, toast]);
+
+    const deleteEmailTemplate = useCallback(async (templateId: string) => {
+        if (!services) return;
+        const { db } = services;
+        try {
+            await remove(ref(db, `emailTemplates/${templateId}`));
+            toast({ title: 'Sukces', description: 'Szablon został usunięty.' });
+        } catch (error) {
+            console.error('Error deleting email template:', error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć szablonu.' });
+        }
+    }, [services, toast]);
+
+    const addEmailLog = useCallback(async (log: Omit<EmailLog, 'id'>) => {
+        if (!services) return;
+        const { db } = services;
+        try {
+            const newRef = push(ref(db, 'emailLogs'));
+            await set(newRef, log);
+        } catch (error) {
+            console.error('Error adding email log:', error);
+        }
+    }, [services]);
+
+    const updateRecipientEmails = useCallback(async (emails: string[]) => {
+        if (!services) return false;
+        const { db } = services;
+        try {
+            await set(ref(db, 'config/recipientEmails'), emails);
+            toast({ title: 'Sukces', description: 'Lista adresów email została zaktualizowana.' });
+            return true;
+        } catch (error) {
+            console.error('Error updating recipient emails:', error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować listy adresów.' });
+            return false;
+        }
+    }, [services, toast]);
+
     const value: AppContextType = {
         employees,
         users,
@@ -901,6 +1008,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         circulationCards,
         clothingIssuances,
         fingerprintAppointments,
+        emailTemplates,
+        emailLogs,
         isLoading,
         isHistoryLoading,
         handleSaveEmployee,
@@ -916,7 +1025,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         updateConfigItem,
         removeConfigItem,
         handleSaveJobTitleClothingSet,
-        handleSaveResendApiKey,
+        handleSaveGmailCredentials,
         handleUpdateUserRole,
         addAbsence,
         deleteAbsence,
@@ -930,6 +1039,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addOrder,
         updateOrder,
         deleteOrder,
+        addEmailTemplate,
+        updateEmailTemplate,
+        deleteEmailTemplate,
+        addEmailLog,
+        updateRecipientEmails,
         currentUser,
         isAdmin,
     };

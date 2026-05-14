@@ -413,6 +413,10 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                             <DatePickerInput value={formData.vacationEndDate} onChange={d => handleChange('vacationEndDate', d)} placeholder="Koniec" />
                             {renderError('vacationEndDate')}
                         </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Data zwolnienia</Label>
+                            <DatePickerInput value={formData.terminationDate} onChange={d => handleChange('terminationDate', d)} placeholder="Wybierz datę" />
+                        </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>

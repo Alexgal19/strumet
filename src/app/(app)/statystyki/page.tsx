@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive, UserPlus, UserX, CalendarClock } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive, UserPlus, UserX, CalendarClock, TrendingUp } from 'lucide-react';
 import { Employee, Order, AllConfig, Stats, User, UserRole, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
@@ -29,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
-import { format, startOfDay, isEqual, isBefore } from 'date-fns';
+import { format, startOfDay, isEqual, isBefore, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
 import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
@@ -498,12 +498,43 @@ const FieldChangeList = ({ changes }: { changes: any[] }) => {
 }
 
 const HiresAndFiresTab = () => {
-    const { isAdmin, currentUser } = useAppContext();
+    const { isAdmin, currentUser, statsHistory } = useAppContext();
     const [isArchiving, setIsArchiving] = useState(false);
     const [date, setDate] = useState<DateRange | undefined>();
     const [report, setReport] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
+
+    const turnoverStats = useMemo(() => {
+        if (!Array.isArray(statsHistory) || statsHistory.length < 2) return null;
+        const today = new Date();
+        const thirtyDaysAgo = subDays(today, 30);
+        const ninetyDaysAgo = subDays(today, 90);
+
+        const filterByDate = (from: Date) =>
+            statsHistory.filter(s => {
+                const d = parseMaybeDate(s.id);
+                return d ? d >= from : false;
+            });
+
+        const calc = (data: StatsSnapshot[]) => {
+            if (data.length === 0) return null;
+            const totalTerminations = data.reduce((sum, s) => sum + (s.terminations || 0), 0);
+            const avgHeadcount = data.reduce((sum, s) => sum + (s.totalActive || 0), 0) / data.length;
+            if (avgHeadcount === 0) return null;
+            return {
+                rate: ((totalTerminations / avgHeadcount) * 100).toFixed(1),
+                totalTerminations,
+                avgHeadcount: Math.round(avgHeadcount),
+                days: data.length,
+            };
+        };
+
+        return {
+            monthly: calc(filterByDate(thirtyDaysAgo)),
+            quarterly: calc(filterByDate(ninetyDaysAgo)),
+        };
+    }, [statsHistory]);
 
     const handleManualArchive = async () => {
         setIsArchiving(true);
@@ -634,6 +665,39 @@ const HiresAndFiresTab = () => {
                     </Button>
                 </CardContent>
             </Card>
+
+            {turnoverStats && (turnoverStats.monthly || turnoverStats.quarterly) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {turnoverStats.monthly && (
+                        <Card className="glass-card">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-base font-medium">Rotacja miesięczna</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold">{turnoverStats.monthly.rate}%</div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {turnoverStats.monthly.totalTerminations} zwolnień / średnio {turnoverStats.monthly.avgHeadcount} prac. (ostatnie {turnoverStats.monthly.days} dni)
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                    {turnoverStats.quarterly && (
+                        <Card className="glass-card">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-base font-medium">Rotacja kwartalna</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold">{turnoverStats.quarterly.rate}%</div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {turnoverStats.quarterly.totalTerminations} zwolnień / średnio {turnoverStats.quarterly.avgHeadcount} prac. (ostatnie {turnoverStats.quarterly.days} dni)
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            )}
 
             {isLoading && !report && (
                 <div className="flex justify-center items-center py-10">

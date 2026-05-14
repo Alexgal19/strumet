@@ -66,7 +66,7 @@ export default function NoLoginPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [incidentDate, setIncidentDate] = useState<Date | undefined>();
   const [hours, setHours] = useState<string>('');
-  const [reason, setReason] = useState<'no_card' | 'forgot_to_scan' | ''>('');
+  const [reason, setReason] = useState<'no_card' | 'forgot_to_scan' | ''>('forgot_to_scan');
 
   const [isSaving, setIsSaving] = useState(false);
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
@@ -78,7 +78,9 @@ export default function NoLoginPage() {
   const { toast } = useToast();
 
   const sortedRecords = useMemo(() => {
-    return [...absenceRecords].sort((a, b) => new Date(b.incidentDate).getTime() - new Date(a.incidentDate).getTime());
+    const records = Array.isArray(absenceRecords) ? absenceRecords : [];
+    if (!Array.isArray(records)) return [];
+    return records.slice().sort((a, b) => new Date(b.incidentDate).getTime() - new Date(a.incidentDate).getTime());
   }, [absenceRecords]);
 
   const selectedEmployee = useMemo(() => {
@@ -124,7 +126,7 @@ export default function NoLoginPage() {
     setSelectedEmployeeId('');
     setIncidentDate(undefined);
     setHours('');
-    setReason('');
+    setReason('forgot_to_scan');
     setIsSaving(false);
   };
   

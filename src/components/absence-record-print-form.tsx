@@ -50,7 +50,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                         {record.employeeFullName.toUpperCase()}
                     </p>
                 </div>
-                <div className="flex justify-between items-end mb-14 text-sm">
+                <div className="flex justify-between items-center border-b border-black py-5 mb-8 text-sm">
                     <div className="flex items-baseline">
                         <span className="mr-2 text-gray-600">Dział / Відділ:</span>
                         <span className="font-semibold border-b border-dotted border-black px-2 min-w-[120px] inline-block text-center">{record.department}</span>
@@ -61,7 +61,7 @@ export const AbsenceRecordPrintForm = React.forwardRef<HTMLDivElement, AbsenceRe
                     </div>
                 </div>
                 
-                <div className="flex flex-wrap items-center gap-x-8 gap-y-3 mb-16 text-sm">
+                <div className="flex flex-wrap items-center border-b border-black py-5 gap-x-8 gap-y-3 mb-14 text-sm">
                     <div className="flex items-baseline">
                         <span className="mr-2">w dniu / в день:</span>
                         <span className="font-bold text-base border-b border-dotted border-black px-4">{formatDate(record.incidentDate, 'dd.MM.yyyy')}</span>
