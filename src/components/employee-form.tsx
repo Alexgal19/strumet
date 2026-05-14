@@ -16,6 +16,8 @@ import { Separator } from './ui/separator';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
 import { useToast } from '@/hooks/use-toast';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
@@ -250,13 +252,17 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 )}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-10">
+            <form onSubmit={handleSubmit}>
+              <Accordion type="multiple" defaultValue={['personal','employment','idplan']} className="space-y-4">
                 {/* Section: Personal Information */}
-                <div className="space-y-6">
+                <AccordionItem value="personal" className="border rounded-2xl px-4 md:px-6 py-2 data-[state=open]:pb-6 transition-all">
+                  <AccordionTrigger className="hover:no-underline py-4">
                     <div className="flex items-center gap-3">
-                        <div className="h-8 w-1 rounded-full bg-primary" />
-                        <h3 className="text-lg font-semibold tracking-tight">Dane osobowe</h3>
+                      <div className="h-8 w-1 rounded-full bg-primary" />
+                      <h3 className="text-lg font-semibold tracking-tight">Dane osobowe</h3>
                     </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label htmlFor="lastName" className="text-sm font-medium">Nazwisko</Label>
@@ -295,16 +301,17 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                             {renderError('legalizationStatus')}
                         </div>
                     </div>
-                </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                <Separator className="opacity-50" />
-
-                {/* Section: Employment Details */}
-                <div className="space-y-6">
+                <AccordionItem value="employment" className="border rounded-2xl px-4 md:px-6 py-2 data-[state=open]:pb-6 transition-all">
+                  <AccordionTrigger className="hover:no-underline py-4">
                     <div className="flex items-center gap-3">
-                        <div className="h-8 w-1 rounded-full bg-blue-500" />
-                        <h3 className="text-lg font-semibold tracking-tight">Zatrudnienie</h3>
+                      <div className="h-8 w-1 rounded-full bg-blue-500" />
+                      <h3 className="text-lg font-semibold tracking-tight">Zatrudnienie</h3>
                     </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label className="text-sm font-medium">Dział</Label>
@@ -364,16 +371,17 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                             </Select>
                         </div>
                     </div>
-                </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                <Separator className="opacity-50" />
-
-                {/* Section: Identification & Planning */}
-                <div className="space-y-6">
+                <AccordionItem value="idplan" className="border rounded-2xl px-4 md:px-6 py-2 data-[state=open]:pb-6 transition-all">
+                  <AccordionTrigger className="hover:no-underline py-4">
                     <div className="flex items-center gap-3">
-                        <div className="h-8 w-1 rounded-full bg-purple-500" />
-                        <h3 className="text-lg font-semibold tracking-tight">Identyfikacja i Planowanie</h3>
+                      <div className="h-8 w-1 rounded-full bg-purple-500" />
+                      <h3 className="text-lg font-semibold tracking-tight">Identyfikacja i Planowanie</h3>
                     </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label htmlFor="cardNumber" className="text-sm font-medium">Numer karty</Label>
@@ -406,7 +414,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                             {renderError('vacationEndDate')}
                         </div>
                     </div>
-                </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
 
                 {/* Footer Actions */}
                 <div className="fixed bottom-0 right-0 w-[calc(100%-1px)] sm:w-[575px] p-6 bg-background/80 backdrop-blur-md border-t flex justify-between items-center z-10">

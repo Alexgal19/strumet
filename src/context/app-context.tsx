@@ -41,6 +41,35 @@ import type {
 } from '@/lib/types';
 
 
+const STORAGE_KEYS = {
+  employees: 'strumet_employees',
+  config: 'strumet_config',
+  users: 'strumet_users',
+  absences: 'strumet_absences',
+  notifications: 'strumet_notifications',
+  statsHistory: 'strumet_statsHistory',
+};
+
+const loadFromStorage = (key: string): any | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const item = localStorage.getItem(key);
+    if (item) return JSON.parse(item);
+  } catch {
+    // ignore parse errors
+  }
+  return null;
+};
+
+const saveToStorage = (key: string, data: any) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // ignore storage errors (e.g. quota exceeded)
+  }
+};
+
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
@@ -164,16 +193,48 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setAbsences([]);
             setNotifications([]);
             setStatsHistory([]);
-            // Only stop loading after Firebase auth has confirmed the user state.
-            // Without this guard, isLoading is set to false before onAuthStateChanged fires,
-            // causing a false redirect to /login on page refresh.
             if (authInitializedRef.current) {
                 setIsLoading(false);
             }
             return;
         }
 
-        setIsLoading(true);
+        // 1. Load from localStorage instantly
+        const cachedEmployees = loadFromStorage(STORAGE_KEYS.employees);
+        const cachedConfig = loadFromStorage(STORAGE_KEYS.config);
+        const cachedUsers = loadFromStorage(STORAGE_KEYS.users);
+        const cachedAbsences = loadFromStorage(STORAGE_KEYS.absences);
+        const cachedNotifications = loadFromStorage(STORAGE_KEYS.notifications);
+        const cachedStatsHistory = loadFromStorage(STORAGE_KEYS.statsHistory);
+
+        if (cachedEmployees) setEmployees(cachedEmployees);
+        if (cachedConfig) {
+            setConfig({
+                departments: dedupeByName(cachedConfig.departments || []),
+                jobTitles: dedupeByName(cachedConfig.jobTitles || []),
+                managers: dedupeByName(cachedConfig.managers || []),
+                nationalities: dedupeByName(cachedConfig.nationalities || []),
+                clothingItems: cachedConfig.clothingItems || [],
+                jobTitleClothingSets: cachedConfig.jobTitleClothingSets || [],
+                resendApiKey: cachedConfig.resendApiKey || '',
+            });
+        }
+        if (cachedUsers) setUsers(cachedUsers);
+        if (cachedAbsences) setAbsences(cachedAbsences);
+        if (cachedNotifications) setNotifications(cachedNotifications);
+        if (cachedStatsHistory) setStatsHistory(cachedStatsHistory);
+
+        // If we have cached essential data, show UI immediately
+        const hasCachedEssential = cachedEmployees && cachedConfig;
+        if (hasCachedEssential) {
+            setIsLoading(false);
+        } else {
+            setIsLoading(true);
+        }
+        if (cachedStatsHistory) {
+            setIsHistoryLoading(false);
+        }
+
         dataLoadedRef.current.clear();
         const { db } = services;
 
@@ -181,7 +242,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             {
                 path: "employees",
                 setter: (data: any) => {
-                    setEmployees(objectToArray(data));
+                    const arr = objectToArray(data);
+                    setEmployees(arr);
+                    saveToStorage(STORAGE_KEYS.employees, arr);
                     dataLoadedRef.current.add('employees');
                 },
                 essential: true,
@@ -189,7 +252,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             {
                 path: "users",
                 setter: (data: any) => {
-                    setUsers(objectToArray(data));
+                    const arr = objectToArray(data);
+                    setUsers(arr);
+                    saveToStorage(STORAGE_KEYS.users, arr);
                     dataLoadedRef.current.add('users');
                 },
                 essential: false,
@@ -197,7 +262,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             {
                 path: "absences",
                 setter: (data: any) => {
-                    setAbsences(objectToArray(data));
+                    const arr = objectToArray(data);
+                    setAbsences(arr);
+                    saveToStorage(STORAGE_KEYS.absences, arr);
                     dataLoadedRef.current.add('absences');
                 },
                 essential: false,
@@ -205,7 +272,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             {
                 path: "notifications",
                 setter: (data: any) => {
-                    setNotifications(objectToArray(data));
+                    const arr = objectToArray(data);
+                    setNotifications(arr);
+                    saveToStorage(STORAGE_KEYS.notifications, arr);
                     dataLoadedRef.current.add('notifications');
                 },
                 essential: false,
@@ -224,6 +293,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         resendApiKey: configData.resendApiKey || '',
                     };
                     setConfig(newConfig);
+                    saveToStorage(STORAGE_KEYS.config, newConfig);
                     dataLoadedRef.current.add('config');
                 },
                 essential: true,
@@ -256,7 +326,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         
         const historyRef = ref(db, "statisticsHistory");
         unsubscribes.push(onValue(historyRef, snapshot => {
-            setStatsHistory(objectToArray(snapshot.val()).sort((a:any, b:any) => new Date(b.id).getTime() - new Date(a.id).getTime()));
+            const arr = objectToArray(snapshot.val()).sort((a:any, b:any) => new Date(b.id).getTime() - new Date(a.id).getTime());
+            setStatsHistory(arr);
+            saveToStorage(STORAGE_KEYS.statsHistory, arr);
             setIsHistoryLoading(false);
         }));
 

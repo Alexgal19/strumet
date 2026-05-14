@@ -75,7 +75,8 @@ export default function AktywniPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | 'new' | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [passportScanData, setPassportScanData] = useState<{ firstName: string; lastName: string } | null>(null);
-  
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
   const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
     setClothingPrintData({ employee, issuance });
@@ -119,7 +120,7 @@ export default function AktywniPage() {
                 departments={config.departments?.map(d => d.name) ?? []}
                 columns={exportColumns}
               />
-              <Popover>
+              <Popover open={isMoreOpen} onOpenChange={setIsMoreOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="icon" title="Więcej opcji">
                     <MoreHorizontal className="h-4 w-4" />
@@ -136,7 +137,7 @@ export default function AktywniPage() {
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10">
+                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsMoreOpen(false)}>
                         <Trash2 className="mr-2 h-4 w-4" />
                         Usuń daty zatrudnienia
                       </Button>
@@ -158,7 +159,7 @@ export default function AktywniPage() {
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10">
+                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsMoreOpen(false)}>
                         <Trash2 className="mr-2 h-4 w-4" />
                         Usuń wszystkich pracowników
                       </Button>
@@ -185,7 +186,12 @@ export default function AktywniPage() {
                 Dodaj pracownika
               </Button>
             </div>
-            <div className="md:hidden">
+            <div className="flex md:hidden items-center gap-2">
+              <DepartmentExcelExportButton
+                employees={activeEmployees}
+                departments={config.departments?.map(d => d.name) ?? []}
+                columns={exportColumns}
+              />
               <Button onClick={handleAddNew} size="sm">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Dodaj

@@ -38,6 +38,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   // For other requests (assets), use a cache-first strategy.
+  // Skip non-GET requests (e.g., Firebase POST calls) — Cache API only supports GET/HEAD.
+  if (event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request).then((fetchResponse) => {

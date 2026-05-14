@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/table';
 import { Loader2, ChevronsUpDown, CheckIcon, Printer, History } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
+import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
 import { Employee, CirculationCard } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/date';
@@ -195,6 +196,7 @@ export default function CirculationCardsPage() {
             <div className="lg:col-span-2">
                 <Card className="h-full">
                 <CardHeader>
+                    <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                     <History className="h-6 w-6" />
                     <div>
@@ -203,6 +205,17 @@ export default function CirculationCardsPage() {
                         {selectedEmployee ? `dla ${selectedEmployee.fullName}` : 'Wybierz pracownika, aby zobaczyć historię.'}
                         </CardDescription>
                     </div>
+                    </div>
+                    {selectedEmployee && employeeCardHistory.length > 0 && (
+                        <GenericExcelExportButton
+                            data={employeeCardHistory}
+                            columns={[
+                                { key: 'date', name: 'Data wygenerowania' },
+                                { key: 'employeeFullName', name: 'Pracownik' },
+                            ]}
+                            fileName="historia_kart_obiegowych"
+                        />
+                    )}
                     </div>
                 </CardHeader>
                 <CardContent>

@@ -23,6 +23,7 @@ import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { useRouter } from 'next/navigation';
 import { EmployeeTable } from '../employees/employee-table';
+import { ExcelExportButton } from '@/components/excel-export-button';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -119,6 +120,13 @@ export default function ZwolnieniPage() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+        </div>
+        <div className="flex md:hidden items-center gap-2 mt-2">
+          <ExcelExportButton
+            employees={terminatedEmployees}
+            columns={exportColumns}
+            fileName="zwolnieni_pracownicy"
+          />
         </div>
       </PageHeader>
 

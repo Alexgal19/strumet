@@ -16,6 +16,7 @@ import { useHasMounted } from '@/hooks/use-mobile';
 import { useAppContext } from '@/context/app-context';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
@@ -134,10 +135,24 @@ const UserManagementTab = () => {
     return (
         <Card>
             <CardHeader>
+                <div className="flex items-center justify-between">
+                <div>
                 <CardTitle>Zarządzanie Użytkownikami</CardTitle>
                 <CardDescription>
                     Przeglądaj użytkowników i zarządzaj ich uprawnieniami.
                 </CardDescription>
+                </div>
+                {users.length > 0 && (
+                    <GenericExcelExportButton
+                        data={users}
+                        columns={[
+                            { key: 'email', name: 'Email' },
+                            { key: 'role', name: 'Rola' },
+                        ]}
+                        fileName="uzytkownicy"
+                    />
+                )}
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="rounded-md border">

@@ -14,7 +14,14 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { Loader2, UserX } from "lucide-react"
+import { Loader2, UserX, ArrowUpDown } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 
 import {
@@ -144,6 +151,7 @@ export function EmployeeTable({
     getScrollElement: () => parentRef.current,
     estimateSize: () => (isMobile ? 85 : 45),
     overscan: 5,
+    measureElement: (el) => el.getBoundingClientRect().height,
   })
 
   if (isLoading && data.length === 0) {
@@ -168,7 +176,7 @@ export function EmployeeTable({
 
     return (
         <div className="flex flex-col h-full">
-          <div className="px-3 pt-2 pb-1.5 bg-background border-b border-border/40">
+          <div className="px-3 pt-2 pb-1.5 bg-background border-b border-border/40 space-y-2">
             <DataTableToolbar
               table={table}
               departmentOptions={departmentOptions}
@@ -179,6 +187,32 @@ export function EmployeeTable({
               exportColumns={exportColumns}
               exportFileName={exportFileName}
             />
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Select
+                value={sorting.length > 0 ? `${sorting[0].id}:${sorting[0].desc ? 'desc' : 'asc'}` : ''}
+                onValueChange={(val) => {
+                  if (!val) {
+                    setSorting([]);
+                    return;
+                  }
+                  const [id, dir] = val.split(':') as [string, 'asc' | 'desc'];
+                  setSorting([{ id, desc: dir === 'desc' }]);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue placeholder="Sortuj według..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fullName:asc">Nazwisko A-Z</SelectItem>
+                  <SelectItem value="fullName:desc">Nazwisko Z-A</SelectItem>
+                  <SelectItem value="hireDate:desc">Data zatrudnienia (najnowsze)</SelectItem>
+                  <SelectItem value="hireDate:asc">Data zatrudnienia (najstarsze)</SelectItem>
+                  <SelectItem value="department:asc">Dział A-Z</SelectItem>
+                  <SelectItem value="jobTitle:asc">Stanowisko A-Z</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div ref={parentRef} className="flex-1 overflow-y-auto">
             <div
@@ -194,6 +228,8 @@ export function EmployeeTable({
                 return (
                   <div
                     key={virtualItem.key}
+                    data-index={virtualItem.index}
+                    ref={rowVirtualizer.measureElement}
                     style={{
                       position: 'absolute',
                       top: 0,
@@ -285,6 +321,8 @@ export function EmployeeTable({
                     return (
                         <TableRow
                             key={row.id}
+                            data-index={virtualRow.index}
+                            ref={rowVirtualizer.measureElement}
                             data-state={row.getIsSelected() && "selected"}
                             onClick={() => onEdit(row.original)}
                             className={rowClassName}

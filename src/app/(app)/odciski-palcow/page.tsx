@@ -44,6 +44,7 @@ import {
 
 import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, UserPlus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
+import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
 import { Employee, FingerprintAppointment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate, formatDateTime } from '@/lib/date';
@@ -248,8 +249,22 @@ export default function FingerprintAppointmentsPage() {
           <div className="lg:col-span-3">
             <Card>
               <CardHeader>
+                <div className="flex items-center justify-between">
+                <div>
                 <CardTitle className="text-2xl">Zaplanowane terminy</CardTitle>
                 <CardDescription className="text-base">Lista nadchodzących wizyt na pobranie odcisków palców.</CardDescription>
+                </div>
+                {sortedAppointments.length > 0 && (
+                    <GenericExcelExportButton
+                        data={sortedAppointments}
+                        columns={[
+                            { key: 'employeeFullName', name: 'Pracownik' },
+                            { key: 'appointmentDate', name: 'Data i godzina' },
+                        ]}
+                        fileName="terminy_odciskow_palcow"
+                    />
+                )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border">

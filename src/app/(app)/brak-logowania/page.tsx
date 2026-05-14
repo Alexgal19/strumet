@@ -44,6 +44,7 @@ import {
 
 import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, FilePlus2, Trash2, Briefcase, Building, Printer } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
+import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
 import { AbsenceRecord, Employee } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/date';
@@ -285,8 +286,26 @@ export default function NoLoginPage() {
                 <div className="lg:col-span-2">
                     <Card>
                     <CardHeader>
+                        <div className="flex items-center justify-between">
+                        <div>
                         <CardTitle>Zarejestrowane incydenty</CardTitle>
                         <CardDescription>Lista zarejestrowanych przypadków braku logowania.</CardDescription>
+                        </div>
+                        {sortedRecords.length > 0 && (
+                            <GenericExcelExportButton
+                                data={sortedRecords}
+                                columns={[
+                                    { key: 'employeeFullName', name: 'Pracownik' },
+                                    { key: 'incidentDate', name: 'Data' },
+                                    { key: 'hours', name: 'Godziny' },
+                                    { key: 'reason', name: 'Przyczyna' },
+                                    { key: 'department', name: 'Dział' },
+                                    { key: 'jobTitle', name: 'Stanowisko' },
+                                ]}
+                                fileName="brak_logowania"
+                            />
+                        )}
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="rounded-md border">

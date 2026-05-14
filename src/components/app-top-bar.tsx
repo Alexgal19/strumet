@@ -171,7 +171,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
 
   return (
     <div className="sticky top-0 z-30 w-full px-4 pt-4 pointer-events-none">
-      <header className="pointer-events-auto flex h-14 items-center px-6 gap-6 glass-morphism rounded-2xl shadow-lg border border-white/20 dark:border-white/10">
+      <header className="pointer-events-auto flex h-16 items-center px-6 gap-6 glass-morphism rounded-2xl shadow-lg border border-white/20 dark:border-white/10">
 
       <div className="flex items-center gap-2 group cursor-default">
         <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-[0_0_15px_hsl(var(--primary)_/_0.3)] group-hover:scale-110 transition-transform duration-300">
@@ -202,7 +202,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
                 href={item.href}
                 prefetch
                 className={cn(
-                  'relative flex items-center px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all duration-300 rounded-full',
+                  'relative flex items-center px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition-all duration-300 rounded-full',
                   isActive
                     ? 'text-primary bg-primary/10'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'

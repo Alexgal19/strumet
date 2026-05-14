@@ -44,6 +44,7 @@ import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
+import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
 
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
@@ -266,6 +267,7 @@ export default function ClothingIssuancePage() {
                 <div className="lg:col-span-2">
                     <Card className="h-full">
                     <CardHeader>
+                        <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                         <History className="h-7 w-7" />
                         <div>
@@ -274,6 +276,18 @@ export default function ClothingIssuancePage() {
                             {selectedEmployee ? `dla ${selectedEmployee.fullName}` : 'Wybierz pracownika, aby zobaczyć historię.'}
                             </CardDescription>
                         </div>
+                        </div>
+                        {selectedEmployee && employeeIssuanceHistory.length > 0 && (
+                            <GenericExcelExportButton
+                                data={employeeIssuanceHistory}
+                                columns={[
+                                    { key: 'date', name: 'Data' },
+                                    { key: 'employeeFullName', name: 'Pracownik' },
+                                    { key: 'items', name: 'Elementy' },
+                                ]}
+                                fileName="historia_wydan_odziezy"
+                            />
+                        )}
                         </div>
                     </CardHeader>
                     <CardContent>
