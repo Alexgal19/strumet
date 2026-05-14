@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -57,20 +57,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AbsenceRecordPrintForm } from '@/components/absence-record-print-form';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
-import { getDB } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
-
-
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
 
 
 export default function NoLoginPage() {
-  const { isLoading: isAppLoading, addAbsenceRecord, deleteAbsenceRecord } = useAppContext();
+  const { isLoading: isAppLoading, absenceRecords, addAbsenceRecord, deleteAbsenceRecord } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
-  const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
-  const [isLoadingRecords, setIsLoadingRecords] = useState(true);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [incidentDate, setIncidentDate] = useState<Date | undefined>();
@@ -85,18 +76,6 @@ export default function NoLoginPage() {
   const printComponentRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
-
-  useEffect(() => {
-    const db = getDB();
-    if (!db) return;
-    
-    const recordsRef = ref(db, 'absenceRecords');
-    const unsubscribe = onValue(recordsRef, (snapshot) => {
-      setAbsenceRecords(objectToArray(snapshot.val()));
-      setIsLoadingRecords(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const sortedRecords = useMemo(() => {
     return [...absenceRecords].sort((a, b) => new Date(b.incidentDate).getTime() - new Date(a.incidentDate).getTime());
@@ -154,7 +133,7 @@ export default function NoLoginPage() {
     setDeletingId(null);
   };
 
-  const isLoading = isAppLoading || isLoadingRecords || isEmployeesLoading;
+  const isLoading = isAppLoading || isEmployeesLoading;
 
   return (
     <>

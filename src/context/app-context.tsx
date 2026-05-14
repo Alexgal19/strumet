@@ -48,6 +48,10 @@ const STORAGE_KEYS = {
   absences: 'strumet_absences',
   notifications: 'strumet_notifications',
   statsHistory: 'strumet_statsHistory',
+  absenceRecords: 'strumet_absenceRecords',
+  circulationCards: 'strumet_circulationCards',
+  clothingIssuances: 'strumet_clothingIssuances',
+  fingerprintAppointments: 'strumet_fingerprintAppointments',
 };
 
 const loadFromStorage = (key: string): any | null => {
@@ -98,6 +102,10 @@ interface AppContextType {
     config: AllConfig;
     notifications: AppNotification[];
     statsHistory: StatsSnapshot[];
+    absenceRecords: AbsenceRecord[];
+    circulationCards: CirculationCard[];
+    clothingIssuances: ClothingIssuance[];
+    fingerprintAppointments: FingerprintAppointment[];
     isLoading: boolean;
     isHistoryLoading: boolean;
     handleSaveEmployee: (employeeData: Employee) => Promise<boolean>;
@@ -142,6 +150,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], resendApiKey: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
+    const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
+    const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
+    const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
+    const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -193,6 +205,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setAbsences([]);
             setNotifications([]);
             setStatsHistory([]);
+            setAbsenceRecords([]);
+            setCirculationCards([]);
+            setClothingIssuances([]);
+            setFingerprintAppointments([]);
             if (authInitializedRef.current) {
                 setIsLoading(false);
             }
@@ -206,6 +222,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const cachedAbsences = loadFromStorage(STORAGE_KEYS.absences);
         const cachedNotifications = loadFromStorage(STORAGE_KEYS.notifications);
         const cachedStatsHistory = loadFromStorage(STORAGE_KEYS.statsHistory);
+        const cachedAbsenceRecords = loadFromStorage(STORAGE_KEYS.absenceRecords);
+        const cachedCirculationCards = loadFromStorage(STORAGE_KEYS.circulationCards);
+        const cachedClothingIssuances = loadFromStorage(STORAGE_KEYS.clothingIssuances);
+        const cachedFingerprintAppointments = loadFromStorage(STORAGE_KEYS.fingerprintAppointments);
 
         if (cachedEmployees) setEmployees(cachedEmployees);
         if (cachedConfig) {
@@ -223,6 +243,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (cachedAbsences) setAbsences(cachedAbsences);
         if (cachedNotifications) setNotifications(cachedNotifications);
         if (cachedStatsHistory) setStatsHistory(cachedStatsHistory);
+        if (cachedAbsenceRecords) setAbsenceRecords(cachedAbsenceRecords);
+        if (cachedCirculationCards) setCirculationCards(cachedCirculationCards);
+        if (cachedClothingIssuances) setClothingIssuances(cachedClothingIssuances);
+        if (cachedFingerprintAppointments) setFingerprintAppointments(cachedFingerprintAppointments);
 
         // If we have cached essential data, show UI immediately
         const hasCachedEssential = cachedEmployees && cachedConfig;
@@ -297,6 +321,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     dataLoadedRef.current.add('config');
                 },
                 essential: true,
+            },
+            {
+                path: "absenceRecords",
+                setter: (data: any) => {
+                    const arr = objectToArray(data);
+                    setAbsenceRecords(arr);
+                    saveToStorage(STORAGE_KEYS.absenceRecords, arr);
+                    dataLoadedRef.current.add('absenceRecords');
+                },
+                essential: false,
+            },
+            {
+                path: "circulationCards",
+                setter: (data: any) => {
+                    const arr = objectToArray(data);
+                    setCirculationCards(arr);
+                    saveToStorage(STORAGE_KEYS.circulationCards, arr);
+                    dataLoadedRef.current.add('circulationCards');
+                },
+                essential: false,
+            },
+            {
+                path: "clothingIssuances",
+                setter: (data: any) => {
+                    const arr = objectToArray(data);
+                    setClothingIssuances(arr);
+                    saveToStorage(STORAGE_KEYS.clothingIssuances, arr);
+                    dataLoadedRef.current.add('clothingIssuances');
+                },
+                essential: false,
+            },
+            {
+                path: "fingerprintAppointments",
+                setter: (data: any) => {
+                    const arr = objectToArray(data);
+                    setFingerprintAppointments(arr);
+                    saveToStorage(STORAGE_KEYS.fingerprintAppointments, arr);
+                    dataLoadedRef.current.add('fingerprintAppointments');
+                },
+                essential: false,
             },
         ];
 
@@ -833,6 +897,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         config,
         notifications,
         statsHistory,
+        absenceRecords,
+        circulationCards,
+        clothingIssuances,
+        fingerprintAppointments,
         isLoading,
         isHistoryLoading,
         handleSaveEmployee,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -41,20 +41,11 @@ import { CirculationCardPrintForm } from '@/components/circulation-card-print-fo
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
-import { getDB } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
-
-
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
 
 
 export default function CirculationCardsPage() {
-  const { isLoading: isAppLoading, addCirculationCard } = useAppContext();
+  const { isLoading: isAppLoading, circulationCards, addCirculationCard } = useAppContext();
   const { employees, isLoading: isEmployeesLoading } = useEmployees(); // Fetch all employees
-  const [circulationCards, setCirculationCards] = useState<CirculationCard[]>([]);
-  const [isLoadingCards, setIsLoadingCards] = useState(true);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
@@ -64,18 +55,6 @@ export default function CirculationCardsPage() {
   
   const { toast } = useToast();
 
-  useEffect(() => {
-    const db = getDB();
-    if (!db) return;
-    
-    const cardsRef = ref(db, 'circulationCards');
-    const unsubscribe = onValue(cardsRef, (snapshot) => {
-      setCirculationCards(objectToArray(snapshot.val()));
-      setIsLoadingCards(false);
-    });
-    return () => unsubscribe();
-  }, []);
-  
   const selectedEmployee = useMemo(() => {
     return employees.find(e => e.id === selectedEmployeeId) ?? null;
   }, [selectedEmployeeId, employees]);
@@ -112,7 +91,7 @@ export default function CirculationCardsPage() {
     }
   };
 
-  const isLoading = isAppLoading || isLoadingCards || isEmployeesLoading;
+  const isLoading = isAppLoading || isEmployeesLoading;
 
   const selectedEmployeeForPrint = printingCard
     ? employees.find(e => e.id === printingCard.employeeId) 

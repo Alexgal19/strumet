@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(ls:*)",
+      "Bash(taskkill:*)",
+      "Bash(xxd -l 32 .env.local)",
+      "Bash(python -c \"import sys; data=open\\(''.env.local'',''rb''\\).read\\(32\\); print\\('' ''.join\\(f''{b:02x}'' for b in data\\)\\)\")",
+      "Bash(node:*)",
+      "Bash(python:*)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(netstat -ano)",
+      "Bash(sed -i '374d' src/components/employee-form.tsx)",
+      "Bash(sed -n '368,378p' src/components/employee-form.tsx)"
+    ]
+  }
+}

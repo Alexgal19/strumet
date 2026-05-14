@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -53,20 +53,11 @@ import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
-import { getDB } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
-
-
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
 
 
 export default function FingerprintAppointmentsPage() {
-  const { isLoading: isAppLoading, addFingerprintAppointment, deleteFingerprintAppointment } = useAppContext();
+  const { isLoading: isAppLoading, fingerprintAppointments, addFingerprintAppointment, deleteFingerprintAppointment } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
-  const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
-  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [appointmentDate, setAppointmentDate] = useState<Date | undefined>();
@@ -76,18 +67,6 @@ export default function FingerprintAppointmentsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { toast } = useToast();
-
-  useEffect(() => {
-    const db = getDB();
-    if (!db) return;
-    
-    const appointmentsRef = ref(db, 'fingerprintAppointments');
-    const unsubscribe = onValue(appointmentsRef, (snapshot) => {
-      setFingerprintAppointments(objectToArray(snapshot.val()));
-      setIsLoadingAppointments(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const sortedAppointments = useMemo(() => {
     return [...fingerprintAppointments].sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
@@ -126,7 +105,7 @@ export default function FingerprintAppointmentsPage() {
     setDeletingId(null);
   };
 
-  const isLoading = isAppLoading || isLoadingAppointments || isEmployeesLoading;
+  const isLoading = isAppLoading || isEmployeesLoading;
 
   return (
     <div className="flex h-full flex-col">

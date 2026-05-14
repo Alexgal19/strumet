@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -42,20 +42,12 @@ import { MultiSelect, OptionType } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
-import { getDB } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
 import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
 
 
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
-
 export default function ClothingIssuancePage() {
-  const { config, isLoading: isAppLoading, addClothingIssuance, deleteClothingIssuance } = useAppContext();
+  const { config, isLoading: isAppLoading, clothingIssuances, addClothingIssuance, deleteClothingIssuance } = useAppContext();
   const { employees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
-  const [clothingIssuances, setClothingIssuances] = useState<ClothingIssuance[]>([]);
-  const [isLoadingIssuances, setIsLoadingIssuances] = useState(true);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
@@ -66,18 +58,6 @@ export default function ClothingIssuancePage() {
   const printComponentRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
-
-  useEffect(() => {
-    const db = getDB();
-    if (!db) return;
-    
-    const issuancesRef = ref(db, 'clothingIssuances');
-    const unsubscribe = onValue(issuancesRef, (snapshot) => {
-      setClothingIssuances(objectToArray(snapshot.val()));
-      setIsLoadingIssuances(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const selectedEmployee = useMemo(() => {
     return employees.find(e => e.id === selectedEmployeeId) ?? null;
@@ -142,7 +122,7 @@ export default function ClothingIssuancePage() {
       }
   };
 
-  const isLoading = isAppLoading || isLoadingIssuances || isEmployeesLoading;
+  const isLoading = isAppLoading || isEmployeesLoading;
 
   const selectedEmployeeForPrint = printingIssuance
     ? employees.find(e => e.id === printingIssuance.employeeId) 
