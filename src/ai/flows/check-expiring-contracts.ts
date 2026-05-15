@@ -35,7 +35,9 @@ export async function checkExpiringContractsAndNotify(): Promise<{ notifications
       const contractEndDate = parseMaybeDate(emp.contractEndDate);
       if (!contractEndDate) return null;
       const daysRemaining = differenceInDays(startOfDay(contractEndDate), today);
-      if (daysRemaining >= 0 && daysRemaining <= 7) return { ...emp, daysRemaining };
+      if ((daysRemaining >= 0 && daysRemaining <= 7) || daysRemaining === 14 || daysRemaining === 21) {
+          return { ...emp, daysRemaining };
+      }
       return null;
     })
     .filter((emp): emp is Employee & { daysRemaining: number } => emp !== null);
@@ -57,7 +59,12 @@ export async function checkExpiringContractsAndNotify(): Promise<{ notifications
     .sort(([a], [b]) => Number(a) - Number(b))
     .map(([days, names]) => {
       const d = Number(days);
-      const dayText = d === 0 ? 'dzisiaj' : d === 1 ? 'jutro' : `za ${d} dni`;
+      const dayText = d === 0 ? 'dzisiaj' : 
+                      d === 1 ? 'jutro' : 
+                      d === 7 ? 'za tydzień' : 
+                      d === 14 ? 'za 2 tygodnie' : 
+                      d === 21 ? 'za 3 tygodnie' : 
+                      `za ${d} dni`;
       return `Wygasające ${dayText} (${names.length}): ${names.join(', ')}.`;
     });
 
@@ -75,10 +82,18 @@ export async function checkExpiringContractsAndNotify(): Promise<{ notifications
     .sort(([a], [b]) => Number(a) - Number(b))
     .map(([days, names]) => {
       const d = Number(days);
-      const dayText = d === 0 ? 'dzisiaj' : d === 1 ? 'jutro' : `za ${d} dni`;
+      const dayText = d === 0 ? 'dzisiaj' : 
+                      d === 1 ? 'jutro' : 
+                      d === 7 ? 'za tydzień' : 
+                      d === 14 ? 'za 2 tygodnie' : 
+                      d === 21 ? 'za 3 tygodnie' : 
+                      `za ${d} dni`;
       const details = expiringContractsEmployees
         .filter(emp => emp.daysRemaining === d)
-        .map(emp => `<li><strong>${emp.fullName}</strong> (Dział: ${emp.department})</li>`)
+        .map(emp => {
+            const endDate = emp.contractEndDate ? new Date(emp.contractEndDate).toLocaleDateString('pl-PL') : 'Brak daty';
+            return `<li><strong>${emp.fullName}</strong> (Dział: ${emp.department}) - wygasa: <strong>${endDate}</strong></li>`;
+        })
         .join('');
       return `<h3>Umowy wygasające ${dayText}:</h3><ul>${details}</ul>`;
     });
