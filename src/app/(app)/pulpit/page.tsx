@@ -196,7 +196,6 @@ export default function DashboardPage() {
           new Date(a.contractEndDate!).getTime() -
           new Date(b.contractEndDate!).getTime()
       )
-      .slice(0, 3);
   }, [activeEmployees, today, threshold30]);
 
   const upcomingAppointments = useMemo(() => {
@@ -211,8 +210,7 @@ export default function DashboardPage() {
         (a, b) =>
           new Date(a.appointmentDate).getTime() -
           new Date(b.appointmentDate).getTime()
-      )
-      .slice(0, 3);
+      );
   }, [fingerprintAppointments, today, threshold30]);
 
   const plannedTerminations = useMemo(() => {
@@ -227,7 +225,6 @@ export default function DashboardPage() {
           new Date(a.plannedTerminationDate!).getTime() -
           new Date(b.plannedTerminationDate!).getTime()
       )
-      .slice(0, 3);
   }, [activeEmployees, today]);
 
   const onVacation = useMemo(() => {
@@ -246,8 +243,7 @@ export default function DashboardPage() {
         (a, b) =>
           new Date(a.vacationEndDate!).getTime() -
           new Date(b.vacationEndDate!).getTime()
-      )
-      .slice(0, 3);
+      );
   }, [activeEmployees, today]);
 
   const upcomingVacations = useMemo(() => {
@@ -265,8 +261,7 @@ export default function DashboardPage() {
         (a, b) =>
           new Date(a.vacationStartDate!).getTime() -
           new Date(b.vacationStartDate!).getTime()
-      )
-      .slice(0, 3);
+      );
   }, [activeEmployees, today, onVacation]);
 
   // --- Notifications (last 5) ---
@@ -463,11 +458,15 @@ export default function DashboardPage() {
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent>
               {expiringContracts.length > 0 ? (
-                expiringContracts.map((employee) => (
-                  <ContractCard key={employee.id} employee={employee} />
-                ))
+                <ScrollArea className="max-h-[280px]">
+                  <div className="space-y-3 pr-4">
+                    {expiringContracts.map((employee) => (
+                      <ContractCard key={employee.id} employee={employee} />
+                    ))}
+                  </div>
+                </ScrollArea>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Brak umów wygających w ciągu 30 dni.
@@ -486,14 +485,18 @@ export default function DashboardPage() {
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent>
               {upcomingAppointments.length > 0 ? (
-                upcomingAppointments.map((appointment) => (
-                  <FingerprintCard
-                    key={appointment.id}
-                    appointment={appointment}
-                  />
-                ))
+                <ScrollArea className="max-h-[280px]">
+                  <div className="space-y-3 pr-4">
+                    {upcomingAppointments.map((appointment) => (
+                      <FingerprintCard
+                        key={appointment.id}
+                        appointment={appointment}
+                      />
+                    ))}
+                  </div>
+                </ScrollArea>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Brak zaplanowanych wizyt w ciągu 30 dni.
@@ -512,15 +515,19 @@ export default function DashboardPage() {
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent>
               {plannedTerminations.length > 0 ? (
-                plannedTerminations.map((employee) => (
-                  <EmployeeCard
-                    key={employee.id}
-                    employee={employee}
-                    type="termination"
-                  />
-                ))
+                <ScrollArea className="max-h-[280px]">
+                  <div className="space-y-3 pr-4">
+                    {plannedTerminations.map((employee) => (
+                      <EmployeeCard
+                        key={employee.id}
+                        employee={employee}
+                        type="termination"
+                      />
+                    ))}
+                  </div>
+                </ScrollArea>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Brak zaplanowanych zwolnień.
@@ -539,28 +546,30 @@ export default function DashboardPage() {
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent>
               {onVacation.length === 0 && upcomingVacations.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Brak pracowników na urlopie i zaplanowanych urlopów.
                 </p>
               ) : (
-                <>
-                  {onVacation.map((employee) => (
-                    <EmployeeCard
-                      key={`vac-${employee.id}`}
-                      employee={employee}
-                      type="vacation"
-                    />
-                  ))}
-                  {upcomingVacations.map((employee) => (
-                    <EmployeeCard
-                      key={`upv-${employee.id}`}
-                      employee={employee}
-                      type="vacation-planned"
-                    />
-                  ))}
-                </>
+                <ScrollArea className="max-h-[280px]">
+                  <div className="space-y-3 pr-4">
+                    {onVacation.map((employee) => (
+                      <EmployeeCard
+                        key={`vac-${employee.id}`}
+                        employee={employee}
+                        type="vacation"
+                      />
+                    ))}
+                    {upcomingVacations.map((employee) => (
+                      <EmployeeCard
+                        key={`upv-${employee.id}`}
+                        employee={employee}
+                        type="vacation-planned"
+                      />
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>

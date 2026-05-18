@@ -82,6 +82,50 @@ const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
 };
 
+function normalizeName(name: string): string {
+  return name.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      matrix[i][j] =
+        b.charAt(i - 1) === a.charAt(j - 1)
+          ? matrix[i - 1][j - 1]
+          : Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+function findBestFuzzyMatch(
+  employees: any[],
+  inputName: string,
+  maxDistance = 2
+): any | undefined {
+  let bestMatch: any | undefined;
+  let bestDistance = Infinity;
+  const normalizedInput = normalizeName(inputName);
+
+  for (const emp of employees) {
+    const normalizedEmp = normalizeName(emp.fullName || '');
+    if (Math.abs(normalizedEmp.length - normalizedInput.length) > maxDistance) continue;
+    const dist = levenshteinDistance(normalizedEmp, normalizedInput);
+    if (dist <= maxDistance && dist < bestDistance) {
+      bestDistance = dist;
+      bestMatch = emp;
+    }
+  }
+  return bestMatch;
+}
+
 const dedupeByName = <T extends { name: string }>(arr: T[]): T[] => {
   const seen = new Set<string>();
   return arr.filter(item => {
@@ -609,12 +653,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const updates: Record<string, any> = {};
         let updatedCount = 0;
         const notFound: string[] = [];
-        
+        const fuzzyMatched: string[] = [];
+
         const allEmployeesSnapshot = await get(ref(db, 'employees'));
         const allEmployees = objectToArray(allEmployeesSnapshot.val());
 
         dateUpdates.forEach(updateData => {
-            const employeeToUpdate = allEmployees.find(emp => emp.fullName === updateData.fullName);
+            const normalizedInput = normalizeName(updateData.fullName);
+
+            // 1. Exact match (normalized)
+            let employeeToUpdate = allEmployees.find(emp => normalizeName(emp.fullName) === normalizedInput);
+
+            // 2. Fuzzy match if no exact
+            if (!employeeToUpdate) {
+                employeeToUpdate = findBestFuzzyMatch(allEmployees, updateData.fullName, 2);
+                if (employeeToUpdate) {
+                    fuzzyMatched.push(`${updateData.fullName} → ${employeeToUpdate.fullName}`);
+                }
+            }
+
             if (employeeToUpdate) {
                 updates[`/employees/${employeeToUpdate.id}/contractEndDate`] = updateData.contractEndDate;
                 updatedCount++;
@@ -626,9 +683,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (updatedCount > 0) {
             try {
                 await update(ref(db), updates);
+                let description = `Zaktualizowano daty końca umowy dla ${updatedCount} pracowników.`;
+                if (fuzzyMatched.length > 0) {
+                    description += `\nDopasowano z literówką: ${fuzzyMatched.slice(0, 3).join(', ')}${fuzzyMatched.length > 3 ? '...' : ''}`;
+                }
                 toast({
                     title: 'Aktualizacja zakończona',
-                    description: `Zaktualizowano daty końca umowy dla ${updatedCount} pracowników.`,
+                    description,
                 });
             } catch (error) {
                 console.error("Error updating contract end dates:", error);
@@ -641,7 +702,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({
                 variant: 'destructive',
                 title: 'Nie znaleziono pracowników',
-                description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
+                description: `Nie można było dopasować ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
             });
         }
     }, [services, toast]);

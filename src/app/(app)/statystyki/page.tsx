@@ -346,11 +346,11 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                         Znaleziono {dialogContent?.total} pracowników.
                     </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="max-h-[60vh] my-4">
-                    <div className="space-y-1 pr-4">
+                <div className="flex-1 min-h-0 overflow-y-auto my-4 pr-1">
+                    <div className="space-y-1 pr-3">
                         {renderDialogContent()}
                     </div>
-                </ScrollArea>
+                </div>
             </DialogContent>
         </Dialog>
 
