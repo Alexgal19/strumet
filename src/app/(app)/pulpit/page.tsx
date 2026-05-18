@@ -460,7 +460,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               {expiringContracts.length > 0 ? (
-                <ScrollArea className="max-h-[280px]">
+                <ScrollArea className="h-[280px]">
                   <div className="space-y-3 pr-4">
                     {expiringContracts.map((employee) => (
                       <ContractCard key={employee.id} employee={employee} />
@@ -487,7 +487,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               {upcomingAppointments.length > 0 ? (
-                <ScrollArea className="max-h-[280px]">
+                <ScrollArea className="h-[280px]">
                   <div className="space-y-3 pr-4">
                     {upcomingAppointments.map((appointment) => (
                       <FingerprintCard
@@ -517,7 +517,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               {plannedTerminations.length > 0 ? (
-                <ScrollArea className="max-h-[280px]">
+                <ScrollArea className="h-[280px]">
                   <div className="space-y-3 pr-4">
                     {plannedTerminations.map((employee) => (
                       <EmployeeCard
@@ -552,7 +552,7 @@ export default function DashboardPage() {
                   Brak pracowników na urlopie i zaplanowanych urlopów.
                 </p>
               ) : (
-                <ScrollArea className="max-h-[280px]">
+                <ScrollArea className="h-[280px]">
                   <div className="space-y-3 pr-4">
                     {onVacation.map((employee) => (
                       <EmployeeCard

@@ -369,22 +369,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 path: "config",
                 setter: (data: any) => {
                     const configData = data || {};
-                    const newConfig: AllConfig = {
-                        departments: dedupeByName(objectToArray(configData.departments)),
-                        jobTitles: dedupeByName(objectToArray(configData.jobTitles)),
-                        managers: dedupeByName(objectToArray(configData.managers)),
-                        nationalities: dedupeByName(objectToArray(configData.nationalities)),
-                        clothingItems: objectToArray(configData.clothingItems),
-                        jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
-                        gmailUser: configData.gmailUser || '',
-                        gmailAppPassword: configData.gmailAppPassword || '',
-                        recipientEmails: configData.recipientEmails || [],
-                    };
-                    setConfig(newConfig);
-                    saveToStorage(STORAGE_KEYS.config, newConfig);
+                    setConfig(prev => {
+                        const updated = {
+                            ...prev,
+                            departments: dedupeByName(objectToArray(configData.departments)),
+                            jobTitles: dedupeByName(objectToArray(configData.jobTitles)),
+                            managers: dedupeByName(objectToArray(configData.managers)),
+                            nationalities: dedupeByName(objectToArray(configData.nationalities)),
+                            clothingItems: objectToArray(configData.clothingItems),
+                            jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
+                        };
+                        saveToStorage(STORAGE_KEYS.config, updated);
+                        return updated;
+                    });
                     dataLoadedRef.current.add('config');
                 },
                 essential: true,
+            },
+            {
+                path: "configPrivate",
+                setter: (data: any) => {
+                    const privateData = data || {};
+                    setConfig(prev => ({
+                        ...prev,
+                        gmailUser: privateData.gmailUser || '',
+                        gmailAppPassword: privateData.gmailAppPassword || '',
+                        recipientEmails: privateData.recipientEmails || [],
+                    }));
+                },
+                essential: false,
             },
             {
                 path: "absenceRecords",
@@ -824,7 +837,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (!services) return;
         const { db } = services;
         try {
-            await update(ref(db, 'config'), {
+            await update(ref(db, 'configPrivate'), {
                 gmailUser: user,
                 gmailAppPassword: pass
             });
@@ -1048,7 +1061,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (!services) return false;
         const { db } = services;
         try {
-            await set(ref(db, 'config/recipientEmails'), emails);
+            await set(ref(db, 'configPrivate/recipientEmails'), emails);
             toast({ title: 'Sukces', description: 'Lista adresów email została zaktualizowana.' });
             return true;
         } catch (error) {

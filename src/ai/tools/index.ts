@@ -38,7 +38,7 @@ export async function sendEmail(
                 ]);
             };
 
-            const configSnapshot = await fetchWithTimeout(db.ref('config').get(), 5000);
+            const configSnapshot = await fetchWithTimeout(db.ref('configPrivate').get(), 5000);
             if (configSnapshot.exists()) {
                 const config = configSnapshot.val();
                 if (!gmailUser) gmailUser = config.gmailUser || process.env.GMAIL_USER;

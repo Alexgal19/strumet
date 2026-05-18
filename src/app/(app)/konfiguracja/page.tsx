@@ -42,7 +42,7 @@ const configLabels: Record<ConfigView, string> = {
 };
 
 const JobTitleClothingSetsTab = () => {
-    const { config, handleSaveJobTitleClothingSet } = useAppContext();
+    const { config, handleSaveJobTitleClothingSet, isAdmin } = useAppContext();
     const { jobTitles } = config;
     const [jobTitleClothingSets, setJobTitleClothingSets] = useState<JobTitleClothingSet[]>([]);
     const [isLoadingSets, setIsLoadingSets] = useState(true);
@@ -103,11 +103,14 @@ const JobTitleClothingSetsTab = () => {
                                         }}
                                         onClick={(e) => e.stopPropagation()}
                                         className="min-h-[100px]"
+                                        disabled={!isAdmin}
                                     />
-                                    <Button onClick={(e) => { e.stopPropagation(); handleSave(jobTitle.id); }}>
-                                        <Save className="mr-2 h-4 w-4" />
-                                        Zapisz zestaw
-                                    </Button>
+                                    {isAdmin && (
+                                        <Button onClick={(e) => { e.stopPropagation(); handleSave(jobTitle.id); }}>
+                                            <Save className="mr-2 h-4 w-4" />
+                                            Zapisz zestaw
+                                        </Button>
+                                    )}
                                 </div>
                             </AccordionContent>
                         </AccordionItem>
@@ -356,11 +359,11 @@ export default function ConfigurationPage() {
             />
             
             <Tabs defaultValue="lists" className="flex-grow flex flex-col">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-5" : "grid-cols-2")}>
                     <TabsTrigger value="lists">Listy</TabsTrigger>
                     <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
-                    <TabsTrigger value="api_keys">Email SMTP (Gmail)</TabsTrigger>
-                    <TabsTrigger value="emails">Adresy email</TabsTrigger>
+                    {isAdmin && <TabsTrigger value="api_keys">Email SMTP (Gmail)</TabsTrigger>}
+                    {isAdmin && <TabsTrigger value="emails">Adresy email</TabsTrigger>}
                     {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
                 </TabsList>
 
@@ -381,22 +384,26 @@ export default function ConfigurationPage() {
                                                 {items.map((item) => (
                                                 <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
                                                     <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
-                                                    <div className="flex items-center gap-1 shrink-0">
-                                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(type, item)}>
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleRemoveItem(type, item.id)}>
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                    {isAdmin && (
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(type, item)}>
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleRemoveItem(type, item.id)}>
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 ))}
                                                 {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
                                             </div>
-                                            <Button className="mt-2 w-full" variant="secondary" onClick={() => openAddDialog(type)}>
-                                                <PlusCircle className="mr-2 h-4 w-4" />
-                                                Dodaj nowe
-                                            </Button>
+                                            {isAdmin && (
+                                                <Button className="mt-2 w-full" variant="secondary" onClick={() => openAddDialog(type)}>
+                                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                                    Dodaj nowe
+                                                </Button>
+                                            )}
                                             </div>
                                         </AccordionContent>
                                     </AccordionItem>
@@ -410,135 +417,139 @@ export default function ConfigurationPage() {
                     <JobTitleClothingSetsTab />
                 </TabsContent>
 
-                <TabsContent value="api_keys" className="flex-grow mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3">
-                                <KeyRound className="h-6 w-6" />
-                                Poświadczenia Gmail (Nodemailer)
-                            </CardTitle>
-                            <CardDescription>
-                                Wprowadź login (adres email) oraz Hasło Aplikacji (App Password) wygenerowane w ustawieniach konta Google.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <Label htmlFor="gmail-user">Adres Gmail</Label>
-                                <Input 
-                                    id="gmail-user"
-                                    type="email"
-                                    value={gmailUser}
-                                    onChange={(e) => setGmailUser(e.target.value)}
-                                    placeholder="twoj-email@gmail.com"
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="gmail-app-password">Hasło Aplikacji</Label>
-                                <div className="relative">
+                {isAdmin && (
+                    <TabsContent value="api_keys" className="flex-grow mt-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-3">
+                                    <KeyRound className="h-6 w-6" />
+                                    Poświadczenia Gmail (Nodemailer)
+                                </CardTitle>
+                                <CardDescription>
+                                    Wprowadź login (adres email) oraz Hasło Aplikacji (App Password) wygenerowane w ustawieniach konta Google.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label htmlFor="gmail-user">Adres Gmail</Label>
                                     <Input 
-                                        id="gmail-app-password"
-                                        type={showPassword ? "text" : "password"}
-                                        value={gmailAppPassword}
-                                        onChange={(e) => setGmailAppPassword(e.target.value)}
-                                        placeholder="xxxx xxxx xxxx xxxx"
-                                        className="pr-10"
+                                        id="gmail-user"
+                                        type="email"
+                                        value={gmailUser}
+                                        onChange={(e) => setGmailUser(e.target.value)}
+                                        placeholder="twoj-email@gmail.com"
                                     />
+                                </div>
+                                <div>
+                                    <Label htmlFor="gmail-app-password">Hasło Aplikacji</Label>
+                                    <div className="relative">
+                                        <Input 
+                                            id="gmail-app-password"
+                                            type={showPassword ? "text" : "password"}
+                                            value={gmailAppPassword}
+                                            onChange={(e) => setGmailAppPassword(e.target.value)}
+                                            placeholder="xxxx xxxx xxxx xxxx"
+                                            className="pr-10"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="h-4 w-4" />
+                                            ) : (
+                                                <Eye className="h-4 w-4" />
+                                            )}
+                                            <span className="sr-only">
+                                                {showPassword ? "Ukryj hasło" : "Pokaż hasło"}
+                                            </span>
+                                        </Button>
+                                    </div>
+                                </div>
+                                <Button onClick={onSaveGmailCredentials}>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Zapisz poświadczenia
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                )}
+
+                {isAdmin && (
+                    <TabsContent value="emails" className="flex-grow mt-6">
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-3">
+                                            <Mail className="h-6 w-6" />
+                                            Adresy email do powiadomień
+                                        </CardTitle>
+                                        <CardDescription className="mt-1.5">
+                                            Dodaj adresy, na które będą wysyłane powiadomienia email.
+                                        </CardDescription>
+                                    </div>
                                     <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                                        onClick={() => setShowPassword(!showPassword)}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleSendTestEmail}
+                                        disabled={isSendingTest || recipientEmails.length === 0}
+                                        className="shrink-0"
                                     >
-                                        {showPassword ? (
-                                            <EyeOff className="h-4 w-4" />
+                                        {isSendingTest ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                         ) : (
-                                            <Eye className="h-4 w-4" />
+                                            <Send className="mr-2 h-4 w-4" />
                                         )}
-                                        <span className="sr-only">
-                                            {showPassword ? "Ukryj hasło" : "Pokaż hasło"}
-                                        </span>
+                                        Wyślij test
                                     </Button>
                                 </div>
-                            </div>
-                            <Button onClick={onSaveGmailCredentials}>
-                                <Save className="mr-2 h-4 w-4" />
-                                Zapisz poświadczenia
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="emails" className="flex-grow mt-6">
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <CardTitle className="flex items-center gap-3">
-                                        <Mail className="h-6 w-6" />
-                                        Adresy email do powiadomień
-                                    </CardTitle>
-                                    <CardDescription className="mt-1.5">
-                                        Dodaj adresy, na które będą wysyłane powiadomienia email.
-                                    </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex gap-2">
+                                    <Input
+                                        type="email"
+                                        value={newEmail}
+                                        onChange={(e) => setNewEmail(e.target.value)}
+                                        placeholder="email@example.com"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                addEmail();
+                                            }
+                                        }}
+                                    />
+                                    <Button onClick={addEmail} variant="secondary">
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Dodaj
+                                    </Button>
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleSendTestEmail}
-                                    disabled={isSendingTest || recipientEmails.length === 0}
-                                    className="shrink-0"
-                                >
-                                    {isSendingTest ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <div className="space-y-2">
+                                    {recipientEmails.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground text-center py-4">Brak adresów email. Dodaj pierwszy.</p>
                                     ) : (
-                                        <Send className="mr-2 h-4 w-4" />
+                                        recipientEmails.map(email => (
+                                            <div key={email} className="flex items-center justify-between rounded-md border p-3">
+                                                <span className="font-medium text-sm">{email}</span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-destructive hover:text-destructive h-8 w-8"
+                                                    onClick={() => removeEmail(email)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))
                                     )}
-                                    Wyślij test
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex gap-2">
-                                <Input
-                                    type="email"
-                                    value={newEmail}
-                                    onChange={(e) => setNewEmail(e.target.value)}
-                                    placeholder="email@example.com"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            addEmail();
-                                        }
-                                    }}
-                                />
-                                <Button onClick={addEmail} variant="secondary">
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Dodaj
-                                </Button>
-                            </div>
-                            <div className="space-y-2">
-                                {recipientEmails.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground text-center py-4">Brak adresów email. Dodaj pierwszy.</p>
-                                ) : (
-                                    recipientEmails.map(email => (
-                                        <div key={email} className="flex items-center justify-between rounded-md border p-3">
-                                            <span className="font-medium text-sm">{email}</span>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-destructive hover:text-destructive h-8 w-8"
-                                                onClick={() => removeEmail(email)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                )}
 
                 {isAdmin && (
                     <TabsContent value="users" className="flex-grow mt-6">

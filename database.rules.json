@@ -1,6 +1,8 @@
 {
   "rules": {
     "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",
         ".write": "auth != null && auth.uid == $uid"
@@ -58,7 +60,10 @@
     "config": {
       ".read": "auth != null"
     },
-    ".read": "auth != null",
+    "configPrivate": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
     ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
   }
 }
