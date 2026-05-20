@@ -35,6 +35,8 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
         boxSizing: 'border-box',
         backgroundColor: '#fff',
         textAlign: 'center',
+        marginLeft: 'auto',
+        marginRight: 'auto',
       }}>
         {/* Header */}
         <div style={{
@@ -84,7 +86,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
               border: '1px solid #ddd',
               borderRadius: '5px',
               padding: '2.5mm 4mm',
-              textAlign: 'left',
+              textAlign: 'center',
             }}>
               <div style={{ fontSize: '6.5pt', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5mm', fontWeight: '600' }}>
                 {item.label}

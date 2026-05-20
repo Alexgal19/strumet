@@ -271,6 +271,7 @@ Nazwisko | Imię | Data zatrudnienia | Umowa do | Stanowisko | Dział | Kierowni
 - `@media print` in `globals.css` hides UI, shows only `.print-only` div
 - **Do NOT nest Dialog inside Dialog** (Radix UI portal conflict)
 - Lift print/clothing dialogs to page level; pass data via `onPrintClothing` callback prop
+- `.print-only` uses `display: flex; justify-content: center` → **print form components are automatically centered on the page**; do NOT add `margin: auto` manually to print form outer divs
 
 ### Clothing Issuance Dialog
 - `EmployeeForm` prop: `onPrintClothing?: (employee, issuance) => void`
