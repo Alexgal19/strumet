@@ -10,6 +10,7 @@
     },
     "employees": {
       ".read": "auth != null",
+      ".write": "auth != null",
       ".indexOn": [
         "status",
         "status_fullName",
