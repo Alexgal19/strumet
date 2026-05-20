@@ -58,9 +58,11 @@ export default function ZwolnieniPage() {
     });
   };
 
-  const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
-    await handleRestoreEmployee(employeeId, employeeFullName);
-  };
+const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
+    console.log('[zwolnieni] onRestoreEmployee called:', { employeeId, employeeFullName });
+    const result = await handleRestoreEmployee(employeeId, employeeFullName);
+    console.log('[zwolnieni] handleRestoreEmployee result:', result);
+};
 
   const onDeletePermanently = async (id: string) => {
     await handleDeleteEmployeePermanently(id);
@@ -156,8 +158,11 @@ export default function ZwolnieniPage() {
               <AlertDialogFooter>
                   <AlertDialogCancel onClick={() => setRestoringEmployee(null)}>Anuluj</AlertDialogCancel>
                   <AlertDialogAction onClick={() => {
+                      console.log('[zwolnieni] AlertDialog confirm clicked, restoringEmployee:', restoringEmployee?.id, restoringEmployee?.fullName);
                       if(restoringEmployee) {
+                          console.log('[zwolnieni] calling onRestoreEmployee with id:', restoringEmployee.id);
                           onRestoreEmployee(restoringEmployee.id, restoringEmployee.fullName);
+                          console.log('[zwolnieni] onRestoreEmployee called, setting state to null');
                           setRestoringEmployee(null);
                       }
                   }}>

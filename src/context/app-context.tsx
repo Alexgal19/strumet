@@ -551,18 +551,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }, [services, toast]);
 
     const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
-        if (!services) return false;
+        console.log('[handleRestoreEmployee] called with:', { employeeId, employeeFullName });
+        if (!services) {
+            console.error('[handleRestoreEmployee] services is null!');
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Firebase nie jest zainicjowany.' });
+            return false;
+        }
         const { db } = services;
         try {
+            console.log('[handleRestoreEmployee] updating RTDB for employees/', employeeId);
             await update(ref(db, `employees/${employeeId}`), {
                 status: 'aktywny',
                 terminationDate: null,
                 status_fullName: `aktywny_${employeeFullName.toLowerCase()}`
             });
+            console.log('[handleRestoreEmployee] success');
             toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
             return true;
         } catch (error) {
-            console.error("Error restoring employee: ", error);
+            console.error("[handleRestoreEmployee] Error:", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
             return false;
         }
