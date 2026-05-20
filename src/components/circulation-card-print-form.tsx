@@ -206,7 +206,7 @@ function ClassicVariant({ employee, card }: CirculationCardPrintFormProps) {
   );
 }
 
-// ─── WARIANT 2: NOWOCZESNY ───────────────────────────────────────────
+// ─── WARIANT 2: NOWOCZESNY ──────────────────────────────────────────
 function ModernVariant({ employee, card }: CirculationCardPrintFormProps) {
   return (
     <div className="bg-white text-black" style={{
@@ -221,163 +221,166 @@ function ModernVariant({ employee, card }: CirculationCardPrintFormProps) {
       flexDirection: 'column',
       alignItems: 'center',
     }}>
-      {/* Header */}
-      <div style={{
-        textAlign: 'center',
-        marginBottom: '10mm',
-        paddingBottom: '5mm',
-        borderBottom: '3px double #333',
-        width: '100%',
-      }}>
-        <h1 style={{
-          fontSize: '18pt',
-          fontWeight: '700',
-          margin: '0 0 2mm 0',
-          letterSpacing: '2px',
-          color: '#1a1a1a',
-        }}>
-          KARTA OBIEGOWA
-        </h1>
-        <p style={{
-          fontSize: '8.5pt',
-          color: '#666',
-          margin: 0,
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-        }}>
-          Protokół zwrotu mienia firmowego
-        </p>
-      </div>
-
-      {/* Employee Info - centered cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '3mm',
-        width: '100%',
-        marginBottom: '10mm',
-      }}>
-        {[
-          { label: 'Pracownik', value: employee!.fullName },
-          { label: 'Data zwrotu', value: formatDate(card?.date, 'dd.MM.yyyy') },
-          { label: 'Dział', value: employee!.department },
-          { label: 'Stanowisko', value: employee!.jobTitle },
-          { label: 'Nr karty', value: employee!.cardNumber },
-        ].map((item, i) => (
-          <div key={i} style={{
-            background: '#f8f8f8',
-            border: '1px solid #e0e0e0',
-            borderRadius: '4px',
-            padding: '2.5mm 4mm',
-          }}>
-            <div style={{ fontSize: '7.5pt', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5mm' }}>
-              {item.label}
-            </div>
-            <div style={{ fontWeight: '600', fontSize: '11pt' }}>{item.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Checklist */}
-      <div style={{ width: '100%', marginBottom: '12mm' }}>
+      {/* Content wrapper - centered */}
+      <div style={{ width: '100%', maxWidth: '160mm', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* Header */}
         <div style={{
           textAlign: 'center',
-          fontWeight: '700',
-          fontSize: '11pt',
-          marginBottom: '5mm',
-          color: '#333',
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
+          marginBottom: '10mm',
+          paddingBottom: '5mm',
+          borderBottom: '3px double #333',
+          width: '100%',
         }}>
-          Lista kontrolna zwrotu
+          <h1 style={{
+            fontSize: '18pt',
+            fontWeight: '700',
+            margin: '0 0 2mm 0',
+            letterSpacing: '2px',
+            color: '#1a1a1a',
+          }}>
+            KARTA OBIEGOWA
+          </h1>
+          <p style={{
+            fontSize: '8.5pt',
+            color: '#666',
+            margin: 0,
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}>
+            Protokół zwrotu mienia firmowego
+          </p>
         </div>
+
+        {/* Employee Info - centered cards */}
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
           gap: '3mm',
-          alignItems: 'center',
+          width: '100%',
+          marginBottom: '10mm',
         }}>
-          {checklistItems.map((item) => (
-            <div key={item.id} style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6mm',
-              width: '80%',
-              padding: '3mm 0',
-              borderBottom: '1px solid #eee',
+          {[
+            { label: 'Pracownik', value: employee!.fullName },
+            { label: 'Data zwrotu', value: formatDate(card?.date, 'dd.MM.yyyy') },
+            { label: 'Dział', value: employee!.department },
+            { label: 'Stanowisko', value: employee!.jobTitle },
+            { label: 'Nr karty', value: employee!.cardNumber },
+          ].map((item, i) => (
+            <div key={i} style={{
+              background: '#f8f8f8',
+              border: '1px solid #e0e0e0',
+              borderRadius: '4px',
+              padding: '2.5mm 4mm',
             }}>
-              <span style={{
-                fontWeight: '700',
-                width: '6mm',
-                textAlign: 'center',
-                color: '#999',
-                fontSize: '9pt',
-              }}>{item.id}.</span>
-              <span style={{ fontWeight: '600', fontSize: '11pt', flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: '7.5pt', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5mm' }}>
                 {item.label}
-              </span>
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1.5mm',
-                fontSize: '9pt',
-                color: '#555',
-              }}>
-                <div style={{
-                  width: '4mm', height: '4mm',
-                  border: '1.5px solid #999',
-                  borderRadius: '2px',
-                  display: 'inline-block',
-                }} />
-                Tak
-              </label>
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1.5mm',
-                fontSize: '9pt',
-                color: '#555',
-              }}>
-                <div style={{
-                  width: '4mm', height: '4mm',
-                  border: '1.5px solid #999',
-                  borderRadius: '2px',
-                  display: 'inline-block',
-                }} />
-                Nie
-              </label>
+              </div>
+              <div style={{ fontWeight: '600', fontSize: '11pt' }}>{item.value}</div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Podpisy */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        width: '100%',
-        marginTop: 'auto',
-        paddingTop: '15mm',
-      }}>
-        <div style={{ textAlign: 'center', width: '45%' }}>
+        {/* Checklist */}
+        <div style={{ width: '100%', marginBottom: '12mm' }}>
           <div style={{
-            borderBottom: '1.5px solid #333',
-            height: '18mm',
-            marginBottom: '2mm',
-          }} />
-          <div style={{ fontSize: '8.5pt', color: '#666', fontWeight: '600' }}>
-            Podpis pracownika
+            textAlign: 'center',
+            fontWeight: '700',
+            fontSize: '11pt',
+            marginBottom: '5mm',
+            color: '#333',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}>
+            Lista kontrolna zwrotu
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '3mm',
+            alignItems: 'center',
+          }}>
+            {checklistItems.map((item) => (
+              <div key={item.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6mm',
+                width: '100%',
+                padding: '3mm 0',
+                borderBottom: '1px solid #eee',
+              }}>
+                <span style={{
+                  fontWeight: '700',
+                  width: '6mm',
+                  textAlign: 'center',
+                  color: '#999',
+                  fontSize: '9pt',
+                }}>{item.id}.</span>
+                <span style={{ fontWeight: '600', fontSize: '11pt', flex: 1, textAlign: 'center' }}>
+                  {item.label}
+                </span>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1.5mm',
+                  fontSize: '9pt',
+                  color: '#555',
+                }}>
+                  <div style={{
+                    width: '4mm', height: '4mm',
+                    border: '1.5px solid #999',
+                    borderRadius: '2px',
+                    display: 'inline-block',
+                  }} />
+                  Tak
+                </label>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1.5mm',
+                  fontSize: '9pt',
+                  color: '#555',
+                }}>
+                  <div style={{
+                    width: '4mm', height: '4mm',
+                    border: '1.5px solid #999',
+                    borderRadius: '2px',
+                    display: 'inline-block',
+                  }} />
+                  Nie
+                </label>
+              </div>
+            ))}
           </div>
         </div>
-        <div style={{ textAlign: 'center', width: '45%' }}>
-          <div style={{
-            borderBottom: '1.5px solid #333',
-            height: '18mm',
-            marginBottom: '2mm',
-          }} />
-          <div style={{ fontSize: '8.5pt', color: '#666', fontWeight: '600' }}>
-            Podpis pracownika Magazynu
+
+        {/* Podpisy */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          width: '100%',
+          marginTop: 'auto',
+          paddingTop: '15mm',
+        }}>
+          <div style={{ textAlign: 'center', width: '45%' }}>
+            <div style={{
+              borderBottom: '1.5px solid #333',
+              height: '18mm',
+              marginBottom: '2mm',
+            }} />
+            <div style={{ fontSize: '8.5pt', color: '#666', fontWeight: '600' }}>
+              Podpis pracownika
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', width: '45%' }}>
+            <div style={{
+              borderBottom: '1.5px solid #333',
+              height: '18mm',
+              marginBottom: '2mm',
+            }} />
+            <div style={{ fontSize: '8.5pt', color: '#666', fontWeight: '600' }}>
+              Podpis pracownika Magazynu
+            </div>
           </div>
         </div>
       </div>
