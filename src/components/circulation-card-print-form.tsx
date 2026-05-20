@@ -14,8 +14,7 @@ const checklistItems = [
   { id: 1, label: 'Odzież robocza' },
   { id: 2, label: 'Środki ochrony' },
   { id: 3, label: 'Karty dostępu' },
-  { id: 4, label: 'Dokumenty' },
-  { id: 5, label: 'Miara/Suwmiarka' },
+  { id: 4, label: 'Miara/Suwmiarka' },
 ];
 
 export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, CirculationCardPrintFormProps>(
@@ -29,7 +28,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
       <div ref={ref} style={{
         width: '210mm',
         minHeight: '297mm',
-        padding: '15mm 20mm',
+        padding: '15mm 10mm',
         fontFamily: 'Segoe UI, Arial, sans-serif',
         fontSize: '10.5pt',
         lineHeight: '1.6',
@@ -69,7 +68,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
           gridTemplateColumns: '1fr 1fr',
           gap: '3mm',
           marginBottom: '10mm',
-          maxWidth: '150mm',
+          maxWidth: '170mm',
           marginLeft: 'auto',
           marginRight: 'auto',
         }}>
@@ -96,7 +95,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
         </div>
 
         {/* Checklist */}
-        <div style={{ marginBottom: '12mm', maxWidth: '150mm', marginLeft: 'auto', marginRight: 'auto' }}>
+        <div style={{ marginBottom: '12mm', maxWidth: '170mm', marginLeft: 'auto', marginRight: 'auto' }}>
           <div style={{
             fontWeight: '700',
             fontSize: '11pt',
@@ -171,7 +170,7 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
-          maxWidth: '150mm',
+          maxWidth: '170mm',
           marginLeft: 'auto',
           marginRight: 'auto',
           paddingTop: '20mm',
