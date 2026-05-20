@@ -184,7 +184,7 @@
   .print-only { display: none; }
   @media print {
     body * { visibility: hidden !important; }
-    .print-only { display: block !important; visibility: visible !important; position: fixed; top: 0; left: 0; width: 100%; }
+    .print-only { display: flex !important; visibility: visible !important; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; justify-content: center; align-items: flex-start; overflow: auto; }
     .print-only * { visibility: visible !important; }
   }
 }
