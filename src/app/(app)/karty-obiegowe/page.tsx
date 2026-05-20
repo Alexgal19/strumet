@@ -52,6 +52,7 @@ export default function CirculationCardsPage() {
   
   const [printingCard, setPrintingCard] = useState<CirculationCard | null>(null);
   const printComponentRef = useRef<HTMLDivElement>(null);
+  const [printVariant, setPrintVariant] = useState<'classic' | 'modern' | 'extended'>('classic');
   
   const { toast } = useToast();
 
@@ -164,6 +165,27 @@ export default function CirculationCardsPage() {
                     </Popover>
                     </div>
 
+                    <div className="space-y-2">
+                    <label className="text-sm font-medium">Wariant druku</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { value: 'classic' as const, label: 'Klasyczny' },
+                        { value: 'modern' as const, label: 'Nowoczesny' },
+                        { value: 'extended' as const, label: 'Rozbudowany' },
+                      ].map((v) => (
+                        <Button
+                          key={v.value}
+                          variant={printVariant === v.value ? 'default' : 'outline'}
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => setPrintVariant(v.value)}
+                        >
+                          {v.label}
+                        </Button>
+                      ))}
+                    </div>
+                    </div>
+
                     <Button onClick={() => handlePrint()} disabled={!selectedEmployee} className="w-full">
                     <Printer className="mr-2 h-4 w-4" />
                     Drukuj kartę
@@ -243,6 +265,7 @@ export default function CirculationCardsPage() {
                 ref={printComponentRef}
                 employee={selectedEmployeeForPrint}
                 card={printingCard}
+                variant={printVariant}
             />
         )}
       </div>
