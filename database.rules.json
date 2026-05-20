@@ -61,6 +61,14 @@
     "config": {
       ".read": "auth != null"
     },
+    "emailTemplates": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "emailLogs": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
     "configPrivate": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
