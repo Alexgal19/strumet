@@ -157,6 +157,21 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
                   </label>
                 </div>
               </div>
+
+              {/* Item 5 */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1mm' }}>
+                <div style={{ fontWeight: '600' }}>5. Miara/Suwmiarka</div>
+                <div style={{ display: 'flex', gap: '4mm' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '1mm' }}>
+                    <input type="checkbox" style={{ width: '3mm', height: '3mm' }} />
+                    <span>Tak</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '1mm' }}>
+                    <input type="checkbox" style={{ width: '3mm', height: '3mm' }} />
+                    <span>Nie</span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             {/* Signature Section */}
