@@ -162,12 +162,12 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     };
     
     const handleCopyFullName = () => {
-        const fullName = `${firstName.trim()} ${lastName.trim()}`;
-        if (fullName) {
-            navigator.clipboard.writeText(fullName);
+        const fullNameForCopy = `${lastName.trim()} ${firstName.trim()}`;
+        if (fullNameForCopy.trim()) {
+            navigator.clipboard.writeText(fullNameForCopy.trim());
             toast({
                 title: "Skopiowano!",
-                description: "Imię i nazwisko skopiowane do schowka.",
+                description: "Nazwisko i imię skopiowane do schowka.",
             });
         }
     };
