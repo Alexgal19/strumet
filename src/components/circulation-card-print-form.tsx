@@ -14,7 +14,7 @@ const checklistItems = [
   { id: 1, label: 'Odzież robocza' },
   { id: 2, label: 'Środki ochrony' },
   { id: 3, label: 'Karty dostępu' },
-  { id: 4, label: 'Miara/Suwmiarka' },
+  { id: 4, label: 'Środki pomiarowe' },
 ];
 
 export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, CirculationCardPrintFormProps>(
@@ -128,40 +128,62 @@ export const CirculationCardPrintForm = React.forwardRef<HTMLDivElement, Circula
                   color: '#999',
                   fontSize: '8.5pt',
                 }}>{item.id}.</span>
-                <span style={{ fontWeight: '600', fontSize: '10pt', flex: 1, textAlign: 'center', color: '#333' }}>
+                <span style={{ fontWeight: '600', fontSize: '10pt', flex: 1, textAlign: 'left', paddingLeft: '2mm', color: '#333' }}>
                   {item.label}
                 </span>
-                <div style={{ display: 'flex', gap: '4mm', alignItems: 'center' }}>
-                  <label style={{
+                <div style={{ display: 'flex', gap: '5mm', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '3.5mm' }}>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1.5mm',
+                      fontSize: '8.5pt',
+                      color: '#555',
+                    }}>
+                      <div style={{
+                        width: '4mm', height: '4mm',
+                        border: '1.5px solid #888',
+                        borderRadius: '1.5px',
+                        display: 'inline-block',
+                      }} />
+                      Tak
+                    </label>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1.5mm',
+                      fontSize: '8.5pt',
+                      color: '#555',
+                    }}>
+                      <div style={{
+                        width: '4mm', height: '4mm',
+                        border: '1.5px solid #888',
+                        borderRadius: '1.5px',
+                        display: 'inline-block',
+                      }} />
+                      Nie
+                    </label>
+                  </div>
+                  
+                  {/* Signature field for the authorized person */}
+                  <div style={{
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '1.5mm',
-                    fontSize: '8.5pt',
-                    color: '#555',
+                    alignItems: 'flex-end',
+                    width: '45mm',
+                    borderBottom: '1px dotted #888',
+                    height: '5mm',
+                    marginLeft: '2mm',
                   }}>
-                    <div style={{
-                      width: '4mm', height: '4mm',
-                      border: '1.5px solid #888',
-                      borderRadius: '1.5px',
-                      display: 'inline-block',
-                    }} />
-                    Tak
-                  </label>
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1.5mm',
-                    fontSize: '8.5pt',
-                    color: '#555',
-                  }}>
-                    <div style={{
-                      width: '4mm', height: '4mm',
-                      border: '1.5px solid #888',
-                      borderRadius: '1.5px',
-                      display: 'inline-block',
-                    }} />
-                    Nie
-                  </label>
+                    <span style={{
+                      fontSize: '6.5pt',
+                      color: '#888',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '-0.5mm',
+                    }}>
+                      Podpis:
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}

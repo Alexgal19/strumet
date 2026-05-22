@@ -8,11 +8,11 @@ describe('Date Utilities', () => {
       expect(date).toEqual(new Date('2024-01-15T12:00:00.000Z'));
     });
 
-    it('should parse valid "yyyy-MM-dd" strings as UTC', () => {
+    it('should parse valid "yyyy-MM-dd" strings', () => {
       const date = parseMaybeDate('2024-02-20');
-      // new Date('YYYY-MM-DD') is parsed as UTC midnight, so we create the expected date in UTC as well
-      const expectedDate = new Date(Date.UTC(2024, 1, 20));
-      expect(date).toEqual(expectedDate);
+      expect(date?.getFullYear()).toBe(2024);
+      expect(date?.getMonth()).toBe(1);
+      expect(date?.getDate()).toBe(20);
     });
 
     it('should parse valid "dd.MM.yyyy" strings', () => {
@@ -24,8 +24,8 @@ describe('Date Utilities', () => {
     });
     
     it('should parse Excel serial numbers correctly', () => {
-      // 45321 in Excel is February 1, 2024
-      const date = parseMaybeDate(45321);
+      // 45323 in Excel is February 1, 2024
+      const date = parseMaybeDate(45323);
       expect(date).toEqual(new Date(Date.UTC(2024, 1, 1)));
     });
 
