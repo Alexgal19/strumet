@@ -289,7 +289,7 @@ export default function NoLoginPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="rounded-md border">
+                        <div className="hidden md:block rounded-md border">
                         <Table>
                             <TableHeader>
                             <TableRow>
@@ -327,6 +327,34 @@ export default function NoLoginPage() {
                             )}
                             </TableBody>
                         </Table>
+                        </div>
+                        <div className="md:hidden flex flex-col gap-4 mt-4">
+                            {sortedRecords.length > 0 ? (
+                                sortedRecords.map((rec) => (
+                                    <Card key={rec.id} className="bg-card">
+                                        <CardContent className="p-4 flex flex-col gap-2">
+                                            <div className="flex justify-between items-start">
+                                                <span className="font-semibold text-lg">{rec.employeeFullName}</span>
+                                                <div className="flex gap-1 shrink-0">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrint(rec)}>
+                                                        <Printer className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingId(rec.id)}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col text-sm text-muted-foreground gap-1">
+                                                <span><strong className="text-foreground font-medium">Data:</strong> {formatDate(rec.incidentDate, "dd.MM.yyyy")}</span>
+                                                <span><strong className="text-foreground font-medium">Godziny:</strong> {rec.hours}</span>
+                                                <span><strong className="text-foreground font-medium">Przyczyna:</strong> {rec.reason === 'no_card' ? 'Brak karty' : 'Zapomnienie'}</span>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            ) : (
+                                <p className="text-center text-muted-foreground py-4">Brak zarejestrowanych incydentów.</p>
+                            )}
                         </div>
                     </CardContent>
                     </Card>

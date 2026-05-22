@@ -246,7 +246,7 @@ export default function FingerprintAppointmentsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
+                <div className="hidden md:block rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -279,6 +279,28 @@ export default function FingerprintAppointmentsPage() {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+                <div className="md:hidden flex flex-col gap-4 mt-4">
+                    {sortedAppointments.length > 0 ? (
+                        sortedAppointments.map((apt) => (
+                            <Card key={apt.id} className="bg-card">
+                                <CardContent className="p-4 flex flex-col gap-2">
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-semibold text-lg">{apt.employeeFullName}</span>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => setDeletingId(apt.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <div className="flex flex-col text-sm text-muted-foreground gap-1">
+                                        <span><strong className="text-foreground font-medium">Data:</strong> {formatDate(apt.appointmentDate, "yyyy-MM-dd")}</span>
+                                        <span><strong className="text-foreground font-medium">Godzina:</strong> {formatDate(apt.appointmentDate, "HH:mm")}</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    ) : (
+                        <p className="text-center text-muted-foreground py-4">Brak zaplanowanych terminów.</p>
+                    )}
                 </div>
               </CardContent>
             </Card>

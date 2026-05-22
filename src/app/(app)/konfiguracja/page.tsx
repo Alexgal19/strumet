@@ -159,7 +159,7 @@ const UserManagementTab = () => {
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="rounded-md border">
+                <div className="hidden md:block rounded-md border">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -192,6 +192,33 @@ const UserManagementTab = () => {
                             ))}
                         </TableBody>
                     </Table>
+                </div>
+                <div className="md:hidden flex flex-col gap-4 mt-4">
+                    {users.map(user => (
+                        <Card key={user.id} className="bg-card">
+                            <CardContent className="p-4 flex flex-col gap-3">
+                                <span className="font-semibold text-base break-all">{user.email}</span>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium">Rola</span>
+                                    <div className="flex items-center space-x-2">
+                                        <Label htmlFor={`role-switch-mobile-${user.id}`} className={cn("text-sm text-muted-foreground", user.role === 'guest' && "text-foreground font-semibold")}>
+                                            Gość
+                                        </Label>
+                                        <Switch
+                                            id={`role-switch-mobile-${user.id}`}
+                                            checked={user.role === 'admin'}
+                                            onCheckedChange={(checked) => handleRoleChange(user, checked ? 'admin' : 'guest')}
+                                            disabled={user.id === currentUser?.uid || updatingUserId === user.id}
+                                            aria-label="Przełącz rolę"
+                                        />
+                                        <Label htmlFor={`role-switch-mobile-${user.id}`} className={cn("text-sm text-muted-foreground", user.role === 'admin' && "text-foreground font-semibold")}>
+                                            Admin
+                                        </Label>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
             </CardContent>
         </Card>

@@ -200,7 +200,8 @@ export default function CirculationCardsPage() {
                 <CardContent>
                     {selectedEmployee ? (
                     employeeCardHistory.length > 0 ? (
-                        <ScrollArea className="max-h-96 rounded-lg border">
+                        <>
+                        <ScrollArea className="hidden md:block max-h-96 rounded-lg border">
                         <Table>
                             <TableHeader>
                             <TableRow>
@@ -222,6 +223,22 @@ export default function CirculationCardsPage() {
                             </TableBody>
                         </Table>
                         </ScrollArea>
+                        <div className="md:hidden flex flex-col gap-4">
+                            {employeeCardHistory.map(card => (
+                                <Card key={card.id} className="bg-card">
+                                    <CardContent className="p-4 flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm text-muted-foreground">Data wygenerowania</span>
+                                            <span className="font-medium">{formatDateTime(card.date, "dd.MM.yyyy HH:mm")}</span>
+                                        </div>
+                                        <Button variant="ghost" size="icon" onClick={() => handlePrint(card)}>
+                                            <Printer className="h-4 w-4" />
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                        </>
                     ) : (
                         <p className="text-sm text-muted-foreground text-center py-10">Brak historii kart dla tego pracownika.</p>
                     )
