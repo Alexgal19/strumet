@@ -224,9 +224,10 @@ export default function AktywniPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setTerminatingEmployee(null)}>Anuluj</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => {
+                    <AlertDialogAction onClick={async (e) => {
+                        e.preventDefault();
                         if (terminatingEmployee) {
-                            onTerminate(terminatingEmployee.id, terminatingEmployee.fullName);
+                            await onTerminate(terminatingEmployee.id, terminatingEmployee.fullName);
                             setTerminatingEmployee(null);
                         }
                     }}>
@@ -246,9 +247,10 @@ export default function AktywniPage() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                       <AlertDialogCancel onClick={() => setDeletingEmployee(null)}>Anuluj</AlertDialogCancel>
-                      <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => {
+                      <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async (e) => {
+                          e.preventDefault();
                           if(deletingEmployee) {
-                              onDeletePermanently(deletingEmployee.id)
+                              await onDeletePermanently(deletingEmployee.id)
                               setDeletingEmployee(null)
                           }
                       }}>

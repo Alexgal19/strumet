@@ -157,12 +157,10 @@ const onRestoreEmployee = async (employeeId: string, employeeFullName: string) =
               </AlertDialogHeader>
               <AlertDialogFooter>
                   <AlertDialogCancel onClick={() => setRestoringEmployee(null)}>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => {
-                      console.log('[zwolnieni] AlertDialog confirm clicked, restoringEmployee:', restoringEmployee?.id, restoringEmployee?.fullName);
+                  <AlertDialogAction onClick={async (e) => {
+                      e.preventDefault();
                       if(restoringEmployee) {
-                          console.log('[zwolnieni] calling onRestoreEmployee with id:', restoringEmployee.id);
-                          onRestoreEmployee(restoringEmployee.id, restoringEmployee.fullName);
-                          console.log('[zwolnieni] onRestoreEmployee called, setting state to null');
+                          await onRestoreEmployee(restoringEmployee.id, restoringEmployee.fullName);
                           setRestoringEmployee(null);
                       }
                   }}>
@@ -182,9 +180,10 @@ const onRestoreEmployee = async (employeeId: string, employeeFullName: string) =
               </AlertDialogHeader>
               <AlertDialogFooter>
                   <AlertDialogCancel onClick={() => setDeletingEmployee(null)}>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => {
+                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async (e) => {
+                      e.preventDefault();
                       if(deletingEmployee) {
-                          onDeletePermanently(deletingEmployee.id);
+                          await onDeletePermanently(deletingEmployee.id);
                           setDeletingEmployee(null);
                       }
                   }}>
