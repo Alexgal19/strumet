@@ -20,28 +20,7 @@ import { useAppContext } from '@/context/app-context';
 import { getFirebaseServices } from '@/lib/firebase';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface MenuItem {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-}
-
-const ALL_NAV_ITEMS: MenuItem[] = [
-  { href: '/pulpit', icon: LayoutDashboard, label: 'Pulpit' },
-  { href: '/aktywni', icon: Users, label: 'Pracownicy aktywni' },
-  { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni' },
-  { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
-  { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
-  { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
-  { href: '/wydawanie-odziezy', icon: Shirt, label: 'Wydawanie odzieży' },
-  { href: '/wydawanie-odziezy-nowi', icon: Shirt, label: 'Odzież — nowi' },
-  { href: '/karty-obiegowe', icon: CreditCard, label: 'Karty obiegowe' },
-  { href: '/odciski-palcow', icon: Fingerprint, label: 'Odciski palców' },
-  { href: '/brak-logowania', icon: FileWarning, label: 'Brak logowania' },
-  { href: '/konfiguracja', icon: Settings, label: 'Konfiguracja' },
-];
-
-const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie'];
+import { ALL_NAV_ITEMS, GUEST_VIEWS } from './app-sidebar';
 
 interface AppMobileDrawerProps {
   open: boolean;

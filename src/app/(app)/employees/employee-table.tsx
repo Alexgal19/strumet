@@ -264,8 +264,8 @@ export function EmployeeTable({
       : 0
 
   return (
-    <div className="flex flex-col h-full glass-card overflow-hidden animate-in-slide-up">
-      <div className="px-6 py-4 border-b border-white/20 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-md relative z-10">
+    <div className="flex flex-col h-full bg-background border rounded-lg overflow-hidden animate-in-slide-up">
+      <div className="px-6 py-4 border-b bg-background relative z-10">
         <DataTableToolbar
 
           table={table}
@@ -283,7 +283,7 @@ export function EmployeeTable({
         className="flex-grow overflow-auto"
       >
         <Table>
-          <TableHeader className="sticky top-0 bg-white/60 dark:bg-black/40 backdrop-blur-md z-10 shadow-sm border-b border-white/40 dark:border-white/10">
+          <TableHeader className="sticky top-0 bg-background z-10 shadow-sm border-b">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {

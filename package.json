@@ -136,7 +136,9 @@
 
         "test": "vitest",
 
-        "analyze": "ANALYZE=true next build"
+        "analyze": "ANALYZE=true next build",
+
+        "verify": "npm run lint && npx tsc --noEmit"
 
     },
 

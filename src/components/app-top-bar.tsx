@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import {
-  Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight,
+  Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight, Menu
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,6 @@ import { useAppContext } from '@/context/app-context';
 import { useHasMounted, useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { AppMobileDrawer } from './app-mobile-drawer';
-import { Menu } from 'lucide-react';
 
 function Notifications() {
   const { notifications } = useAppContext();
@@ -65,7 +64,7 @@ function Notifications() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="relative rounded-md p-1.5 text-gray-400 hover:text-gray-100 hover:bg-gray-700 transition-colors">
+        <button className="relative rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center p-0 text-[10px] bg-emerald-500 text-white border-0">
@@ -125,25 +124,6 @@ interface AppTopBarProps {
   pathname: string;
 }
 
-const ALL_NAV_ITEMS = [
-  { href: '/pulpit', label: 'Pulpit' },
-  { href: '/aktywni', label: 'Pracownicy aktywni' },
-  { href: '/zwolnieni', label: 'Zwolnieni' },
-  { href: '/planowanie', label: 'Planowanie' },
-  { href: '/odwiedzalnosc', label: 'Obecność' },
-  { href: '/statystyki', label: 'Statystyki' },
-  { href: '/wydawanie-odziezy', label: 'Wydawanie odzieży' },
-  { href: '/wydawanie-odziezy-nowi', label: 'Odzież — nowi' },
-  { href: '/karty-obiegowe', label: 'Karty obiegowe' },
-  { href: '/odciski-palcow', label: 'Odciski palców' },
-  { href: '/brak-logowania', label: 'Brak logowania' },
-  { href: '/konfiguracja', label: 'Konfiguracja' },
-  { href: '/szablony-email', label: 'Szablony email' },
-  { href: '/historia-email', label: 'Historia email' },
-];
-
-const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie'];
-
 // Returns the breadcrumb label for detail pages (e.g. /pracownicy/[id])
 function getBreadcrumb(pathname: string): { parent: string; parentHref: string; current: string } | null {
   if (pathname.startsWith('/pracownicy/')) {
@@ -171,21 +151,18 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
   // On server render or before mount, don't show to avoid hydration mismatch
   if (!hasMounted) return null;
 
-  const navItems = isAdmin ? ALL_NAV_ITEMS : ALL_NAV_ITEMS.filter(item => GUEST_VIEWS.includes(item.href));
   const breadcrumb = getBreadcrumb(pathname);
 
   return (
     <>
-      <div className="sticky top-0 z-30 w-full px-0 md:px-4 pt-0 md:pt-4 pointer-events-none">
+      <div className="sticky top-0 z-30 w-full bg-background border-b shadow-sm">
         {/* Desktop Top Bar */}
-        <header className="hidden md:flex pointer-events-auto h-16 items-center px-6 gap-6 glass-morphism rounded-2xl shadow-lg border border-white/20 dark:border-white/10">
+        <header className="hidden md:flex h-16 items-center px-6 gap-6 w-full">
+          {/* Logo (kept as requested, though it's also in the sidebar) */}
           <div className="flex items-center gap-2 group cursor-default">
-            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-[0_0_15px_hsl(var(--primary)_/_0.3)] group-hover:scale-110 transition-transform duration-300">
+            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-[0_0_15px_hsl(var(--primary)_/_0.3)]">
                <span className="text-[10px] font-black text-white">S</span>
             </div>
-            <span className="text-sm font-bold tracking-tight text-foreground/90">
-              STRUMET <span className="text-primary">HR</span>
-            </span>
           </div>
 
           <Separator orientation="vertical" className="h-6 bg-border/50" />
@@ -199,29 +176,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
               <span className="text-primary font-bold">{breadcrumb.current}</span>
             </nav>
           ) : (
-            <nav className="flex items-center h-full flex-1 overflow-x-auto scrollbar-none gap-1">
-              {navItems.map(item => {
-                const isActive = pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    prefetch
-                    className={cn(
-                      'relative flex items-center px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition-all duration-300 rounded-full',
-                      isActive
-                        ? 'text-primary bg-primary/10'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                    )}
-                  >
-                    {item.label}
-                    {isActive && (
-                       <div className="absolute inset-0 border border-primary/20 rounded-full transition-all duration-300" />
-                    )}
-                  </Link>
-                );
-              })}
-            </nav>
+            <div className="flex-1" />
           )}
 
           <div className="flex items-center gap-3 ml-auto shrink-0">
@@ -240,7 +195,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
         </header>
 
         {/* Mobile Top Bar */}
-        <header className="flex md:hidden pointer-events-auto h-16 items-center px-4 bg-background border-b shadow-sm w-full">
+        <header className="flex md:hidden h-16 items-center px-4 w-full">
           <Button variant="ghost" size="icon" onClick={() => setMobileDrawerOpen(true)} className="mr-3 text-foreground rounded-full h-10 w-10">
             <Menu className="h-6 w-6" />
           </Button>
@@ -270,5 +225,6 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
     </>
   );
 }
+
 
 
