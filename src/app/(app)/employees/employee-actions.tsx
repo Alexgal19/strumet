@@ -49,7 +49,7 @@ export function EmployeeRowActions<TData>({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => onEdit(employee)}>
+        <DropdownMenuItem onSelect={() => onEdit(employee)}>
           <Edit className="mr-2 h-4 w-4" />
           Edytuj
         </DropdownMenuItem>
@@ -65,21 +65,21 @@ export function EmployeeRowActions<TData>({
         {employee.status === "aktywny" && onTerminate && (
           <DropdownMenuItem
             className="text-destructive"
-            onClick={() => onTerminate(employee)}
+            onSelect={() => onTerminate(employee)}
           >
             <UserX className="mr-2 h-4 w-4" />
             Zwolnij
           </DropdownMenuItem>
         )}
         {employee.status === "zwolniony" && onRestore && (
-          <DropdownMenuItem onClick={() => onRestore(employee)}>
+          <DropdownMenuItem onSelect={() => onRestore(employee)}>
             <RotateCcw className="mr-2 h-4 w-4" />
             Przywróć
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
           className="text-destructive"
-          onClick={() => onDelete(employee)}
+          onSelect={() => onDelete(employee)}
         >
           <Trash2 className="mr-2 h-4 w-4" />
           Usuń trwale
