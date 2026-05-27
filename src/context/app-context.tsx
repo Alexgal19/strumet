@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import {
@@ -551,26 +551,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }, [services, toast]);
 
     const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
-        console.log('[handleRestoreEmployee] called with:', { employeeId, employeeFullName });
         if (!services) {
-            console.error('[handleRestoreEmployee] services is null!');
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Firebase nie jest zainicjowany.' });
+            toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Firebase nie jest zainicjowany.' });
             return false;
         }
         const { db } = services;
         try {
-            console.log('[handleRestoreEmployee] updating RTDB for employees/', employeeId);
+            // Optimistic update: immediately update local state so UI reflects change
+            setEmployees(prev => prev.map(e =>
+                e.id === employeeId
+                    ? { ...e, status: 'aktywny' as const, terminationDate: undefined, status_fullName: `aktywny_${employeeFullName.toLowerCase()}` }
+                    : e
+            ));
+
             await update(ref(db, `employees/${employeeId}`), {
                 status: 'aktywny',
                 terminationDate: null,
                 status_fullName: `aktywny_${employeeFullName.toLowerCase()}`
             });
-            console.log('[handleRestoreEmployee] success');
-            toast({ title: 'Sukces', description: 'Pracownik został przywrócony.' });
+            toast({ title: 'Sukces', description: 'Pracownik zosta\u0142 przywr\u00f3cony.' });
             return true;
         } catch (error) {
             console.error("[handleRestoreEmployee] Error:", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracownika.' });
+            // Rollback optimistic update on error
+            setEmployees(prev => prev.map(e =>
+                e.id === employeeId
+                    ? { ...e, status: 'zwolniony' as const, status_fullName: `zwolniony_${employeeFullName.toLowerCase()}` }
+                    : e
+            ));
+            toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Nie uda\u0142o si\u0119 przywr\u00f3ci\u0107 pracownika.' });
             return false;
         }
     }, [services, toast]);
