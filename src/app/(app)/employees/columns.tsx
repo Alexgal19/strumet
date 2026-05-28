@@ -177,13 +177,15 @@ export function getColumns({
     {
       id: "actions",
       cell: ({ row }) => (
-        <EmployeeRowActions
-          row={row}
-          onEdit={onEdit}
-          onTerminate={onTerminate}
-          onRestore={onRestore}
-          onDelete={onDelete}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <EmployeeRowActions
+            row={row}
+            onEdit={onEdit}
+            onTerminate={onTerminate}
+            onRestore={onRestore}
+            onDelete={onDelete}
+          />
+        </div>
       ),
     },
   ]

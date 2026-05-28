@@ -57,7 +57,7 @@ interface EmployeeTableProps {
 export function EmployeeTable({
   data,
   isLoading,
-  status,
+  status: tableStatus,
   config,
   onEdit,
   onTerminate,
@@ -96,9 +96,9 @@ export function EmployeeTable({
         onTerminate,
         onRestore,
         onDelete,
-        status,
+        status: tableStatus,
       }),
-    [onEdit, onTerminate, onRestore, onDelete, status]
+    [onEdit, onTerminate, onRestore, onDelete, tableStatus]
   )
 
   const table = useReactTable({
@@ -311,10 +311,10 @@ export function EmployeeTable({
                  )}
                  {virtualItems.map((virtualRow) => {
                     const row = rows[virtualRow.index]
-                    const status = row.original.legalizationStatus;
-                    let rowClassName = "cursor-pointer";
-                    if (status && status !== 'Brak') {
-                         const colorClass = getStatusColor(status, true);
+                    const legalizationStatus = row.original.legalizationStatus;
+                    let rowClassName = tableStatus === 'zwolniony' ? "" : "cursor-pointer";
+                    if (legalizationStatus && legalizationStatus !== 'Brak') {
+                         const colorClass = getStatusColor(legalizationStatus, true);
                          rowClassName = cn(rowClassName, colorClass);
                     }
 
@@ -324,7 +324,7 @@ export function EmployeeTable({
                             data-index={virtualRow.index}
                             ref={rowVirtualizer.measureElement}
                             data-state={row.getIsSelected() && "selected"}
-                            onClick={() => onEdit(row.original)}
+                            onClick={tableStatus === 'zwolniony' ? undefined : () => onEdit(row.original)}
                             className={rowClassName}
                         >
                              {row.getVisibleCells().map((cell) => (
