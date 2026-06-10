@@ -12,8 +12,7 @@ export function PageHeader({ title, description, children, className }: PageHead
   return (
     <header className={cn('mb-8 animate-in-slide-up', className)}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="min-w-0 relative">
-          <div className="absolute -left-4 md:-left-6 top-1/2 -translate-y-1/2 w-1.5 h-10 bg-primary rounded-r-full hidden md:block" />
+        <div className="min-w-0">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground leading-tight">
             {title}
           </h1>
@@ -23,7 +22,7 @@ export function PageHeader({ title, description, children, className }: PageHead
             </p>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-3 bg-white/40 dark:bg-black/20 p-1 rounded-2xl border border-white/40 dark:border-white/10 backdrop-blur-md empty:hidden">
+        <div className="flex shrink-0 flex-wrap items-center gap-3 empty:hidden">
           {children}
         </div>
       </div>

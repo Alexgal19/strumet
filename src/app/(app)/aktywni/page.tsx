@@ -38,14 +38,8 @@ import { DepartmentExcelExportButton } from '@/components/department-excel-expor
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { EmployeeTable } from '../employees/employee-table';
 import { EmployeeForm } from '@/components/employee-form';
-
-const PassportScanner = dynamic(
-  () => import('@/components/passport-scanner').then(m => m.PassportScanner),
-  { ssr: false }
-);
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -73,8 +67,6 @@ export default function AktywniPage() {
   const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
   
   const [editingEmployee, setEditingEmployee] = useState<Employee | 'new' | null>(null);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [passportScanData, setPassportScanData] = useState<{ firstName: string; lastName: string } | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
@@ -99,12 +91,10 @@ export default function AktywniPage() {
   };
 
   const handleEditEmployee = (employee: Employee) => {
-    setPassportScanData(null);
     setEditingEmployee(employee);
   };
 
   const handleAddNew = () => {
-    setPassportScanData(null);
     setEditingEmployee('new');
   };
 
@@ -294,14 +284,14 @@ export default function AktywniPage() {
           )}
         </div>
 
-        {/* Side Panel (Sheet) formularza pracownika */}
-        <Sheet open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
-          <SheetContent side="right" className="w-[calc(100vw-1rem)] sm:max-w-xl p-0 overflow-hidden flex flex-col border-l glass-morphism">
-            <SheetHeader className="p-6 border-b bg-muted/30">
-              <SheetTitle className="text-2xl font-bold tracking-tight">
+        {/* Okno (Dialog) formularza pracownika */}
+        <Dialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
+          <DialogContent className="w-[calc(100vw-1rem)] max-w-7xl p-0 overflow-hidden flex flex-col max-h-[90dvh] glass-morphism rounded-3xl border-black/10">
+            <DialogHeader className="p-6 border-b border-black/5 bg-white/50">
+              <DialogTitle className="text-2xl font-bold tracking-tight">
                 {editingEmployee === 'new' ? 'Dodaj pracownika' : 'Edytuj pracownika'}
-              </SheetTitle>
-            </SheetHeader>
+              </DialogTitle>
+            </DialogHeader>
             <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
               {editingEmployee && (
                 <EmployeeForm
@@ -316,23 +306,13 @@ export default function AktywniPage() {
                     if (success) setEditingEmployee(null);
                   }}
                   onPrintClothing={handlePrintClothingIssuance}
-                  onScanPassport={() => setIsScannerOpen(true)}
-                  passportScanData={passportScanData ?? undefined}
                   config={config}
                 />
               )}
             </div>
-          </SheetContent>
-        </Sheet>
+          </DialogContent>
+        </Dialog>
 
-        <PassportScanner
-          open={isScannerOpen}
-          onOpenChange={setIsScannerOpen}
-          onScanComplete={(data) => {
-            setPassportScanData(data);
-            setIsScannerOpen(false);
-          }}
-        />
     </div>
   );
 }

@@ -55,7 +55,10 @@ export const EmployeeCard = React.memo(function EmployeeCard({
   const avatarColor = getAvatarColor(employee.fullName ?? '');
 
   return (
-    <div className="group relative flex items-center gap-3 bg-white dark:bg-black/40 rounded-xl border border-border/60 p-3 shadow-sm transition-all cursor-pointer hover:shadow-md active:scale-[0.98]">
+    <div 
+      className="group relative flex items-center gap-3 bg-white dark:bg-black/40 rounded-xl border border-border/60 p-3 shadow-sm transition-all cursor-pointer hover:shadow-md active:scale-[0.98]"
+      onClick={onEdit}
+    >
       {/* Avatar */}
       <div className={cn(
         'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm',

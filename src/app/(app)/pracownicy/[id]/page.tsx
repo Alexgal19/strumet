@@ -2,17 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { useAppContext } from '@/context/app-context';
 import { EmployeeForm } from '@/components/employee-form';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import type { Employee, ClothingIssuance } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-
-const PassportScanner = dynamic(
-  () => import('@/components/passport-scanner').then(m => m.PassportScanner),
-  { ssr: false }
-);
 
 export default function EmployeePage() {
   const params = useParams();
@@ -27,8 +21,6 @@ export default function EmployeePage() {
     handleTerminateEmployee,
   } = useAppContext();
 
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [passportScanData, setPassportScanData] = useState<{ firstName: string; lastName: string } | null>(null);
   const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
 
   const employee = employees.find(e => e.id === id) ?? null;
@@ -86,18 +78,7 @@ export default function EmployeePage() {
         onCancel={() => router.back()}
         onTerminate={handleTerminate}
         onPrintClothing={handlePrintClothing}
-        onScanPassport={() => setIsScannerOpen(true)}
-        passportScanData={passportScanData ?? undefined}
         config={config}
-      />
-
-      <PassportScanner
-        open={isScannerOpen}
-        onOpenChange={setIsScannerOpen}
-        onScanComplete={(data) => {
-          setPassportScanData(data);
-          setIsScannerOpen(false);
-        }}
       />
 
       {clothingPrintData && (

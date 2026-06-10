@@ -164,7 +164,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
-                  className="bg-background/50 border-white/10 focus:ring-primary h-11 transition-all hover:bg-background/80"
+                  className="bg-background/50 border-black/10 focus:ring-primary h-11 transition-all hover:bg-background/80"
                 />
               </div>
               <div className="space-y-2">
@@ -179,7 +179,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="bg-background/50 border-white/10 focus:ring-primary h-11 transition-all hover:bg-background/80"
+                  className="bg-background/50 border-black/10 focus:ring-primary h-11 transition-all hover:bg-background/80"
                 />
               </div>
               {error && (
@@ -198,7 +198,7 @@ export default function LoginPage() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/10" />
+                <span className="w-full border-t border-black/10" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-transparent px-2 text-muted-foreground">Lub</span>
@@ -214,7 +214,7 @@ export default function LoginPage() {
 
             {(deferredPrompt || isIOS) && (
               <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <Button variant="outline" className="w-full h-11 border-white/10 hover:bg-white/5" onClick={handleInstallClick}>
+                <Button variant="outline" className="w-full h-11 border-black/10 hover:bg-white/5" onClick={handleInstallClick}>
                   <Download className="mr-2 h-4 w-4" />
                   Zainstaluj aplikację
                 </Button>

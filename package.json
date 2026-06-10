@@ -70,6 +70,10 @@
 
         "dotenv": "^16.4.5",
 
+        "exceljs": "^4.4.0",
+
+        "file-saver": "^2.0.5",
+
         "firebase": "11.5.0",
 
         "firebase-admin": "^12.2.0",
@@ -114,8 +118,6 @@
 
         "tailwindcss-animate": "^1.0.7",
 
-        "tesseract.js": "^5.1.0",
-
         "write-excel-file": "^1.4.30",
 
         "xlsx": "^0.18.5",
@@ -153,6 +155,8 @@
         "@testing-library/jest-dom": "^6.4.6",
 
         "@testing-library/react": "^16.0.0",
+
+        "@types/file-saver": "^2.0.7",
 
         "@types/node": "^20",
 

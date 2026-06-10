@@ -33,6 +33,7 @@ export default function RootLayout({
     <html lang="pl">
       <head>
         {/* Te meta tagi są ważne dla PWA i powinny być w <head> */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <meta name="application-name" content="Baza-ST" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/app-context';
 import AppBottomNav from '@/components/app-bottom-nav';
 import { AppSidebar } from '@/components/app-sidebar';
+import { AppTopBar } from '@/components/app-top-bar';
 
 function ClientSidebar() {
   const [mounted, setMounted] = useState(false);
@@ -42,10 +43,11 @@ export const AppShell = React.memo(function AppShell({ children }: { children: R
   }
 
   return (
-    <div className="flex h-dvh w-full overflow-hidden bg-background">
+    <div className="flex h-dvh w-full overflow-hidden bg-background mesh-gradient text-foreground">
       <ClientSidebar />
 
-      <div className="flex flex-col flex-1 w-full md:pl-64 h-dvh">
+      <div className="flex flex-col flex-1 w-full h-dvh min-w-0">
+        <AppTopBar pathname={pathname} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 pb-16 md:pb-4 z-0 relative w-full">
           {children}
         </main>
