@@ -97,6 +97,30 @@ export function getColumns({
       ),
       cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("terminationDate"), "dd.MM.yyyy"),
       sortingFn: dateSortingFn,
+    },
+    {
+      id: "daysWorked",
+      header: ({ column }: HeaderContext<Employee, unknown>) => (
+        <DataTableColumnHeader column={column} title="Przepracowane dni" />
+      ),
+      cell: ({ row }: CellContext<Employee, unknown>) => {
+        const hireDate = parseMaybeDate(row.original.hireDate);
+        const termDate = parseMaybeDate(row.original.terminationDate);
+        if (hireDate && termDate) {
+          const diff = Math.floor((termDate.getTime() - hireDate.getTime()) / (1000 * 60 * 60 * 24));
+          return <span>{Math.max(0, diff)}</span>;
+        }
+        return <span className="text-muted-foreground">—</span>;
+      },
+      sortingFn: (rowA: any, rowB: any) => {
+        const getDays = (row: any) => {
+          const h = parseMaybeDate(row.original.hireDate);
+          const t = parseMaybeDate(row.original.terminationDate);
+          if (h && t) return Math.floor((t.getTime() - h.getTime()) / (1000 * 60 * 60 * 24));
+          return -1;
+        };
+        return getDays(rowA) - getDays(rowB);
+      }
     }] : []),
     {
       accessorKey: "jobTitle",
