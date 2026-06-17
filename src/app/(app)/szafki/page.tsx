@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
+import { useEmployees } from '@/hooks/use-employees';
+import type { Employee } from '@/lib/types';
 import { getDB } from '@/lib/firebase';
 import { ref, onValue, set } from 'firebase/database';
 import { Save, RotateCcw, Lock, Unlock, Search } from 'lucide-react';
@@ -328,6 +330,8 @@ function LockerBox({
   label,
   isEditing,
   isHighlighted,
+  isOccupied,
+  occupiedBy,
   onChange,
   onClick,
 }: {
@@ -335,6 +339,8 @@ function LockerBox({
   label: string;
   isEditing: boolean;
   isHighlighted: boolean;
+  isOccupied: boolean;
+  occupiedBy?: string;
   onChange: (val: string) => void;
   onClick: () => void;
 }) {
@@ -360,11 +366,14 @@ function LockerBox({
 
   return (
     <button
+      title={occupiedBy || label}
       onClick={onClick}
       className={cn(
         'w-full min-h-[36px] rounded-md border text-xs font-medium transition-all duration-200 flex items-center justify-center px-1 py-1',
         isLabel
           ? 'border-transparent bg-transparent text-muted-foreground cursor-default hover:bg-transparent'
+          : isOccupied
+          ? 'border-green-500 bg-green-500/20 text-green-700 hover:bg-green-500/30 hover:border-green-600 shadow-[0_0_8px_hsl(var(--green-500)_/_0.2)]'
           : isHighlighted
           ? 'border-primary bg-primary/20 text-primary shadow-[0_0_10px_hsl(var(--primary)_/_0.3)] scale-105 z-10'
           : 'border-border/60 bg-muted/40 text-foreground hover:bg-muted hover:border-primary/40 hover:shadow-sm'
@@ -380,6 +389,8 @@ function LockerSectionView({
   labels,
   editingId,
   highlightQuery,
+  occupiedLockers,
+  occupiedByMap,
   onEdit,
   onChange,
 }: {
@@ -387,6 +398,8 @@ function LockerSectionView({
   labels: Record<string, string>;
   editingId: string | null;
   highlightQuery: string;
+  occupiedLockers: Set<string>;
+  occupiedByMap: Record<string, string>;
   onEdit: (id: string | null) => void;
   onChange: (id: string, val: string) => void;
 }) {
@@ -411,17 +424,22 @@ function LockerSectionView({
             section.gridCols === 16 && 'grid-cols-[repeat(16,minmax(44px,1fr))]',
           )}
         >
-          {section.lockers.map((locker) => (
-            <LockerBox
-              key={locker.id}
-              id={locker.id}
-              label={labels[locker.id] ?? locker.defaultLabel}
-              isEditing={editingId === locker.id}
-              isHighlighted={isHighlighted(labels[locker.id] ?? locker.defaultLabel)}
-              onChange={(val) => onChange(locker.id, val)}
-              onClick={() => onEdit(editingId === locker.id ? null : locker.id)}
-            />
-          ))}
+          {section.lockers.map((locker) => {
+            const currentLabel = labels[locker.id] ?? locker.defaultLabel;
+            return (
+              <LockerBox
+                key={locker.id}
+                id={locker.id}
+                label={currentLabel}
+                isEditing={editingId === locker.id}
+                isHighlighted={isHighlighted(currentLabel)}
+                isOccupied={occupiedLockers.has(currentLabel)}
+                occupiedBy={occupiedByMap[currentLabel]}
+                onChange={(val) => onChange(locker.id, val)}
+                onClick={() => onEdit(editingId === locker.id ? null : locker.id)}
+              />
+            );
+          })}
         </div>
       </div>
     );
@@ -433,17 +451,22 @@ function LockerSectionView({
         {section.name}
       </p>
       <div className="flex flex-col gap-1">
-        {section.lockers.map((locker) => (
-          <LockerBox
-            key={locker.id}
-            id={locker.id}
-            label={labels[locker.id] ?? locker.defaultLabel}
-            isEditing={editingId === locker.id}
-            isHighlighted={isHighlighted(labels[locker.id] ?? locker.defaultLabel)}
-            onChange={(val) => onChange(locker.id, val)}
-            onClick={() => onEdit(editingId === locker.id ? null : locker.id)}
-          />
-        ))}
+        {section.lockers.map((locker) => {
+          const currentLabel = labels[locker.id] ?? locker.defaultLabel;
+          return (
+            <LockerBox
+              key={locker.id}
+              id={locker.id}
+              label={currentLabel}
+              isEditing={editingId === locker.id}
+              isHighlighted={isHighlighted(currentLabel)}
+              isOccupied={occupiedLockers.has(currentLabel)}
+              occupiedBy={occupiedByMap[currentLabel]}
+              onChange={(val) => onChange(locker.id, val)}
+              onClick={() => onEdit(editingId === locker.id ? null : locker.id)}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -454,6 +477,8 @@ function ZoneView({
   labels,
   editingId,
   highlightQuery,
+  occupiedLockers,
+  occupiedByMap,
   onEdit,
   onChange,
 }: {
@@ -461,6 +486,8 @@ function ZoneView({
   labels: Record<string, string>;
   editingId: string | null;
   highlightQuery: string;
+  occupiedLockers: Set<string>;
+  occupiedByMap: Record<string, string>;
   onEdit: (id: string | null) => void;
   onChange: (id: string, val: string) => void;
 }) {
@@ -475,6 +502,8 @@ function ZoneView({
             labels={labels}
             editingId={editingId}
             highlightQuery={highlightQuery}
+            occupiedLockers={occupiedLockers}
+            occupiedByMap={occupiedByMap}
             onEdit={onEdit}
             onChange={onChange}
           />
@@ -483,6 +512,8 @@ function ZoneView({
             labels={labels}
             editingId={editingId}
             highlightQuery={highlightQuery}
+            occupiedLockers={occupiedLockers}
+            occupiedByMap={occupiedByMap}
             onEdit={onEdit}
             onChange={onChange}
           />
@@ -495,6 +526,8 @@ function ZoneView({
             labels={labels}
             editingId={editingId}
             highlightQuery={highlightQuery}
+            occupiedLockers={occupiedLockers}
+            occupiedByMap={occupiedByMap}
             onEdit={onEdit}
             onChange={onChange}
           />
@@ -509,6 +542,8 @@ function ZoneView({
               labels={labels}
               editingId={editingId}
               highlightQuery={highlightQuery}
+              occupiedLockers={occupiedLockers}
+              occupiedByMap={occupiedByMap}
               onEdit={onEdit}
               onChange={onChange}
             />
@@ -521,6 +556,8 @@ function ZoneView({
               labels={labels}
               editingId={editingId}
               highlightQuery={highlightQuery}
+              occupiedLockers={occupiedLockers}
+              occupiedByMap={occupiedByMap}
               onEdit={onEdit}
               onChange={onChange}
             />
@@ -529,6 +566,8 @@ function ZoneView({
               labels={labels}
               editingId={editingId}
               highlightQuery={highlightQuery}
+              occupiedLockers={occupiedLockers}
+              occupiedByMap={occupiedByMap}
               onEdit={onEdit}
               onChange={onChange}
             />
@@ -537,6 +576,8 @@ function ZoneView({
               labels={labels}
               editingId={editingId}
               highlightQuery={highlightQuery}
+              occupiedLockers={occupiedLockers}
+              occupiedByMap={occupiedByMap}
               onEdit={onEdit}
               onChange={onChange}
             />
@@ -546,6 +587,8 @@ function ZoneView({
                 labels={labels}
                 editingId={editingId}
                 highlightQuery={highlightQuery}
+                occupiedLockers={occupiedLockers}
+                occupiedByMap={occupiedByMap}
                 onEdit={onEdit}
                 onChange={onChange}
               />
@@ -555,6 +598,8 @@ function ZoneView({
               labels={labels}
               editingId={editingId}
               highlightQuery={highlightQuery}
+              occupiedLockers={occupiedLockers}
+              occupiedByMap={occupiedByMap}
               onEdit={onEdit}
               onChange={onChange}
             />
@@ -568,6 +613,8 @@ function ZoneView({
             labels={labels}
             editingId={editingId}
             highlightQuery={highlightQuery}
+            occupiedLockers={occupiedLockers}
+            occupiedByMap={occupiedByMap}
             onEdit={onEdit}
             onChange={onChange}
           />
@@ -576,6 +623,8 @@ function ZoneView({
             labels={labels}
             editingId={editingId}
             highlightQuery={highlightQuery}
+            occupiedLockers={occupiedLockers}
+            occupiedByMap={occupiedByMap}
             onEdit={onEdit}
             onChange={onChange}
           />
@@ -594,6 +643,8 @@ function ZoneView({
             labels={labels}
             editingId={editingId}
             highlightQuery={highlightQuery}
+            occupiedLockers={occupiedLockers}
+            occupiedByMap={occupiedByMap}
             onEdit={onEdit}
             onChange={onChange}
           />
@@ -607,12 +658,31 @@ function ZoneView({
 
 export default function LockersPage() {
   const { isAdmin } = useAppContext();
+  const { employees } = useEmployees();
   const { toast } = useToast();
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [highlightQuery, setHighlightQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Build occupied lockers set and map from employees
+  const occupied = new Set<string>();
+  const byMap: Record<string, string> = {};
+  employees.forEach((emp: Employee) => {
+    const locker = emp.lockerNumber?.trim();
+    const deptLocker = emp.departmentLockerNumber?.trim();
+    if (locker) {
+      occupied.add(locker);
+      byMap[locker] = emp.fullName;
+    }
+    if (deptLocker) {
+      occupied.add(deptLocker);
+      byMap[deptLocker] = emp.fullName;
+    }
+  });
+  const occupiedLockers = occupied;
+  const occupiedByMap = byMap;
 
   // Load from Firebase
   useEffect(() => {
@@ -705,6 +775,22 @@ export default function LockersPage() {
         </div>
       )}
 
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-sm border border-green-500 bg-green-500/20" />
+          <span>Zajęta (przypisana do pracownika)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-sm border border-border/60 bg-muted/40" />
+          <span>Wolna</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-sm border border-primary bg-primary/20" />
+          <span>Wyszukana</span>
+        </div>
+      </div>
+
       <Tabs defaultValue="zone1" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="zone1">Strefa 1 (1-140)</TabsTrigger>
@@ -732,6 +818,8 @@ export default function LockersPage() {
                   labels={labels}
                   editingId={editingId}
                   highlightQuery={highlightQuery}
+                  occupiedLockers={occupiedLockers}
+                  occupiedByMap={occupiedByMap}
                   onEdit={(id) => {
                     if (!isAdmin) return;
                     setEditingId(id);
