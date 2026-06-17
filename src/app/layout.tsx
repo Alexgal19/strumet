@@ -1,7 +1,6 @@
-'use client';
-
 import './globals.css';
 import React from 'react';
+import type { Metadata } from 'next';
 import { Outfit, Inter } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
@@ -19,10 +18,28 @@ const inter = Inter({
   variable: '--font-body',
 });
 
-// Metadata i Viewport nie mogą być eksportowane z pliku 'use client'.
-// Przenosimy je do osobnej logiki lub zostawiamy jako komentarz, jeśli layout musi być kliencki.
-// export const metadata: Metadata = { ... };
-// export const viewport: Viewport = { ... };
+export const metadata: Metadata = {
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover',
+  applicationName: 'Baza-ST',
+  description: 'System do zarządzania pracownikami',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Baza-ST',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  themeColor: '#111827',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
+  manifest: '/manifest.json',
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
+};
 
 export default function RootLayout({
   children,
@@ -31,20 +48,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pl">
-      <head>
-        {/* Te meta tagi są ważne dla PWA i powinny być w <head> */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-        <meta name="application-name" content="Baza-ST" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Baza-ST" />
-        <meta name="description" content="System do zarządzania pracownikami" />
-        <meta name="format-detection" content="telephone=no" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#111827" />
-        <link rel="apple-touch-icon" href="/favicon.ico" />
-        <link rel="manifest" href="/manifest.json" crossOrigin="use-credentials" />
-      </head>
       <body className={cn(
         "font-sans antialiased bg-background text-foreground tracking-tight selection:bg-primary/20",
         inter.variable,

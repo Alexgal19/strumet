@@ -8,6 +8,7 @@ import {
   Users, BarChart3, CalendarClock, UserX, CalendarDays,
   Shirt, CreditCard, Fingerprint, FileWarning, Settings, LogOut, Menu,
   LayoutDashboard,
+  LayoutGrid,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ const ADMIN_PRIMARY: MenuItem[] = [
   { href: '/pulpit', icon: LayoutDashboard, label: 'Pulpit' },
   { href: '/aktywni', icon: Users, label: 'Pracownicy' },
   { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni' },
+  { href: '/szafki', icon: LayoutGrid, label: 'Szafki' },
   { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
 ];
 

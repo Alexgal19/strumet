@@ -1,0 +1,13 @@
+﻿#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running lint..."
+npm run lint
+
+echo "Running TypeScript check..."
+npx tsc --noEmit
+
+if [ $? -ne 0 ]; then
+  echo "Lint or TypeScript check failed. Commit aborted."
+  exit 1
+fi

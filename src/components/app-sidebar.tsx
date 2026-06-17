@@ -11,7 +11,8 @@ import {
   Shirt, CreditCard, Fingerprint, FileWarning, Settings,
   LayoutDashboard,
   Mail,
-  History
+  History,
+  LayoutGrid
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -27,6 +28,7 @@ export const ALL_NAV_ITEMS: MenuItem[] = [
   { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
   { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
   { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
+  { href: '/szafki', icon: LayoutGrid, label: 'Szafki' },
   { href: '/wydawanie-odziezy', icon: Shirt, label: 'Wydawanie odzieży' },
   { href: '/wydawanie-odziezy-nowi', icon: Shirt, label: 'Odzież — nowi' },
   { href: '/karty-obiegowe', icon: CreditCard, label: 'Karty obiegowe' },
