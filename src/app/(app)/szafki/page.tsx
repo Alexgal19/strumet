@@ -356,7 +356,7 @@ function LockerBox({
           if (e.key === 'Enter') onClick();
         }}
         className={cn(
-          'w-full h-full min-h-[36px] text-center text-xs font-semibold rounded-md border-2 border-primary bg-primary/10 text-primary outline-none px-1'
+          'w-full h-full min-h-[48px] text-center text-sm font-semibold rounded-md border-2 border-primary bg-primary/10 text-primary outline-none px-1'
         )}
       />
     );
@@ -369,7 +369,7 @@ function LockerBox({
       title={occupiedBy || label}
       onClick={onClick}
       className={cn(
-        'w-full min-h-[36px] rounded-md border text-xs font-medium transition-all duration-200 flex items-center justify-center px-1 py-1',
+        'w-full min-h-[48px] rounded-md border text-sm font-medium transition-all duration-200 flex items-center justify-center px-2 py-2',
         isLabel
           ? 'border-transparent bg-transparent text-muted-foreground cursor-default hover:bg-transparent'
           : isOccupied
@@ -408,20 +408,20 @@ function LockerSectionView({
 
   if (section.layout === 'grid' && section.gridCols) {
     return (
-      <div className={cn("space-y-1", section.gridCols === 1 && "w-16")}>
+      <div className={cn("space-y-1", section.gridCols === 1 && "w-20")}>
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
           {section.name}
         </p>
         <div
           className={cn(
-            'inline-grid gap-1.5 w-full',
+            'inline-grid gap-2 w-full',
             section.gridCols === 1 && 'grid-cols-1',
             section.gridCols === 2 && 'grid-cols-2',
             section.gridCols === 4 && 'grid-cols-4',
             section.gridCols === 6 && 'grid-cols-6',
             section.gridCols === 12 && 'grid-cols-12',
-            section.gridCols === 14 && 'grid-cols-[repeat(14,minmax(44px,1fr))]',
-            section.gridCols === 16 && 'grid-cols-[repeat(16,minmax(44px,1fr))]',
+            section.gridCols === 14 && 'grid-cols-[repeat(14,minmax(52px,1fr))]',
+            section.gridCols === 16 && 'grid-cols-[repeat(16,minmax(52px,1fr))]',
           )}
         >
           {section.lockers.map((locker) => {
@@ -534,9 +534,9 @@ function ZoneView({
         </div>
 
         {/* Middle: left column + right sections */}
-        <div className="flex flex-col md:flex-row gap-6 md:gap-10">
+        <div className="flex flex-col md:flex-row gap-8 md:gap-16 items-start">
           {/* Left column */}
-          <div className="shrink-0 w-16">
+          <div className="shrink-0 w-20">
             <LockerSectionView
               section={zone.sections[3]}
               labels={labels}
