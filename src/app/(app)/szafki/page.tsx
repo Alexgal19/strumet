@@ -11,7 +11,7 @@ import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import type { Employee } from '@/lib/types';
 import { getDB } from '@/lib/firebase';
-import { ref, onValue, set } from 'firebase/database';
+import { ref, onValue, set, update } from 'firebase/database';
 import { Save, RotateCcw, Lock, Unlock, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -661,10 +661,24 @@ export default function LockersPage() {
   const { employees } = useEmployees();
   const { toast } = useToast();
   const [labels, setLabels] = useState<Record<string, string>>({});
+  const initialLabelsRef = React.useRef<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [highlightQuery, setHighlightQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Collect all locker positions to trace default and customized labels
+  const allLockers = useMemo(() => {
+    const list: LockerPosition[] = [];
+    ALL_ZONES.forEach((zone) => {
+      zone.sections.forEach((section) => {
+        section.lockers.forEach((locker) => {
+          list.push(locker);
+        });
+      });
+    });
+    return list;
+  }, []);
 
   // Build occupied lockers set and map from employees
   const occupied = new Set<string>();
@@ -692,6 +706,7 @@ export default function LockersPage() {
     const unsub = onValue(labelsRef, (snapshot) => {
       const data = snapshot.val() || {};
       setLabels(data);
+      initialLabelsRef.current = data;
     });
     return () => unsub();
   }, []);
@@ -709,11 +724,47 @@ export default function LockersPage() {
     if (!db) return;
     setIsSaving(true);
     try {
-      await set(ref(db, 'config/lockerLabels'), labels);
-      toast({ title: 'Zapisano', description: 'Numeracja szafek została zaktualizowana.' });
+      const initialLabels = initialLabelsRef.current;
+      const employeeUpdates: Record<string, any> = {};
+
+      allLockers.forEach((locker) => {
+        const oldLabel = initialLabels[locker.id] ?? locker.defaultLabel;
+        const newLabel = labels[locker.id] ?? locker.defaultLabel;
+
+        if (oldLabel !== newLabel) {
+          // Find and update employees matching the old label
+          employees.forEach((emp: Employee) => {
+            if (emp.id) {
+              if (emp.lockerNumber === oldLabel) {
+                employeeUpdates[`employees/${emp.id}/lockerNumber`] = newLabel;
+              }
+              if (emp.departmentLockerNumber === oldLabel) {
+                employeeUpdates[`employees/${emp.id}/departmentLockerNumber`] = newLabel;
+              }
+            }
+          });
+        }
+      });
+
+      const dbUpdates = {
+        'config/lockerLabels': labels,
+        ...employeeUpdates,
+      };
+
+      await update(ref(db), dbUpdates);
+
+      toast({
+        title: 'Zapisano',
+        description: 'Numeracja szafek oraz przypisania pracowników zostały zaktualizowane.',
+      });
       setHasChanges(false);
     } catch (err) {
-      toast({ title: 'Błąd', description: 'Nie udało się zapisać zmian.', variant: 'destructive' });
+      console.error(err);
+      toast({
+        title: 'Błąd',
+        description: 'Nie udało się zapisać zmian.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSaving(false);
     }

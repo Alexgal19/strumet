@@ -36,6 +36,7 @@
 - Validate sub-agent outputs before delivering to the user
 - Detect cross-cutting concerns (e.g. a UI change that also touches Firebase) and coordinate multiple agents
 - Maintain task sequence when agents have dependencies
+- **Ollama Delegation:** Delegate all code-writing and code-editing tasks to the local Ollama model (`gemma4:12b`).
 
 **Decision rules:**
 
@@ -62,6 +63,7 @@
 **Scope:** App Router pages, server components, API routes, hooks, context, utilities.
 
 **Rules:**
+- Delegate all actual code generation and writing tasks to the local Ollama model (`gemma4:12b`).
 - Always read `src/lib/types.ts` before touching any data shape
 - Never add `getPaginationRowModel()` to `useReactTable` — breaks virtualization
 - Never wrap TanStack Table components in `React.memo` — same-reference `table.getState()` breaks re-renders
