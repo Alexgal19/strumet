@@ -1,21 +1,21 @@
 import './globals.css';
 import React from 'react';
 import type { Metadata } from 'next';
-import { Merriweather, Nunito } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
 import { AppShell } from '@/components/app-shell';
 import ServiceWorkerRegister from '@/components/service-worker-register';
 
-const merriweather = Merriweather({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['300', '400', '700', '900'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-heading',
 });
 
-const nunito = Nunito({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['300', '400', '600', '700', '900'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-body',
 });
 
@@ -51,8 +51,8 @@ export default function RootLayout({
     <html lang="pl">
       <body className={cn(
         "font-sans antialiased bg-background text-foreground tracking-tight selection:bg-primary/20",
-        nunito.variable,
-        merriweather.variable
+        inter.variable,
+        jakarta.variable
       )}>
         <ServiceWorkerRegister />
         <Providers>
