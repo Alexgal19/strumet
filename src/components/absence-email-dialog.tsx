@@ -70,19 +70,12 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     // Polish body for the client
     const body = `Dzień dobry,\n\nInformujemy o nieobecności pracownika:\nImię i nazwisko: ${employee.fullName}\nDział: ${employee.department || "-"}\nData nieobecności: ${dateStr}\n\nZ poważaniem,\n`
 
-    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}`
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     
-    navigator.clipboard.writeText(body).then(() => {
-      toast({
-        title: "Treść skopiowana!",
-        description: "Wklej ją za pomocą Ctrl + V w oknie Outlooka, aby zachować swoją stopkę z logo.",
-      })
-      window.location.href = mailtoLink
-    }).catch((err) => {
-      console.error("Failed to copy to clipboard", err)
-      const fallbackLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-      window.location.href = fallbackLink
-    })
+    // Copy to clipboard just in case, but open the fully populated link immediately
+    navigator.clipboard.writeText(body).catch(err => console.error("Failed to copy to clipboard", err))
+    
+    window.location.href = mailtoLink
 
     onOpenChange(false)
   }
@@ -153,7 +146,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
         </div>
 
         <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg border">
-          💡 <strong>Wskazówka:</strong> Treść powiadomienia zostanie skopiowana do schowka. Wklej ją (Ctrl + V) w Outlooku, aby zachować swój podpis z logo.
+          💡 <strong>Wskazówka:</strong> Kliknij "Otwórz e-mail", aby automatycznie wygenerować treść. Jeśli Outlook usunie Twój podpis, możesz dodać go ręcznie.
         </div>
 
         <DialogFooter>
