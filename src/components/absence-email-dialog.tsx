@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { Calendar as CalendarIcon, Trash2 } from "lucide-react"
+import { Calendar as CalendarIcon } from "lucide-react"
 import { format as formatFns } from "date-fns"
 import { pl } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -48,26 +47,18 @@ const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onC
     );
 };
 
-const CLIENT_EMAIL_STORAGE_KEY = "strumet_last_client_email";
-
 export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEmailDialogProps) {
   const { toast } = useToast()
   const [absenceDate, setAbsenceDate] = useState(formatFns(new Date(), 'yyyy-MM-dd'))
-  const [clientEmail, setClientEmail] = useState("")
 
   useEffect(() => {
     if (isOpen) {
       setAbsenceDate(formatFns(new Date(), 'yyyy-MM-dd'))
-      const savedEmail = localStorage.getItem(CLIENT_EMAIL_STORAGE_KEY) || ""
-      setClientEmail(savedEmail)
     }
   }, [isOpen])
 
   const handleGenerateEmail = () => {
     if (!employee) return
-
-    // Save client email for future use
-    localStorage.setItem(CLIENT_EMAIL_STORAGE_KEY, clientEmail)
 
     const formattedDate = formatDate(absenceDate, "dd.MM.yyyy")
     const subject = `Nieobecność ${formattedDate}`
@@ -75,7 +66,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     // Polish body for the client
     const body = `Dzień dobry,\n\nInformujemy o nieobecności pracownika:\nImię i nazwisko: ${employee.fullName}\nDział: ${employee.department || "-"}\nData nieobecności: ${formattedDate}\n\nZ poważaniem,\n`
 
-    const mailtoLink = `mailto:${clientEmail}?subject=${encodeURIComponent(subject)}`
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}`
     
     navigator.clipboard.writeText(body).then(() => {
       toast({
@@ -85,7 +76,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
       window.location.href = mailtoLink
     }).catch((err) => {
       console.error("Failed to copy to clipboard", err)
-      const fallbackLink = `mailto:${clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      const fallbackLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
       window.location.href = fallbackLink
     })
 
@@ -98,22 +89,11 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
         <DialogHeader>
           <DialogTitle>Zgłoszenie Nieobecności</DialogTitle>
           <DialogDescription>
-            Wyślij powiadomienie do klienta o nieobecności pracownika: <span className="font-semibold text-foreground">{employee?.fullName}</span>
+            Wygeneruj powiadomienie o nieobecności pracownika: <span className="font-semibold text-foreground">{employee?.fullName}</span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="clientEmail">E-mail klienta / odbiorcy</Label>
-            <Input 
-              id="clientEmail" 
-              type="email"
-              placeholder="np. klient@firma.pl" 
-              value={clientEmail} 
-              onChange={(e) => setClientEmail(e.target.value)} 
-              className="h-11"
-            />
-          </div>
           <div className="space-y-2">
             <Label>Data nieobecności</Label>
             <DatePickerInput
