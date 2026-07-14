@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { format as formatFns } from "date-fns"
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { Employee } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { DateRange } from "react-day-picker"
+import { Send, Loader2 } from "lucide-react"
 
 interface AbsenceEmailDialogProps {
   isOpen: boolean
@@ -26,12 +28,16 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     to: new Date()
   })
   const [multipleDates, setMultipleDates] = useState<Date[] | undefined>([new Date()])
+  const [recipientEmail, setRecipientEmail] = useState("")
+  const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       setRange({ from: new Date(), to: new Date() })
       setMultipleDates([new Date()])
       setMode("range")
+      setRecipientEmail("")
+      setIsSending(false)
     }
   }, [isOpen])
 
@@ -42,6 +48,9 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
         return formatFns(range.from, "dd.MM.yyyy")
       }
       if (range.from && range.to) {
+        if (range.from.getTime() === range.to.getTime()) {
+          return formatFns(range.from, "dd.MM.yyyy")
+        }
         return `${formatFns(range.from, "dd.MM.yyyy")} - ${formatFns(range.to, "dd.MM.yyyy")}`
       }
       return ""
@@ -52,7 +61,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     }
   }
 
-  const handleGenerateEmail = () => {
+  const handleSendEmail = async () => {
     if (!employee) return
 
     const dateStr = getAbsenceDateString()
@@ -65,37 +74,55 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
       return
     }
 
-    const subject = `Nieobecność ${dateStr}`
-    
-    // Full body with employee info + SWL signature
-    const body = [
-      "Dzień dobry,",
-      "",
-      "Informujemy o nieobecności pracownika:",
-      `Imię i nazwisko: ${employee.fullName}`,
-      `Dział: ${employee.department || "-"}`,
-      `Data nieobecności: ${dateStr}`,
-      "",
-      "Z poważaniem,",
-      "",
-      "---",
-      "Oleksandr Holiadynets",
-      "Koordynator",
-      "",
-      "Tel: +48 731 356 249",
-      "Tel: +48 74 648 70 47",
-      "E-mail: o.holiadynets@swl.com.pl",
-      "",
-      "SWL Sp. z o.o.",
-      "58-100 Świdnica, Plac Św. Małgorzaty 8/2a",
-      "KRS: 0000613063, REGON: 364227575",
-      "NIP: 8842764475",
-    ].join("\n")
+    if (!recipientEmail || !recipientEmail.includes("@")) {
+      toast({
+        title: "Błąd",
+        description: "Wpisz poprawny adres e-mail odbiorcy.",
+        variant: "destructive"
+      })
+      return
+    }
 
-    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-    window.location.href = mailtoLink
+    setIsSending(true)
 
-    onOpenChange(false)
+    try {
+      const response = await fetch("/api/send-absence-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientEmail,
+          subject: `Nieobecność ${dateStr}`,
+          employeeName: employee.fullName,
+          department: employee.department || "-",
+          absenceDates: dateStr,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast({
+          title: "✅ E-mail wysłany!",
+          description: `Powiadomienie o nieobecności wysłane do ${recipientEmail}.`,
+        })
+        onOpenChange(false)
+      } else {
+        toast({
+          title: "Błąd wysyłki",
+          description: result.message || "Nie udało się wysłać e-maila.",
+          variant: "destructive"
+        })
+      }
+    } catch (err) {
+      console.error("Send absence email error:", err)
+      toast({
+        title: "Błąd",
+        description: "Wystąpił problem z połączeniem. Spróbuj ponownie.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
@@ -104,11 +131,24 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
         <DialogHeader>
           <DialogTitle>Zgłoszenie Nieobecności</DialogTitle>
           <DialogDescription>
-            Wygeneruj powiadomienie o nieobecności pracownika: <span className="font-semibold text-foreground">{employee?.fullName}</span>
+            Wyślij powiadomienie o nieobecności pracownika: <span className="font-semibold text-foreground">{employee?.fullName}</span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col space-y-4 py-2">
+          {/* Recipient Email */}
+          <div className="space-y-2">
+            <Label htmlFor="recipientAbsenceEmail">E-mail odbiorcy (klienta)</Label>
+            <Input
+              id="recipientAbsenceEmail"
+              type="email"
+              placeholder="np. klient@firma.pl"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              className="h-11"
+            />
+          </div>
+
           {/* Mode Switcher */}
           <div className="flex bg-muted p-1 rounded-lg">
             <button
@@ -164,9 +204,22 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Anuluj</Button>
-          <Button onClick={handleGenerateEmail} disabled={!getAbsenceDateString()}>
-            Otwórz e-mail
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>Anuluj</Button>
+          <Button
+            onClick={handleSendEmail}
+            disabled={!getAbsenceDateString() || !recipientEmail || isSending}
+          >
+            {isSending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Wysyłanie...
+              </>
+            ) : (
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Wyślij e-mail
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
