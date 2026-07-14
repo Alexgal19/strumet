@@ -4,13 +4,8 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { Calendar as CalendarIcon } from "lucide-react"
-import { format as formatFns } from "date-fns"
-import { pl } from "date-fns/locale"
-import { cn } from "@/lib/utils"
-import { formatDate, parseMaybeDate } from "@/lib/date"
+import { Input } from "@/components/ui/input"
+import { formatDate } from "@/lib/date"
 import { Employee } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
@@ -20,51 +15,23 @@ interface AbsenceEmailDialogProps {
   employee: Employee | null
 }
 
-const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
-    const dateValue = parseMaybeDate(value);
-    return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <Button
-                    type="button"
-                    variant={"outline"}
-                    className={cn("w-full justify-start text-left font-normal h-11 transition-all", !dateValue && "text-muted-foreground")}
-                >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateValue ? formatDate(dateValue, "PPP") : <span>{placeholder}</span>}
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 flex flex-col" align="start">
-                <Calendar
-                    mode="single"
-                    selected={dateValue || undefined}
-                    onSelect={(date) => onChange(date ? formatFns(date, 'yyyy-MM-dd') : undefined)}
-                    locale={pl}
-                    initialFocus
-                />
-            </PopoverContent>
-        </Popover>
-    );
-};
-
 export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEmailDialogProps) {
   const { toast } = useToast()
-  const [absenceDate, setAbsenceDate] = useState(formatFns(new Date(), 'yyyy-MM-dd'))
+  const [absenceDate, setAbsenceDate] = useState("")
 
   useEffect(() => {
     if (isOpen) {
-      setAbsenceDate(formatFns(new Date(), 'yyyy-MM-dd'))
+      setAbsenceDate(formatDate(new Date(), 'dd.MM.yyyy'))
     }
   }, [isOpen])
 
   const handleGenerateEmail = () => {
     if (!employee) return
 
-    const formattedDate = formatDate(absenceDate, "dd.MM.yyyy")
-    const subject = `Nieobecność ${formattedDate}`
+    const subject = `Nieobecność ${absenceDate}`
     
     // Polish body for the client
-    const body = `Dzień dobry,\n\nInformujemy o nieobecności pracownika:\nImię i nazwisko: ${employee.fullName}\nDział: ${employee.department || "-"}\nData nieobecności: ${formattedDate}\n\nZ poważaniem,\n`
+    const body = `Dzień dobry,\n\nInformujemy o nieobecności pracownika:\nImię i nazwisko: ${employee.fullName}\nDział: ${employee.department || "-"}\nData nieobecności: ${absenceDate}\n\nZ poważaniem,\n`
 
     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}`
     
@@ -95,12 +62,18 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Data nieobecności</Label>
-            <DatePickerInput
+            <Label htmlFor="absenceDateInput">Okres / Data nieobecności</Label>
+            <Input
+              id="absenceDateInput"
+              type="text"
               value={absenceDate}
-              onChange={(date) => date && setAbsenceDate(date)}
-              placeholder="Wybierz datę nieobecności"
+              onChange={(e) => setAbsenceDate(e.target.value)}
+              placeholder="np. 14.07.2026 lub 14.07 - 18.07 lub 14, 16.07"
+              className="h-11"
             />
+            <p className="text-[11px] text-muted-foreground">
+              Możesz wpisać jedną datę, przedział (np. 14.07 - 18.07) lub dowolne wybrane dni.
+            </p>
           </div>
         </div>
 
