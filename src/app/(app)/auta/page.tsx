@@ -24,6 +24,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { PlusCircle } from 'lucide-react';
 import type { Car } from '@/lib/types';
@@ -34,15 +35,18 @@ import { CarForm } from '@/components/car-form';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function AutaPage() {
-  const { cars, employees, isLoading: isContextLoading, handleSaveCar, handleTerminateCar, handleDeleteCarPermanently } = useAppContext();
+  const { cars, employees, isLoading: isContextLoading, handleSaveCar, handleTerminateCar, handleRestoreCar, handleDeleteCarPermanently } = useAppContext();
   
+  const [activeTab, setActiveTab] = useState<string>('active');
   const [editingCar, setEditingCar] = useState<Car | 'new' | null>(null);
   const [terminatingCar, setTerminatingCar] = useState<Car | null>(null);
+  const [restoringCar, setRestoringCar] = useState<Car | null>(null);
   const [deletingCar, setDeletingCar] = useState<Car | null>(null);
   
   const isMobile = useIsMobile();
 
   const activeCars = cars.filter(c => c.status === 'active');
+  const historyCars = cars.filter(c => c.status === 'history');
 
   const handleEditCar = (car: Car) => {
     setEditingCar(car);
@@ -64,6 +68,11 @@ export default function AutaPage() {
     setTerminatingCar(null);
   };
 
+  const onRestore = async (id: string) => {
+    await handleRestoreCar(id);
+    setRestoringCar(null);
+  };
+
   const onDeletePermanently = async (id: string) => {
     await handleDeleteCarPermanently(id);
     setDeletingCar(null);
@@ -72,21 +81,41 @@ export default function AutaPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <PageHeader title="Auta Aktywne" description="Zarządzaj aktywnymi autami i kierowcami w firmie." />
+        <PageHeader title="Pojazdy" description="Zarządzaj autami, kierowcami i historią floty w firmie." />
         <Button onClick={handleAddNew} className="w-full sm:w-auto h-11">
           <PlusCircle className="mr-2 h-4 w-4" />
           Dodaj Auto
         </Button>
       </div>
 
-      <CarTable 
-        data={activeCars} 
-        isLoading={isContextLoading} 
-        status="active" 
-        onEdit={handleEditCar}
-        onTerminate={setTerminatingCar}
-        onDelete={setDeletingCar}
-      />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full sm:w-[400px] grid-cols-2">
+          <TabsTrigger value="active">Aktywne ({activeCars.length})</TabsTrigger>
+          <TabsTrigger value="history">Historia ({historyCars.length})</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="active" className="mt-6">
+          <CarTable 
+            data={activeCars} 
+            isLoading={isContextLoading} 
+            status="active" 
+            onEdit={handleEditCar}
+            onTerminate={setTerminatingCar}
+            onDelete={setDeletingCar}
+          />
+        </TabsContent>
+        
+        <TabsContent value="history" className="mt-6">
+          <CarTable 
+            data={historyCars} 
+            isLoading={isContextLoading} 
+            status="history" 
+            onEdit={handleEditCar}
+            onRestore={setRestoringCar}
+            onDelete={setDeletingCar}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Responsive Form: Dialog on desktop, Sheet on mobile */}
       {!isMobile ? (
@@ -140,6 +169,27 @@ export default function AutaPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Przenieś do historii
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore confirmation */}
+      <AlertDialog open={restoringCar !== null} onOpenChange={(open) => !open && setRestoringCar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Czy na pewno chcesz przywrócić to auto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Auto <span className="font-semibold text-foreground">{restoringCar?.registrationNumber}</span> 
+              zostanie ponownie oznaczone jako aktywne.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => restoringCar && onRestore(restoringCar.id)}
+            >
+              Przywróć
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

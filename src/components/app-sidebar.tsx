@@ -39,7 +39,6 @@ export const ALL_NAV_ITEMS: MenuItem[] = [
   { href: '/szablony-email', icon: Mail, label: 'Szablony email' },
   { href: '/historia-email', icon: History, label: 'Historia email' },
   { href: '/auta', icon: Car, label: 'Auta' },
-  { href: '/auta-historia', icon: History, label: 'Historia aut' },
 ];
 
 export const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie'];
