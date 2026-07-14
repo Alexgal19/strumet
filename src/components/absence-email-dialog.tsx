@@ -66,16 +66,49 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     }
 
     const subject = `Nieobecność ${dateStr}`
+    const utf8Subject = `=?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`
     
-    // Polish body for the client
-    const body = `Dzień dobry,\n\nInformujemy o nieobecności pracownika:\nImię i nazwisko: ${employee.fullName}\nDział: ${employee.department || "-"}\nData nieobecności: ${dateStr}\n\nZ poważaniem,\n`
+    // HTML body with Strumet signature
+    const htmlBody = `
+      <p style="font-family: Calibri, sans-serif; font-size: 11pt;">Dzień dobry,</p>
+      <p style="font-family: Calibri, sans-serif; font-size: 11pt;">
+        Informujemy o nieobecności pracownika:<br>
+        Imię i nazwisko: <b>${employee.fullName}</b><br>
+        Dział: <b>${employee.department || "-"}</b><br>
+        Data nieobecności: <b>${dateStr}</b>
+      </p>
+      <p style="font-family: Calibri, sans-serif; font-size: 11pt;">Z poważaniem,</p>
+      <br>
+      <div style="font-family: Calibri, sans-serif;">
+        <img src="https://strumet.pl/wp-content/uploads/2021/04/logo_strumet.png" alt="Strumet Sp. z o.o." style="height: 40px;"><br>
+        <p style="font-size: 9pt; color: #555; margin-top: 5px;">
+          <b>Strumet Sp. z o.o.</b><br>
+          <a href="https://www.strumet.pl" style="color: #0056b3;">www.strumet.pl</a>
+        </p>
+      </div>
+    `
 
-    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-    
-    // Copy to clipboard just in case, but open the fully populated link immediately
-    navigator.clipboard.writeText(body).catch(err => console.error("Failed to copy to clipboard", err))
-    
-    window.location.href = mailtoLink
+    const emlContent = [
+      "X-Unsent: 1",
+      "MIME-Version: 1.0",
+      `Subject: ${utf8Subject}`,
+      "Content-Type: text/html; charset=utf-8",
+      "",
+      htmlBody
+    ].join("\r\n")
+
+    const blob = new Blob([emlContent], { type: "message/rfc822" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `Nieobecnosc_${employee.fullName.replace(/\s+/g, '_')}.eml`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: "Pobrano gotowy e-mail!",
+      description: "Otwórz pobrany plik .eml, aby wysłać wiadomość przez Outlook z zachowaną stopką.",
+    })
 
     onOpenChange(false)
   }
@@ -146,13 +179,13 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
         </div>
 
         <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg border">
-          💡 <strong>Wskazówka:</strong> Kliknij "Otwórz e-mail", aby automatycznie wygenerować treść. Jeśli Outlook usunie Twój podpis, możesz dodać go ręcznie.
+          💡 <strong>Wskazówka:</strong> Aplikacja pobierze gotowy plik e-mail (.eml). Otwórz go, aby zobaczyć wiadomość z zachowanym firmowym podpisem Strumet.
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Anuluj</Button>
           <Button onClick={handleGenerateEmail} disabled={!getAbsenceDateString()}>
-            Otwórz e-mail
+            Generuj e-mail
           </Button>
         </DialogFooter>
       </DialogContent>
