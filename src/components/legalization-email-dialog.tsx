@@ -32,8 +32,8 @@ export function LegalizationEmailDialog({ isOpen, onOpenChange, employee }: Lega
 
   useEffect(() => {
     if (employee && isOpen) {
-      setLegalityDept(employee.department || "")
-      setLegalityCompany("") // Nie ma w modelu, użytkownik musi wpisać
+      setLegalityDept("Strumet")
+      setLegalityCompany("SWL")
       setOrderDocs("")
       setOrderDate("")
       setOrderDelivery("odbiór osobisty")
