@@ -80,11 +80,11 @@ export function EmployeeTable({
   const jobTitleOptions = React.useMemo(() => config.jobTitles.map(j => ({ value: j.name, label: j.name })), [config.jobTitles]);
   const managerOptions = React.useMemo(() => config.managers.map(m => ({ value: m.name, label: m.name })), [config.managers]);
   const nationalityOptions = React.useMemo(() => config.nationalities.map(n => ({ value: n.name, label: n.name })), [config.nationalities]);
-  
+
   const lastNameOptions = React.useMemo(() => {
     const lastNames = data.map(e => {
-        const nameParts = e.fullName.trim().split(' ');
-        return nameParts.pop() || '';
+      const nameParts = e.fullName.trim().split(' ');
+      return nameParts.pop() || '';
     });
     return [...new Set(lastNames)].sort().map(lastName => ({ value: lastName, label: lastName }));
   }, [data]);
@@ -123,21 +123,44 @@ export function EmployeeTable({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     globalFilterFn: (row, _columnId, filterValue) => {
-        const searchValue = String(filterValue).toLowerCase().trim();
-        if (!searchValue) return true;
+      const searchValue = String(filterValue).toLowerCase().trim();
+      if (!searchValue) return true;
 
-        const employee = row.original;
-        const fullName = String(employee.fullName || "").toLowerCase();
-        const cardNumber = String(employee.cardNumber || "").toLowerCase();
-        const department = String(employee.department || "").toLowerCase();
-        const jobTitle = String(employee.jobTitle || "").toLowerCase();
-        
-        return (
-            fullName.includes(searchValue) || 
-            cardNumber.includes(searchValue) ||
-            department.includes(searchValue) ||
-            jobTitle.includes(searchValue)
-        );
+      // Excel-like search: split query into individual words (AND logic)
+      // Each word must match at least one field in the row
+      const searchWords = searchValue.split(/\s+/).filter(Boolean);
+      if (searchWords.length === 0) return true;
+
+      const employee = row.original;
+
+      // Collect all searchable fields
+      const searchableFields: string[] = [
+        String(employee.fullName || "").toLowerCase(),
+        String(employee.cardNumber || "").toLowerCase(),
+        String(employee.department || "").toLowerCase(),
+        String(employee.jobTitle || "").toLowerCase(),
+        String(employee.manager || "").toLowerCase(),
+        String(employee.nationality || "").toLowerCase(),
+        String(employee.lockerNumber || "").toLowerCase(),
+        String(employee.departmentLockerNumber || "").toLowerCase(),
+        String(employee.sealNumber || "").toLowerCase(),
+        String(employee.welderLicense || "").toLowerCase(),
+        String(employee.legalizationStatus || "").toLowerCase(),
+      ];
+
+      // Also extract firstName and lastName separately for better matching
+      const nameParts = employee.fullName?.trim().split(/\s+/) || [];
+      if (nameParts.length >= 2) {
+        const lastName = nameParts.pop() || "";
+        const firstName = nameParts.join(" ");
+        searchableFields.push(firstName.toLowerCase());
+        searchableFields.push(lastName.toLowerCase());
+      }
+
+      // Excel-like AND logic: every search word must be found in at least one field
+      return searchWords.every(word =>
+        searchableFields.some(field => field.includes(word))
+      );
     }
   })
 
@@ -156,16 +179,16 @@ export function EmployeeTable({
 
   if (isLoading && data.length === 0) {
     return (
-        <div className="flex h-full w-full items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      )
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   // Mobile View
   if (isMobile) {
     if (rows.length === 0) {
-         return (
+      return (
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
           <h3 className="text-lg font-semibold">Brak pracowników</h3>
@@ -175,83 +198,83 @@ export function EmployeeTable({
     }
 
     return (
-        <div className="flex flex-col h-full">
-          <div className="px-3 pt-2 pb-1.5 bg-background border-b border-border/40 space-y-2">
-            <DataTableToolbar
-              table={table}
-              departmentOptions={departmentOptions}
-              jobTitleOptions={jobTitleOptions}
-              managerOptions={managerOptions}
-              nationalityOptions={nationalityOptions}
-              lastNameOptions={lastNameOptions}
-              exportColumns={exportColumns}
-              exportFileName={exportFileName}
-            />
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
-              <Select
-                value={sorting.length > 0 ? `${sorting[0].id}:${sorting[0].desc ? 'desc' : 'asc'}` : ''}
-                onValueChange={(val) => {
-                  if (!val) {
-                    setSorting([]);
-                    return;
-                  }
-                  const [id, dir] = val.split(':') as [string, 'asc' | 'desc'];
-                  setSorting([{ id, desc: dir === 'desc' }]);
-                }}
-              >
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue placeholder="Sortuj według..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fullName:asc">Nazwisko A-Z</SelectItem>
-                  <SelectItem value="fullName:desc">Nazwisko Z-A</SelectItem>
-                  <SelectItem value="hireDate:desc">Data zatrudnienia (najnowsze)</SelectItem>
-                  <SelectItem value="hireDate:asc">Data zatrudnienia (najstarsze)</SelectItem>
-                  <SelectItem value="department:asc">Dział A-Z</SelectItem>
-                  <SelectItem value="jobTitle:asc">Stanowisko A-Z</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div ref={parentRef} className="flex-1 overflow-y-auto">
-            <div
-              style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                width: '100%',
-                position: 'relative',
+      <div className="flex flex-col h-full">
+        <div className="px-3 pt-2 pb-1.5 bg-background border-b border-border/40 space-y-2">
+          <DataTableToolbar
+            table={table}
+            departmentOptions={departmentOptions}
+            jobTitleOptions={jobTitleOptions}
+            managerOptions={managerOptions}
+            nationalityOptions={nationalityOptions}
+            lastNameOptions={lastNameOptions}
+            exportColumns={exportColumns}
+            exportFileName={exportFileName}
+          />
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Select
+              value={sorting.length > 0 ? `${sorting[0].id}:${sorting[0].desc ? 'desc' : 'asc'}` : ''}
+              onValueChange={(val) => {
+                if (!val) {
+                  setSorting([]);
+                  return;
+                }
+                const [id, dir] = val.split(':') as [string, 'asc' | 'desc'];
+                setSorting([{ id, desc: dir === 'desc' }]);
               }}
             >
-              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                const row = rows[virtualItem.index];
-                const employee = row.original;
-                return (
-                  <div
-                    key={virtualItem.key}
-                    data-index={virtualItem.index}
-                    ref={rowVirtualizer.measureElement}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      transform: `translateY(${virtualItem.start}px)`,
-                      padding: '4px 12px',
-                    }}
-                  >
-                    <EmployeeCard
-                      employee={employee}
-                      onEdit={() => onEdit(employee)}
-                      onTerminate={onTerminate ? () => onTerminate(employee) : undefined}
-                      onRestore={onRestore ? () => onRestore(employee) : undefined}
-                      onDeletePermanently={() => onDelete(employee)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+              <SelectTrigger className="h-8 text-xs w-full">
+                <SelectValue placeholder="Sortuj według..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fullName:asc">Nazwisko A-Z</SelectItem>
+                <SelectItem value="fullName:desc">Nazwisko Z-A</SelectItem>
+                <SelectItem value="hireDate:desc">Data zatrudnienia (najnowsze)</SelectItem>
+                <SelectItem value="hireDate:asc">Data zatrudnienia (najstarsze)</SelectItem>
+                <SelectItem value="department:asc">Dział A-Z</SelectItem>
+                <SelectItem value="jobTitle:asc">Stanowisko A-Z</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
+        <div ref={parentRef} className="flex-1 overflow-y-auto">
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+              const row = rows[virtualItem.index];
+              const employee = row.original;
+              return (
+                <div
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={rowVirtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualItem.start}px)`,
+                    padding: '4px 12px',
+                  }}
+                >
+                  <EmployeeCard
+                    employee={employee}
+                    onEdit={() => onEdit(employee)}
+                    onTerminate={onTerminate ? () => onTerminate(employee) : undefined}
+                    onRestore={onRestore ? () => onRestore(employee) : undefined}
+                    onDeletePermanently={() => onDelete(employee)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -292,9 +315,9 @@ export function EmployeeTable({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   )
                 })}
@@ -303,60 +326,60 @@ export function EmployeeTable({
           </TableHeader>
           <TableBody>
             {rows?.length ? (
-               <>
-                 {paddingTop > 0 && (
-                    <tr>
-                      <td colSpan={columns.length} style={{ height: `${paddingTop}px` }} />
-                    </tr>
-                 )}
-                 {virtualItems.map((virtualRow) => {
-                    const row = rows[virtualRow.index]
-                    const legalizationStatus = row.original.legalizationStatus;
-                    let rowClassName = tableStatus === 'zwolniony' ? "" : "cursor-pointer";
-                    if (legalizationStatus && legalizationStatus !== 'Brak') {
-                         const colorClass = getStatusColor(legalizationStatus, true);
-                         rowClassName = cn(rowClassName, colorClass);
-                    }
+              <>
+                {paddingTop > 0 && (
+                  <tr>
+                    <td colSpan={columns.length} style={{ height: `${paddingTop}px` }} />
+                  </tr>
+                )}
+                {virtualItems.map((virtualRow) => {
+                  const row = rows[virtualRow.index]
+                  const legalizationStatus = row.original.legalizationStatus;
+                  let rowClassName = tableStatus === 'zwolniony' ? "" : "cursor-pointer";
+                  if (legalizationStatus && legalizationStatus !== 'Brak') {
+                    const colorClass = getStatusColor(legalizationStatus, true);
+                    rowClassName = cn(rowClassName, colorClass);
+                  }
 
-                    return (
-                        <TableRow
-                            key={row.id}
-                            data-index={virtualRow.index}
-                            ref={rowVirtualizer.measureElement}
-                            data-state={row.getIsSelected() && "selected"}
-                            onClick={tableStatus === 'zwolniony' ? undefined : () => onEdit(row.original)}
-                            className={rowClassName}
-                        >
-                             {row.getVisibleCells().map((cell) => (
-                                <TableCell key={cell.id}>
-                                {flexRender(
-                                    cell.column.columnDef.cell,
-                                    cell.getContext()
-                                )}
-                                </TableCell>
-                            ))}
-                        </TableRow>
-                    )
-                 })}
-                 {paddingBottom > 0 && (
-                    <tr>
-                      <td colSpan={columns.length} style={{ height: `${paddingBottom}px` }} />
-                    </tr>
-                 )}
-               </>
+                  return (
+                    <TableRow
+                      key={row.id}
+                      data-index={virtualRow.index}
+                      ref={rowVirtualizer.measureElement}
+                      data-state={row.getIsSelected() && "selected"}
+                      onClick={() => onEdit(row.original)}
+                      className={rowClassName}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                })}
+                {paddingBottom > 0 && (
+                  <tr>
+                    <td colSpan={columns.length} style={{ height: `${paddingBottom}px` }} />
+                  </tr>
+                )}
+              </>
             ) : (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
-                        <UserX className="h-12 w-12 mb-4" />
-                        <h3 className="text-lg font-semibold">Brak wyników</h3>
-                        <p className="text-sm max-w-sm">
-                            Nie znaleziono pracowników pasujących do wybranych kryteriów.
-                        </p>
-                    </div>
+                  <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
+                    <UserX className="h-12 w-12 mb-4" />
+                    <h3 className="text-lg font-semibold">Brak wyników</h3>
+                    <p className="text-sm max-w-sm">
+                      Nie znaleziono pracowników pasujących do wybranych kryteriów.
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}

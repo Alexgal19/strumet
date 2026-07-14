@@ -21,9 +21,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
-import { useRouter } from 'next/navigation';
 import { EmployeeTable } from '../employees/employee-table';
 import { ExcelExportButton } from '@/components/excel-export-button';
+import { EmployeeForm } from '@/components/employee-form';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -37,12 +37,12 @@ const exportColumns = [
 ];
 
 export default function ZwolnieniPage() {
-  const { config, isLoading: isContextLoading, handleRestoreEmployee, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently } = useAppContext();
+  const { config, isLoading: isContextLoading, handleRestoreEmployee, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently, handleSaveEmployee } = useAppContext();
   const { employees: terminatedEmployees, isLoading: isEmployeesLoading } = useEmployees('zwolniony');
-  const router = useRouter();
 
   const [restoringEmployee, setRestoringEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
 
@@ -58,18 +58,18 @@ export default function ZwolnieniPage() {
     });
   };
 
-const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
+  const onRestoreEmployee = async (employeeId: string, employeeFullName: string) => {
     console.log('[zwolnieni] onRestoreEmployee called:', { employeeId, employeeFullName });
     const result = await handleRestoreEmployee(employeeId, employeeFullName);
     console.log('[zwolnieni] handleRestoreEmployee result:', result);
-};
+  };
 
   const onDeletePermanently = async (id: string) => {
     await handleDeleteEmployeePermanently(id);
   };
 
   const handleEditEmployee = (employee: Employee) => {
-    router.push(`/pracownicy/${employee.id}`);
+    setEditingEmployee(employee);
   };
 
   return (
@@ -79,49 +79,49 @@ const onRestoreEmployee = async (employeeId: string, employeeFullName: string) =
         description="Przeglądaj historię zwolnionych pracowników."
       >
         <div className="hidden md:flex shrink-0 items-center space-x-2">
-            <TerminatedExcelImportButton />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="secondary">
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Przywróć wszystkich
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tej akcji nie można cofnąć. Spowoduje to przywrócenie wszystkich zwolnionych
-                    pracowników do listy aktywnych.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleRestoreAllTerminatedEmployees}>Kontynuuj</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Usuń wszystkich
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                    pracowników (aktywnych i zwolnionych) z bazy danych.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          <TerminatedExcelImportButton />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="secondary">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Przywróć wszystkich
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tej akcji nie można cofnąć. Spowoduje to przywrócenie wszystkich zwolnionych
+                  pracowników do listy aktywnych.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                <AlertDialogAction onClick={handleRestoreAllTerminatedEmployees}>Kontynuuj</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Usuń wszystkich
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                  pracowników (aktywnych i zwolnionych) z bazy danych.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         <div className="flex md:hidden items-center gap-2 mt-2">
           <ExcelExportButton
@@ -133,64 +133,67 @@ const onRestoreEmployee = async (employeeId: string, employeeFullName: string) =
       </PageHeader>
 
       <div className="flex flex-col flex-grow min-h-0">
-         <EmployeeTable
-            data={terminatedEmployees}
-            isLoading={isContextLoading || isEmployeesLoading}
-            status="zwolniony"
-            config={config}
-            onEdit={handleEditEmployee}
-            onRestore={setRestoringEmployee}
-            onDelete={setDeletingEmployee}
-            exportColumns={exportColumns}
-            exportFileName="zwolnieni_pracownicy"
-            initialSorting={[{ id: 'terminationDate', desc: true }]}
-         />
+        <EmployeeTable
+          data={terminatedEmployees}
+          isLoading={isContextLoading || isEmployeesLoading}
+          status="zwolniony"
+          config={config}
+          onEdit={(employee) => {
+            console.log('Row clicked - editing employee:', employee.id, employee.fullName);
+            handleEditEmployee(employee);
+          }}
+          onRestore={setRestoringEmployee}
+          onDelete={setDeletingEmployee}
+          exportColumns={exportColumns}
+          exportFileName="zwolnieni_pracownicy"
+          initialSorting={[{ id: 'terminationDate', desc: true }]}
+        />
       </div>
 
       <AlertDialog open={!!restoringEmployee} onOpenChange={(open) => !open && setRestoringEmployee(null)}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      Pracownik <strong>{restoringEmployee?.fullName}</strong> zostanie przywrócony do listy aktywnych.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setRestoringEmployee(null)}>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction onClick={async (e) => {
-                      e.preventDefault();
-                      if(restoringEmployee) {
-                          await onRestoreEmployee(restoringEmployee.id, restoringEmployee.fullName);
-                          setRestoringEmployee(null);
-                      }
-                  }}>
-                      Przywróć
-                  </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Pracownik <strong>{restoringEmployee?.fullName}</strong> zostanie przywrócony do listy aktywnych.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRestoringEmployee(null)}>Anuluj</AlertDialogCancel>
+            <AlertDialogAction onClick={async (e) => {
+              e.preventDefault();
+              if (restoringEmployee) {
+                await onRestoreEmployee(restoringEmployee.id, restoringEmployee.fullName);
+                setRestoringEmployee(null);
+              }
+            }}>
+              Przywróć
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={!!deletingEmployee} onOpenChange={(open) => !open && setDeletingEmployee(null)}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      Tej akcji <strong>nie można cofnąć</strong>. Spowoduje to trwałe usunięcie pracownika <strong>{deletingEmployee?.fullName}</strong> i wszystkich jego danych z bazy danych.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDeletingEmployee(null)}>Anuluj</AlertDialogCancel>
-                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async (e) => {
-                      e.preventDefault();
-                      if(deletingEmployee) {
-                          await onDeletePermanently(deletingEmployee.id);
-                          setDeletingEmployee(null);
-                      }
-                  }}>
-                      Usuń trwale
-                  </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tej akcji <strong>nie można cofnąć</strong>. Spowoduje to trwałe usunięcie pracownika <strong>{deletingEmployee?.fullName}</strong> i wszystkich jego danych z bazy danych.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingEmployee(null)}>Anuluj</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async (e) => {
+              e.preventDefault();
+              if (deletingEmployee) {
+                await onDeletePermanently(deletingEmployee.id);
+                setDeletingEmployee(null);
+              }
+            }}>
+              Usuń trwale
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
 
       <Dialog open={!!clothingPrintData} onOpenChange={(open) => !open && setClothingPrintData(null)}>
@@ -225,6 +228,30 @@ const onRestoreEmployee = async (employeeId: string, employeeFullName: string) =
           />
         )}
       </div>
+
+      {/* Dialog formularza edycji pracownika */}
+      <Dialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-7xl p-0 overflow-hidden flex flex-col max-h-[90dvh] glass-morphism rounded-3xl border-black/10">
+          <DialogHeader className="p-6 border-b border-black/5 bg-white/50">
+            <DialogTitle className="text-2xl font-bold tracking-tight">
+              Edytuj pracownika
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
+            {editingEmployee && (
+              <EmployeeForm
+                employee={editingEmployee}
+                onSave={async (data) => {
+                  const success = await handleSaveEmployee(data);
+                  if (success) setEditingEmployee(null);
+                }}
+                onCancel={() => setEditingEmployee(null)}
+                config={config}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

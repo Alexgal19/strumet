@@ -373,10 +373,10 @@ function LockerBox({
         isLabel
           ? 'border-transparent bg-transparent text-muted-foreground cursor-default hover:bg-transparent'
           : isOccupied
-          ? 'border-green-500 bg-green-500/20 text-green-700 hover:bg-green-500/30 hover:border-green-600 shadow-[0_0_8px_hsl(var(--green-500)_/_0.2)]'
-          : isHighlighted
-          ? 'border-primary bg-primary/20 text-primary shadow-[0_0_10px_hsl(var(--primary)_/_0.3)] scale-105 z-10'
-          : 'border-border/60 bg-muted/40 text-foreground hover:bg-muted hover:border-primary/40 hover:shadow-sm'
+            ? 'border-green-500 bg-green-500/20 text-green-700 hover:bg-green-500/30 hover:border-green-600 shadow-[0_0_8px_hsl(var(--green-500)_/_0.2)]'
+            : isHighlighted
+              ? 'border-primary bg-primary/20 text-primary shadow-[0_0_10px_hsl(var(--primary)_/_0.3)] scale-105 z-10'
+              : 'border-border/60 bg-muted/40 text-foreground hover:bg-muted hover:border-primary/40 hover:shadow-sm'
       )}
     >
       <span className="truncate">{label}</span>
@@ -680,21 +680,24 @@ export default function LockersPage() {
     return list;
   }, []);
 
-  // Build occupied lockers set and map from employees
+  // Build occupied lockers set and map from ACTIVE employees only
+  // Terminated employees' lockers are considered free to avoid conflicts
   const occupied = new Set<string>();
   const byMap: Record<string, string> = {};
-  employees.forEach((emp: Employee) => {
-    const locker = emp.lockerNumber?.trim();
-    const deptLocker = emp.departmentLockerNumber?.trim();
-    if (locker) {
-      occupied.add(locker);
-      byMap[locker] = emp.fullName;
-    }
-    if (deptLocker) {
-      occupied.add(deptLocker);
-      byMap[deptLocker] = emp.fullName;
-    }
-  });
+  employees
+    .filter((emp: Employee) => emp.status === 'aktywny')
+    .forEach((emp: Employee) => {
+      const locker = emp.lockerNumber?.trim();
+      const deptLocker = emp.departmentLockerNumber?.trim();
+      if (locker) {
+        occupied.add(locker);
+        byMap[locker] = emp.fullName;
+      }
+      if (deptLocker) {
+        occupied.add(deptLocker);
+        byMap[deptLocker] = emp.fullName;
+      }
+    });
   const occupiedLockers = occupied;
   const occupiedByMap = byMap;
 
@@ -732,17 +735,20 @@ export default function LockersPage() {
         const newLabel = labels[locker.id] ?? locker.defaultLabel;
 
         if (oldLabel !== newLabel) {
-          // Find and update employees matching the old label
-          employees.forEach((emp: Employee) => {
-            if (emp.id) {
-              if (emp.lockerNumber === oldLabel) {
-                employeeUpdates[`employees/${emp.id}/lockerNumber`] = newLabel;
+          // Update only ACTIVE employees matching the old label
+          // Terminated employees' locker assignments should NOT be updated
+          employees
+            .filter((emp: Employee) => emp.status === 'aktywny')
+            .forEach((emp: Employee) => {
+              if (emp.id) {
+                if (emp.lockerNumber === oldLabel) {
+                  employeeUpdates[`employees/${emp.id}/lockerNumber`] = newLabel;
+                }
+                if (emp.departmentLockerNumber === oldLabel) {
+                  employeeUpdates[`employees/${emp.id}/departmentLockerNumber`] = newLabel;
+                }
               }
-              if (emp.departmentLockerNumber === oldLabel) {
-                employeeUpdates[`employees/${emp.id}/departmentLockerNumber`] = newLabel;
-              }
-            }
-          });
+            });
         }
       });
 

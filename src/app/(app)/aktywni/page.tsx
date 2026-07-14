@@ -195,7 +195,10 @@ export default function AktywniPage() {
                 isLoading={isContextLoading || isEmployeesLoading}
                 status="aktywny"
                 config={config}
-                onEdit={handleEditEmployee}
+                onEdit={(employee) => {
+                  console.log('Row clicked - editing employee:', employee.id, employee.fullName);
+                  handleEditEmployee(employee);
+                }}
                 onTerminate={setTerminatingEmployee}
                 onDelete={setDeletingEmployee}
                 exportColumns={exportColumns}

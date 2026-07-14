@@ -198,19 +198,33 @@ export function getColumns({
         );
       },
     }] : []),
+
     {
       id: "actions",
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <EmployeeRowActions
-            row={row}
-            onEdit={onEdit}
-            onTerminate={onTerminate}
-            onRestore={onRestore}
-            onDelete={onDelete}
-          />
-        </div>
-      ),
+      cell: ({ row }) => {
+        return (
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="relative cursor-pointer"
+          >
+            <div 
+              className="absolute inset-0 z-10 cursor-pointer" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(row.original);
+              }}
+            />
+            <EmployeeRowActions
+              row={row}
+              onEdit={onEdit}
+              onTerminate={onTerminate}
+              onRestore={onRestore}
+              onDelete={onDelete}
+            />
+          </div>
+        );
+      },
+      header: () => null,
     },
   ]
 }
