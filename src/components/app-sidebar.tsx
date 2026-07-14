@@ -12,7 +12,8 @@ import {
   LayoutDashboard,
   Mail,
   History,
-  LayoutGrid
+  LayoutGrid,
+  Car
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -37,6 +38,8 @@ export const ALL_NAV_ITEMS: MenuItem[] = [
   { href: '/konfiguracja', icon: Settings, label: 'Konfiguracja' },
   { href: '/szablony-email', icon: Mail, label: 'Szablony email' },
   { href: '/historia-email', icon: History, label: 'Historia email' },
+  { href: '/auta', icon: Car, label: 'Auta' },
+  { href: '/auta-historia', icon: History, label: 'Historia aut' },
 ];
 
 export const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie'];

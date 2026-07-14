@@ -205,3 +205,18 @@ export interface EmailLog {
   status: 'sent' | 'failed';
   errorMessage?: string | null;
 }
+
+export interface Car {
+  id: string;
+  registrationNumber: string;
+  makeModel?: string;
+  vin?: string;
+  insuranceEndDate?: string;
+  inspectionEndDate?: string;
+  driverId?: string;
+  driverFullName?: string;
+  dateFrom: string;
+  dateTo?: string;
+  status: 'active' | 'history';
+}
+

@@ -40,11 +40,13 @@ import type {
     UserRole,
     EmailTemplate,
     EmailLog,
+    Car,
 } from '@/lib/types';
 
 
 const STORAGE_KEYS = {
   employees: 'strumet_employees',
+  cars: 'strumet_cars',
   config: 'strumet_config',
   users: 'strumet_users',
   absences: 'strumet_absences',
@@ -145,6 +147,7 @@ interface FirebaseServices {
 
 interface AppContextType {
     employees: Employee[];
+    cars: Car[];
     users: User[];
     absences: Absence[];
     config: AllConfig;
@@ -162,6 +165,10 @@ interface AppContextType {
     handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<boolean>;
     handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<boolean>;
     handleDeleteEmployeePermanently: (employeeId: string) => Promise<boolean>;
+    handleSaveCar: (carData: Car) => Promise<boolean>;
+    handleTerminateCar: (carId: string) => Promise<boolean>;
+    handleRestoreCar: (carId: string) => Promise<boolean>;
+    handleDeleteCarPermanently: (carId: string) => Promise<boolean>;
     handleDeleteAllHireDates: () => Promise<void>;
     handleUpdateHireDates: (updates: { fullName: string; hireDate: string }[]) => Promise<void>;
     handleUpdateContractEndDates: (updates: { fullName: string; contractEndDate: string }[]) => Promise<void>;
@@ -200,6 +207,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
 
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [cars, setCars] = useState<Car[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
     const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], gmailUser: '', gmailAppPassword: '' });
@@ -257,6 +265,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (!services || !currentUser) {
             setEmployees([]);
+            setCars([]);
             setUsers([]);
             setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], gmailUser: '', gmailAppPassword: '' });
             setAbsences([]);
@@ -274,6 +283,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         // 1. Load from localStorage instantly
         const cachedEmployees = loadFromStorage(STORAGE_KEYS.employees);
+        const cachedCars = loadFromStorage(STORAGE_KEYS.cars);
         const cachedConfig = loadFromStorage(STORAGE_KEYS.config);
         const cachedUsers = loadFromStorage(STORAGE_KEYS.users);
         const cachedAbsences = loadFromStorage(STORAGE_KEYS.absences);
@@ -285,6 +295,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const cachedFingerprintAppointments = loadFromStorage(STORAGE_KEYS.fingerprintAppointments);
 
         if (cachedEmployees) setEmployees(cachedEmployees);
+        if (cachedCars) setCars(cachedCars);
         if (cachedConfig) {
             setConfig({
                 departments: dedupeByName(cachedConfig.departments || []),
@@ -325,6 +336,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
 
         const dataRefs = [
+            {
+                path: "cars",
+                setter: (data: any) => {
+                    const arr = objectToArray(data);
+                    setCars(arr);
+                    saveToStorage(STORAGE_KEYS.cars, arr);
+                    dataLoadedRef.current.add('cars');
+                },
+                essential: false,
+            },
             {
                 path: "employees",
                 setter: (data: any) => {
@@ -498,6 +519,82 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [services, currentUser, toast]);
 
+
+
+    const handleSaveCar = useCallback(async (carData: Car): Promise<boolean> => {
+        if (!services) return false;
+        const { db } = services;
+        try {
+            const { id, ...dataToSave } = carData;
+            const finalData: { [key: string]: any } = { ...dataToSave };
+            for (const key in finalData) {
+                if (finalData[key] === undefined) {
+                  finalData[key] = null;
+                }
+            }
+            if (id) {
+                await set(ref(db, `cars/${id}`), finalData);
+                toast({ title: 'Sukces', description: 'Dane auta zostały zaktualizowane.' });
+            } else {
+                const newCarRef = push(ref(db, 'cars'));
+                await set(newCarRef, { ...finalData, status: 'active' });
+                toast({ title: 'Sukces', description: 'Nowe auto zostało dodane.' });
+            }
+            return true;
+        } catch (error) {
+            console.error("Error saving car: ", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać auta.' });
+            return false;
+        }
+    }, [services, toast]);
+
+    const handleTerminateCar = useCallback(async (carId: string): Promise<boolean> => {
+        if (!services) return false;
+        const { db } = services;
+        try {
+            await update(ref(db, `cars/${carId}`), {
+                status: 'history',
+                dateTo: format(new Date(), 'yyyy-MM-dd')
+            });
+            toast({ title: 'Sukces', description: 'Auto przeniesione do historii.' });
+            return true;
+        } catch (error) {
+            console.error("Error terminating car: ", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować statusu.' });
+            return false;
+        }
+    }, [services, toast]);
+
+    const handleRestoreCar = useCallback(async (carId: string): Promise<boolean> => {
+        if (!services) return false;
+        const { db } = services;
+        try {
+            await update(ref(db, `cars/${carId}`), {
+                status: 'active',
+                dateTo: null
+            });
+            toast({ title: 'Sukces', description: 'Auto przywrócone do aktywnych.' });
+            return true;
+        } catch (error) {
+            console.error("Error restoring car:", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić auta.' });
+            return false;
+        }
+    }, [services, toast]);
+
+    const handleDeleteCarPermanently = useCallback(async (carId: string): Promise<boolean> => {
+        if (!services) return false;
+        const { db } = services;
+        try {
+            await remove(ref(db, `cars/${carId}`));
+            toast({ title: 'Sukces', description: 'Auto usunięte bezpowrotnie.' });
+            return true;
+        } catch (error) {
+            console.error("Error deleting car: ", error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć auta.' });
+            return false;
+        }
+    }, [services, toast]);
 
     const handleSaveEmployee = useCallback(async (employeeData: Employee): Promise<boolean> => {
         if (!services) return false;
@@ -1089,6 +1186,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const value: AppContextType = {
         employees,
+        cars,
         users,
         absences,
         config,
@@ -1106,6 +1204,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         handleTerminateEmployee,
         handleRestoreEmployee,
         handleDeleteEmployeePermanently,
+        handleSaveCar,
+        handleTerminateCar,
+        handleRestoreCar,
+        handleDeleteCarPermanently,
         handleDeleteAllHireDates,
         handleUpdateHireDates,
         handleUpdateContractEndDates,
