@@ -16,6 +16,7 @@ interface GetColumnsProps {
   onRestore?: (employee: Employee) => void
   onDelete: (employee: Employee) => void
   onLegalizationEmail?: (employee: Employee) => void
+  onAbsenceEmail?: (employee: Employee) => void
   status: 'aktywny' | 'zwolniony'
 }
 
@@ -39,6 +40,7 @@ export function getColumns({
   onRestore,
   onDelete,
   onLegalizationEmail,
+  onAbsenceEmail,
   status
 }: GetColumnsProps): ColumnDef<Employee>[] {
   return [
@@ -216,6 +218,7 @@ export function getColumns({
               onRestore={onRestore}
               onDelete={onDelete}
               onLegalizationEmail={onLegalizationEmail}
+              onAbsenceEmail={onAbsenceEmail}
             />
           </div>
         );

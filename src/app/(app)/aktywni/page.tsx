@@ -41,6 +41,7 @@ import { useRouter } from 'next/navigation';
 import { EmployeeTable } from '../employees/employee-table';
 import { EmployeeForm } from '@/components/employee-form';
 import { LegalizationEmailDialog } from '@/components/legalization-email-dialog';
+import { AbsenceEmailDialog } from '@/components/absence-email-dialog';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -70,6 +71,7 @@ export default function AktywniPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | 'new' | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [legalizationEmployee, setLegalizationEmployee] = useState<Employee | null>(null);
+  const [absenceEmployee, setAbsenceEmployee] = useState<Employee | null>(null);
 
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
   const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
@@ -204,6 +206,7 @@ export default function AktywniPage() {
                 onTerminate={setTerminatingEmployee}
                 onDelete={setDeletingEmployee}
                 onLegalizationEmail={setLegalizationEmployee}
+                onAbsenceEmail={setAbsenceEmployee}
                 exportColumns={exportColumns}
                 exportFileName="aktywni_pracownicy"
                 initialSorting={[{ id: 'hireDate', desc: true }]}
@@ -323,6 +326,12 @@ export default function AktywniPage() {
           isOpen={!!legalizationEmployee}
           onOpenChange={(open) => !open && setLegalizationEmployee(null)}
           employee={legalizationEmployee}
+        />
+
+        <AbsenceEmailDialog
+          isOpen={!!absenceEmployee}
+          onOpenChange={(open) => !open && setAbsenceEmployee(null)}
+          employee={absenceEmployee}
         />
 
     </div>

@@ -50,6 +50,7 @@ interface EmployeeTableProps {
   onRestore?: (employee: Employee) => void
   onDelete: (employee: Employee) => void
   onLegalizationEmail?: (employee: Employee) => void
+  onAbsenceEmail?: (employee: Employee) => void
   exportColumns?: { key: keyof Employee; name: string }[]
   exportFileName?: string
   initialSorting?: SortingState
@@ -65,6 +66,7 @@ export function EmployeeTable({
   onRestore,
   onDelete,
   onLegalizationEmail,
+  onAbsenceEmail,
   exportColumns,
   exportFileName,
   initialSorting = [],
@@ -99,9 +101,10 @@ export function EmployeeTable({
         onRestore,
         onDelete,
         onLegalizationEmail,
+        onAbsenceEmail,
         status: tableStatus,
       }),
-    [onEdit, onTerminate, onRestore, onDelete, onLegalizationEmail, tableStatus]
+    [onEdit, onTerminate, onRestore, onDelete, onLegalizationEmail, onAbsenceEmail, tableStatus]
   )
 
   const table = useReactTable({
@@ -272,6 +275,7 @@ export function EmployeeTable({
                     onRestore={onRestore ? () => onRestore(employee) : undefined}
                     onDeletePermanently={() => onDelete(employee)}
                     onLegalizationEmail={onLegalizationEmail ? () => onLegalizationEmail(employee) : undefined}
+                    onAbsenceEmail={onAbsenceEmail ? () => onAbsenceEmail(employee) : undefined}
                   />
                 </div>
               );

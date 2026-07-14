@@ -29,6 +29,7 @@ interface EmployeeRowActionsProps<TData> {
   onRestore?: (employee: Employee) => void
   onDelete: (employee: Employee) => void
   onLegalizationEmail?: (employee: Employee) => void
+  onAbsenceEmail?: (employee: Employee) => void
 }
 
 export function EmployeeRowActions<TData>({
@@ -38,6 +39,7 @@ export function EmployeeRowActions<TData>({
   onRestore,
   onDelete,
   onLegalizationEmail,
+  onAbsenceEmail,
 }: EmployeeRowActionsProps<TData>) {
   const employee = row.original as Employee
 
@@ -59,6 +61,12 @@ export function EmployeeRowActions<TData>({
           <DropdownMenuItem onSelect={() => onLegalizationEmail(employee)}>
             <Mail className="mr-2 h-4 w-4" />
             Wniosek do Legalizacji
+          </DropdownMenuItem>
+        )}
+        {onAbsenceEmail && (
+          <DropdownMenuItem onSelect={() => onAbsenceEmail(employee)}>
+            <Mail className="mr-2 h-4 w-4" />
+            Zgłoś nieobecność
           </DropdownMenuItem>
         )}
         {employee.status === "aktywny" && (

@@ -43,6 +43,7 @@ interface EmployeeCardProps {
   onRestore?: () => void;
   onDeletePermanently?: () => void;
   onLegalizationEmail?: () => void;
+  onAbsenceEmail?: () => void;
 }
 
 export const EmployeeCard = React.memo(function EmployeeCard({
@@ -52,6 +53,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
   onRestore,
   onDeletePermanently,
   onLegalizationEmail,
+  onAbsenceEmail,
 }: EmployeeCardProps) {
   const initial = employee.fullName?.charAt(0)?.toUpperCase() ?? '?';
   const avatarColor = getAvatarColor(employee.fullName ?? '');
@@ -101,6 +103,11 @@ export const EmployeeCard = React.memo(function EmployeeCard({
           {onLegalizationEmail && (
             <DropdownMenuItem onSelect={onLegalizationEmail}>
               <Mail className="mr-2 h-4 w-4" />Wniosek do Legalizacji
+            </DropdownMenuItem>
+          )}
+          {onAbsenceEmail && (
+            <DropdownMenuItem onSelect={onAbsenceEmail}>
+              <Mail className="mr-2 h-4 w-4" />Zgłoś nieobecność
             </DropdownMenuItem>
           )}
           <EmployeeSummary employee={employee}>
