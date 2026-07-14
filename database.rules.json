@@ -26,6 +26,11 @@
         "cardNumber"
       ]
     },
+    "cars": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ["status"]
+    },
     "absences": {
       ".read": "auth != null",
       ".indexOn": ["employeeId", "date"]
