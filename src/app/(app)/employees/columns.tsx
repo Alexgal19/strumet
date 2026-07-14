@@ -15,6 +15,7 @@ interface GetColumnsProps {
   onTerminate?: (employee: Employee) => void
   onRestore?: (employee: Employee) => void
   onDelete: (employee: Employee) => void
+  onLegalizationEmail?: (employee: Employee) => void
   status: 'aktywny' | 'zwolniony'
 }
 
@@ -37,6 +38,7 @@ export function getColumns({
   onTerminate,
   onRestore,
   onDelete,
+  onLegalizationEmail,
   status
 }: GetColumnsProps): ColumnDef<Employee>[] {
   return [
@@ -72,7 +74,7 @@ export function getColumns({
         const firstName = nameParts.join(' ');
         return <span className="font-medium">{firstName}</span>;
       },
-      enableSorting: false, 
+      enableSorting: false,
     },
     {
       accessorKey: "hireDate",
@@ -203,23 +205,17 @@ export function getColumns({
       id: "actions",
       cell: ({ row }) => {
         return (
-          <div 
-            onClick={(e) => e.stopPropagation()} 
+          <div
+            onClick={(e) => e.stopPropagation()}
             className="relative cursor-pointer"
           >
-            <div 
-              className="absolute inset-0 z-10 cursor-pointer" 
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(row.original);
-              }}
-            />
             <EmployeeRowActions
               row={row}
               onEdit={onEdit}
               onTerminate={onTerminate}
               onRestore={onRestore}
               onDelete={onDelete}
+              onLegalizationEmail={onLegalizationEmail}
             />
           </div>
         );

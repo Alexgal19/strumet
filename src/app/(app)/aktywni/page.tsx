@@ -40,6 +40,7 @@ import { useEmployees } from '@/hooks/use-employees';
 import { useRouter } from 'next/navigation';
 import { EmployeeTable } from '../employees/employee-table';
 import { EmployeeForm } from '@/components/employee-form';
+import { LegalizationEmailDialog } from '@/components/legalization-email-dialog';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -68,6 +69,7 @@ export default function AktywniPage() {
   
   const [editingEmployee, setEditingEmployee] = useState<Employee | 'new' | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [legalizationEmployee, setLegalizationEmployee] = useState<Employee | null>(null);
 
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
   const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
@@ -201,6 +203,7 @@ export default function AktywniPage() {
                 }}
                 onTerminate={setTerminatingEmployee}
                 onDelete={setDeletingEmployee}
+                onLegalizationEmail={setLegalizationEmployee}
                 exportColumns={exportColumns}
                 exportFileName="aktywni_pracownicy"
                 initialSorting={[{ id: 'hireDate', desc: true }]}
@@ -315,6 +318,12 @@ export default function AktywniPage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <LegalizationEmailDialog
+          isOpen={!!legalizationEmployee}
+          onOpenChange={(open) => !open && setLegalizationEmployee(null)}
+          employee={legalizationEmployee}
+        />
 
     </div>
   );

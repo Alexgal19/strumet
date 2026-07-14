@@ -24,6 +24,7 @@ import { useEmployees } from '@/hooks/use-employees';
 import { EmployeeTable } from '../employees/employee-table';
 import { ExcelExportButton } from '@/components/excel-export-button';
 import { EmployeeForm } from '@/components/employee-form';
+import { LegalizationEmailDialog } from '@/components/legalization-email-dialog';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -44,6 +45,7 @@ export default function ZwolnieniPage() {
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
+  const [legalizationEmployee, setLegalizationEmployee] = useState<Employee | null>(null);
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
 
   const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
@@ -144,6 +146,7 @@ export default function ZwolnieniPage() {
           }}
           onRestore={setRestoringEmployee}
           onDelete={setDeletingEmployee}
+          onLegalizationEmail={setLegalizationEmployee}
           exportColumns={exportColumns}
           exportFileName="zwolnieni_pracownicy"
           initialSorting={[{ id: 'terminationDate', desc: true }]}
@@ -252,6 +255,13 @@ export default function ZwolnieniPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <LegalizationEmailDialog
+        isOpen={!!legalizationEmployee}
+        onOpenChange={(open) => !open && setLegalizationEmployee(null)}
+        employee={legalizationEmployee}
+      />
+
     </div>
   );
 }

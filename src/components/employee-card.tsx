@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, UserX, RotateCcw, Trash2, Briefcase } from "lucide-react";
+import { MoreHorizontal, Edit, UserX, RotateCcw, Trash2, Briefcase, Mail } from "lucide-react";
 import type { Employee } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EmployeeSummary } from "./employee-summary";
@@ -42,6 +42,7 @@ interface EmployeeCardProps {
   onTerminate?: () => void;
   onRestore?: () => void;
   onDeletePermanently?: () => void;
+  onLegalizationEmail?: () => void;
 }
 
 export const EmployeeCard = React.memo(function EmployeeCard({
@@ -50,6 +51,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
   onTerminate,
   onRestore,
   onDeletePermanently,
+  onLegalizationEmail,
 }: EmployeeCardProps) {
   const initial = employee.fullName?.charAt(0)?.toUpperCase() ?? '?';
   const avatarColor = getAvatarColor(employee.fullName ?? '');
@@ -94,6 +96,11 @@ export const EmployeeCard = React.memo(function EmployeeCard({
           {onEdit && (
             <DropdownMenuItem onSelect={onEdit}>
               <Edit className="mr-2 h-4 w-4" />Edytuj
+            </DropdownMenuItem>
+          )}
+          {onLegalizationEmail && (
+            <DropdownMenuItem onSelect={onLegalizationEmail}>
+              <Mail className="mr-2 h-4 w-4" />Wniosek do Legalizacji
             </DropdownMenuItem>
           )}
           <EmployeeSummary employee={employee}>

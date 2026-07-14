@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { MoreHorizontal, Edit, Bot, UserX, Trash2, RotateCcw } from "lucide-react"
+import { MoreHorizontal, Edit, Bot, UserX, Trash2, RotateCcw, Mail } from "lucide-react"
 import { Row } from "@tanstack/react-table"
 
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ interface EmployeeRowActionsProps<TData> {
   onTerminate?: (employee: Employee) => void
   onRestore?: (employee: Employee) => void
   onDelete: (employee: Employee) => void
+  onLegalizationEmail?: (employee: Employee) => void
 }
 
 export function EmployeeRowActions<TData>({
@@ -36,6 +37,7 @@ export function EmployeeRowActions<TData>({
   onTerminate,
   onRestore,
   onDelete,
+  onLegalizationEmail,
 }: EmployeeRowActionsProps<TData>) {
   const employee = row.original as Employee
 
@@ -53,6 +55,12 @@ export function EmployeeRowActions<TData>({
           <Edit className="mr-2 h-4 w-4" />
           Edytuj
         </DropdownMenuItem>
+        {onLegalizationEmail && (
+          <DropdownMenuItem onSelect={() => onLegalizationEmail(employee)}>
+            <Mail className="mr-2 h-4 w-4" />
+            Wniosek do Legalizacji
+          </DropdownMenuItem>
+        )}
         {employee.status === "aktywny" && (
           <EmployeeSummary employee={employee}>
             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>

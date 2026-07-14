@@ -49,6 +49,7 @@ interface EmployeeTableProps {
   onTerminate?: (employee: Employee) => void
   onRestore?: (employee: Employee) => void
   onDelete: (employee: Employee) => void
+  onLegalizationEmail?: (employee: Employee) => void
   exportColumns?: { key: keyof Employee; name: string }[]
   exportFileName?: string
   initialSorting?: SortingState
@@ -63,6 +64,7 @@ export function EmployeeTable({
   onTerminate,
   onRestore,
   onDelete,
+  onLegalizationEmail,
   exportColumns,
   exportFileName,
   initialSorting = [],
@@ -96,9 +98,10 @@ export function EmployeeTable({
         onTerminate,
         onRestore,
         onDelete,
+        onLegalizationEmail,
         status: tableStatus,
       }),
-    [onEdit, onTerminate, onRestore, onDelete, tableStatus]
+    [onEdit, onTerminate, onRestore, onDelete, onLegalizationEmail, tableStatus]
   )
 
   const table = useReactTable({
@@ -268,6 +271,7 @@ export function EmployeeTable({
                     onTerminate={onTerminate ? () => onTerminate(employee) : undefined}
                     onRestore={onRestore ? () => onRestore(employee) : undefined}
                     onDeletePermanently={() => onDelete(employee)}
+                    onLegalizationEmail={onLegalizationEmail ? () => onLegalizationEmail(employee) : undefined}
                   />
                 </div>
               );
@@ -350,14 +354,20 @@ export function EmployeeTable({
                       onClick={() => onEdit(row.original)}
                       className={rowClassName}
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
+                      {row.getVisibleCells().map((cell) => {
+                        const isActions = cell.column.id === 'actions';
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            onClick={isActions ? (e) => e.stopPropagation() : undefined}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        );
+                      })}
                     </TableRow>
                   )
                 })}
