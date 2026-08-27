@@ -220,3 +220,14 @@ export interface Car {
   status: 'active' | 'history';
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  dueDate: string;              // YYYY-MM-DD
+  dueTime: string;              // HH:mm
+  createdAt: string;            // ISO string
+  read: boolean;
+  lastReminderSentAt?: string;  // ISO string — kiedy ostatnio wysłano email
+}
+

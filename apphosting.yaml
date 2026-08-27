@@ -33,3 +33,7 @@ scheduledJobs:
   timeZone: "Europe/Warsaw"
   httpTarget:
     uri: "/api/cron/daily-checks"
+- schedule: "0 */2 * * *"
+  timeZone: "Europe/Warsaw"
+  httpTarget:
+    uri: "/api/cron/check-notes"

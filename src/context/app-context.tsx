@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import {
@@ -21,7 +21,8 @@ import {
 import { getFirebaseServices } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, startOfDay, isBefore } from 'date-fns';
+import { parseMaybeDate } from '@/lib/date';
 import type {
     Employee,
     AllConfig,
@@ -41,6 +42,7 @@ import type {
     EmailTemplate,
     EmailLog,
     Car,
+    Note,
 } from '@/lib/types';
 
 
@@ -58,6 +60,7 @@ const STORAGE_KEYS = {
   fingerprintAppointments: 'strumet_fingerprintAppointments',
   emailTemplates: 'strumet_emailTemplates',
   emailLogs: 'strumet_emailLogs',
+  notes: 'strumet_notes',
 };
 
 const loadFromStorage = (key: string): any | null => {
@@ -159,6 +162,7 @@ interface AppContextType {
     fingerprintAppointments: FingerprintAppointment[];
     emailTemplates: EmailTemplate[];
     emailLogs: EmailLog[];
+    notes: Note[];
     isLoading: boolean;
     isHistoryLoading: boolean;
     handleSaveEmployee: (employeeData: Employee) => Promise<boolean>;
@@ -197,6 +201,10 @@ interface AppContextType {
     deleteEmailTemplate: (templateId: string) => Promise<void>;
     addEmailLog: (log: Omit<EmailLog, 'id'>) => Promise<void>;
     updateRecipientEmails: (emails: string[]) => Promise<boolean>;
+    saveNote: (note: Omit<Note, 'id' | 'createdAt' | 'read' | 'lastReminderSentAt'>) => Promise<void>;
+    updateNote: (id: string, data: Partial<Note>) => Promise<void>;
+    deleteNote: (id: string) => Promise<void>;
+    markNoteAsRead: (id: string) => Promise<void>;
     currentUser: AuthUser | null;
     isAdmin: boolean;
 }
@@ -219,6 +227,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [fingerprintAppointments, setFingerprintAppointments] = useState<FingerprintAppointment[]>([]);
     const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
     const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
+    const [notes, setNotes] = useState<Note[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -226,6 +235,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     const dataLoadedRef = useRef<Set<string>>(new Set());
     const authInitializedRef = useRef(false);
+    const expiredVacationsCleanupRef = useRef<Set<string>>(new Set());
 
     const isAdmin = currentUser?.role === 'admin';
 
@@ -480,6 +490,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 },
                 essential: false,
             },
+            {
+                path: "notes",
+                setter: (data: any) => {
+                    const arr = objectToArray(data).sort(
+                        (a: Note, b: Note) => new Date(a.dueDate + 'T' + a.dueTime).getTime() - new Date(b.dueDate + 'T' + b.dueTime).getTime()
+                    );
+                    setNotes(arr);
+                    saveToStorage(STORAGE_KEYS.notes, arr);
+                    dataLoadedRef.current.add('notes');
+                },
+                essential: false,
+            },
         ];
 
         const checkEssentialLoaded = () => {
@@ -519,6 +541,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [services, currentUser, toast]);
 
+    // Auto-clear expired vacations: when vacationEndDate < today, clear both date fields
+    // This ensures "Urlopy" container on Pulpit does not show expired vacations and DB stays clean.
+    // Runs client-side for immediate UX + server-side CRON (check-expired-vacations.ts) for reliability.
+    useEffect(() => {
+        if (!services || !currentUser || employees.length === 0) return;
+        // Only run when data is fully loaded to avoid race with initial cache
+        if (isLoading) return;
+        const today = startOfDay(new Date());
+        const expired = employees.filter(e => {
+            if (!e.vacationEndDate) return false;
+            const end = parseMaybeDate(e.vacationEndDate);
+            if (!end) return false;
+            return isBefore(startOfDay(end), today);
+        });
+        if (expired.length === 0) return;
+        const toClear = expired.filter(e => !expiredVacationsCleanupRef.current.has(e.id));
+        if (toClear.length === 0) return;
+        toClear.forEach(e => expiredVacationsCleanupRef.current.add(e.id));
+        const { db } = services;
+        const updates: Record<string, any> = {};
+        toClear.forEach(emp => {
+            updates[`employees/${emp.id}/vacationStartDate`] = null;
+            updates[`employees/${emp.id}/vacationEndDate`] = null;
+        });
+        update(ref(db), updates).catch(err => console.error('[vacation cleanup] failed:', err));
+    }, [employees, services, currentUser, isLoading]);
 
 
     const handleSaveCar = useCallback(async (carData: Car): Promise<boolean> => {
@@ -1184,6 +1232,58 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [services, toast]);
 
+    const saveNote = useCallback(async (note: Omit<Note, 'id' | 'createdAt' | 'read' | 'lastReminderSentAt'>) => {
+        if (!services) return;
+        const { db } = services;
+        try {
+            const newRef = push(ref(db, 'notes'));
+            await set(newRef, {
+                ...note,
+                createdAt: new Date().toISOString(),
+                read: false,
+            });
+            toast({ title: 'Sukces', description: 'Notatka została dodana.' });
+        } catch (error) {
+            console.error('Error saving note:', error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać notatki.' });
+        }
+    }, [services, toast]);
+
+    const updateNote = useCallback(async (id: string, data: Partial<Note>) => {
+        if (!services) return;
+        const { db } = services;
+        try {
+            await update(ref(db, `notes/${id}`), data);
+        } catch (error) {
+            console.error('Error updating note:', error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować notatki.' });
+        }
+    }, [services, toast]);
+
+    const deleteNote = useCallback(async (id: string) => {
+        if (!services) return;
+        const { db } = services;
+        try {
+            await remove(ref(db, `notes/${id}`));
+            toast({ title: 'Sukces', description: 'Notatka została usunięta.' });
+        } catch (error) {
+            console.error('Error deleting note:', error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć notatki.' });
+        }
+    }, [services, toast]);
+
+    const markNoteAsRead = useCallback(async (id: string) => {
+        if (!services) return;
+        const { db } = services;
+        try {
+            await update(ref(db, `notes/${id}`), { read: true });
+            toast({ title: 'Sukces', description: 'Notatka oznaczona jako przeczytana.' });
+        } catch (error) {
+            console.error('Error marking note as read:', error);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się oznaczyć notatki.' });
+        }
+    }, [services, toast]);
+
     const value: AppContextType = {
         employees,
         cars,
@@ -1198,6 +1298,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         fingerprintAppointments,
         emailTemplates,
         emailLogs,
+        notes,
         isLoading,
         isHistoryLoading,
         handleSaveEmployee,
@@ -1236,6 +1337,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         deleteEmailTemplate,
         addEmailLog,
         updateRecipientEmails,
+        saveNote,
+        updateNote,
+        deleteNote,
+        markNoteAsRead,
         currentUser,
         isAdmin,
     };

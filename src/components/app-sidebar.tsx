@@ -13,7 +13,8 @@ import {
   Mail,
   History,
   LayoutGrid,
-  Car
+  Car,
+  NotebookPen,
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -39,9 +40,10 @@ export const ALL_NAV_ITEMS: MenuItem[] = [
   { href: '/szablony-email', icon: Mail, label: 'Szablony email' },
   { href: '/historia-email', icon: History, label: 'Historia email' },
   { href: '/auta', icon: Car, label: 'Auta' },
+  { href: '/notatki', icon: NotebookPen, label: 'Notatki' },
 ];
 
-export const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie'];
+export const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie', '/notatki'];
 
 export function AppSidebar() {
   const pathname = usePathname();
