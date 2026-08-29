@@ -238,7 +238,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col flex-grow">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 px-6 pb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 pb-8">
                 
                 {/* Panel 1: Dane osobowe */}
                 <div className="flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl">
