@@ -401,8 +401,12 @@ export function EmployeeTable({
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4 text-sm text-muted-foreground">
-        {table.getFilteredSelectedRowModel().rows.length} z{" "}
-        {table.getFilteredRowModel().rows.length} wierszy wybrano.
+        {table.getFilteredSelectedRowModel().rows.length > 0 && (
+          <span>
+            Wybrano {table.getFilteredSelectedRowModel().rows.length} z{" "}
+            {table.getFilteredRowModel().rows.length} wierszy.
+          </span>
+        )}
       </div>
     </div>
   )

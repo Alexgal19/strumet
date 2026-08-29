@@ -1,6 +1,6 @@
 import './globals.css';
 import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
@@ -19,8 +19,17 @@ const inter = Inter({
   variable: '--font-body',
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+  ],
+};
+
 export const metadata: Metadata = {
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover',
   applicationName: 'Baza-ST',
   description: 'System do zarządzania pracownikami',
   appleWebApp: {
@@ -31,7 +40,6 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  themeColor: '#111827',
   icons: {
     icon: '/favicon.ico',
     apple: '/favicon.ico',

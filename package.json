@@ -134,7 +134,7 @@
 
         "start": "next start",
 
-        "lint": "next lint",
+        "lint": "eslint src",
 
         "test": "vitest",
 

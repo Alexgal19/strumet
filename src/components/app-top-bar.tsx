@@ -5,9 +5,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import {
-  Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight, Menu
+  Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight, Menu, Search
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -22,10 +32,13 @@ import { useAppContext } from '@/context/app-context';
 import { useHasMounted, useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { AppMobileDrawer } from './app-mobile-drawer';
+import { CommandMenu } from './command-menu';
+import { ThemeToggle } from './theme-toggle';
 
 function Notifications() {
   const { notifications } = useAppContext();
   const [isChecking, setIsChecking] = useState(false);
+  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const { toast } = useToast();
   const services = getFirebaseServices();
   const db = services?.db;
@@ -39,11 +52,10 @@ function Notifications() {
 
   const handleClearAll = useCallback(async () => {
     if (!db) return;
-    if (window.confirm('Czy na pewno chcesz usunąć wszystkie powiadomienia?')) {
-      const updates: Record<string, null> = {};
-      notifications.forEach(n => { updates[`/notifications/${n.id}`] = null; });
-      await update(ref(db), updates);
-    }
+    const updates: Record<string, null> = {};
+    notifications.forEach(n => { updates[`/notifications/${n.id}`] = null; });
+    await update(ref(db), updates);
+    setIsClearDialogOpen(false);
   }, [db, notifications]);
 
   const handleManualCheck = useCallback(async () => {
@@ -109,13 +121,33 @@ function Notifications() {
             Uruchom sprawdzanie
           </Button>
           {notifications.length > 0 && (
-            <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive" onClick={handleClearAll}>
+            <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive" onClick={() => setIsClearDialogOpen(true)}>
               <Trash2 className="mr-2 h-4 w-4" />
               Wyczyść wszystkie
             </Button>
           )}
         </div>
       </PopoverContent>
+
+      <AlertDialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usunąć wszystkie powiadomienia?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tej akcji nie można cofnąć. Wszystkie powiadomienia zostaną trwale usunięte.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleClearAll}
+            >
+              Usuń wszystkie
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Popover>
   );
 }
@@ -147,6 +179,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
   }, [router]);
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
 
   // On server render or before mount, don't show to avoid hydration mismatch
   if (!hasMounted) return null;
@@ -155,33 +188,37 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
 
   return (
     <>
+      <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
       <div className="sticky top-0 z-30 w-full bg-background border-b shadow-sm">
         {/* Desktop Top Bar */}
-        <header className="hidden md:flex h-16 items-center px-6 gap-6 w-full">
-          {/* Logo (kept as requested, though it's also in the sidebar) */}
-          <div className="flex items-center gap-2 group cursor-default">
-            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-[0_0_15px_hsl(var(--primary)_/_0.3)]">
-               <span className="text-[10px] font-black text-white">S</span>
-            </div>
-          </div>
-
-          <Separator orientation="vertical" className="h-6 bg-border/50" />
+        <header className="hidden md:flex h-16 items-center px-6 gap-4 w-full">
+          <button
+            onClick={() => setCommandOpen(true)}
+            className="hidden lg:flex h-9 w-72 shrink-0 items-center gap-2 rounded-xl border border-border/60 bg-background/60 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/50"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="flex-1 text-left">Szukaj...</span>
+            <kbd className="pointer-events-none rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium">
+              ⌘K
+            </kbd>
+          </button>
 
           {breadcrumb ? (
-            <nav className="flex items-center gap-2 text-sm flex-1">
-              <Link href={breadcrumb.parentHref} className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+            <nav className="flex items-center gap-2 text-sm flex-1 min-w-0">
+              <Link href={breadcrumb.parentHref} className="text-muted-foreground hover:text-foreground transition-colors font-medium whitespace-nowrap">
                 {breadcrumb.parent}
               </Link>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-              <span className="text-primary font-bold">{breadcrumb.current}</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+              <span className="text-primary font-bold truncate">{breadcrumb.current}</span>
             </nav>
           ) : (
             <div className="flex-1" />
           )}
 
-          <div className="flex items-center gap-3 ml-auto shrink-0">
+          <div className="flex items-center gap-2 ml-auto shrink-0">
             {isAdmin && <Notifications />}
             <Separator orientation="vertical" className="h-6 bg-border/50" />
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"
@@ -205,12 +242,13 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
               <span className="text-sm font-black text-white">S</span>
             </div>
             <span className="text-base font-bold tracking-tight">
-              STRUMET <span className="text-primary">HR</span>
+              Baza<span className="text-primary">-ST</span>
             </span>
           </div>
 
-          <div className="ml-auto flex items-center">
+          <div className="ml-auto flex items-center gap-1">
             {isAdmin && <Notifications />}
+            <ThemeToggle />
           </div>
         </header>
       </div>

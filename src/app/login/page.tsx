@@ -60,7 +60,6 @@ export default function LoginPage() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      console.log('✅ beforeinstallprompt event fired and stored', e);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -68,8 +67,6 @@ export default function LoginPage() {
     // Check for iOS
     const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(iosCheck);
-    console.log('iOS detected:', iosCheck);
-    console.log('beforeinstallprompt listener attached');
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -142,14 +139,14 @@ export default function LoginPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-500/20 rounded-full blur-[100px] animate-pulse delay-1000" />
 
       <div className="z-10 w-full max-w-sm animate-in fade-in slide-in-from-bottom-5 duration-500">
-        <Card className="w-full border-0 bg-card/50 backdrop-blur-xl shadow-2xl ring-1 ring-white/10">
+        <Card className="w-full border-0 bg-card/50 backdrop-blur-xl shadow-2xl ring-1 ring-border">
           <CardHeader className="text-center space-y-4 pb-6">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-primary/30 animate-in zoom-in-75 fade-in duration-300 delay-200">
               <Database className="h-10 w-10 text-white" />
             </div>
             <div className="space-y-1">
-              <CardTitle className="text-3xl font-bold tracking-tight bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">Baza - ST</CardTitle>
-              <CardDescription className="text-muted-foreground/80 text-base">Zaloguj się, aby zarządzać personelem</CardDescription>
+              <CardTitle className="text-3xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">Baza-ST</CardTitle>
+              <CardDescription className="text-muted-foreground text-base">Zaloguj się, aby zarządzać personelem</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -164,7 +161,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
-                  className="bg-background/50 border-black/10 focus:ring-primary h-11 transition-all hover:bg-background/80"
+                  className="h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -179,7 +176,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="bg-background/50 border-black/10 focus:ring-primary h-11 transition-all hover:bg-background/80"
+                  className="h-11"
                 />
               </div>
               {error && (
@@ -198,7 +195,7 @@ export default function LoginPage() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-black/10" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-transparent px-2 text-muted-foreground">Lub</span>
@@ -214,7 +211,7 @@ export default function LoginPage() {
 
             {(deferredPrompt || isIOS) && (
               <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <Button variant="outline" className="w-full h-11 border-black/10 hover:bg-white/5" onClick={handleInstallClick}>
+                <Button variant="outline" className="w-full h-11" onClick={handleInstallClick}>
                   <Download className="mr-2 h-4 w-4" />
                   Zainstaluj aplikację
                 </Button>

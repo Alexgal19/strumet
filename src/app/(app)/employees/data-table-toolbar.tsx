@@ -2,7 +2,7 @@
 
 import React from "react"
 import { Table } from "@tanstack/react-table"
-import { X, Filter } from "lucide-react"
+import { Search, X, Filter } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -39,6 +39,9 @@ export function DataTableToolbar<TData>({
   exportFileName,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
+  const searchValue = (table.getState().globalFilter as string) ?? ""
+  const filteredCount = table.getFilteredRowModel().rows.length
+  const totalCount = table.getCoreRowModel().rows.length
 
   const filters = (
     <>
@@ -83,15 +86,32 @@ export function DataTableToolbar<TData>({
 
   return (
     <div className="flex flex-wrap items-center gap-2 pb-2">
-      <div className="flex-1 min-w-[150px]">
+      <div className="relative flex-1 min-w-[150px]">
+        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           aria-label="Szukaj pracownika"
-          placeholder="Szukaj..."
-          value={(table.getState().globalFilter as string) ?? ""}
+          placeholder="Szukaj: nazwisko, dział, nr karty..."
+          value={searchValue}
           onChange={(event) => table.setGlobalFilter(event.target.value)}
-          className="h-9 w-full lg:w-64"
+          className="h-9 w-full pl-8 pr-8 lg:w-64"
         />
+        {searchValue && (
+          <button
+            type="button"
+            aria-label="Wyczyść wyszukiwanie"
+            title="Wyczyść wyszukiwanie"
+            onClick={() => table.setGlobalFilter("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
+      {(searchValue || isFiltered) && (
+        <span className="hidden shrink-0 text-xs text-muted-foreground md:inline">
+          Znaleziono: {filteredCount} z {totalCount}
+        </span>
+      )}
       
       {/* Desktop Filters */}
       <div className="hidden lg:flex items-center gap-2">

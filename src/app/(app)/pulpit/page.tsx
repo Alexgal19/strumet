@@ -12,6 +12,7 @@ import {
 import { PageHeader } from '@/components/page-header';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/context/app-context';
@@ -26,6 +27,7 @@ import {
   CalendarClock,
   ArrowRight,
   Bell,
+  Fingerprint,
   LayoutDashboard,
   BarChart3,
   Settings,
@@ -250,8 +252,25 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="min-h-full w-full space-y-8 pb-8">
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-72 max-w-full" />
+          <Skeleton className="h-4 w-96 max-w-full" />
+        </div>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[118px] rounded-3xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[360px] rounded-3xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="h-[360px] rounded-3xl lg:col-span-2" />
+          <Skeleton className="h-[360px] rounded-3xl" />
+        </div>
       </div>
     );
   }
@@ -366,9 +385,9 @@ export default function DashboardPage() {
           <Card className="glass-card">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-orange-500" />
+                <CalendarClock className="h-5 w-5 text-orange-500 dark:text-orange-400" />
                 <CardTitle className="text-base">
-                  Wygające umowy ({expiringContracts.length})
+                  Wygasające umowy ({expiringContracts.length})
                 </CardTitle>
               </div>
             </CardHeader>
@@ -382,9 +401,12 @@ export default function DashboardPage() {
                   </div>
                 </ScrollArea>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Brak umów wygających w ciągu 30 dni.
-                </p>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <CalendarClock className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Brak umów wygających w ciągu 30 dni.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -393,7 +415,7 @@ export default function DashboardPage() {
           <Card className="glass-card">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-blue-500" />
+                <Bell className="h-5 w-5 text-blue-500 dark:text-blue-400" />
                 <CardTitle className="text-base">
                   Odciski palców ({upcomingAppointments.length})
                 </CardTitle>
@@ -412,9 +434,12 @@ export default function DashboardPage() {
                   </div>
                 </ScrollArea>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Brak zaplanowanych wizyt w ciągu 30 dni.
-                </p>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <Fingerprint className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Brak zaplanowanych wizyt w ciągu 30 dni.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -443,9 +468,12 @@ export default function DashboardPage() {
                   </div>
                 </ScrollArea>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Brak zaplanowanych zwolnień.
-                </p>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <UserX className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Brak zaplanowanych zwolnień.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -454,7 +482,7 @@ export default function DashboardPage() {
           <Card className="glass-card">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-yellow-500" />
+                <CalendarClock className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
                 <CardTitle className="text-base">
                   Urlopy ({onVacation.length + upcomingVacations.length})
                 </CardTitle>
@@ -462,9 +490,12 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               {onVacation.length === 0 && upcomingVacations.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Brak pracowników na urlopie i zaplanowanych urlopów.
-                </p>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <CalendarClock className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Brak pracowników na urlopie i zaplanowanych urlopów.
+                  </p>
+                </div>
               ) : (
                 <ScrollArea className="h-[280px]">
                   <div className="space-y-3 pr-4">
@@ -557,9 +588,12 @@ export default function DashboardPage() {
                 </div>
               </ScrollArea>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Brak nowych powiadomień.
-              </p>
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Bell className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  Brak nowych powiadomień.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>

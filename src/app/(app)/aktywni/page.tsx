@@ -108,7 +108,7 @@ export default function AktywniPage() {
             title="Pracownicy aktywni"
             description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
           >
-            <div className="hidden md:flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <DepartmentExcelExportButton
                 employees={activeEmployees}
                 departments={config.departments?.map(d => d.name) ?? []}
@@ -177,18 +177,8 @@ export default function AktywniPage() {
 
               <Button onClick={handleAddNew}>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Dodaj pracownika
-              </Button>
-            </div>
-            <div className="flex md:hidden items-center gap-2">
-              <DepartmentExcelExportButton
-                employees={activeEmployees}
-                departments={config.departments?.map(d => d.name) ?? []}
-                columns={exportColumns}
-              />
-              <Button onClick={handleAddNew} size="sm">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Dodaj
+                <span className="hidden sm:inline">Dodaj pracownika</span>
+                <span className="sm:hidden">Dodaj</span>
               </Button>
             </div>
           </PageHeader>
@@ -199,10 +189,7 @@ export default function AktywniPage() {
                 isLoading={isContextLoading || isEmployeesLoading}
                 status="aktywny"
                 config={config}
-                onEdit={(employee) => {
-                  console.log('Row clicked - editing employee:', employee.id, employee.fullName);
-                  handleEditEmployee(employee);
-                }}
+                onEdit={handleEditEmployee}
                 onTerminate={setTerminatingEmployee}
                 onDelete={setDeletingEmployee}
                 onLegalizationEmail={setLegalizationEmployee}
@@ -295,8 +282,8 @@ export default function AktywniPage() {
 
         {/* Okno (Dialog) formularza pracownika */}
         <Dialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
-          <DialogContent className="w-[calc(100vw-1rem)] max-w-7xl p-0 overflow-hidden flex flex-col max-h-[90dvh] glass-morphism rounded-3xl border-black/10">
-            <DialogHeader className="p-6 border-b border-black/5 bg-white/50">
+          <DialogContent className="w-[calc(100vw-1rem)] max-w-7xl p-0 overflow-hidden flex flex-col max-h-[90dvh] glass-morphism rounded-3xl">
+            <DialogHeader className="p-6 border-b bg-white/50 dark:bg-white/5">
               <DialogTitle className="text-2xl font-bold tracking-tight">
                 {editingEmployee === 'new' ? 'Dodaj pracownika' : 'Edytuj pracownika'}
               </DialogTitle>

@@ -53,7 +53,7 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
             <span className="text-sm font-black text-white">S</span>
           </div>
           <div>
-            <SheetTitle className="text-lg font-bold">STRUMET <span className="text-primary">HR</span></SheetTitle>
+            <SheetTitle className="text-lg font-bold">Baza<span className="text-primary">-ST</span></SheetTitle>
           </div>
         </SheetHeader>
         
