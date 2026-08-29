@@ -64,7 +64,7 @@ interface DepartmentHierarchy {
 // CustomTooltip moved to statistics-pie-chart component
 
 const ReportTab = forwardRef<unknown, {}>((_, ref) => {
-    const { config, handleSaveEmployee, isAdmin } = useAppContext();
+    const { config, handleSaveEmployee, handleTerminateEmployee, isAdmin } = useAppContext();
     const { employees: activeEmployees } = useEmployees('aktywny');
     const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
     const [dialogContent, setDialogContent] = useState<DialogContentData | null>(null);
@@ -287,12 +287,22 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         </Dialog>
 
         <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setIsStatDialogOpen(true); }}>
-            <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-[calc(100vw-1rem)] sm:max-w-3xl max-h-[90dvh] flex flex-col">
+            <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[90dvh] flex flex-col">
                 <DialogHeader className="flex-shrink-0">
                     <DialogTitle>Edytuj pracownika</DialogTitle>
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto -mr-6 pr-6">
-                    <EmployeeForm employee={editingEmployee} onSave={onSave} onCancel={() => { setIsFormOpen(false); setIsStatDialogOpen(true); }} config={config} />
+                    <EmployeeForm
+                        employee={editingEmployee}
+                        onSave={onSave}
+                        onCancel={() => { setIsFormOpen(false); setIsStatDialogOpen(true); }}
+                        onTerminate={async (id, fullName) => {
+                            await handleTerminateEmployee(id, fullName);
+                            setIsFormOpen(false);
+                            setIsStatDialogOpen(true);
+                        }}
+                        config={config}
+                    />
                 </div>
             </DialogContent>
         </Dialog>
