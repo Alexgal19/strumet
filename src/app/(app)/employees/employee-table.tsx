@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table"
 import { Employee, AllConfig } from "@/lib/types"
 import { excelLikeMatch } from "@/lib/search"
+import { useAppContext } from "@/context/app-context"
 import { DataTableToolbar } from "./data-table-toolbar"
 import { getColumns } from "./columns"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -78,6 +79,30 @@ export function EmployeeTable({
   const [sorting, setSorting] = React.useState<SortingState>(initialSorting);
   const [globalFilter, setGlobalFilter] = React.useState("")
 
+  const { absences, addAbsence, deleteAbsence } = useAppContext()
+
+  // Mapa nieobecnych dzisiaj: employeeId -> absenceId
+  const todayString = new Date().toISOString().slice(0, 10)
+  const absentTodayMap = React.useMemo(() => {
+    const map = new Map<string, string>()
+    absences.forEach(a => {
+      if (a.date === todayString) map.set(a.employeeId, a.id)
+    })
+    return map
+  }, [absences, todayString])
+
+  const handleToggleAbsenceToday = React.useCallback(
+    async (employee: Employee, isAbsent: boolean) => {
+      if (isAbsent) {
+        const absenceId = absentTodayMap.get(employee.id)
+        if (absenceId) await deleteAbsence(absenceId)
+      } else {
+        await addAbsence(employee.id, todayString)
+      }
+    },
+    [absentTodayMap, addAbsence, deleteAbsence, todayString]
+  )
+
   const isMobile = useIsMobile()
 
   // Memoize options for filters
@@ -103,9 +128,15 @@ export function EmployeeTable({
         onDelete,
         onLegalizationEmail,
         onAbsenceEmail,
+        onToggleAbsenceToday:
+          tableStatus === 'aktywny' ? handleToggleAbsenceToday : undefined,
+        absentTodayIds:
+          tableStatus === 'aktywny'
+            ? new Set(absentTodayMap.keys())
+            : undefined,
         status: tableStatus,
       }),
-    [onEdit, onTerminate, onRestore, onDelete, onLegalizationEmail, onAbsenceEmail, tableStatus]
+    [onEdit, onTerminate, onRestore, onDelete, onLegalizationEmail, onAbsenceEmail, handleToggleAbsenceToday, absentTodayMap, tableStatus]
   )
 
   const table = useReactTable({
@@ -256,6 +287,16 @@ export function EmployeeTable({
                     onDeletePermanently={() => onDelete(employee)}
                     onLegalizationEmail={onLegalizationEmail ? () => onLegalizationEmail(employee) : undefined}
                     onAbsenceEmail={onAbsenceEmail ? () => onAbsenceEmail(employee) : undefined}
+                    isAbsentToday={
+                      tableStatus === 'aktywny'
+                        ? absentTodayMap.has(employee.id)
+                        : undefined
+                    }
+                    onToggleAbsenceToday={
+                      tableStatus === 'aktywny'
+                        ? () => handleToggleAbsenceToday(employee, absentTodayMap.has(employee.id))
+                        : undefined
+                    }
                   />
                 </div>
               );

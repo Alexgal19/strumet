@@ -52,11 +52,28 @@ export const EmployeeAttendanceCard: React.FC<EmployeeAttendanceCardProps> = ({
         onToggleAbsence(employee.id, dateString, isCurrentlyAbsent);
     }
 
+    const todayString = format(new Date(), 'yyyy-MM-dd');
+    const isAbsentToday = employeeAbsences.some(a => a.date === todayString);
+
     return (
         <Card className="flex flex-col">
-            <CardHeader>
-                <CardTitle className="text-base truncate">{employee.fullName}</CardTitle>
-                <CardDescription className="text-xs truncate">{employee.jobTitle} - {employee.department}</CardDescription>
+            <CardHeader className="space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                        <CardTitle className="text-base truncate">{employee.fullName}</CardTitle>
+                        <CardDescription className="text-xs truncate">{employee.jobTitle} - {employee.department}</CardDescription>
+                    </div>
+                    <Button
+                        variant={isAbsentToday ? 'destructive' : 'outline'}
+                        size="sm"
+                        className={cn('shrink-0 h-8 gap-1.5', !isAbsentToday && 'text-muted-foreground')}
+                        title={isAbsentToday ? 'Oznaczony jako nieobecny dziś — kliknij, aby cofnąć' : 'Oznacz jako nieobecny dziś'}
+                        onClick={() => onToggleAbsence(employee.id, todayString, isAbsentToday)}
+                    >
+                        <UserX className="h-4 w-4" />
+                        {isAbsentToday ? 'Nieobecny dziś' : 'Nieobecny'}
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent className="flex-grow">
                 <div className="grid grid-cols-7 gap-1">

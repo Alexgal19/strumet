@@ -3,11 +3,13 @@
 import { ColumnDef, HeaderContext, CellContext } from "@tanstack/react-table"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
 import { Employee } from "@/lib/types"
 import { formatDate, parseMaybeDate } from "@/lib/date"
 import { getStatusColor } from "@/lib/legalization-statuses"
 import { cn } from "@/lib/utils"
+import { UserX } from "lucide-react"
 import { EmployeeRowActions } from "./employee-actions"
 
 interface GetColumnsProps {
@@ -17,6 +19,8 @@ interface GetColumnsProps {
   onDelete: (employee: Employee) => void
   onLegalizationEmail?: (employee: Employee) => void
   onAbsenceEmail?: (employee: Employee) => void
+  onToggleAbsenceToday?: (employee: Employee, isAbsent: boolean) => void
+  absentTodayIds?: Set<string>
   status: 'aktywny' | 'zwolniony'
 }
 
@@ -41,6 +45,8 @@ export function getColumns({
   onDelete,
   onLegalizationEmail,
   onAbsenceEmail,
+  onToggleAbsenceToday,
+  absentTodayIds,
   status
 }: GetColumnsProps): ColumnDef<Employee>[] {
   return [
@@ -206,20 +212,41 @@ export function getColumns({
     {
       id: "actions",
       cell: ({ row }) => {
+        const employee = row.original;
+        const isAbsentToday = absentTodayIds?.has(employee.id) ?? false;
         return (
           <div
             onClick={(e) => e.stopPropagation()}
             className="relative cursor-pointer"
           >
-            <EmployeeRowActions
-              row={row}
-              onEdit={onEdit}
-              onTerminate={onTerminate}
-              onRestore={onRestore}
-              onDelete={onDelete}
-              onLegalizationEmail={onLegalizationEmail}
-              onAbsenceEmail={onAbsenceEmail}
-            />
+            <div className="flex items-center gap-1">
+              {onToggleAbsenceToday && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8",
+                    isAbsentToday
+                      ? "text-destructive bg-destructive/10 hover:bg-destructive/20"
+                      : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  )}
+                  title={isAbsentToday ? "Nieobecny dziś — kliknij, aby cofnąć" : "Oznacz jako nieobecny dziś"}
+                  onClick={() => onToggleAbsenceToday(employee, isAbsentToday)}
+                >
+                  <UserX className="h-4 w-4" />
+                  <span className="sr-only">Nieobecny dziś</span>
+                </Button>
+              )}
+              <EmployeeRowActions
+                row={row}
+                onEdit={onEdit}
+                onTerminate={onTerminate}
+                onRestore={onRestore}
+                onDelete={onDelete}
+                onLegalizationEmail={onLegalizationEmail}
+                onAbsenceEmail={onAbsenceEmail}
+              />
+            </div>
           </div>
         );
       },

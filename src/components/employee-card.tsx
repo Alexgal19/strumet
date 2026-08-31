@@ -44,6 +44,8 @@ interface EmployeeCardProps {
   onDeletePermanently?: () => void;
   onLegalizationEmail?: () => void;
   onAbsenceEmail?: () => void;
+  isAbsentToday?: boolean;
+  onToggleAbsenceToday?: () => void;
 }
 
 export const EmployeeCard = React.memo(function EmployeeCard({
@@ -54,6 +56,8 @@ export const EmployeeCard = React.memo(function EmployeeCard({
   onDeletePermanently,
   onLegalizationEmail,
   onAbsenceEmail,
+  isAbsentToday,
+  onToggleAbsenceToday,
 }: EmployeeCardProps) {
   const initial = employee.fullName?.charAt(0)?.toUpperCase() ?? '?';
   const avatarColor = getAvatarColor(employee.fullName ?? '');
@@ -81,6 +85,26 @@ export const EmployeeCard = React.memo(function EmployeeCard({
 
       {/* Status badge */}
       <LegalizationBadge status={employee.legalizationStatus} />
+
+      {/* Quick "Nieobecny dziś" toggle */}
+      {onToggleAbsenceToday && (
+        <button
+          className={cn(
+            'flex shrink-0 items-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-colors',
+            isAbsentToday
+              ? 'border-destructive/40 bg-destructive text-destructive-foreground'
+              : 'border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+          )}
+          title={isAbsentToday ? 'Nieobecny dziś — kliknij, aby cofnąć' : 'Oznacz jako nieobecny dziś'}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleAbsenceToday();
+          }}
+        >
+          <UserX className="h-3.5 w-3.5" />
+          {isAbsentToday ? 'Nieobecny' : 'Nieob.'}
+        </button>
+      )}
 
       {/* Actions menu */}
       <DropdownMenu>

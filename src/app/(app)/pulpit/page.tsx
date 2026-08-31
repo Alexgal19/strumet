@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
+import { AbsentOverview } from '@/components/absent-overview';
 import { parseMaybeDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import {
@@ -77,6 +78,7 @@ export default function DashboardPage() {
     fingerprintAppointments,
     notifications,
     statsHistory,
+    absences,
     isAdmin,
   } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } =
@@ -364,6 +366,21 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Nieobecni */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold tracking-tight">Nieobecni</h2>
+          <p className="text-xs text-muted-foreground">
+            Dane zapisują się na stałe — historia pozostaje dostępna po zmianie miesiąca.
+          </p>
+        </div>
+        <AbsentOverview
+          employees={activeEmployees}
+          absences={absences}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Planning Alerts */}
