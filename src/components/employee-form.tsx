@@ -432,7 +432,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                     <div className="flex gap-3 ml-auto">
                         <Button type="button" variant="outline" onClick={onCancel} className="h-11 px-6">Anuluj</Button>
                         <Button type="submit" className="h-11 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
-                            Zapisz зміни
+                            Zapisz zmiany
                         </Button>
                     </div>
                 </div>

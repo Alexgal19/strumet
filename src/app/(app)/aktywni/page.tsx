@@ -37,6 +37,7 @@ import { ContractEndDateImportButton } from '@/components/contract-end-date-impo
 import { DepartmentExcelExportButton } from '@/components/department-excel-export-button';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useRouter } from 'next/navigation';
 import { EmployeeTable } from '../employees/employee-table';
 import { EmployeeForm } from '@/components/employee-form';
@@ -63,6 +64,7 @@ export default function AktywniPage() {
   const { config, isLoading: isContextLoading, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently, handleSaveEmployee } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const [terminatingEmployee, setTerminatingEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
@@ -175,13 +177,23 @@ export default function AktywniPage() {
                 </PopoverContent>
               </Popover>
 
-              <Button onClick={handleAddNew}>
+              <Button onClick={handleAddNew} className="hidden md:inline-flex">
                 <PlusCircle className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Dodaj pracownika</span>
-                <span className="sm:hidden">Dodaj</span>
+                Dodaj pracownika
               </Button>
             </div>
           </PageHeader>
+
+          {/* FAB — dodawanie pracownika (mobile, strefa kciuka) */}
+          <Button
+            onClick={handleAddNew}
+            size="icon"
+            className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 h-14 w-14 rounded-full shadow-lg shadow-primary/30 md:hidden"
+            title="Dodaj pracownika"
+          >
+            <PlusCircle className="h-6 w-6" />
+            <span className="sr-only">Dodaj pracownika</span>
+          </Button>
 
           <div className="flex flex-col flex-grow min-h-0">
              <EmployeeTable
@@ -280,34 +292,58 @@ export default function AktywniPage() {
           )}
         </div>
 
-        {/* Okno (Dialog) formularza pracownika */}
-        <Dialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
-          <DialogContent className="w-[calc(100vw-1rem)] max-w-7xl p-0 overflow-hidden flex flex-col max-h-[90dvh] glass-morphism rounded-3xl">
-            <DialogHeader className="p-6 border-b bg-white/50 dark:bg-white/5">
-              <DialogTitle className="text-2xl font-bold tracking-tight">
-                {editingEmployee === 'new' ? 'Dodaj pracownika' : 'Edytuj pracownika'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
-              {editingEmployee && (
-                <EmployeeForm
-                  employee={editingEmployee === 'new' ? null : editingEmployee}
-                  onSave={async (data) => {
-                    const success = await handleSaveEmployee(data);
-                    if (success) setEditingEmployee(null);
-                  }}
-                  onCancel={() => setEditingEmployee(null)}
-                  onTerminate={async (id, fullName) => {
-                    const success = await handleTerminateEmployee(id, fullName);
-                    if (success) setEditingEmployee(null);
-                  }}
-                  onPrintClothing={handlePrintClothingIssuance}
-                  config={config}
-                />
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Okno formularza pracownika — bottom sheet na mobile, dialog na desktopie */}
+        {(() => {
+          const form = editingEmployee && (
+            <EmployeeForm
+              employee={editingEmployee === 'new' ? null : editingEmployee}
+              onSave={async (data) => {
+                const success = await handleSaveEmployee(data);
+                if (success) setEditingEmployee(null);
+              }}
+              onCancel={() => setEditingEmployee(null)}
+              onTerminate={async (id, fullName) => {
+                const success = await handleTerminateEmployee(id, fullName);
+                if (success) setEditingEmployee(null);
+              }}
+              onPrintClothing={handlePrintClothingIssuance}
+              config={config}
+            />
+          );
+
+          const title = editingEmployee === 'new' ? 'Dodaj pracownika' : 'Edytuj pracownika';
+
+          if (isMobile) {
+            return (
+              <Sheet open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
+                <SheetContent
+                  side="bottom"
+                  className="h-[92dvh] p-0 flex flex-col rounded-t-3xl bg-background [&>button]:hidden"
+                >
+                  <SheetHeader className="p-4 border-b bg-background/80 shrink-0 text-left">
+                    <SheetTitle className="text-xl font-bold tracking-tight">{title}</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar">
+                    {form}
+                  </div>
+                </SheetContent>
+              </Sheet>
+            );
+          }
+
+          return (
+            <Dialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
+              <DialogContent className="w-[calc(100vw-1rem)] max-w-7xl p-0 overflow-hidden flex flex-col max-h-[90dvh] glass-morphism rounded-3xl">
+                <DialogHeader className="p-6 border-b bg-white/50 dark:bg-white/5">
+                  <DialogTitle className="text-2xl font-bold tracking-tight">{title}</DialogTitle>
+                </DialogHeader>
+                <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
+                  {form}
+                </div>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
 
         <LegalizationEmailDialog
           isOpen={!!legalizationEmployee}

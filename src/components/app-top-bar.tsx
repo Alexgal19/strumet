@@ -29,9 +29,8 @@ import { pl } from 'date-fns/locale';
 import { runManualChecks } from '@/ai/flows/run-manual-checks';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
-import { useHasMounted, useIsMobile } from '@/hooks/use-mobile';
+import { useHasMounted } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { AppMobileDrawer } from './app-mobile-drawer';
 import { CommandMenu } from './command-menu';
 import { ThemeToggle } from './theme-toggle';
 
@@ -154,6 +153,7 @@ function Notifications() {
 
 interface AppTopBarProps {
   pathname: string;
+  onOpenMenu: () => void;
 }
 
 // Returns the breadcrumb label for detail pages (e.g. /pracownicy/[id])
@@ -164,9 +164,8 @@ function getBreadcrumb(pathname: string): { parent: string; parentHref: string; 
   return null;
 }
 
-export function AppTopBar({ pathname }: AppTopBarProps) {
+export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
   const hasMounted = useHasMounted();
-  const isMobile = useIsMobile();
   const { isAdmin } = useAppContext();
   const router = useRouter();
 
@@ -178,7 +177,6 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
     router.push('/login');
   }, [router]);
 
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
 
   // On server render or before mount, don't show to avoid hydration mismatch
@@ -233,7 +231,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
 
         {/* Mobile Top Bar */}
         <header className="flex md:hidden h-16 items-center px-4 w-full">
-          <Button variant="ghost" size="icon" onClick={() => setMobileDrawerOpen(true)} className="mr-3 text-foreground rounded-full h-10 w-10">
+          <Button variant="ghost" size="icon" onClick={onOpenMenu} className="mr-3 text-foreground rounded-full h-10 w-10">
             <Menu className="h-6 w-6" />
           </Button>
           
@@ -252,14 +250,6 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
           </div>
         </header>
       </div>
-
-      {isMobile && (
-        <AppMobileDrawer 
-          open={mobileDrawerOpen} 
-          onOpenChange={setMobileDrawerOpen} 
-          pathname={pathname} 
-        />
-      )}
     </>
   );
 }

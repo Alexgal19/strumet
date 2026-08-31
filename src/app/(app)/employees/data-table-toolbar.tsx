@@ -17,6 +17,7 @@ import { DataTableViewOptions } from "@/components/data-table/data-table-view-op
 import { DataTableFacetedFilter } from "@/components/data-table/data-table-faceted-filter"
 import { ExcelExportButton } from "@/components/excel-export-button"
 import { Employee } from "@/lib/types"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
@@ -39,6 +40,7 @@ export function DataTableToolbar<TData>({
   exportFileName,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
+  const isMobile = useIsMobile()
   const searchValue = (table.getState().globalFilter as string) ?? ""
   const filteredCount = table.getFilteredRowModel().rows.length
   const totalCount = table.getCoreRowModel().rows.length
@@ -132,7 +134,14 @@ export function DataTableToolbar<TData>({
               )}
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-[300px] glass-morphism sm:w-[400px]">
+          <SheetContent
+            side={isMobile ? "bottom" : "right"}
+            className={
+              isMobile
+                ? "h-[75dvh] glass-morphism rounded-t-3xl flex flex-col pb-[env(safe-area-inset-bottom)]"
+                : "w-[300px] glass-morphism sm:w-[400px]"
+            }
+          >
             <SheetHeader className="mb-6">
               <SheetTitle>Filtrowanie</SheetTitle>
             </SheetHeader>
