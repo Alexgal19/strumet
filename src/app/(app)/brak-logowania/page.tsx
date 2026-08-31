@@ -51,6 +51,7 @@ import { formatDate } from '@/lib/date';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { commandExcelFilter } from '@/lib/search';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -174,7 +175,7 @@ export default function NoLoginPage() {
                             </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
+                            <Command filter={commandExcelFilter}>
                                 <CommandInput placeholder="Szukaj pracownika..." />
                                 <CommandList>
                                 <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>

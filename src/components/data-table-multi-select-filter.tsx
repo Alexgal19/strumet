@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Check, ChevronsUpDown, X, Filter as FilterIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { commandExcelFilter } from "@/lib/search";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -88,7 +89,7 @@ export function DataTableMultiSelectFilter({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0" align="start">
-        <Command>
+        <Command filter={commandExcelFilter}>
           <div className="p-2 border-b">
              <p className="text-sm font-medium">{title}</p>
           </div>

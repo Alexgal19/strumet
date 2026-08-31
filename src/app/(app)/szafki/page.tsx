@@ -14,6 +14,7 @@ import { getDB } from '@/lib/firebase';
 import { ref, onValue, set, update } from 'firebase/database';
 import { Save, RotateCcw, Lock, Unlock, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { excelLikeMatch } from '@/lib/search';
 
 // --- Types ---
 
@@ -404,7 +405,7 @@ function LockerSectionView({
   onChange: (id: string, val: string) => void;
 }) {
   const isHighlighted = (label: string) =>
-    highlightQuery.length > 0 && label.toLowerCase().includes(highlightQuery.toLowerCase());
+    highlightQuery.length > 0 && excelLikeMatch(highlightQuery, [label]);
 
   if (section.layout === 'grid' && section.gridCols) {
     return (

@@ -10,6 +10,7 @@ import { Calendar as CalendarIcon, Trash2, Check, ChevronsUpDown } from 'lucide-
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { commandExcelFilter } from '@/lib/search';
 import type { Car, Employee } from '@/lib/types';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -163,7 +164,7 @@ export function CarForm({ car, onSave, onCancel, employees }: CarFormProps) {
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[400px] p-0" align="start">
-                            <Command>
+                            <Command filter={commandExcelFilter}>
                                 <CommandInput placeholder="Szukaj pracownika..." />
                                 <CommandList>
                                     <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>

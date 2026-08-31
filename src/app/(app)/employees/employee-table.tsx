@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Employee, AllConfig } from "@/lib/types"
+import { excelLikeMatch } from "@/lib/search"
 import { DataTableToolbar } from "./data-table-toolbar"
 import { getColumns } from "./columns"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -129,45 +130,24 @@ export function EmployeeTable({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     globalFilterFn: (row, _columnId, filterValue) => {
-      const searchValue = String(filterValue).toLowerCase().trim();
-      if (!searchValue) return true;
-
-      // Excel-like search: split query into individual words (AND logic)
-      // Each word must match at least one field in the row
-      const searchWords = searchValue.split(/\s+/).filter(Boolean);
-      if (searchWords.length === 0) return true;
-
       const employee = row.original;
 
-      // Collect all searchable fields
-      const searchableFields: string[] = [
-        String(employee.fullName || "").toLowerCase(),
-        String(employee.cardNumber || "").toLowerCase(),
-        String(employee.department || "").toLowerCase(),
-        String(employee.jobTitle || "").toLowerCase(),
-        String(employee.manager || "").toLowerCase(),
-        String(employee.nationality || "").toLowerCase(),
-        String(employee.lockerNumber || "").toLowerCase(),
-        String(employee.departmentLockerNumber || "").toLowerCase(),
-        String(employee.sealNumber || "").toLowerCase(),
-        String(employee.welderLicense || "").toLowerCase(),
-        String(employee.legalizationStatus || "").toLowerCase(),
-      ];
-
-      // Also extract firstName and lastName separately for better matching
-      const nameParts = employee.fullName?.trim().split(/\s+/) || [];
-      if (nameParts.length >= 2) {
-        const lastName = nameParts.pop() || "";
-        const firstName = nameParts.join(" ");
-        searchableFields.push(firstName.toLowerCase());
-        searchableFields.push(lastName.toLowerCase());
-      }
-
-      // Excel-like AND logic: every search word must be found in at least one field
-      return searchWords.every(word =>
-        searchableFields.some(field => field.includes(word))
-      );
-    }
+      // Wyszukiwanie w stylu Excel: każde słowo zapytania musi wystąpić
+      // w co najmniej jednym polu (ignoruje wielkość liter i polskie znaki).
+      return excelLikeMatch(String(filterValue ?? ''), [
+        employee.fullName,
+        employee.cardNumber,
+        employee.department,
+        employee.jobTitle,
+        employee.manager,
+        employee.nationality,
+        employee.lockerNumber,
+        employee.departmentLockerNumber,
+        employee.sealNumber,
+        employee.welderLicense,
+        employee.legalizationStatus,
+      ]);
+    },
   })
 
   // We need all rows for virtualization

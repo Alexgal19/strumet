@@ -26,6 +26,7 @@ import { Loader2, ChevronsUpDown, CheckIcon, Printer, User, Briefcase, Building2
 import { PageHeader } from '@/components/page-header';
 import { Employee, ClothingIssuance } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { commandExcelFilter } from '@/lib/search';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { NewHireInfoPrintForm } from '@/components/new-hire-info-print-form';
 import { useAppContext } from '@/context/app-context';
@@ -145,7 +146,7 @@ export default function NewHireClothingIssuancePage() {
                                     </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <Command>
+                                    <Command filter={commandExcelFilter}>
                                         <CommandInput placeholder="Szukaj pracownika..." />
                                         <CommandList>
                                         <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>

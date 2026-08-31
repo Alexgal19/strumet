@@ -51,6 +51,7 @@ import { formatDate, formatDateTime } from '@/lib/date';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { commandExcelFilter } from '@/lib/search';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 
@@ -143,7 +144,7 @@ export default function FingerprintAppointmentsPage() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
+                      <Command filter={commandExcelFilter}>
                         <CommandInput placeholder="Szukaj pracownika..." />
                         <CommandList>
                           <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>

@@ -14,6 +14,7 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { useAppContext } from '@/context/app-context';
+import { commandExcelFilter } from '@/lib/search';
 import {
   ALL_NAV_ITEMS,
   GUEST_VIEWS,
@@ -58,7 +59,7 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
   );
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <CommandDialog open={open} onOpenChange={onOpenChange} filter={commandExcelFilter}>
       <CommandInput placeholder="Szukaj strony lub akcji..." />
       <CommandList>
         <CommandEmpty>Brak wyników.</CommandEmpty>

@@ -36,6 +36,7 @@ import { Employee, ClothingIssuance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/date';
 import { cn } from '@/lib/utils';
+import { commandExcelFilter } from '@/lib/search';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
@@ -165,7 +166,7 @@ export default function ClothingIssuancePage() {
                             </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
+                            <Command filter={commandExcelFilter}>
                                 <CommandInput placeholder="Szukaj pracownika..." />
                                 <CommandList>
                                 <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>

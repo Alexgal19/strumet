@@ -37,6 +37,7 @@ import { Employee, CirculationCard } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/date';
 import { cn } from '@/lib/utils';
+import { commandExcelFilter } from '@/lib/search';
 import { CirculationCardPrintForm } from '@/components/circulation-card-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppContext } from '@/context/app-context';
@@ -134,7 +135,7 @@ export default function CirculationCardsPage() {
                         </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
+                        <Command filter={commandExcelFilter}>
                             <CommandInput placeholder="Szukaj pracownika..." />
                             <CommandList>
                             <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>

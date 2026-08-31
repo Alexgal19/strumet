@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { EmployeeAttendanceCard } from '@/components/employee-attendance-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { AttendanceExcelExportButton } from '@/components/attendance-excel-export-button';
+import { excelLikeMatch } from '@/lib/search';
 
 const DepartmentStats = ({
   departmentData,
@@ -143,8 +144,7 @@ export default function OdwiedzalnoscPage() {
       filtered = filtered.filter(e => e.department === selectedDepartment);
     }
     if (searchTerm) {
-        const lowerCaseSearch = searchTerm.toLowerCase();
-        filtered = filtered.filter(e => e.fullName.toLowerCase().includes(lowerCaseSearch));
+        filtered = filtered.filter(e => excelLikeMatch(searchTerm, [e.fullName]));
     }
     return filtered;
   }, [activeEmployees, selectedDepartment, searchTerm]);

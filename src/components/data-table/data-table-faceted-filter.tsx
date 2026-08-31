@@ -3,6 +3,7 @@ import { Check, PlusCircle } from "lucide-react"
 import { Column } from "@tanstack/react-table"
 
 import { cn } from "@/lib/utils"
+import { commandExcelFilter } from "@/lib/search"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -82,7 +83,7 @@ export function DataTableFacetedFilter<TData, TValue>({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0" align="start">
-        <Command>
+        <Command filter={commandExcelFilter}>
           <CommandInput placeholder={title} />
           <CommandList>
             <CommandEmpty>Nie znaleziono.</CommandEmpty>

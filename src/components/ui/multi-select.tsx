@@ -22,6 +22,7 @@ import {
 import { Badge } from "./badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./accordion";
 import type { HierarchicalOption, OptionType } from "@/lib/types";
+import { commandExcelFilter } from "@/lib/search";
 
 
 interface MultiSelectProps {
@@ -168,7 +169,7 @@ function MultiSelect({
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-        <Command>
+        <Command filter={commandExcelFilter}>
           <CommandInput placeholder={`Szukaj ${title?.toLowerCase() ?? 'opcji'}...`} />
           <CommandList>
             <CommandEmpty>Brak wyników.</CommandEmpty>
