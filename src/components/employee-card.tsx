@@ -133,7 +133,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
 
   return (
     <div
-      className="group relative overflow-hidden rounded-xl border border-border/60 shadow-sm select-none touch-pan-y"
+      className="group relative overflow-hidden rounded-xl border border-border shadow-sm select-none touch-pan-y"
     >
       {/* Akcja: nieobecność (odsłaniana przesunięciem w prawo) */}
       {onToggleAbsenceToday && (
@@ -192,7 +192,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
-        className="relative z-10 flex items-center gap-3 bg-white p-3 transition-shadow cursor-pointer hover:shadow-md dark:bg-black/40"
+        className="relative z-10 flex items-center gap-3 bg-white p-3 transition-shadow cursor-pointer hover:shadow-md dark:bg-secondary"
         style={{
           transform: `translateX(${x}px)`,
           transition: dragging ? 'none' : 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
