@@ -8,6 +8,7 @@ import { Employee, Absence } from '@/lib/types';
 import { startOfMonth, endOfMonth, eachDayOfInterval, format, isWeekend, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { haptic } from '@/lib/haptics';
 import { UserX } from 'lucide-react';
 
 interface EmployeeAttendanceCardProps {
@@ -49,6 +50,7 @@ export const EmployeeAttendanceCard: React.FC<EmployeeAttendanceCardProps> = ({
     const handleDayClick = (day: Date) => {
         const dateString = format(day, 'yyyy-MM-dd');
         const isCurrentlyAbsent = employeeAbsences.some(a => a.date === dateString);
+        haptic(10);
         onToggleAbsence(employee.id, dateString, isCurrentlyAbsent);
     }
 
@@ -68,7 +70,10 @@ export const EmployeeAttendanceCard: React.FC<EmployeeAttendanceCardProps> = ({
                         size="sm"
                         className={cn('shrink-0 h-8 gap-1.5', !isAbsentToday && 'text-muted-foreground')}
                         title={isAbsentToday ? 'Oznaczony jako nieobecny dziś — kliknij, aby cofnąć' : 'Oznacz jako nieobecny dziś'}
-                        onClick={() => onToggleAbsence(employee.id, todayString, isAbsentToday)}
+                        onClick={() => {
+                            haptic(10);
+                            onToggleAbsence(employee.id, todayString, isAbsentToday);
+                        }}
                     >
                         <UserX className="h-4 w-4" />
                         {isAbsentToday ? 'Nieobecny dziś' : 'Nieobecny'}
@@ -89,7 +94,7 @@ export const EmployeeAttendanceCard: React.FC<EmployeeAttendanceCardProps> = ({
                                 variant={isAbsent ? 'destructive' : isWknd || isHoliday ? 'ghost' : 'outline'}
                                 size="icon"
                                 className={cn(
-                                    "h-8 w-8 rounded-full",
+                                    "h-10 w-10 md:h-8 md:w-8 rounded-full text-sm md:text-xs",
                                     (isWknd || isHoliday) && !isAbsent && "text-muted-foreground",
                                     isAbsent && "text-destructive-foreground"
                                 )}
