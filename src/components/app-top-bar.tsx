@@ -166,7 +166,7 @@ function getBreadcrumb(pathname: string): { parent: string; parentHref: string; 
 
 export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
   const hasMounted = useHasMounted();
-  const { isAdmin } = useAppContext();
+  const { isAdmin, isEditor } = useAppContext();
   const router = useRouter();
 
   const handleLogout = useCallback(async () => {
@@ -214,7 +214,7 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
           )}
 
           <div className="flex items-center gap-2 ml-auto shrink-0">
-            {isAdmin && <Notifications />}
+            {(isAdmin || isEditor) && <Notifications />}
             <Separator orientation="vertical" className="h-6 bg-border/50" />
             <ThemeToggle />
             <Button
@@ -245,7 +245,7 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            {isAdmin && <Notifications />}
+            {(isAdmin || isEditor) && <Notifications />}
             <ThemeToggle />
           </div>
         </header>

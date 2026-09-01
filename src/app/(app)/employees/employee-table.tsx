@@ -14,7 +14,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { Loader2, UserX, ArrowUpDown } from "lucide-react"
+import { Loader2, UserX, ArrowUpDown, Users, RotateCcw, Trash2, CalendarX, X } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -22,6 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
 
 import {
@@ -39,6 +51,7 @@ import { DataTableToolbar } from "./data-table-toolbar"
 import { getColumns } from "./columns"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { EmployeeCard } from "@/components/employee-card"
+import { ExcelExportButton } from "@/components/excel-export-button"
 import { cn } from "@/lib/utils"
 import { getStatusColor } from "@/lib/legalization-statuses"
 
@@ -53,6 +66,7 @@ interface EmployeeTableProps {
   onDelete: (employee: Employee) => void
   onLegalizationEmail?: (employee: Employee) => void
   onAbsenceEmail?: (employee: Employee) => void
+  onDuplicate?: (employee: Employee) => void
   exportColumns?: { key: keyof Employee; name: string }[]
   exportFileName?: string
   initialSorting?: SortingState
@@ -69,6 +83,7 @@ export function EmployeeTable({
   onDelete,
   onLegalizationEmail,
   onAbsenceEmail,
+  onDuplicate,
   exportColumns,
   exportFileName,
   initialSorting = [],
@@ -79,7 +94,10 @@ export function EmployeeTable({
   const [sorting, setSorting] = React.useState<SortingState>(initialSorting);
   const [globalFilter, setGlobalFilter] = React.useState("")
 
-  const { absences, addAbsence, deleteAbsence } = useAppContext()
+  const { absences, addAbsence, deleteAbsence, handleTerminateEmployee, handleRestoreEmployee, handleDeleteEmployeePermanently } = useAppContext()
+
+  const [bulkConfirm, setBulkConfirm] = React.useState<'terminate' | 'delete' | null>(null)
+  const [isBulkWorking, setIsBulkWorking] = React.useState(false)
 
   // Mapa nieobecnych dzisiaj: employeeId -> absenceId
   const todayString = new Date().toISOString().slice(0, 10)
@@ -128,6 +146,7 @@ export function EmployeeTable({
         onDelete,
         onLegalizationEmail,
         onAbsenceEmail,
+        onDuplicate,
         onToggleAbsenceToday:
           tableStatus === 'aktywny' ? handleToggleAbsenceToday : undefined,
         absentTodayIds:
@@ -136,7 +155,7 @@ export function EmployeeTable({
             : undefined,
         status: tableStatus,
       }),
-    [onEdit, onTerminate, onRestore, onDelete, onLegalizationEmail, onAbsenceEmail, handleToggleAbsenceToday, absentTodayMap, tableStatus]
+    [onEdit, onTerminate, onRestore, onDelete, onLegalizationEmail, onAbsenceEmail, onDuplicate, handleToggleAbsenceToday, absentTodayMap, tableStatus]
   )
 
   const table = useReactTable({
@@ -183,6 +202,59 @@ export function EmployeeTable({
 
   // We need all rows for virtualization
   const { rows } = table.getRowModel()
+
+  // --- Bulk actions ---
+  const selectedEmployees = React.useMemo(
+    () => table.getFilteredSelectedRowModel().rows.map(r => r.original as Employee),
+    [table]
+  )
+
+  const handleBulkAbsence = React.useCallback(async () => {
+    for (const employee of selectedEmployees) {
+      if (!absentTodayMap.has(employee.id)) {
+        await addAbsence(employee.id, todayString)
+      }
+    }
+    setRowSelection({})
+  }, [selectedEmployees, absentTodayMap, addAbsence, todayString])
+
+  const handleBulkTerminate = React.useCallback(async () => {
+    setIsBulkWorking(true)
+    try {
+      for (const employee of selectedEmployees) {
+        await handleTerminateEmployee(employee.id, employee.fullName)
+      }
+    } finally {
+      setIsBulkWorking(false)
+      setBulkConfirm(null)
+      setRowSelection({})
+    }
+  }, [selectedEmployees, handleTerminateEmployee])
+
+  const handleBulkRestore = React.useCallback(async () => {
+    setIsBulkWorking(true)
+    try {
+      for (const employee of selectedEmployees) {
+        await handleRestoreEmployee(employee.id, employee.fullName)
+      }
+    } finally {
+      setIsBulkWorking(false)
+      setRowSelection({})
+    }
+  }, [selectedEmployees, handleRestoreEmployee])
+
+  const handleBulkDelete = React.useCallback(async () => {
+    setIsBulkWorking(true)
+    try {
+      for (const employee of selectedEmployees) {
+        await handleDeleteEmployeePermanently(employee.id)
+      }
+    } finally {
+      setIsBulkWorking(false)
+      setBulkConfirm(null)
+      setRowSelection({})
+    }
+  }, [selectedEmployees, handleDeleteEmployeePermanently])
 
   const parentRef = React.useRef<HTMLDivElement>(null)
 
@@ -317,6 +389,62 @@ export function EmployeeTable({
 
   return (
     <div className="flex flex-col h-full bg-background border rounded-lg overflow-hidden animate-in-slide-up">
+      {selectedEmployees.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-b bg-primary/5 px-6 py-2.5">
+          <Badge variant="secondary">Zaznaczono: {selectedEmployees.length}</Badge>
+          {exportColumns && (
+            <ExcelExportButton
+              employees={selectedEmployees}
+              columns={exportColumns}
+              fileName={exportFileName}
+            />
+          )}
+          {tableStatus === 'aktywny' && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleBulkAbsence} disabled={isBulkWorking}>
+                <CalendarX className="mr-2 h-4 w-4" />
+                Nieobecni dziś
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-amber-600 hover:bg-amber-500/10"
+                onClick={() => setBulkConfirm('terminate')}
+                disabled={isBulkWorking}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Zwolnij zaznaczonych
+              </Button>
+            </>
+          )}
+          {tableStatus === 'zwolniony' && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-emerald-600 hover:bg-emerald-500/10"
+              onClick={handleBulkRestore}
+              disabled={isBulkWorking}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Przywróć zaznaczonych
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:bg-destructive/10"
+            onClick={() => setBulkConfirm('delete')}
+            disabled={isBulkWorking}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Usuń trwale
+          </Button>
+          <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setRowSelection({})}>
+            <X className="mr-1 h-4 w-4" />
+            Odznacz
+          </Button>
+        </div>
+      )}
       <div className="px-6 py-4 border-b bg-background relative z-10">
         <DataTableToolbar
 
@@ -429,6 +557,37 @@ export function EmployeeTable({
           </span>
         )}
       </div>
+
+      <AlertDialog open={bulkConfirm !== null} onOpenChange={(open) => !open && setBulkConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkConfirm === 'terminate'
+                ? `Zwolnić ${selectedEmployees.length} zaznaczonych pracowników?`
+                : `Trwale usunąć ${selectedEmployees.length} zaznaczonych pracowników?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkConfirm === 'terminate'
+                ? 'Pracownicy zostaną przeniesieni do archiwum zwolnionych.'
+                : 'Tej akcji nie można cofnąć. Wszyscy zaznaczeni pracownicy i ich dane zostaną trwale usunięci z bazy.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              className={bulkConfirm === 'delete' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+              disabled={isBulkWorking}
+              onClick={(e) => {
+                e.preventDefault()
+                if (bulkConfirm === 'terminate') handleBulkTerminate()
+                if (bulkConfirm === 'delete') handleBulkDelete()
+              }}
+            >
+              {bulkConfirm === 'terminate' ? 'Zwolnij' : 'Usuń trwale'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

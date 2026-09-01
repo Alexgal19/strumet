@@ -9,6 +9,7 @@ import { startOfDay, differenceInDays } from 'date-fns';
 import type { Employee, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 import { sendEmail } from '@/ai/tools';
+import { sendPushToStaff } from '@/lib/server-push';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -75,6 +76,7 @@ export async function checkExpiringContractsAndNotify(): Promise<{ notifications
     read: false,
   };
   await db.ref('notifications').push(newNotification);
+  await sendPushToStaff(newNotification.title, newNotification.message);
 
   // 2. Email notification
   const emailSubject = `Codzienne przypomnienie: ${totalExpiring} umów wkrótce wygasa`;

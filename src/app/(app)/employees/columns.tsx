@@ -4,12 +4,13 @@ import { ColumnDef, HeaderContext, CellContext } from "@tanstack/react-table"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
 import { Employee } from "@/lib/types"
 import { formatDate, parseMaybeDate } from "@/lib/date"
 import { getStatusColor } from "@/lib/legalization-statuses"
 import { cn } from "@/lib/utils"
-import { UserX } from "lucide-react"
+import { Copy, UserX } from "lucide-react"
 import { EmployeeRowActions } from "./employee-actions"
 
 interface GetColumnsProps {
@@ -20,6 +21,7 @@ interface GetColumnsProps {
   onLegalizationEmail?: (employee: Employee) => void
   onAbsenceEmail?: (employee: Employee) => void
   onToggleAbsenceToday?: (employee: Employee, isAbsent: boolean) => void
+  onDuplicate?: (employee: Employee) => void
   absentTodayIds?: Set<string>
   status: 'aktywny' | 'zwolniony'
 }
@@ -46,10 +48,37 @@ export function getColumns({
   onLegalizationEmail,
   onAbsenceEmail,
   onToggleAbsenceToday,
+  onDuplicate,
   absentTodayIds,
   status
 }: GetColumnsProps): ColumnDef<Employee>[] {
   return [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllRowsSelected() ||
+            (table.getIsSomeRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
+          aria-label="Zaznacz wszystkie"
+          className="translate-y-[2px]"
+        />
+      ),
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()} className="inline-flex">
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Zaznacz wiersz"
+            className="translate-y-[2px]"
+          />
+        </div>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       id: "lastName",
       accessorFn: (row) => {
@@ -245,6 +274,7 @@ export function getColumns({
                 onDelete={onDelete}
                 onLegalizationEmail={onLegalizationEmail}
                 onAbsenceEmail={onAbsenceEmail}
+                onDuplicate={onDuplicate}
               />
             </div>
           </div>

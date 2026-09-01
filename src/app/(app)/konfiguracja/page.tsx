@@ -21,6 +21,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { getDB } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AuditLogList } from '@/components/audit-log-list';
+import { BackupCard } from '@/components/backup-card';
 import { cn } from '@/lib/utils';
 import { sendEmail } from '@/ai/tools';
 
@@ -171,23 +174,22 @@ const UserManagementTab = () => {
                             {users.map(user => (
                                 <TableRow key={user.id}>
                                     <TableCell className="font-medium">{user.email}</TableCell>
-                                    <TableCell className="text-center">
-                                       <div className="flex items-center justify-center space-x-2">
-                                           <Label htmlFor={`role-switch-${user.id}`} className={cn("text-muted-foreground", user.role === 'guest' && "text-foreground font-semibold")}>
-                                             Gość
-                                           </Label>
-                                            <Switch
-                                                id={`role-switch-${user.id}`}
-                                                checked={user.role === 'admin'}
-                                                onCheckedChange={(checked) => handleRoleChange(user, checked ? 'admin' : 'guest')}
-                                                disabled={user.id === currentUser?.uid || updatingUserId === user.id}
-                                                aria-label="Przełącz rolę"
-                                            />
-                                            <Label htmlFor={`role-switch-${user.id}`} className={cn("text-muted-foreground", user.role === 'admin' && "text-foreground font-semibold")}>
-                                              Admin
-                                            </Label>
-                                       </div>
-                                    </TableCell>
+                                     <TableCell className="text-center">
+                                        <Select
+                                            value={user.role}
+                                            onValueChange={(value) => handleRoleChange(user, value as UserRole)}
+                                            disabled={user.id === currentUser?.uid || updatingUserId === user.id}
+                                        >
+                                            <SelectTrigger className="w-[150px] ml-auto" aria-label="Rola użytkownika">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="admin">Administrator</SelectItem>
+                                                <SelectItem value="editor">Kolega</SelectItem>
+                                                <SelectItem value="guest">Gość</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -200,21 +202,20 @@ const UserManagementTab = () => {
                                 <span className="font-semibold text-base break-all">{user.email}</span>
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium">Rola</span>
-                                    <div className="flex items-center space-x-2">
-                                        <Label htmlFor={`role-switch-mobile-${user.id}`} className={cn("text-sm text-muted-foreground", user.role === 'guest' && "text-foreground font-semibold")}>
-                                            Gość
-                                        </Label>
-                                        <Switch
-                                            id={`role-switch-mobile-${user.id}`}
-                                            checked={user.role === 'admin'}
-                                            onCheckedChange={(checked) => handleRoleChange(user, checked ? 'admin' : 'guest')}
-                                            disabled={user.id === currentUser?.uid || updatingUserId === user.id}
-                                            aria-label="Przełącz rolę"
-                                        />
-                                        <Label htmlFor={`role-switch-mobile-${user.id}`} className={cn("text-sm text-muted-foreground", user.role === 'admin' && "text-foreground font-semibold")}>
-                                            Admin
-                                        </Label>
-                                    </div>
+                                    <Select
+                                        value={user.role}
+                                        onValueChange={(value) => handleRoleChange(user, value as UserRole)}
+                                        disabled={user.id === currentUser?.uid || updatingUserId === user.id}
+                                    >
+                                        <SelectTrigger className="w-[150px]" aria-label="Rola użytkownika">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="admin">Administrator</SelectItem>
+                                            <SelectItem value="editor">Kolega</SelectItem>
+                                            <SelectItem value="guest">Gość</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </CardContent>
                         </Card>
@@ -386,13 +387,27 @@ export default function ConfigurationPage() {
             />
             
             <Tabs defaultValue="lists" className="flex-grow flex flex-col">
-                <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-5" : "grid-cols-2")}>
+                <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-7" : "grid-cols-2")}>
                     <TabsTrigger value="lists">Listy</TabsTrigger>
                     <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
                     {isAdmin && <TabsTrigger value="api_keys">Email SMTP (Gmail)</TabsTrigger>}
                     {isAdmin && <TabsTrigger value="emails">Adresy email</TabsTrigger>}
                     {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
+                    {isAdmin && <TabsTrigger value="audit">Historia</TabsTrigger>}
+                    {isAdmin && <TabsTrigger value="backup">Dane</TabsTrigger>}
                 </TabsList>
+
+                {isAdmin && (
+                    <TabsContent value="audit" className="flex-grow mt-6">
+                        <AuditLogList />
+                    </TabsContent>
+                )}
+
+                {isAdmin && (
+                    <TabsContent value="backup" className="flex-grow mt-6">
+                        <BackupCard />
+                    </TabsContent>
+                )}
 
                 <TabsContent value="lists" className="flex-grow mt-6">
                     <Card className="flex-grow flex flex-col">

@@ -154,7 +154,15 @@ export interface Stats {
   totalJobTitles: number;
 }
 
-export type UserRole = 'admin' | 'guest';
+export type UserRole = 'admin' | 'editor' | 'guest';
+
+export interface AuditEntry {
+  id: string;
+  at: string; // ISO string
+  user: string;
+  action: string;
+  details: string;
+}
 
 export interface AuthUser {
   uid: string;

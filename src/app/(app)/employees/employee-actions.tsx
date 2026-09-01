@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { MoreHorizontal, Edit, Bot, UserX, Trash2, RotateCcw, Mail } from "lucide-react"
+import { MoreHorizontal, Edit, Copy, Bot, UserX, Trash2, RotateCcw, Mail } from "lucide-react"
 import { Row } from "@tanstack/react-table"
 
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,7 @@ interface EmployeeRowActionsProps<TData> {
   onDelete: (employee: Employee) => void
   onLegalizationEmail?: (employee: Employee) => void
   onAbsenceEmail?: (employee: Employee) => void
+  onDuplicate?: (employee: Employee) => void
 }
 
 export function EmployeeRowActions<TData>({
@@ -40,6 +41,7 @@ export function EmployeeRowActions<TData>({
   onDelete,
   onLegalizationEmail,
   onAbsenceEmail,
+  onDuplicate,
 }: EmployeeRowActionsProps<TData>) {
   const employee = row.original as Employee
 
@@ -57,6 +59,12 @@ export function EmployeeRowActions<TData>({
           <Edit className="mr-2 h-4 w-4" />
           Edytuj
         </DropdownMenuItem>
+        {onDuplicate && (
+          <DropdownMenuItem onSelect={() => onDuplicate(employee)}>
+            <Copy className="mr-2 h-4 w-4" />
+            Duplikuj (szablon)
+          </DropdownMenuItem>
+        )}
         {onLegalizationEmail && (
           <DropdownMenuItem onSelect={() => onLegalizationEmail(employee)}>
             <Mail className="mr-2 h-4 w-4" />

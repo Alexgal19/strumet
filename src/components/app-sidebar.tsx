@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   Car,
   NotebookPen,
+  CalendarRange,
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -43,6 +44,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: '/aktywni', icon: Users, label: 'Pracownicy aktywni' },
       { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni' },
       { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
+      { href: '/kalendarz', icon: CalendarRange, label: 'Kalendarz' },
       { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
       { href: '/notatki', icon: NotebookPen, label: 'Notatki' },
     ],
@@ -73,11 +75,14 @@ export const ALL_NAV_ITEMS: MenuItem[] = NAV_SECTIONS.flatMap((s) => s.items);
 
 export const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie', '/notatki'];
 
+/** Widoki dodatkowe dla roli 'kolega' (editor) */
+export const EDITOR_VIEWS = [...GUEST_VIEWS, '/kalendarz', '/odwiedzalnosc'];
+
 const SIDEBAR_COLLAPSED_KEY = 'baza-st-sidebar-collapsed';
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { isAdmin } = useAppContext();
+  const { isAdmin, isEditor } = useAppContext();
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -102,11 +107,12 @@ export function AppSidebar() {
     });
   };
 
+  const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : GUEST_VIEWS;
   const sections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: isAdmin
-      ? section.items
-      : section.items.filter((item) => GUEST_VIEWS.includes(item.href)),
+    items: allowedViews
+      ? section.items.filter((item) => allowedViews.includes(item.href))
+      : section.items,
   })).filter((section) => section.items.length > 0);
 
   return (

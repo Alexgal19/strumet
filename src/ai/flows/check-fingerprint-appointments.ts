@@ -9,6 +9,7 @@ import { startOfDay, differenceInDays, format } from 'date-fns';
 import type { FingerprintAppointment, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 import { sendEmail } from '@/ai/tools';
+import { sendPushToStaff } from '@/lib/server-push';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -50,6 +51,7 @@ export async function checkAppointmentsAndNotify(): Promise<{ notificationsCreat
     read: false,
   };
   await db.ref('notifications').push(newNotification);
+  await sendPushToStaff(newNotification.title, newNotification.message);
 
   // 2. Email notification
   const employeeDetails = upcomingAppointments

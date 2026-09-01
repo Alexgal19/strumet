@@ -7,6 +7,7 @@ import { getAdminApp, adminDb } from '@/lib/firebase-admin';
 import { startOfDay, isBefore, isEqual } from 'date-fns';
 import type { Employee, AppNotification } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
+import { sendPushToStaff } from '@/lib/server-push';
 
 const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
   return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
@@ -54,6 +55,7 @@ export async function checkPlannedTerminations(): Promise<{ processedCount: numb
     read: false,
   };
   await db.ref('notifications').push(newNotification);
+  await sendPushToStaff(newNotification.title, newNotification.message);
 
   return { processedCount: employeesToProcess.length, notificationsCreated: 1 };
 }

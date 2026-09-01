@@ -16,7 +16,7 @@ import { useAppContext } from '@/context/app-context';
 import { getFirebaseServices } from '@/lib/firebase';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-import { ALL_NAV_ITEMS, GUEST_VIEWS, NAV_SECTIONS } from './app-sidebar';
+import { ALL_NAV_ITEMS, GUEST_VIEWS, EDITOR_VIEWS, NAV_SECTIONS } from './app-sidebar';
 
 interface AppMobileDrawerProps {
   open: boolean;
@@ -29,7 +29,7 @@ interface AppMobileDrawerProps {
  * w sekcje, analogicznie do sidebaru na desktopie.
  */
 export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawerProps) {
-  const { isAdmin } = useAppContext();
+  const { isAdmin, isEditor } = useAppContext();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -41,10 +41,12 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
     router.push('/login');
   };
 
+  const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : GUEST_VIEWS;
   const visibleHrefs = new Set(
-    isAdmin
-      ? ALL_NAV_ITEMS.map((item) => item.href)
-      : GUEST_VIEWS
+    (allowedViews
+      ? ALL_NAV_ITEMS.filter((item) => allowedViews.includes(item.href))
+      : ALL_NAV_ITEMS
+    ).map((item) => item.href)
   );
 
   const sections = NAV_SECTIONS.map((section) => ({

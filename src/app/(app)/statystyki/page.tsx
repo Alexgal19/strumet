@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive, UserPlus, UserX, CalendarClock, TrendingUp } from 'lucide-react';
+import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive, UserPlus, UserX, CalendarClock, TrendingUp, Printer } from 'lucide-react';
 import { Employee, Order, AllConfig, Stats, User, UserRole, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
+import { MonthlyReportPrint } from '@/components/monthly-report-print';
 import { DateRange } from 'react-day-picker';
 import { format, startOfDay, isEqual, isBefore, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -64,11 +65,12 @@ interface DepartmentHierarchy {
 // CustomTooltip moved to statistics-pie-chart component
 
 const ReportTab = forwardRef<unknown, {}>((_, ref) => {
-    const { config, handleSaveEmployee, handleTerminateEmployee, isAdmin } = useAppContext();
+    const { config, handleSaveEmployee, handleTerminateEmployee, isAdmin, absences } = useAppContext();
     const { employees: activeEmployees } = useEmployees('aktywny');
     const [isStatDialogOpen, setIsStatDialogOpen] = useState(false);
     const [dialogContent, setDialogContent] = useState<DialogContentData | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isReportReady, setIsReportReady] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const { toast } = useToast();
 
@@ -214,10 +216,29 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             <span className="text-muted-foreground text-xs">{employee.cardNumber}</span>
         </div>));
     };
+    const handlePrintReport = () => {
+        setIsReportReady(true);
+        setTimeout(() => {
+            window.print();
+            setIsReportReady(false);
+        }, 150);
+    };
     return (<div className="flex flex-col space-y-6 flex-grow">
         <div className="flex items-center justify-between">
             <h3 className="text-xl font-bold">Raport bieżący</h3>
-            {isAdmin && activeEmployees.length > 0 && <StatisticsExcelExportButton stats={stats} departmentData={departmentData} nationalityData={nationalityData} jobTitleData={jobTitleData} employees={activeEmployees} />}
+            <div className="flex items-center gap-2">
+                {isAdmin && activeEmployees.length > 0 && (
+                    <Button
+                        variant="outline"
+                        onClick={handlePrintReport}
+                        title="Raport miesięczny do druku / PDF"
+                    >
+                        <Printer className="mr-2 h-4 w-4" />
+                        Raport miesięczny
+                    </Button>
+                )}
+                {isAdmin && activeEmployees.length > 0 && <StatisticsExcelExportButton stats={stats} departmentData={departmentData} nationalityData={nationalityData} jobTitleData={jobTitleData} employees={activeEmployees} />}
+            </div>
         </div>
         {activeEmployees.length === 0 ? (<div className="text-center text-muted-foreground py-10">
             Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
@@ -306,6 +327,16 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                 </div>
             </DialogContent>
         </Dialog>
+
+        <div className="print-only">
+            {isReportReady && (
+                <MonthlyReportPrint
+                    employees={activeEmployees}
+                    absences={absences}
+                    month={new Date()}
+                />
+            )}
+        </div>
     </div>);
 })
 ReportTab.displayName = 'ReportTab';

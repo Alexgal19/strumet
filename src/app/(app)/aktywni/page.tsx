@@ -43,6 +43,7 @@ import { EmployeeTable } from '../employees/employee-table';
 import { EmployeeForm } from '@/components/employee-form';
 import { LegalizationEmailDialog } from '@/components/legalization-email-dialog';
 import { AbsenceEmailDialog } from '@/components/absence-email-dialog';
+import { EmployeeTimeline } from '@/components/employee-timeline';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -102,6 +103,27 @@ export default function AktywniPage() {
 
   const handleAddNew = () => {
     setEditingEmployee('new');
+  };
+
+  const handleDuplicateEmployee = (employee: Employee) => {
+    const template: Employee = {
+      ...employee,
+      id: '',
+      fullName: '',
+      cardNumber: '',
+      lockerNumber: '',
+      departmentLockerNumber: '',
+      sealNumber: '',
+      hireDate: '',
+      terminationDate: '',
+      plannedTerminationDate: '',
+      vacationStartDate: '',
+      vacationEndDate: '',
+      contractEndDate: '',
+      legalizationStatus: 'Brak',
+      status: 'aktywny',
+    };
+    setEditingEmployee(template);
   };
 
   return (
@@ -206,6 +228,7 @@ export default function AktywniPage() {
                 onDelete={setDeletingEmployee}
                 onLegalizationEmail={setLegalizationEmployee}
                 onAbsenceEmail={setAbsenceEmployee}
+                onDuplicate={handleDuplicateEmployee}
                 exportColumns={exportColumns}
                 exportFileName="aktywni_pracownicy"
                 initialSorting={[{ id: 'hireDate', desc: true }]}
@@ -311,7 +334,15 @@ export default function AktywniPage() {
             />
           );
 
-          const title = editingEmployee === 'new' ? 'Dodaj pracownika' : 'Edytuj pracownika';
+          const title = !editingEmployee || editingEmployee === 'new' || !editingEmployee.id
+            ? 'Dodaj pracownika'
+            : 'Edytuj pracownika';
+
+          const timeline = editingEmployee && editingEmployee !== 'new' && editingEmployee.id ? (
+            <div className="mt-6">
+              <EmployeeTimeline employee={editingEmployee} />
+            </div>
+          ) : null;
 
           if (isMobile) {
             return (
@@ -325,6 +356,7 @@ export default function AktywniPage() {
                   </SheetHeader>
                   <div className="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar">
                     {form}
+                    {timeline}
                   </div>
                 </SheetContent>
               </Sheet>
@@ -339,6 +371,7 @@ export default function AktywniPage() {
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
                   {form}
+                  {timeline}
                 </div>
               </DialogContent>
             </Dialog>

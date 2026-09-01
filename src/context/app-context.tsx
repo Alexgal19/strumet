@@ -19,6 +19,7 @@ import {
     type Database,
 } from 'firebase/database';
 import { getFirebaseServices } from '@/lib/firebase';
+import { setupPushNotifications } from '@/lib/push';
 import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { format, startOfDay, isBefore } from 'date-fns';
@@ -207,6 +208,8 @@ interface AppContextType {
     markNoteAsRead: (id: string) => Promise<void>;
     currentUser: AuthUser | null;
     isAdmin: boolean;
+    isEditor: boolean;
+    logAudit: (action: string, details: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -236,8 +239,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const dataLoadedRef = useRef<Set<string>>(new Set());
     const authInitializedRef = useRef(false);
     const expiredVacationsCleanupRef = useRef<Set<string>>(new Set());
+    const pushInitializedRef = useRef(false);
 
     const isAdmin = currentUser?.role === 'admin';
+    const isEditor = currentUser?.role === 'editor';
+
+    const logAudit = useCallback(async (action: string, details: string): Promise<void> => {
+        if (!services) return;
+        const { db } = services;
+        try {
+            const newRef = push(ref(db, 'auditLog'));
+            await set(newRef, {
+                at: new Date().toISOString(),
+                user: currentUser?.email || 'nieznany',
+                action,
+                details,
+            });
+        } catch (error) {
+            console.error('[logAudit] Error:', error);
+        }
+    }, [services, currentUser]);
 
     useEffect(() => {
         const services = getFirebaseServices();
@@ -259,6 +280,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     const role = snapshot.val() as UserRole || 'guest';
                     setCurrentUser({ uid: user.uid, email: user.email, role });
                     // Nie ustawiaj isLoading tutaj - zostanie to ustawione gdy dane się załadują
+                    if ((role === 'admin' || role === 'editor') && !pushInitializedRef.current) {
+                        pushInitializedRef.current = true;
+                        void setupPushNotifications(user.uid);
+                    }
                 });
             } else {
                 setCurrentUser(null);
@@ -664,10 +689,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             if (id) {
                 await set(ref(db, `employees/${id}`), finalData);
                 toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
+                void logAudit('Aktualizacja pracownika', finalData.fullName || id);
             } else {
                 const newEmployeeRef = push(ref(db, 'employees'));
                 await set(newEmployeeRef, { ...finalData, status: 'aktywny', status_fullName: `aktywny_${finalData.fullName.toLowerCase()}` });
                 toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
+                void logAudit('Dodanie pracownika', finalData.fullName || '');
             }
             return true;
         } catch (error) {
@@ -675,7 +702,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
             return false;
         }
-    }, [services, toast]);
+    }, [services, toast, logAudit]);
 
     const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
         if (!services) return false;
@@ -687,13 +714,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 status_fullName: `zwolniony_${employeeFullName.toLowerCase()}`
             });
             toast({ title: 'Pracownik zwolniony', description: 'Status pracownika został zmieniony na "zwolniony".' });
+            void logAudit('Zwolnienie pracownika', employeeFullName);
             return true;
         } catch (error) {
             console.error("Error terminating employee: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
             return false;
         }
-    }, [services, toast]);
+    }, [services, toast, logAudit]);
 
     const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
         if (!services) {
@@ -715,6 +743,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 status_fullName: `aktywny_${employeeFullName.toLowerCase()}`
             });
             toast({ title: 'Sukces', description: 'Pracownik zosta\u0142 przywr\u00f3cony.' });
+            void logAudit('Przywrócenie pracownika', employeeFullName);
             return true;
         } catch (error) {
             console.error("[handleRestoreEmployee] Error:", error);
@@ -727,7 +756,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Nie uda\u0142o si\u0119 przywr\u00f3ci\u0107 pracownika.' });
             return false;
         }
-    }, [services, toast]);
+    }, [services, toast, logAudit]);
 
     const handleDeleteEmployeePermanently = useCallback(async (employeeId: string): Promise<boolean> => {
         if (!services) return false;
@@ -751,13 +780,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
             await update(ref(db), updates);
             toast({ title: 'Sukces', description: 'Pracownik i wszystkie powiązane dane zostały trwale usunięte.' });
+            void logAudit('Trwałe usunięcie pracownika', employees.find((e) => e.id === employeeId)?.fullName || employeeId);
             return true;
         } catch (error) {
             console.error("Error deleting employee permanently: ", error);
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracownika.' });
             return false;
         }
-    }, [services, toast]);
+    }, [services, toast, employees, logAudit]);
 
     const handleDeleteAllHireDates = useCallback(async () => {
         if (!services) return;
@@ -1026,13 +1056,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         const newRef = push(ref(db, 'absences'));
         await set(newRef, { employeeId, date });
-    }, [services]);
+        const name = employees.find((e) => e.id === employeeId)?.fullName || employeeId;
+        void logAudit('Oznaczono nieobecność', `${name} — ${date}`);
+    }, [services, employees, logAudit]);
 
     const deleteAbsence = useCallback(async (absenceId: string) => {
         if (!services) return;
         const { db } = services;
+        const absence = absences.find((a) => a.id === absenceId);
         await remove(ref(db, `absences/${absenceId}`));
-    }, [services]);
+        const name = employees.find((e) => e.id === absence?.employeeId)?.fullName || absence?.employeeId || absenceId;
+        void logAudit('Cofnięto nieobecność', `${name} — ${absence?.date ?? '?'}`);
+    }, [services, employees, absences, logAudit]);
 
     const addAbsenceRecord = useCallback(async (record: Omit<AbsenceRecord, 'id'>) => {
         if (!services) return;
@@ -1343,6 +1378,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         markNoteAsRead,
         currentUser,
         isAdmin,
+        isEditor,
+        logAudit,
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

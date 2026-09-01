@@ -15,11 +15,7 @@ import {
 } from '@/components/ui/command';
 import { useAppContext } from '@/context/app-context';
 import { commandExcelFilter } from '@/lib/search';
-import {
-  ALL_NAV_ITEMS,
-  GUEST_VIEWS,
-  NAV_SECTIONS,
-} from '@/components/app-sidebar';
+import { ALL_NAV_ITEMS, GUEST_VIEWS, EDITOR_VIEWS, NAV_SECTIONS } from '@/components/app-sidebar';
 
 interface CommandMenuProps {
   open: boolean;
@@ -28,7 +24,7 @@ interface CommandMenuProps {
 
 export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
   const router = useRouter();
-  const { isAdmin } = useAppContext();
+  const { isAdmin, isEditor } = useAppContext();
   const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -42,12 +38,13 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
     return () => document.removeEventListener('keydown', down);
   }, [open, onOpenChange]);
 
+  const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : GUEST_VIEWS;
   const visibleItems = React.useMemo(
     () =>
-      isAdmin
-        ? ALL_NAV_ITEMS
-        : ALL_NAV_ITEMS.filter((item) => GUEST_VIEWS.includes(item.href)),
-    [isAdmin]
+      allowedViews
+        ? ALL_NAV_ITEMS.filter((item) => allowedViews.includes(item.href))
+        : ALL_NAV_ITEMS,
+    [allowedViews]
   );
 
   const run = useCallback(

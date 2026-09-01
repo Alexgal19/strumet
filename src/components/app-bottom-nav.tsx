@@ -30,6 +30,13 @@ const GUEST_PRIMARY: MenuItem[] = [
   { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
 ];
 
+const EDITOR_PRIMARY: MenuItem[] = [
+  { href: '/pulpit', icon: LayoutDashboard, label: 'Pulpit' },
+  { href: '/aktywni', icon: Users, label: 'Pracownicy' },
+  { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
+  { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
+];
+
 interface AppBottomNavProps {
   pathname: string;
   onOpenMenu: () => void;
@@ -38,11 +45,15 @@ interface AppBottomNavProps {
 const AppBottomNav = ({ pathname, onOpenMenu }: AppBottomNavProps) => {
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
-  const { isAdmin } = useAppContext();
+  const { isAdmin, isEditor } = useAppContext();
 
   if (!hasMounted || !isMobile) return null;
 
-  const primaryItems = isAdmin ? ADMIN_PRIMARY : GUEST_PRIMARY;
+  const primaryItems = isAdmin
+    ? ADMIN_PRIMARY
+    : isEditor
+      ? EDITOR_PRIMARY
+      : GUEST_PRIMARY;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center md:hidden bg-background border-t shadow-md pb-[env(safe-area-inset-bottom)]">
