@@ -228,7 +228,7 @@ const UserManagementTab = () => {
 
 
 export default function ConfigurationPage() {
-  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, handleSaveGmailCredentials, updateRecipientEmails, isAdmin } = useAppContext();
+  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, handleSaveGmailCredentials, handleSaveSmtpSettings, updateRecipientEmails, isAdmin } = useAppContext();
   const hasMounted = useHasMounted();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -241,6 +241,12 @@ export default function ConfigurationPage() {
 
   const [gmailUser, setGmailUser] = useState('');
   const [gmailAppPassword, setGmailAppPassword] = useState('');
+  const [smtpHost, setSmtpHost] = useState('');
+  const [smtpPort, setSmtpPort] = useState('587');
+  const [smtpSecure, setSmtpSecure] = useState(false);
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
+  const [fromName, setFromName] = useState('Strumet HR');
   const [recipientEmails, setRecipientEmails] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
@@ -252,7 +258,13 @@ export default function ConfigurationPage() {
     setGmailUser(config.gmailUser || '');
     setGmailAppPassword(config.gmailAppPassword || '');
     setRecipientEmails(config.recipientEmails || []);
-  }, [config.gmailUser, config.gmailAppPassword, config.recipientEmails]);
+    setSmtpHost(config.smtpHost || '');
+    setSmtpPort(config.smtpPort ? String(config.smtpPort) : '587');
+    setSmtpSecure(config.smtpSecure ?? false);
+    setSmtpUser(config.smtpUser || '');
+    setSmtpPass(config.smtpPass || '');
+    setFromName(config.fromName || 'Strumet HR');
+  }, [config.gmailUser, config.gmailAppPassword, config.recipientEmails, config.smtpHost, config.smtpPort, config.smtpSecure, config.smtpUser, config.smtpPass, config.fromName]);
 
 
   const openAddDialog = (configType: ConfigType) => {
@@ -313,6 +325,17 @@ export default function ConfigurationPage() {
 
   const onSaveGmailCredentials = async () => {
     await handleSaveGmailCredentials(gmailUser, gmailAppPassword);
+  };
+
+  const onSaveSmtpSettings = async () => {
+    await handleSaveSmtpSettings({
+      host: smtpHost.trim(),
+      port: Number(smtpPort) || 587,
+      secure: smtpSecure,
+      user: smtpUser.trim(),
+      pass: smtpPass,
+      fromName: fromName.trim() || 'Strumet HR',
+    });
   };
 
   const addEmail = async () => {
@@ -390,7 +413,7 @@ export default function ConfigurationPage() {
                 <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-7" : "grid-cols-2")}>
                     <TabsTrigger value="lists">Listy</TabsTrigger>
                     <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
-                    {isAdmin && <TabsTrigger value="api_keys">Email SMTP (Gmail)</TabsTrigger>}
+                    {isAdmin && <TabsTrigger value="api_keys">E-mail (SMTP)</TabsTrigger>}
                     {isAdmin && <TabsTrigger value="emails">Adresy email</TabsTrigger>}
                     {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
                     {isAdmin && <TabsTrigger value="audit">Historia</TabsTrigger>}
@@ -465,13 +488,89 @@ export default function ConfigurationPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-3">
                                     <KeyRound className="h-6 w-6" />
-                                    Poświadczenia Gmail (Nodemailer)
+                                    E-mail — wysyłka (SMTP)
                                 </CardTitle>
                                 <CardDescription>
-                                    Wprowadź login (adres email) oraz Hasło Aplikacji (App Password) wygenerowane w ustawieniach konta Google.
+                                    Skonfiguruj firmową skrzynkę Outlook/M365 lub dowolny serwer SMTP. Gmail działa też — zostaw host pusty.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                <div className="rounded-xl border p-4 space-y-4">
+                                    <p className="text-sm font-semibold">Serwer SMTP (Outlook / firmowy)</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div className="sm:col-span-2">
+                                            <Label htmlFor="smtp-host">Serwer (host)</Label>
+                                            <Input
+                                                id="smtp-host"
+                                                value={smtpHost}
+                                                onChange={(e) => setSmtpHost(e.target.value)}
+                                                placeholder="smtp.office365.com"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="smtp-port">Port</Label>
+                                            <Input
+                                                id="smtp-port"
+                                                type="number"
+                                                value={smtpPort}
+                                                onChange={(e) => setSmtpPort(e.target.value)}
+                                                placeholder="587"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between rounded-lg border p-3">
+                                        <div>
+                                            <Label htmlFor="smtp-secure" className="text-sm">SSL/TLS (port 465)</Label>
+                                            <p className="text-xs text-muted-foreground">Wyłącz dla portu 587 (STARTTLS) — Outlook/M365</p>
+                                        </div>
+                                        <Switch
+                                            id="smtp-secure"
+                                            checked={smtpSecure}
+                                            onCheckedChange={setSmtpSecure}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <Label htmlFor="smtp-user">E-mail (login i nadawca)</Label>
+                                            <Input
+                                                id="smtp-user"
+                                                type="email"
+                                                value={smtpUser}
+                                                onChange={(e) => setSmtpUser(e.target.value)}
+                                                placeholder="o.holiadynets@swl.com.pl"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="smtp-pass">Hasło</Label>
+                                            <Input
+                                                id="smtp-pass"
+                                                type="password"
+                                                value={smtpPass}
+                                                onChange={(e) => setSmtpPass(e.target.value)}
+                                                placeholder="hasło skrzynki"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="from-name">Nazwa nadawcy</Label>
+                                        <Input
+                                            id="from-name"
+                                            value={fromName}
+                                            onChange={(e) => setFromName(e.target.value)}
+                                            placeholder="Strumet HR"
+                                        />
+                                    </div>
+                                    <Button onClick={onSaveSmtpSettings} disabled={!smtpHost || !smtpUser || !smtpPass}>
+                                        <Save className="mr-2 h-4 w-4" />
+                                        Zapisz ustawienia SMTP
+                                    </Button>
+                                </div>
+
+                                <div className="relative py-2 text-center">
+                                    <span className="relative z-10 bg-background px-3 text-xs uppercase tracking-wider text-muted-foreground">lub Gmail (bez hosta)</span>
+                                    <div className="absolute inset-0 top-1/2 h-px bg-border" />
+                                </div>
+
                                 <div>
                                     <Label htmlFor="gmail-user">Adres Gmail</Label>
                                     <Input 

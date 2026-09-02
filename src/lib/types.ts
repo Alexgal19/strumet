@@ -64,6 +64,12 @@ export interface AllConfig {
   gmailUser?: string;
   gmailAppPassword?: string;
   recipientEmails?: string[];
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  smtpPass?: string;
+  fromName?: string;
 }
 
 export interface Absence {

@@ -184,6 +184,14 @@ interface AppContextType {
     removeConfigItem: (configType: ConfigType, itemId: string) => Promise<void>;
     handleSaveJobTitleClothingSet: (jobTitleId: string, description: string) => Promise<void>;
     handleSaveGmailCredentials: (user: string, pass: string) => Promise<void>;
+    handleSaveSmtpSettings: (settings: {
+        host: string;
+        port: number;
+        secure: boolean;
+        user: string;
+        pass: string;
+        fromName: string;
+    }) => Promise<void>;
     handleUpdateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
     addAbsence: (employeeId: string, date: string) => Promise<void>;
     deleteAbsence: (absenceId: string) => Promise<void>;
@@ -451,6 +459,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         gmailUser: privateData.gmailUser || '',
                         gmailAppPassword: privateData.gmailAppPassword || '',
                         recipientEmails: privateData.recipientEmails || [],
+                        smtpHost: privateData.smtpHost || '',
+                        smtpPort: privateData.smtpPort || '',
+                        smtpSecure: privateData.smtpSecure ?? false,
+                        smtpUser: privateData.smtpUser || '',
+                        smtpPass: privateData.smtpPass || '',
+                        fromName: privateData.fromName || '',
                     }));
                 },
                 essential: false,
@@ -1039,6 +1053,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [services, toast]);
 
+    const handleSaveSmtpSettings = useCallback(async (settings: {
+        host: string;
+        port: number;
+        secure: boolean;
+        user: string;
+        pass: string;
+        fromName: string;
+    }) => {
+        if (!services) return;
+        const { db } = services;
+        try {
+            await update(ref(db, 'configPrivate'), {
+                smtpHost: settings.host,
+                smtpPort: settings.port,
+                smtpSecure: settings.secure,
+                smtpUser: settings.user,
+                smtpPass: settings.pass,
+                fromName: settings.fromName,
+            });
+            void logAudit('Zmiana ustawień e-mail (SMTP)', settings.host);
+            toast({ title: "Sukces", description: "Ustawienia SMTP zostały zapisane."});
+        } catch (error) {
+            console.error("Error saving SMTP settings:", error);
+            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać ustawień SMTP."});
+        }
+    }, [services, toast, logAudit]);
+
     const handleUpdateUserRole = useCallback(async (userId: string, newRole: UserRole) => {
         if (!services) return;
         const { db } = services;
@@ -1354,6 +1395,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         removeConfigItem,
         handleSaveJobTitleClothingSet,
         handleSaveGmailCredentials,
+        handleSaveSmtpSettings,
         handleUpdateUserRole,
         addAbsence,
         deleteAbsence,
