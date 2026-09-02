@@ -10,7 +10,9 @@ import { cn } from "@/lib/utils"
 import { Employee } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { DateRange } from "react-day-picker"
-import { Mail } from "lucide-react"
+import { Mail, Send, Loader2 } from "lucide-react"
+import { sendEmail } from "@/ai/tools"
+import { buildAbsenceEmailHtml } from "@/lib/email-signature"
 
 interface AbsenceEmailDialogProps {
   isOpen: boolean
@@ -26,6 +28,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     to: new Date()
   })
   const [multipleDates, setMultipleDates] = useState<Date[] | undefined>([new Date()])
+  const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -55,7 +58,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     }
   }
 
-  const handleOpenEmail = () => {
+  const handleOpenEmail = async () => {
     if (!employee) return
 
     const dateStr = getAbsenceDateString()
@@ -69,7 +72,48 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     }
 
     const subject = `Nieobecność ${dateStr}`
-    
+
+    // Wersja z graficzną stopką — wysyłka bezpośrednio z aplikacji (HTML + banner SWL)
+    setIsSending(true)
+    try {
+      const htmlBody = buildAbsenceEmailHtml({
+        fullName: employee.fullName,
+        department: employee.department || '',
+        dateStr,
+      })
+      const result = await sendEmail({ subject, body: htmlBody })
+      if (result.success) {
+        toast({
+          title: 'E-mail wysłany',
+          description: 'Wiadomość z graficzną stopką SWL została wysłana do odbiorców z konfiguracji.',
+        })
+        onOpenChange(false)
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Nie udało się wysłać',
+          description: `${result.message} Użyj opcji „Otwórz w kliencie", aby wysłać ręcznie.`,
+        })
+      }
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Błąd wysyłki',
+        description: 'Spróbuj ponownie lub użyj opcji „Otwórz w kliencie".',
+      })
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const handleOpenEmailClient = () => {
+    if (!employee) return
+
+    const dateStr = getAbsenceDateString()
+    if (!dateStr) return
+
+    const subject = `Nieobecność ${dateStr}`
+
     // Plain text body with SWL signature (since mailto only supports plain text)
     const body = [
       "Dzień dobry,",
@@ -166,15 +210,26 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Anuluj</Button>
+        <DialogFooter className="flex-col gap-2 sm:flex-col">
           <Button
             onClick={handleOpenEmail}
-            disabled={!getAbsenceDateString()}
+            disabled={!getAbsenceDateString() || isSending}
+          >
+            {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            {isSending ? 'Wysyłanie...' : 'Wyślij e-mail (stopka graficzna)'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleOpenEmailClient}
+            disabled={isSending}
           >
             <Mail className="mr-2 h-4 w-4" />
-            Otwórz e-mail
+            Otwórz w kliencie (tekst)
           </Button>
+          <p className="text-[11px] text-muted-foreground text-center leading-snug">
+            Wysyłka z aplikacji używa konta Gmail z Konfiguracji i listy odbiorców —
+            w treści pojawi się graficzna stopka SWL. Wersja „w kliencie" to zwykły tekst (mailto).
+          </p>
         </DialogFooter>
       </DialogContent>
     </Dialog>
