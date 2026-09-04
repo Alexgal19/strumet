@@ -22,8 +22,7 @@ import { getFirebaseServices } from '@/lib/firebase';
 import { setupPushNotifications } from '@/lib/push';
 import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { format, startOfDay, isBefore } from 'date-fns';
-import { parseMaybeDate } from '@/lib/date';
+import { format } from 'date-fns';
 import type {
     Employee,
     AllConfig,
@@ -169,6 +168,7 @@ interface AppContextType {
     handleSaveEmployee: (employeeData: Employee) => Promise<boolean>;
     handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<boolean>;
     handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<boolean>;
+    handleEndVacation: (employeeId: string, employeeFullName: string) => Promise<boolean>;
     handleDeleteEmployeePermanently: (employeeId: string) => Promise<boolean>;
     handleSaveCar: (carData: Car) => Promise<boolean>;
     handleTerminateCar: (carId: string) => Promise<boolean>;
@@ -246,7 +246,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     const dataLoadedRef = useRef<Set<string>>(new Set());
     const authInitializedRef = useRef(false);
-    const expiredVacationsCleanupRef = useRef<Set<string>>(new Set());
     const pushInitializedRef = useRef(false);
 
     const isAdmin = currentUser?.role === 'admin';
@@ -580,33 +579,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [services, currentUser, toast]);
 
-    // Auto-clear expired vacations: when vacationEndDate < today, clear both date fields
-    // This ensures "Urlopy" container on Pulpit does not show expired vacations and DB stays clean.
-    // Runs client-side for immediate UX + server-side CRON (check-expired-vacations.ts) for reliability.
-    useEffect(() => {
-        if (!services || !currentUser || employees.length === 0) return;
-        // Only run when data is fully loaded to avoid race with initial cache
-        if (isLoading) return;
-        const today = startOfDay(new Date());
-        const expired = employees.filter(e => {
-            if (!e.vacationEndDate) return false;
-            const end = parseMaybeDate(e.vacationEndDate);
-            if (!end) return false;
-            return isBefore(startOfDay(end), today);
-        });
-        if (expired.length === 0) return;
-        const toClear = expired.filter(e => !expiredVacationsCleanupRef.current.has(e.id));
-        if (toClear.length === 0) return;
-        toClear.forEach(e => expiredVacationsCleanupRef.current.add(e.id));
-        const { db } = services;
-        const updates: Record<string, any> = {};
-        toClear.forEach(emp => {
-            updates[`employees/${emp.id}/vacationStartDate`] = null;
-            updates[`employees/${emp.id}/vacationEndDate`] = null;
-        });
-        update(ref(db), updates).catch(err => console.error('[vacation cleanup] failed:', err));
-    }, [employees, services, currentUser, isLoading]);
-
 
     const handleSaveCar = useCallback(async (carData: Car): Promise<boolean> => {
         if (!services) return false;
@@ -768,6 +740,38 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     : e
             ));
             toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Nie uda\u0142o si\u0119 przywr\u00f3ci\u0107 pracownika.' });
+            return false;
+        }
+    }, [services, toast, logAudit]);
+
+    const handleEndVacation = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
+        if (!services) {
+            toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Firebase nie jest zainicjowany.' });
+            return false;
+        }
+        const { db } = services;
+        try {
+            setEmployees(prev => prev.map(e =>
+                e.id === employeeId
+                    ? { ...e, vacationStartDate: undefined, vacationEndDate: undefined }
+                    : e
+            ));
+
+            await update(ref(db, `employees/${employeeId}`), {
+                vacationStartDate: null,
+                vacationEndDate: null,
+            });
+            toast({ title: 'Sukces', description: 'Urlop zosta\u0142 zako\u0144czony. Pracownik wr\u00f3ci\u0142 do listy aktywnych.' });
+            void logAudit('Zakończenie urlopu', employeeFullName);
+            return true;
+        } catch (error) {
+            console.error("[handleEndVacation] Error:", error);
+            setEmployees(prev => prev.map(e =>
+                e.id === employeeId
+                    ? { ...e, vacationStartDate: e.vacationStartDate, vacationEndDate: e.vacationEndDate }
+                    : e
+            ));
+            toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Nie uda\u0142o si\u0119 zako\u0144czy\u0107 urlopu.' });
             return false;
         }
     }, [services, toast, logAudit]);
@@ -1380,6 +1384,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         handleSaveEmployee,
         handleTerminateEmployee,
         handleRestoreEmployee,
+        handleEndVacation,
         handleDeleteEmployeePermanently,
         handleSaveCar,
         handleTerminateCar,

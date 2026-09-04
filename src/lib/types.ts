@@ -131,6 +131,27 @@ export interface Order {
   realizedQuantity: number;
   createdAt: string; // ISO String
   type: 'new' | 'replacement';
+  neededUntil?: string; // ISO String — for temporary replacement orders (e.g. vacation cover)
+}
+
+export type StaffingHintReason = 'urlop' | 'odejście';
+
+export interface StaffingHint {
+  id: string; // `${department}|${jobTitle}|${reason}`
+  department: string;
+  jobTitle: string;
+  reason: StaffingHintReason;
+  count: number; // how many people are needed
+  from: string; // ISO string — earliest absence start
+  to?: string; // ISO string — latest absence end (undefined for permanent replacements)
+  employees: Employee[]; // source absences
+  orderedOutstanding: number; // replacement headcount already ordered but not yet realized
+}
+
+export interface VacationPerson {
+  employee: Employee;
+  status: 'aktywny' | 'zwolniony';
+  phase: 'na-urlopie' | 'zakończony' | 'planowany';
 }
 
 export interface StatsSnapshot {

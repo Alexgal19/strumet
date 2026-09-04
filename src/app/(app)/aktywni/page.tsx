@@ -63,7 +63,7 @@ const exportColumns = [
 
 export default function AktywniPage() {
   const { config, isLoading: isContextLoading, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently, handleSaveEmployee } = useAppContext();
-  const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
+  const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny', { excludeOnVacation: true });
   const router = useRouter();
   const isMobile = useIsMobile();
 

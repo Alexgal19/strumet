@@ -1,4 +1,4 @@
-import { format as formatFns, parseISO, isValid, parse } from 'date-fns';
+import { format as formatFns, parseISO, isValid, parse, startOfDay, compareAsc } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 /**
@@ -128,4 +128,45 @@ export function formatDateTime(
  */
 export function isValidDate(input: unknown): input is Date {
     return input instanceof Date && isValid(input);
+}
+
+/**
+ * Checks whether a vacation has already started (start day reached, inclusive).
+ * Returns false when no start date is set or it is invalid.
+ */
+export function vacationHasStarted(
+  start: Date | string | number | null | undefined,
+  now: Date = new Date()
+): boolean {
+  const startDate = parseMaybeDate(start);
+  if (!startDate) return false;
+  return compareAsc(startOfDay(startDate), startOfDay(now)) <= 0;
+}
+
+/**
+ * Checks whether a vacation has already ended (end day passed — exclusive of today,
+ * because the end date is the last day of vacation).
+ */
+export function vacationIsOver(
+  end: Date | string | number | null | undefined,
+  now: Date = new Date()
+): boolean {
+  const endDate = parseMaybeDate(end);
+  if (!endDate) return false;
+  return compareAsc(startOfDay(endDate), startOfDay(now)) < 0;
+}
+
+/**
+ * Checks whether "now" falls within the vacation interval [start, end] (both inclusive).
+ */
+export function isWithinVacation(
+  start: Date | string | number | null | undefined,
+  end: Date | string | number | null | undefined,
+  now: Date = new Date()
+): boolean {
+  const startDate = parseMaybeDate(start);
+  const endDate = parseMaybeDate(end);
+  if (!startDate || !endDate) return false;
+  const today = startOfDay(now);
+  return compareAsc(startOfDay(startDate), today) <= 0 && compareAsc(today, startOfDay(endDate)) <= 0;
 }
