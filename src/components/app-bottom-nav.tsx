@@ -49,6 +49,10 @@ const AppBottomNav = ({ pathname, onOpenMenu }: AppBottomNavProps) => {
 
   if (!hasMounted || !isMobile) return null;
 
+  // Ekran edycji pracownika = tryb pełnoekranowy (sticky footer formularza
+  // kolidowałby z bottom-nav — wzorzec Android: brak nawigacji w aktywności edycji)
+  if (pathname.startsWith('/pracownicy/')) return null;
+
   const primaryItems = isAdmin
     ? ADMIN_PRIMARY
     : isEditor
@@ -74,7 +78,7 @@ const AppBottomNav = ({ pathname, onOpenMenu }: AppBottomNavProps) => {
               <div className={cn('px-4 py-0.5 rounded-full transition-colors', isActive && 'bg-primary/15')}>
                 <Icon className="h-5 w-5" />
               </div>
-              <span className="text-[10px] font-medium tracking-tight">{item.label}</span>
+              <span className="text-xs font-medium tracking-tight">{item.label}</span>
             </Link>
           );
         })}
@@ -89,7 +93,7 @@ const AppBottomNav = ({ pathname, onOpenMenu }: AppBottomNavProps) => {
           <div className="px-4 py-0.5 rounded-full transition-colors">
             <Menu className="h-5 w-5" />
           </div>
-          <span className="text-[10px] font-medium tracking-tight">Więcej</span>
+          <span className="text-xs font-medium tracking-tight">Więcej</span>
         </button>
       </nav>
     </div>

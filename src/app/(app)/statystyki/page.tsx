@@ -35,6 +35,7 @@ import { pl } from 'date-fns/locale';
 import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
 import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 import { formatDate, parseMaybeDate } from '@/lib/date';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const StatisticsPieChart = dynamic(() => import('@/components/statistics-pie-chart'), {
   ssr: false,
@@ -198,10 +199,13 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                 </AccordionTrigger>
                                 <AccordionContent>
                                     <div className="pl-4 border-l-2 border-border ml-2">
-                                        {emps.map(employee => (<div key={employee.id} className={cn("flex items-center justify-between text-xs p-1.5 rounded-md", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={() => handleEmployeeClick(employee)}>
+                                        {emps.map(employee => (<button key={employee.id} className={cn("flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-2 text-sm text-left", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={isAdmin ? () => handleEmployeeClick(employee) : undefined}>
                                             <span>{employee.fullName}</span>
-                                            <span className="text-xs text-muted-foreground">{employee.cardNumber}</span>
-                                        </div>))}
+                                            <span className="flex items-center gap-1">
+                                                <span className="text-xs text-muted-foreground">{employee.cardNumber}</span>
+                                                {isAdmin && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                            </span>
+                                        </button>))}
                                     </div>
                                 </AccordionContent>
                             </AccordionItem>))}
@@ -211,10 +215,13 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             </Accordion>);
         }
         const employeesToShow = dialogContent.data as Employee[];
-        return employeesToShow.map(employee => (<div key={employee.id} className={cn("flex items-center justify-between text-sm p-2 rounded-md", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={() => handleEmployeeClick(employee)}>
+        return employeesToShow.map(employee => (<button key={employee.id} className={cn("flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-2 text-sm text-left", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={isAdmin ? () => handleEmployeeClick(employee) : undefined}>
             <span className="font-medium">{employee.fullName}</span>
-            <span className="text-muted-foreground text-xs">{employee.cardNumber}</span>
-        </div>));
+            <span className="flex items-center gap-1">
+                <span className="text-muted-foreground text-xs">{employee.cardNumber}</span>
+                {isAdmin && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+            </span>
+        </button>));
     };
     const handlePrintReport = () => {
         setIsReportReady(true);
@@ -224,7 +231,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         }, 150);
     };
     return (<div className="flex flex-col space-y-6 flex-grow">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <h3 className="text-xl font-bold">Raport bieżący</h3>
             <div className="flex items-center gap-2">
                 {isAdmin && activeEmployees.length > 0 && (
@@ -283,10 +290,14 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                     </Card>
                 </div>
             </div>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                {renderPieChart(departmentData, "Rozkład wg Działów", "Liczba pracowników w poszczególnych działach.", "department")}
-                {renderPieChart(nationalityData, "Rozkład wg Narodowości", "Struktura pracowników z podziałem na narodowości.", "nationality")}
-                <div className="lg:col-span-2">
+            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 md:grid md:grid-cols-3 md:overflow-visible">
+                <div className="min-w-[85%] snap-center md:min-w-0">
+                    {renderPieChart(departmentData, "Rozkład wg Działów", "Liczba pracowników w poszczególnych działach.", "department")}
+                </div>
+                <div className="min-w-[85%] snap-center md:min-w-0">
+                    {renderPieChart(nationalityData, "Rozkład wg Narodowości", "Struktura pracowników z podziałem na narodowości.", "nationality")}
+                </div>
+                <div className="min-w-[85%] snap-center md:min-w-0">
                     {renderPieChart(jobTitleData, "Rozkład wg Stanowisk", "Liczba pracowników na poszczególnych stanowiskach.", "jobTitle")}
                 </div>
             </div>
@@ -384,40 +395,48 @@ const SingleDayReportCard = ({ title, data }: { title: string, data: { name: str
     </Card>
 );
 
-const EmployeeChangeList = ({ title, employees, icon, emptyText }: { title: string, employees: any[], icon: React.ReactNode, emptyText: string }) => (
-    <Card className="flex flex-col glass-card">
-        <CardHeader>
-            <div className="flex items-center gap-3">
-                {icon}
-                <div>
-                    <CardTitle className="text-lg">{title}</CardTitle>
-                    <CardDescription>{employees.length} pracowników</CardDescription>
-                </div>
-            </div>
-        </CardHeader>
-        <CardContent className="flex-grow">
-            {employees.length > 0 ? (
-                <ScrollArea className="h-80">
-                    <div className="space-y-4 pr-4">
-                        {employees.map((emp, index) => (
-                            <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
-                                <div className="flex-grow">
-                                    <p className="font-semibold">{emp.fullName}</p>
-                                    <p className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</p>
-                                </div>
-                                <div className="text-right text-xs text-muted-foreground">
-                                    <p>{formatDate(emp.date, 'dd.MM.yyyy')}</p>
-                                </div>
-                            </div>
-                        ))}
+const EmployeeChangeList = ({ title, employees, icon, emptyText }: { title: string, employees: any[], icon: React.ReactNode, emptyText: string }) => {
+    const list = (
+        <div className="space-y-4 pr-4">
+            {employees.map((emp, index) => (
+                <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
+                    <div className="flex-grow">
+                        <p className="font-semibold">{emp.fullName}</p>
+                        <p className="text-xs text-muted-foreground">{emp.jobTitle}, {emp.department}</p>
                     </div>
-                </ScrollArea>
-            ) : (
-                <p className="text-sm text-muted-foreground text-center py-6">{emptyText}</p>
-            )}
-        </CardContent>
-    </Card>
-);
+                    <div className="text-right text-xs text-muted-foreground">
+                        <p>{formatDate(emp.date, 'dd.MM.yyyy')}</p>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+    return (
+        <Card className="flex flex-col glass-card">
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    {icon}
+                    <div>
+                        <CardTitle className="text-lg">{title}</CardTitle>
+                        <CardDescription>{employees.length} pracowników</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow">
+                {employees.length > 0 ? (
+                    <>
+                        <div className="hidden sm:block"><ScrollArea className="h-80">{list}</ScrollArea></div>
+                        <div className="sm:hidden">{list}</div>
+                    </>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">{emptyText}</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
+const CHANGE_UNIT_LABEL: Record<string, string> = { department: 'działów', jobTitle: 'stanowisk', nationality: 'narodowości' };
 
 const FieldChangeList = ({ changes }: { changes: any[] }) => {
     const groupedChanges = changes.reduce((acc, change) => {
@@ -441,29 +460,33 @@ const FieldChangeList = ({ changes }: { changes: any[] }) => {
             </CardHeader>
             <CardContent>
                 <Accordion type="multiple" defaultValue={Object.keys(groupedChanges)}>
-                    {Object.entries(groupedChanges).map(([type, items]) => (
-                        <AccordionItem value={type} key={type}>
-                            <AccordionTrigger>Zmiany działów ({(items as any[]).length})</AccordionTrigger>
-                            <AccordionContent>
-                                <ScrollArea className="max-h-80">
-                                    <div className="space-y-4 pr-4">
-                                        {(items as any[]).map((item, index) => (
-                                            <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
-                                                <div className="flex-grow">
-                                                    <p className="font-semibold">{item.fullName}</p>
-                                                    <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                                        <span>{item.from}</span>
-                                                        <ArrowRight className="h-3 w-3" />
-                                                        <span className="font-bold">{item.to}</span>
-                                                    </div>
-                                                </div>
+                    {Object.entries(groupedChanges).map(([type, items]) => {
+                        const list = (
+                            <div className="space-y-4 pr-4">
+                                {(items as any[]).map((item, index) => (
+                                    <div key={index} className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
+                                        <div className="flex-grow">
+                                            <p className="font-semibold">{item.fullName}</p>
+                                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                                <span>{item.from}</span>
+                                                <ArrowRight className="h-3 w-3" />
+                                                <span className="font-bold">{item.to}</span>
                                             </div>
-                                        ))}
+                                        </div>
                                     </div>
-                                </ScrollArea>
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
+                                ))}
+                            </div>
+                        );
+                        return (
+                            <AccordionItem value={type} key={type}>
+                                <AccordionTrigger>Zmiany {CHANGE_UNIT_LABEL[type] ?? 'kategorii'} ({(items as any[]).length})</AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="hidden sm:block"><ScrollArea className="max-h-80">{list}</ScrollArea></div>
+                                    <div className="sm:hidden">{list}</div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        );
+                    })}
                 </Accordion>
             </CardContent>
         </Card>
@@ -472,6 +495,7 @@ const FieldChangeList = ({ changes }: { changes: any[] }) => {
 
 const HiresAndFiresTab = () => {
     const { isAdmin, currentUser, statsHistory } = useAppContext();
+    const isMobile = useIsMobile();
     const [isArchiving, setIsArchiving] = useState(false);
     const [date, setDate] = useState<DateRange | undefined>();
     const [report, setReport] = useState<any>(null);
@@ -598,7 +622,7 @@ const HiresAndFiresTab = () => {
                                     id="date"
                                     variant={"outline"}
                                     className={cn(
-                                        "w-[300px] justify-start text-left font-normal",
+                                        "w-full sm:w-[300px] justify-start text-left font-normal",
                                         !date && "text-muted-foreground"
                                     )}
                                     disabled={isLoading}
@@ -625,7 +649,7 @@ const HiresAndFiresTab = () => {
                                     defaultMonth={date?.from}
                                     selected={date}
                                     onSelect={setDate}
-                                    numberOfMonths={2}
+                                    numberOfMonths={isMobile ? 1 : 2}
                                     locale={pl}
                                     disabled={isLoading}
                                 />
@@ -715,61 +739,96 @@ const HiresAndFiresTab = () => {
                         </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <PeriodChangeCard title="Zmiany w działach" data={report.deptChanges} />
-                        <PeriodChangeCard title="Zmiany na stanowiskach" data={report.jobTitleChanges} />
-                        <PeriodChangeCard title="Zmiany narodowości" data={report.nationalityChanges} />
-                    </div>
+                    <Accordion type="multiple" className="w-full">
+                        <AccordionItem value="range-unit-changes">
+                            <AccordionTrigger>Zmiany w działach, stanowiskach i narodowościach</AccordionTrigger>
+                            <AccordionContent>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <PeriodChangeCard title="Zmiany w działach" data={report.deptChanges} />
+                                    <PeriodChangeCard title="Zmiany na stanowiskach" data={report.jobTitleChanges} />
+                                    <PeriodChangeCard title="Zmiany narodowości" data={report.nationalityChanges} />
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                 </div>
             )}
 
             {report && hasEvents && (
                 <div className="space-y-6 animate-fade-in">
                     {report.isRange ? (
-                        <h3 className="text-lg font-semibold mt-8">Szczegóły rotacji w okresie</h3>
+                        <Accordion type="multiple" className="w-full">
+                            <AccordionItem value="range-hires-fires">
+                                <AccordionTrigger>Szczegóły rotacji w okresie (zatrudnienia i zwolnienia)</AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        <EmployeeChangeList
+                                            title="Nowo zatrudnieni"
+                                            employees={report.newHires}
+                                            icon={<UserPlus className="h-6 w-6 text-green-500" />}
+                                            emptyText="Brak zatrudnień."
+                                        />
+                                        <EmployeeChangeList
+                                            title="Zwolnieni"
+                                            employees={report.terminated}
+                                            icon={<UserX className="h-6 w-6 text-destructive" />}
+                                            emptyText="Brak zwolnień."
+                                        />
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="range-field-changes">
+                                <AccordionTrigger>Zmiany w danych pracowników</AccordionTrigger>
+                                <AccordionContent>
+                                    <FieldChangeList changes={report.fieldChanges || []} />
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     ) : (
-                        <Card className="bg-muted/30">
-                            <CardHeader>
-                                <CardTitle>Raport na dzień: {report.date}</CardTitle>
-                                <CardDescription>Stan zatrudnienia i zdarzenia w wybranym dniu.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="p-4 rounded-lg border bg-background text-center">
-                                    <p className="text-sm text-muted-foreground">Całkowita liczba pracowników</p>
-                                    <div className="flex items-center justify-center gap-4 mt-2">
-                                        <span className="text-3xl font-bold">{report.total}</span>
+                        <>
+                            <Card className="bg-muted/30">
+                                <CardHeader>
+                                    <CardTitle>Raport na dzień: {report.date}</CardTitle>
+                                    <CardDescription>Stan zatrudnienia i zdarzenia w wybranym dniu.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="p-4 rounded-lg border bg-background text-center">
+                                        <p className="text-sm text-muted-foreground">Całkowita liczba pracowników</p>
+                                        <div className="flex items-center justify-center gap-4 mt-2">
+                                            <span className="text-3xl font-bold">{report.total}</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="p-4 rounded-lg border bg-background text-center">
-                                    <p className="text-sm text-muted-foreground">Zatrudnieni tego dnia</p>
-                                    <div className="flex items-center justify-center gap-4 mt-2">
-                                        <span className="text-3xl font-bold text-green-500">+{report.newHires.length}</span>
+                                    <div className="p-4 rounded-lg border bg-background text-center">
+                                        <p className="text-sm text-muted-foreground">Zatrudnieni tego dnia</p>
+                                        <div className="flex items-center justify-center gap-4 mt-2">
+                                            <span className="text-3xl font-bold text-green-500">+{report.newHires.length}</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="p-4 rounded-lg border bg-background text-center">
-                                    <p className="text-sm text-muted-foreground">Zwolnieni tego dnia</p>
-                                    <div className="flex items-center justify-center gap-4 mt-2">
-                                        <span className="text-3xl font-bold text-destructive">-{report.terminated.length}</span>
+                                    <div className="p-4 rounded-lg border bg-background text-center">
+                                        <p className="text-sm text-muted-foreground">Zwolnieni tego dnia</p>
+                                        <div className="flex items-center justify-center gap-4 mt-2">
+                                            <span className="text-3xl font-bold text-destructive">-{report.terminated.length}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <EmployeeChangeList
+                                    title="Zatrudnieni w tym dniu"
+                                    employees={report.newHires}
+                                    icon={<UserPlus className="h-6 w-6 text-green-500" />}
+                                    emptyText="Brak zatrudnień."
+                                />
+                                <EmployeeChangeList
+                                    title="Zwolnieni w tym dniu"
+                                    employees={report.terminated}
+                                    icon={<UserX className="h-6 w-6 text-destructive" />}
+                                    emptyText="Brak zwolnień."
+                                />
+                            </div>
+                            <FieldChangeList changes={report.fieldChanges || []} />
+                        </>
                     )}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <EmployeeChangeList
-                            title={report.isRange ? "Nowo zatrudnieni" : "Zatrudnieni w tym dniu"}
-                            employees={report.newHires}
-                            icon={<UserPlus className="h-6 w-6 text-green-500" />}
-                            emptyText="Brak zatrudnień."
-                        />
-                        <EmployeeChangeList
-                            title={report.isRange ? "Zwolnieni" : "Zwolnieni w tym dniu"}
-                            employees={report.terminated}
-                            icon={<UserX className="h-6 w-6 text-destructive" />}
-                            emptyText="Brak zwolnień."
-                        />
-                    </div>
-                    <FieldChangeList changes={report.fieldChanges || []} />
                 </div>
             )}
 
@@ -868,9 +927,9 @@ const OrdersTab = () => {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
             {isAdmin && (
-                <div className="lg:col-span-1">
+                <div className="order-2 lg:order-1 lg:col-span-1">
                     <Tabs defaultValue="new" className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="new">Nowy pracownik</TabsTrigger>
@@ -961,7 +1020,7 @@ const OrdersTab = () => {
                     </Tabs>
                 </div>
             )}
-            <div className={isAdmin ? "lg:col-span-2" : "lg:col-span-3"}>
+            <div className={isAdmin ? "order-1 lg:order-2 lg:col-span-2" : "order-1 lg:order-2 lg:col-span-3"}>
                 <Card>
                     <CardHeader>
                         <CardTitle>Aktywne zamówienia</CardTitle>
@@ -1004,10 +1063,10 @@ const OrdersTab = () => {
                                                                     </div>
                                                                 </div>
                                                                 {isAdmin && <div>
-                                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(order)}>
+                                                                    <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleOpenEditDialog(order)}>
                                                                         <Edit className="h-4 w-4" />
                                                                     </Button>
-                                                                    <Button variant="ghost" size="icon" onClick={() => deleteOrder(order.id)}>
+                                                                    <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => deleteOrder(order.id)}>
                                                                         <Trash2 className="h-4 w-4 text-destructive" />
                                                                     </Button>
                                                                 </div>}
@@ -1117,9 +1176,9 @@ export default function StatisticsPage() {
             ) : (
                 <Tabs defaultValue="report" className="flex-grow flex flex-col">
                     <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="report">Raport Bieżący</TabsTrigger>
-                        <TabsTrigger value="hires_fires">Analiza</TabsTrigger>
-                        <TabsTrigger value="orders">Zamówienia</TabsTrigger>
+                        <TabsTrigger value="report" className="text-xs sm:text-sm">Raport</TabsTrigger>
+                        <TabsTrigger value="hires_fires" className="text-xs sm:text-sm">Analiza</TabsTrigger>
+                        <TabsTrigger value="orders" className="text-xs sm:text-sm">Zamówienia</TabsTrigger>
                     </TabsList>
                     <TabsContent value="report" className="flex-grow mt-6">
                         <ReportTab />

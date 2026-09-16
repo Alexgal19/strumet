@@ -64,28 +64,61 @@ export function AuditLogList() {
             Brak zapisanych zmian — historia zbiera się od teraz.
           </p>
         ) : (
-          <ScrollArea className="h-[480px] pr-3">
-            <div className="space-y-1.5">
-              {entries.map((entry) => (
+          <>
+            {/* Desktop — lista z wewnętrznym scrollem */}
+            <div className="hidden lg:block">
+              <ScrollArea className="h-[480px] pr-3">
+                <div className="space-y-1.5">
+                  {entries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-2 text-sm"
+                    >
+                      <span className="text-xs text-muted-foreground w-32 shrink-0">
+                        {format(new Date(entry.at), 'dd.MM.yyyy HH:mm', { locale: pl })}
+                      </span>
+                      <Badge
+                        variant={ACTION_VARIANTS[entry.action] === 'destructive' ? 'destructive' : 'secondary'}
+                        className="shrink-0"
+                      >
+                        {entry.action}
+                      </Badge>
+                      <span className="font-medium truncate min-w-0">{entry.details}</span>
+                      <span className="ml-auto text-xs text-muted-foreground shrink-0">{entry.user}</span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            {/* Mobile — karty w płynie strony (jeden scroll = scroll strony) */}
+            <div className="lg:hidden space-y-2">
+              {entries.slice(0, 30).map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-2 text-sm"
+                  className="rounded-xl border px-3 py-2.5 text-sm space-y-1.5"
                 >
-                  <span className="text-xs text-muted-foreground w-32 shrink-0">
-                    {format(new Date(entry.at), 'dd.MM.yyyy HH:mm', { locale: pl })}
-                  </span>
-                  <Badge
-                    variant={ACTION_VARIANTS[entry.action] === 'destructive' ? 'destructive' : 'secondary'}
-                    className="shrink-0"
-                  >
-                    {entry.action}
-                  </Badge>
-                  <span className="font-medium truncate min-w-0">{entry.details}</span>
-                  <span className="ml-auto text-xs text-muted-foreground shrink-0">{entry.user}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge
+                      variant={ACTION_VARIANTS[entry.action] === 'destructive' ? 'destructive' : 'secondary'}
+                      className="shrink-0 max-w-[70%] truncate"
+                    >
+                      {entry.action}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {format(new Date(entry.at), 'dd.MM HH:mm', { locale: pl })}
+                    </span>
+                  </div>
+                  <p className="font-medium break-words">{entry.details}</p>
+                  <p className="text-xs text-muted-foreground">{entry.user}</p>
                 </div>
               ))}
+              {entries.length > 30 && (
+                <p className="text-center text-xs text-muted-foreground py-2">
+                  Wyświetlono 30 z {entries.length} najnowszych zdarzeń.
+                </p>
+              )}
             </div>
-          </ScrollArea>
+          </>
         )}
       </CardContent>
     </Card>

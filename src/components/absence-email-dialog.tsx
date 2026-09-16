@@ -161,7 +161,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
             <button
               onClick={() => setMode("range")}
               className={cn(
-                "flex-1 text-xs font-medium py-1.5 rounded-md transition-all",
+                "flex-1 text-xs font-medium min-h-[44px] py-2 rounded-md transition-all",
                 mode === "range" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -170,7 +170,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
             <button
               onClick={() => setMode("multiple")}
               className={cn(
-                "flex-1 text-xs font-medium py-1.5 rounded-md transition-all",
+                "flex-1 text-xs font-medium min-h-[44px] py-2 rounded-md transition-all",
                 mode === "multiple" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -201,7 +201,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
 
           {/* Selected Dates Display */}
           <div className="space-y-1.5 bg-muted/40 p-3 rounded-md border border-border/50">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+            <span className="text-xs uppercase font-bold tracking-wider text-muted-foreground block">
               Wybrany okres / daty:
             </span>
             <span className="text-xs font-medium block break-all text-foreground min-h-[16px]">
@@ -226,7 +226,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
             <Mail className="mr-2 h-4 w-4" />
             Otwórz w kliencie (tekst)
           </Button>
-          <p className="text-[11px] text-muted-foreground text-center leading-snug">
+          <p className="text-xs text-muted-foreground text-center leading-snug">
             Wysyłka z aplikacji używa konta Gmail z Konfiguracji i listy odbiorców —
             w treści pojawi się graficzna stopka SWL. Wersja „w kliencie" to zwykły tekst (mailto).
           </p>

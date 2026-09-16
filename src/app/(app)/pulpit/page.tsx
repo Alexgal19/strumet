@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Card,
@@ -15,8 +15,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { AbsentOverview } from '@/components/absent-overview';
 import { parseMaybeDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
@@ -83,6 +90,8 @@ export default function DashboardPage() {
   } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } =
     useEmployees('aktywny');
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState('dzis');
   const isLoading = isContextLoading || isEmployeesLoading;
 
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -289,6 +298,456 @@ export default function DashboardPage() {
     />
   );
 
+  // --- Sekcje pulpitu (wspólne dla desktopu i mobile) ---
+  const absentSection = (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-bold tracking-tight">Nieobecni</h2>
+        <p className="text-xs text-muted-foreground">
+          Dane zapisują się na stałe — historia pozostaje dostępna po zmianie
+          miesiąca.
+        </p>
+      </div>
+      <AbsentOverview
+        employees={activeEmployees}
+        absences={absences}
+        isLoading={isLoading}
+      />
+    </div>
+  );
+
+  const vacationItems = [
+    ...onVacation.map((e) => ({
+      key: `vac-${e.id}`,
+      employee: e,
+      type: 'vacation' as const,
+    })),
+    ...upcomingVacations.map((e) => ({
+      key: `upv-${e.id}`,
+      employee: e,
+      type: 'vacation-planned' as const,
+    })),
+  ];
+
+  const contractsCard = (
+    <Card className="glass-card">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <CalendarClock className="h-5 w-5 text-orange-500 dark:text-orange-400" />
+          <CardTitle className="text-base">
+            Wygasające umowy ({expiringContracts.length})
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {expiringContracts.length > 0 ? (
+          <>
+            <div className="hidden lg:block">
+              <ScrollArea className="h-[280px]">
+                <div className="space-y-3 pr-4">
+                  {expiringContracts.map((employee) => (
+                    <ContractCard key={employee.id} employee={employee} />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            <div className="lg:hidden">
+              <ExpandableList
+                items={expiringContracts}
+                renderItem={(employee) => (
+                  <ContractCard key={employee.id} employee={employee} />
+                )}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <CalendarClock className="h-10 w-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Brak umów wygających w ciągu 30 dni.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const fingerprintsCard = (
+    <Card className="glass-card">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Bell className="h-5 w-5 text-blue-500 dark:text-blue-400" />
+          <CardTitle className="text-base">
+            Odciski palców ({upcomingAppointments.length})
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {upcomingAppointments.length > 0 ? (
+          <>
+            <div className="hidden lg:block">
+              <ScrollArea className="h-[280px]">
+                <div className="space-y-3 pr-4">
+                  {upcomingAppointments.map((appointment) => (
+                    <FingerprintCard
+                      key={appointment.id}
+                      appointment={appointment}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            <div className="lg:hidden">
+              <ExpandableList
+                items={upcomingAppointments}
+                renderItem={(appointment) => (
+                  <FingerprintCard
+                    key={appointment.id}
+                    appointment={appointment}
+                  />
+                )}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Fingerprint className="h-10 w-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Brak zaplanowanych wizyt w ciągu 30 dni.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const terminationsCard = (
+    <Card className="glass-card">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <UserX className="h-5 w-5 text-destructive" />
+          <CardTitle className="text-base">
+            Planowane zwolnienia ({plannedTerminations.length})
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {plannedTerminations.length > 0 ? (
+          <>
+            <div className="hidden lg:block">
+              <ScrollArea className="h-[280px]">
+                <div className="space-y-3 pr-4">
+                  {plannedTerminations.map((employee) => (
+                    <EmployeeCard
+                      key={employee.id}
+                      employee={employee}
+                      type="termination"
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            <div className="lg:hidden">
+              <ExpandableList
+                items={plannedTerminations}
+                renderItem={(employee) => (
+                  <EmployeeCard
+                    key={employee.id}
+                    employee={employee}
+                    type="termination"
+                  />
+                )}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <UserX className="h-10 w-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Brak zaplanowanych zwolnień.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const vacationsCard = (
+    <Card className="glass-card">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <CalendarClock className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
+          <CardTitle className="text-base">
+            Urlopy ({onVacation.length + upcomingVacations.length})
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {vacationItems.length > 0 ? (
+          <>
+            <div className="hidden lg:block">
+              <ScrollArea className="h-[280px]">
+                <div className="space-y-3 pr-4">
+                  {onVacation.map((employee) => (
+                    <EmployeeCard
+                      key={`vac-${employee.id}`}
+                      employee={employee}
+                      type="vacation"
+                    />
+                  ))}
+                  {upcomingVacations.map((employee) => (
+                    <EmployeeCard
+                      key={`upv-${employee.id}`}
+                      employee={employee}
+                      type="vacation-planned"
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            <div className="lg:hidden">
+              <ExpandableList
+                items={vacationItems}
+                renderItem={(item) => (
+                  <EmployeeCard
+                    key={item.key}
+                    employee={item.employee}
+                    type={item.type}
+                  />
+                )}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <CalendarClock className="h-10 w-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Brak pracowników na urlopie i zaplanowanych urlopów.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const alertsSection = (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-bold tracking-tight">
+          Alerty planowania
+        </h2>
+        <Link
+          href="/planowanie"
+          className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
+        >
+          Zobacz wszystkie <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {contractsCard}
+        {fingerprintsCard}
+        {terminationsCard}
+        {vacationsCard}
+      </div>
+    </div>
+  );
+
+  const chartsSection = (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {renderPieChart(
+        departmentData,
+        'Rozkład wg Działów',
+        'Liczba pracowników w poszczególnych działach.'
+      )}
+      {renderPieChart(
+        nationalityData,
+        'Rozkład wg Narodowości',
+        'Struktura pracowników z podziałem na narodowości.'
+      )}
+    </div>
+  );
+
+  const notificationsCard = (
+    <Card className="glass-card lg:col-span-2">
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <div className="flex items-center gap-2">
+          <Bell className="h-5 w-5 text-primary" />
+          <CardTitle className="text-base">Powiadomienia</CardTitle>
+          {unreadCount > 0 && (
+            <Badge
+              variant="default"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white"
+            >
+              {unreadCount} nowych
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {recentNotifications.length > 0 ? (
+          <>
+            <div className="hidden lg:block">
+              <ScrollArea className="h-[280px]">
+                <div className="space-y-3 pr-4">
+                  {recentNotifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={cn(
+                        'flex items-start gap-3 p-3 rounded-xl border transition-colors',
+                        !notif.read
+                          ? 'bg-primary/5 border-primary/20'
+                          : 'bg-card/50 border-border/50'
+                      )}
+                    >
+                      {!notif.read && (
+                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium leading-tight">
+                          {notif.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {notif.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground/60 mt-1.5">
+                          {format(new Date(notif.createdAt), 'dd.MM.yyyy HH:mm', {
+                            locale: pl,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            <div className="lg:hidden">
+              <ExpandableList
+                items={recentNotifications}
+                renderItem={(notif) => (
+                  <div
+                    key={notif.id}
+                    className={cn(
+                      'flex items-start gap-3 p-3 rounded-xl border transition-colors',
+                      !notif.read
+                        ? 'bg-primary/5 border-primary/20'
+                        : 'bg-card/50 border-border/50'
+                    )}
+                  >
+                    {!notif.read && (
+                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">
+                        {notif.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {notif.message}
+                      </p>
+                      <p className="text-xs text-muted-foreground/60 mt-1.5">
+                        {format(new Date(notif.createdAt), 'dd.MM.yyyy HH:mm', {
+                          locale: pl,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Bell className="h-10 w-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Brak nowych powiadomień.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const quickLinksCard = (
+    <Card className="glass-card">
+      <CardHeader>
+        <CardTitle className="text-base">Szybkie linki</CardTitle>
+        <CardDescription>
+          Przejdź do najczęściej używanych sekcji.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <QuickLink
+          href="/aktywni"
+          icon={<Users className="h-4 w-4" />}
+          label="Pracownicy aktywni"
+        />
+        <QuickLink
+          href="/statystyki"
+          icon={<BarChart3 className="h-4 w-4" />}
+          label="Statystyki"
+        />
+        <QuickLink
+          href="/planowanie"
+          icon={<CalendarClock className="h-4 w-4" />}
+          label="Planowanie"
+        />
+        {isAdmin && (
+          <QuickLink
+            href="/konfiguracja"
+            icon={<Settings className="h-4 w-4" />}
+            label="Konfiguracja"
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const summarySection = (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {notificationsCard}
+      {quickLinksCard}
+    </div>
+  );
+
+  const mobileTabs = (
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid h-auto w-full grid-cols-3">
+        <TabsTrigger value="dzis" className="min-h-[44px] text-xs sm:text-sm">
+          Dziś
+        </TabsTrigger>
+        <TabsTrigger value="alerty" className="min-h-[44px] text-xs sm:text-sm">
+          Alerty
+        </TabsTrigger>
+        <TabsTrigger
+          value="statystyki"
+          className="min-h-[44px] text-xs sm:text-sm"
+        >
+          Statystyki
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="dzis" className="mt-6">
+        <div className="space-y-6">
+          {absentSection}
+          {vacationsCard}
+          {notificationsCard}
+        </div>
+      </TabsContent>
+      <TabsContent value="alerty" className="mt-6">
+        <div className="space-y-6">
+          {contractsCard}
+          {fingerprintsCard}
+          {terminationsCard}
+        </div>
+      </TabsContent>
+      <TabsContent value="statystyki" className="mt-6">
+        <div className="space-y-6">
+          {chartsSection}
+          {quickLinksCard}
+        </div>
+      </TabsContent>
+    </Tabs>
+  );
+
   return (
     <div className="min-h-full flex flex-col w-full space-y-8 pb-8">
       {/* Header */}
@@ -359,7 +818,7 @@ export default function DashboardPage() {
             <div className="text-3xl font-bold">
               {turnoverRate ? `${turnoverRate.rate}%` : '—'}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
               {turnoverRate
                 ? `${turnoverRate.totalTerminations} zwolnień / średnio ${turnoverRate.avgHeadcount} prac.`
                 : 'Brak wystarczających danych'}
@@ -368,287 +827,49 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Nieobecni */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight">Nieobecni</h2>
-          <p className="text-xs text-muted-foreground">
-            Dane zapisują się na stałe — historia pozostaje dostępna po zmianie miesiąca.
-          </p>
-        </div>
-        <AbsentOverview
-          employees={activeEmployees}
-          absences={absences}
-          isLoading={isLoading}
-        />
+      {isMobile ? (
+        /* Mobile: 3 zakładki */
+        mobileTabs
+      ) : (
+        /* Desktop: jeden scroll, wszystkie sekcje */
+        <>
+          {absentSection}
+          {alertsSection}
+          {chartsSection}
+          {summarySection}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ExpandableList<T>({
+  items,
+  renderItem,
+  limit = 3,
+}: {
+  items: T[];
+  renderItem: (item: T, index: number) => React.ReactNode;
+  limit?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = items.length > limit;
+  const visibleItems = expanded || !hasMore ? items : items.slice(0, limit);
+
+  return (
+    <div>
+      <div className="space-y-3">
+        {visibleItems.map((item, index) => renderItem(item, index))}
       </div>
-
-      {/* Planning Alerts */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight">
-            Alerty planowania
-          </h2>
-          <Link
-            href="/planowanie"
-            className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
-          >
-            Zobacz wszystkie <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Contracts */}
-          <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-orange-500 dark:text-orange-400" />
-                <CardTitle className="text-base">
-                  Wygasające umowy ({expiringContracts.length})
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {expiringContracts.length > 0 ? (
-                <ScrollArea className="h-[280px]">
-                  <div className="space-y-3 pr-4">
-                    {expiringContracts.map((employee) => (
-                      <ContractCard key={employee.id} employee={employee} />
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <CalendarClock className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    Brak umów wygających w ciągu 30 dni.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Fingerprints */}
-          <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-blue-500 dark:text-blue-400" />
-                <CardTitle className="text-base">
-                  Odciski palców ({upcomingAppointments.length})
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {upcomingAppointments.length > 0 ? (
-                <ScrollArea className="h-[280px]">
-                  <div className="space-y-3 pr-4">
-                    {upcomingAppointments.map((appointment) => (
-                      <FingerprintCard
-                        key={appointment.id}
-                        appointment={appointment}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <Fingerprint className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    Brak zaplanowanych wizyt w ciągu 30 dni.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Terminations */}
-          <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <UserX className="h-5 w-5 text-destructive" />
-                <CardTitle className="text-base">
-                  Planowane zwolnienia ({plannedTerminations.length})
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {plannedTerminations.length > 0 ? (
-                <ScrollArea className="h-[280px]">
-                  <div className="space-y-3 pr-4">
-                    {plannedTerminations.map((employee) => (
-                      <EmployeeCard
-                        key={employee.id}
-                        employee={employee}
-                        type="termination"
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <UserX className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    Brak zaplanowanych zwolnień.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Vacations */}
-          <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
-                <CardTitle className="text-base">
-                  Urlopy ({onVacation.length + upcomingVacations.length})
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {onVacation.length === 0 && upcomingVacations.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <CalendarClock className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    Brak pracowników na urlopie i zaplanowanych urlopów.
-                  </p>
-                </div>
-              ) : (
-                <ScrollArea className="h-[280px]">
-                  <div className="space-y-3 pr-4">
-                    {onVacation.map((employee) => (
-                      <EmployeeCard
-                        key={`vac-${employee.id}`}
-                        employee={employee}
-                        type="vacation"
-                      />
-                    ))}
-                    {upcomingVacations.map((employee) => (
-                      <EmployeeCard
-                        key={`upv-${employee.id}`}
-                        employee={employee}
-                        type="vacation-planned"
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {renderPieChart(
-          departmentData,
-          'Rozkład wg Działów',
-          'Liczba pracowników w poszczególnych działach.'
-        )}
-        {renderPieChart(
-          nationalityData,
-          'Rozkład wg Narodowości',
-          'Struktura pracowników z podziałem na narodowości.'
-        )}
-      </div>
-
-      {/* Notifications + Quick Links */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Notifications */}
-        <Card className="glass-card lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base">Powiadomienia</CardTitle>
-              {unreadCount > 0 && (
-                <Badge
-                  variant="default"
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                >
-                  {unreadCount} nowych
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {recentNotifications.length > 0 ? (
-              <ScrollArea className="h-[280px]">
-                <div className="space-y-3 pr-4">
-                  {recentNotifications.map((notif) => (
-                    <div
-                      key={notif.id}
-                      className={cn(
-                        'flex items-start gap-3 p-3 rounded-xl border transition-colors',
-                        !notif.read
-                          ? 'bg-primary/5 border-primary/20'
-                          : 'bg-card/50 border-border/50'
-                      )}
-                    >
-                      {!notif.read && (
-                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-tight">
-                          {notif.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {notif.message}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground/60 mt-1.5">
-                          {format(new Date(notif.createdAt), 'dd.MM.yyyy HH:mm', {
-                            locale: pl,
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <Bell className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  Brak nowych powiadomień.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quick Links */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="text-base">Szybkie linki</CardTitle>
-            <CardDescription>
-              Przejdź do najczęściej używanych sekcji.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <QuickLink
-              href="/aktywni"
-              icon={<Users className="h-4 w-4" />}
-              label="Pracownicy aktywni"
-            />
-            <QuickLink
-              href="/statystyki"
-              icon={<BarChart3 className="h-4 w-4" />}
-              label="Statystyki"
-            />
-            <QuickLink
-              href="/planowanie"
-              icon={<CalendarClock className="h-4 w-4" />}
-              label="Planowanie"
-            />
-            {isAdmin && (
-              <QuickLink
-                href="/konfiguracja"
-                icon={<Settings className="h-4 w-4" />}
-                label="Konfiguracja"
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {hasMore && (
+        <Button
+          variant="ghost"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="mt-2 w-full min-h-[44px] rounded-xl text-sm text-primary hover:bg-primary/5"
+        >
+          {expanded ? 'Pokaż mniej' : `Pokaż więcej (+${items.length - limit})`}
+        </Button>
+      )}
     </div>
   );
 }

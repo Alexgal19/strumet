@@ -9,19 +9,7 @@ import {
   CardDescription
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
+import { EmployeeCombobox } from '@/components/employee-combobox';
 import {
   Table,
   TableBody,
@@ -30,13 +18,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, ChevronsUpDown, CheckIcon, Printer, History, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, Printer, History, PlusCircle, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
-import { Employee, ClothingIssuance } from '@/lib/types';
+import { ClothingIssuance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/date';
-import { cn } from '@/lib/utils';
-import { commandExcelFilter } from '@/lib/search';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelect, OptionType } from '@/components/ui/multi-select';
@@ -51,7 +37,6 @@ export default function ClothingIssuancePage() {
   const { employees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
   const [currentItems, setCurrentItems] = useState<{ id: string; name: string; quantity: number }[]>([]);
 
@@ -153,42 +138,12 @@ export default function ClothingIssuancePage() {
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
                         <label className="text-base font-medium">Pracownik</label>
-                        <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                            <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={isComboboxOpen}
-                                className="w-full justify-between h-12 text-base"
-                            >
-                                {selectedEmployee ? selectedEmployee.fullName : "Wybierz pracownika..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command filter={commandExcelFilter}>
-                                <CommandInput placeholder="Szukaj pracownika..." />
-                                <CommandList>
-                                <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
-                                <CommandGroup>
-                                    {employees.map((employee) => (
-                                    <CommandItem
-                                        key={employee.id}
-                                        value={employee.fullName}
-                                        onSelect={() => {
-                                        setSelectedEmployeeId(employee.id);
-                                        setIsComboboxOpen(false);
-                                        }}
-                                    >
-                                        <CheckIcon className={cn("mr-2 h-4 w-4", selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0")} />
-                                        {employee.fullName}
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                            </PopoverContent>
-                        </Popover>
+                        <EmployeeCombobox
+                            employees={employees}
+                            value={selectedEmployeeId}
+                            onValueChange={setSelectedEmployeeId}
+                            triggerClassName="h-12 text-base"
+                        />
                         </div>
 
                         <div className="space-y-2">
@@ -274,6 +229,8 @@ export default function ClothingIssuancePage() {
                     <CardContent>
                         {selectedEmployee ? (
                         employeeIssuanceHistory.length > 0 ? (
+                            <>
+                            <div className="hidden md:block">
                             <ScrollArea className="max-h-[600px] rounded-lg border">
                             <Table>
                                 <TableHeader>
@@ -301,6 +258,31 @@ export default function ClothingIssuancePage() {
                                 </TableBody>
                             </Table>
                             </ScrollArea>
+                            </div>
+                            <div className="md:hidden flex flex-col gap-3">
+                                {employeeIssuanceHistory.map(issuance => (
+                                    <Card key={issuance.id} className="p-4 flex flex-col gap-2">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <span className="font-semibold text-base">{issuance.employeeFullName}</span>
+                                            <span className="text-xs text-muted-foreground shrink-0">{formatDateTime(issuance.date, "dd.MM.yyyy HH:mm")}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            {issuance.items.map(item => (
+                                                <span key={item.id} className="text-sm">{item.name} × {item.quantity}</span>
+                                            ))}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleSaveAndPrint(issuance)} aria-label="Drukuj">
+                                                <Printer className="h-5 w-5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive" onClick={() => handleDeleteIssuance(issuance.id)} aria-label="Usuń">
+                                                <Trash2 className="h-5 w-5" />
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                            </>
                         ) : (
                             <p className="text-base text-muted-foreground text-center py-10">Brak historii wydań dla tego pracownika.</p>
                         )

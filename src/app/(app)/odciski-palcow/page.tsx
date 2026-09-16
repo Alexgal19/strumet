@@ -15,14 +15,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
+import { EmployeeCombobox } from '@/components/employee-combobox';
 import {
   Table,
   TableBody,
@@ -42,16 +35,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, UserPlus, Trash2 } from 'lucide-react';
+import { Loader2, CalendarIcon, UserPlus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
-import { Employee, FingerprintAppointment } from '@/lib/types';
+import { FingerprintAppointment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate, formatDateTime } from '@/lib/date';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { commandExcelFilter } from '@/lib/search';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 
@@ -63,7 +55,6 @@ export default function FingerprintAppointmentsPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [appointmentDate, setAppointmentDate] = useState<Date | undefined>();
   const [isSaving, setIsSaving] = useState(false);
-  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -131,47 +122,12 @@ export default function FingerprintAppointmentsPage() {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-base font-medium">Pracownik</label>
-                  <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isComboboxOpen}
-                        className="w-full justify-between h-12 text-base"
-                      >
-                        {selectedEmployee ? selectedEmployee.fullName : "Wybierz pracownika..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command filter={commandExcelFilter}>
-                        <CommandInput placeholder="Szukaj pracownika..." />
-                        <CommandList>
-                          <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
-                          <CommandGroup>
-                            {activeEmployees.map((employee) => (
-                              <CommandItem
-                                key={employee.id}
-                                value={employee.fullName}
-                                onSelect={() => {
-                                  setSelectedEmployeeId(employee.id);
-                                  setIsComboboxOpen(false);
-                                }}
-                              >
-                                <CheckIcon
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {employee.fullName}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <EmployeeCombobox
+                    employees={activeEmployees}
+                    value={selectedEmployeeId}
+                    onValueChange={setSelectedEmployeeId}
+                    triggerClassName="h-12 text-base"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -288,7 +244,7 @@ export default function FingerprintAppointmentsPage() {
                                 <CardContent className="p-4 flex flex-col gap-2">
                                     <div className="flex justify-between items-start">
                                         <span className="font-semibold text-lg">{apt.employeeFullName}</span>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => setDeletingId(apt.id)}>
+                                        <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive shrink-0" onClick={() => setDeletingId(apt.id)}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>

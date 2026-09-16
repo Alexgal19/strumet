@@ -8,10 +8,11 @@ import { PageHeader } from '@/components/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Employee } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
-  format, addMonths, subMonths, startOfMonth, endOfMonth,
+  format, addMonths, subMonths, addDays, startOfDay, startOfMonth, endOfMonth,
   startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday,
 } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -86,6 +87,23 @@ export default function KalendarzPage() {
 
   const selectedEvents = selectedDate ? eventsFor(selectedDate) : [];
 
+  const isMobile = useIsMobile();
+
+  const agendaDays = useMemo(() => {
+    const today = startOfDay(new Date());
+    const horizon = addDays(today, 13);
+    const byKey = new Map<string, Date>();
+    days.forEach((d) => {
+      if ((eventsByDate.get(format(d, 'yyyy-MM-dd')) ?? []).length > 0) {
+        byKey.set(format(d, 'yyyy-MM-dd'), d);
+      }
+    });
+    eachDayOfInterval({ start: today, end: horizon }).forEach((d) => {
+      byKey.set(format(d, 'yyyy-MM-dd'), d);
+    });
+    return Array.from(byKey.values()).sort((a, b) => a.getTime() - b.getTime());
+  }, [days, eventsByDate]);
+
   return (
     <div className="min-h-full w-full space-y-6 pb-8">
       <PageHeader
@@ -93,16 +111,16 @@ export default function KalendarzPage() {
         description="Umowy, urlopy, zwolnienia, odciski i nieobecności w jednym widoku."
       >
         <div className="flex items-center gap-1 p-1 rounded-md border bg-card">
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setCurrentDate((p) => subMonths(p, 1))}>
+          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setCurrentDate((p) => subMonths(p, 1))}>
             <ChevronLeft />
           </Button>
           <span className="px-2 text-sm font-semibold capitalize min-w-[130px] text-center">
             {format(currentDate, 'LLLL yyyy', { locale: pl })}
           </span>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setCurrentDate((p) => addMonths(p, 1))}>
+          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setCurrentDate((p) => addMonths(p, 1))}>
             <ChevronRight />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8" onClick={() => { setCurrentDate(new Date()); setSelectedDate(null); }}>
+          <Button variant="ghost" size="sm" className="h-11 px-4" onClick={() => { setCurrentDate(new Date()); setSelectedDate(null); }}>
             Dziś
           </Button>
         </div>
@@ -110,7 +128,51 @@ export default function KalendarzPage() {
 
       {isLoading ? (
         <Skeleton className="h-[520px] rounded-2xl" />
-      ) : (
+      ) : isMobile ? (
+          <div className="space-y-4">
+            {agendaDays.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                  Brak zdarzeń w tym miesiącu i najbliższych 14 dniach.
+                </CardContent>
+              </Card>
+            ) : (
+              agendaDays.map((day) => {
+                const dayEvents = eventsFor(day);
+                return (
+                  <Card key={day.toISOString()}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex flex-wrap items-center gap-2 text-sm font-semibold capitalize">
+                        {format(day, 'EEEE, dd.MM', { locale: pl })}
+                        {isToday(day) && <Badge>Dziś</Badge>}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {dayEvents.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Brak zdarzeń.</p>
+                      ) : (
+                        dayEvents.map((ev, i) => (
+                          <div
+                            key={i}
+                            className={cn('flex items-start gap-2 rounded-lg border px-3 py-2 text-xs', EVENT_STYLES[ev.type].chip)}
+                          >
+                            <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', EVENT_STYLES[ev.type].dot)} />
+                            <div className="min-w-0">
+                              <p className="line-clamp-2 font-medium leading-snug">{ev.employee.fullName}</p>
+                              <p className="line-clamp-2 leading-snug text-muted-foreground">
+                                {EVENT_STYLES[ev.type].label} • {ev.employee.department || '—'}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        ) : (
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           <Card className="xl:col-span-3 overflow-hidden">
             <div className="grid grid-cols-7 border-b bg-muted/40">
@@ -147,16 +209,20 @@ export default function KalendarzPage() {
                       {dayEvents.slice(0, 2).map((ev, i) => (
                         <div
                           key={i}
-                          className={cn('flex items-center gap-1 rounded border px-1 py-0.5 text-[10px] leading-tight truncate', EVENT_STYLES[ev.type].chip)}
+                          className={cn('flex items-center gap-1 rounded border px-1 py-0.5 text-[11px] leading-tight truncate', EVENT_STYLES[ev.type].chip)}
                         >
                           <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', EVENT_STYLES[ev.type].dot)} />
                           <span className="truncate">{ev.employee.fullName}</span>
                         </div>
                       ))}
                       {dayEvents.length > 2 && (
-                        <p className="text-[10px] text-muted-foreground pl-1">
+                        <button
+                          type="button"
+                          className="text-left text-[11px] text-muted-foreground pl-1"
+                          onClick={(e) => { e.stopPropagation(); setSelectedDate(day); }}
+                        >
                           +{dayEvents.length - 2} więcej
-                        </p>
+                        </button>
                       )}
                     </div>
                   </button>

@@ -97,7 +97,7 @@ export function EmployeeTimeline({ employee }: { employee: Employee }) {
                   {formatDate(event.date.toISOString(), 'dd.MM.yyyy')}
                 </span>
                 <span className="text-sm">{event.label}</span>
-                {event.type === 'warning' && <Badge variant="outline" className="text-[10px] px-1.5">termin</Badge>}
+                {event.type === 'warning' && <Badge variant="outline" className="text-[11px] px-1.5">termin</Badge>}
               </div>
             </div>
           ))}

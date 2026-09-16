@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Loader2, Download } from 'lucide-react';
 import { isWithinInterval, startOfDay, endOfDay, addDays, format } from 'date-fns';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { parseMaybeDate } from '@/lib/date';
 import { EmployeeCard, ContractCard, FingerprintCard } from '@/components/planning-cards';
 import { Button } from '@/components/ui/button';
@@ -15,6 +17,8 @@ export default function PlanningPage() {
   const { isLoading: isContextLoading, fingerprintAppointments } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const isLoading = isContextLoading || isEmployeesLoading;
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState('umowy');
 
   const plannedTerminations = useMemo(() => {
     const today = startOfDay(new Date());
@@ -74,6 +78,66 @@ export default function PlanningPage() {
       })
       .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
   }, [fingerprintAppointments]);
+
+  const sections = [
+    { id: 'umowy', label: 'Umowy', count: expiringContracts.length },
+    { id: 'odciski', label: 'Odciski palców', count: upcomingAppointments.length },
+    { id: 'zwolnienia', label: 'Zwolnienia', count: plannedTerminations.length },
+    { id: 'urlopy-trwajace', label: 'Na urlopie', count: onVacation.length },
+    { id: 'urlopy-nadchodzace', label: 'Nadchodzące urlopy', count: upcomingVacations.length },
+  ].filter((s) => s.count > 0);
+
+  const currentTab = sections.some((s) => s.id === activeTab)
+    ? activeTab
+    : (sections[0]?.id ?? 'umowy');
+
+  const sectionContent: Record<string, React.ReactNode> = {
+    umowy: expiringContracts.length === 0 ? (
+      <p className="text-center text-sm text-muted-foreground py-6">Brak umów wygających w ciągu 30 dni.</p>
+    ) : (
+      <div className="space-y-3">
+        {expiringContracts.map(employee => (
+          <ContractCard key={employee.id} employee={employee} />
+        ))}
+      </div>
+    ),
+    odciski: upcomingAppointments.length === 0 ? (
+      <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych wizyt w ciągu 30 dni.</p>
+    ) : (
+      <div className="space-y-3">
+        {upcomingAppointments.map(appointment => (
+          <FingerprintCard key={appointment.id} appointment={appointment} />
+        ))}
+      </div>
+    ),
+    zwolnienia: plannedTerminations.length === 0 ? (
+      <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych zwolnień.</p>
+    ) : (
+      <div className="space-y-3">
+        {plannedTerminations.map(employee => (
+          <EmployeeCard key={employee.id} employee={employee} type="termination" />
+        ))}
+      </div>
+    ),
+    'urlopy-trwajace': onVacation.length === 0 ? (
+      <p className="text-center text-sm text-muted-foreground py-6">Obecnie nikt nie przebywa na urlopie.</p>
+    ) : (
+      <div className="space-y-3">
+        {onVacation.map(employee => (
+          <EmployeeCard key={employee.id} employee={employee} type="vacation" />
+        ))}
+      </div>
+    ),
+    'urlopy-nadchodzace': upcomingVacations.length === 0 ? (
+      <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych urlopów.</p>
+    ) : (
+      <div className="space-y-3">
+        {upcomingVacations.map(employee => (
+          <EmployeeCard key={employee.id} employee={employee} type="vacation-planned" />
+        ))}
+      </div>
+    ),
+  };
 
   const handleExport = async () => {
     try {
@@ -199,7 +263,7 @@ export default function PlanningPage() {
         <>
             <PageHeader
                 title="Planowanie"
-                description="Zarządzaj nadchodzącymi wygającymi umowami, odciskami palców, zwolnieniami i urlopami pracowników."
+                description="Zarządzaj nadchodzącymi wygasającymi umowami, odciskami palców, zwolnieniami i urlopami pracowników."
             >
                 <Button onClick={handleExport} variant="outline" className="gap-2 bg-white/50 dark:bg-black/50 border-primary/20 hover:bg-primary/5 text-primary">
                     <Download className="h-4 w-4" />
@@ -207,94 +271,83 @@ export default function PlanningPage() {
                 </Button>
             </PageHeader>
 
+            {isMobile ? (
+                <Tabs value={currentTab} onValueChange={setActiveTab} className="space-y-3">
+                    <TabsList className="flex w-full flex-wrap">
+                        {sections.map((s) => (
+                            <TabsTrigger key={s.id} value={s.id} className="min-h-[44px] flex-1 px-2 text-xs">
+                                {s.label} ({s.count})
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    {sections.map((s) => (
+                        <TabsContent key={s.id} value={s.id}>
+                            <div className="rounded-lg border bg-card/50 p-4">
+                                {sectionContent[s.id]}
+                            </div>
+                        </TabsContent>
+                    ))}
+                </Tabs>
+            ) : (
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 flex-grow">
 
                 <div className="flex flex-col space-y-4">
-                    <h2 className="text-xl font-bold tracking-tight">Wygające umowy ({expiringContracts.length})</h2>
+                    <h2 className="text-xl font-bold tracking-tight">Wygasające umowy ({expiringContracts.length})</h2>
                     <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                        {expiringContracts.length > 0 ? (
-                            <ScrollArea className="h-full">
-                                <div className="space-y-3 pr-4">
-                                {expiringContracts.map(employee => (
-                                    <ContractCard key={employee.id} employee={employee} />
-                                ))}
-                                </div>
-                            </ScrollArea>
-                            ) : (
-                            <p className="text-center text-sm text-muted-foreground py-6">Brak umów wygających w ciągu 30 dni.</p>
-                        )}
+                        <ScrollArea className="h-full">
+                            <div className="pr-4">
+                                {sectionContent['umowy']}
+                            </div>
+                        </ScrollArea>
                     </div>
                 </div>
 
                 <div className="flex flex-col space-y-4">
                     <h2 className="text-xl font-bold tracking-tight">Odciski palców ({upcomingAppointments.length})</h2>
                     <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                        {upcomingAppointments.length > 0 ? (
-                            <ScrollArea className="h-full">
-                                <div className="space-y-3 pr-4">
-                                {upcomingAppointments.map(appointment => (
-                                    <FingerprintCard key={appointment.id} appointment={appointment} />
-                                ))}
-                                </div>
-                            </ScrollArea>
-                            ) : (
-                            <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych wizyt w ciągu 30 dni.</p>
-                        )}
+                        <ScrollArea className="h-full">
+                            <div className="pr-4">
+                                {sectionContent['odciski']}
+                            </div>
+                        </ScrollArea>
                     </div>
                 </div>
 
                 <div className="flex flex-col space-y-4">
                     <h2 className="text-xl font-bold tracking-tight">Planowane zwolnienia ({plannedTerminations.length})</h2>
                     <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                        {plannedTerminations.length > 0 ? (
-                            <ScrollArea className="h-full">
-                                <div className="space-y-3 pr-4">
-                                {plannedTerminations.map(employee => (
-                                    <EmployeeCard key={employee.id} employee={employee} type="termination" />
-                                ))}
-                                </div>
-                            </ScrollArea>
-                            ) : (
-                            <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych zwolnień.</p>
-                        )}
+                        <ScrollArea className="h-full">
+                            <div className="pr-4">
+                                {sectionContent['zwolnienia']}
+                            </div>
+                        </ScrollArea>
                     </div>
                 </div>
 
                 <div className="flex flex-col space-y-4">
                     <h2 className="text-xl font-bold tracking-tight">Pracownicy na urlopie ({onVacation.length})</h2>
                     <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                        {onVacation.length > 0 ? (
-                            <ScrollArea className="h-full">
-                                <div className="space-y-3 pr-4">
-                                {onVacation.map(employee => (
-                                    <EmployeeCard key={employee.id} employee={employee} type="vacation" />
-                                ))}
-                                </div>
-                            </ScrollArea>
-                            ) : (
-                            <p className="text-center text-sm text-muted-foreground py-6">Obecnie nikt nie przebywa na urlopie.</p>
-                        )}
+                        <ScrollArea className="h-full">
+                            <div className="pr-4">
+                                {sectionContent['urlopy-trwajace']}
+                            </div>
+                        </ScrollArea>
                     </div>
                 </div>
                 
                 <div className="flex flex-col space-y-4">
                     <h2 className="text-xl font-bold tracking-tight">Nadchodzące urlopy ({upcomingVacations.length})</h2>
                     <div className="flex-grow rounded-lg border bg-card/50 p-4 min-h-[200px]">
-                        {upcomingVacations.length > 0 ? (
-                            <ScrollArea className="h-full">
-                                <div className="space-y-3 pr-4">
-                                {upcomingVacations.map(employee => (
-                                    <EmployeeCard key={employee.id} employee={employee} type="vacation-planned" />
-                                ))}
-                                </div>
-                            </ScrollArea>
-                            ) : (
-                            <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych urlopów.</p>
-                        )}
+                        <ScrollArea className="h-full">
+                            <div className="pr-4">
+                                {sectionContent['urlopy-nadchodzace']}
+                            </div>
+                        </ScrollArea>
                     </div>
                 </div>
 
             </div>
+            )}
         </>
         )}
     </div>

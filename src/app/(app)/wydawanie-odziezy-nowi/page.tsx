@@ -9,24 +9,10 @@ import {
   CardDescription
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import { Loader2, ChevronsUpDown, CheckIcon, Printer, User, Briefcase, Building2, CalendarIcon, Package, FileText } from 'lucide-react';
+import { EmployeeCombobox } from '@/components/employee-combobox';
+import { Loader2, Printer, User, Briefcase, Building2, CalendarIcon, Package, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Employee, ClothingIssuance } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import { commandExcelFilter } from '@/lib/search';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { NewHireInfoPrintForm } from '@/components/new-hire-info-print-form';
 import { useAppContext } from '@/context/app-context';
@@ -40,7 +26,6 @@ export default function NewHireClothingIssuancePage() {
   const isLoading = isContextLoading || isEmployeesLoading;
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   
   const [printingIssuance, setPrintingIssuance] = useState<ClothingIssuance | null>(null);
   const [printingInfoCard, setPrintingInfoCard] = useState<Employee | null>(null);
@@ -133,42 +118,11 @@ export default function NewHireClothingIssuancePage() {
                         <CardContent className="space-y-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Pracownik</label>
-                                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={isComboboxOpen}
-                                        className="w-full justify-between"
-                                    >
-                                        {selectedEmployee ? selectedEmployee.fullName : "Wybierz pracownika..."}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <Command filter={commandExcelFilter}>
-                                        <CommandInput placeholder="Szukaj pracownika..." />
-                                        <CommandList>
-                                        <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
-                                        <CommandGroup>
-                                            {activeEmployees.map((employee) => (
-                                            <CommandItem
-                                                key={employee.id}
-                                                value={employee.fullName}
-                                                onSelect={() => {
-                                                setSelectedEmployeeId(employee.id);
-                                                setIsComboboxOpen(false);
-                                                }}
-                                            >
-                                                <CheckIcon className={cn("mr-2 h-4 w-4", selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0")} />
-                                                {employee.fullName}
-                                            </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                    </PopoverContent>
-                                </Popover>
+                                <EmployeeCombobox
+                                    employees={activeEmployees}
+                                    value={selectedEmployeeId}
+                                    onValueChange={setSelectedEmployeeId}
+                                />
                             </div>
                             
                             {selectedEmployee && (

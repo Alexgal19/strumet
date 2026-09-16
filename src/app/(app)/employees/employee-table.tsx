@@ -312,7 +312,7 @@ export function EmployeeTable({
                 setSorting([{ id, desc: dir === 'desc' }]);
               }}
             >
-              <SelectTrigger className="h-8 text-xs w-full">
+              <SelectTrigger className="h-9 text-xs w-full">
                 <SelectValue placeholder="Sortuj według..." />
               </SelectTrigger>
               <SelectContent>
@@ -329,7 +329,8 @@ export function EmployeeTable({
         <div ref={parentRef} className="flex-1 overflow-y-auto">
           <div
             style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
+              // +96px — zapas pod FAB, aby ostatnia karta nie była nim zakryta
+              height: `${rowVirtualizer.getTotalSize() + 96}px`,
               width: '100%',
               position: 'relative',
             }}

@@ -26,10 +26,12 @@ import {
 import { getPolishHolidays } from '@/lib/holidays';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Input } from '@/components/ui/input';
 import { EmployeeAttendanceCard } from '@/components/employee-attendance-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { AttendanceExcelExportButton } from '@/components/attendance-excel-export-button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { excelLikeMatch } from '@/lib/search';
 
 const DepartmentStats = ({
@@ -49,12 +51,12 @@ const DepartmentStats = ({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle>Absencja wg działów</CardTitle>
           <CardDescription>Średni % nieobecności w miesiącu.</CardDescription>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => onCopy(formatListForCopy())}>
+        <Button variant="ghost" size="sm" className="w-full sm:w-auto" onClick={() => onCopy(formatListForCopy())}>
           <Copy className="mr-2 h-4 w-4" />
           Kopiuj listę
         </Button>
@@ -209,6 +211,7 @@ export default function OdwiedzalnoscPage() {
   }, [activeEmployees.length, workingDaysInMonth, totalAbsencesInMonth]);
 
   const isLoading = isAppLoading || isEmployeesLoading;
+  const isMobile = useIsMobile();
 
   const handleToggleAbsence = async (employeeId: string, date: string, isCurrentlyAbsent: boolean) => {
       const existingAbsence = absences.find(a => a.employeeId === employeeId && a.date === date);
@@ -227,11 +230,42 @@ export default function OdwiedzalnoscPage() {
       description: "Statystyki działów zostały skopiowane do schowka.",
     });
   }, [toast]);
-  
+
+  const employeesContent = (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredEmployees.map(emp => (
+              <EmployeeAttendanceCard
+                  key={emp.id}
+                  employee={emp}
+                  absences={absences}
+                  currentDate={currentDate}
+                  holidays={holidays}
+                  onToggleAbsence={handleToggleAbsence}
+              />
+          ))}
+      </div>
+      {filteredEmployees.length === 0 && (
+          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed text-center p-12 text-muted-foreground h-full">
+              <UserX className="h-12 w-12 mb-4" />
+              <h3 className="text-lg font-semibold">Brak pracowników</h3>
+              <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów.</p>
+          </div>
+      )}
+    </>
+  );
+
+  const statsContent = (
+    <DepartmentStats
+        departmentData={departmentStats}
+        onCopy={handleCopy}
+    />
+  );
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="min-h-full w-full">
         {isLoading ? (
-            <div className="flex h-full w-full items-center justify-center">
+            <div className="flex min-h-[50vh] w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         ) : (
@@ -240,10 +274,9 @@ export default function OdwiedzalnoscPage() {
                     title="Obecność"
                     description="Zarządzaj nieobecnościami pracowników i analizuj statystyki."
                 />
-                <div className="flex-grow overflow-y-auto min-h-0">
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                    <Card>
+
+                <div className="mb-6 flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-3">
+                    <Card className="min-w-[70%] sm:min-w-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Dni robocze w miesiącu</CardTitle>
                             <Info className="h-4 w-4 text-muted-foreground" />
@@ -252,7 +285,7 @@ export default function OdwiedzalnoscPage() {
                             <div className="text-2xl font-bold">{workingDaysInMonth}</div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="min-w-[70%] sm:min-w-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Suma nieobecności (miesiąc)</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
@@ -261,7 +294,7 @@ export default function OdwiedzalnoscPage() {
                             <div className="text-2xl font-bold">{totalAbsencesInMonth}</div>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="min-w-[70%] sm:min-w-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Absencja (miesiąc)</CardTitle>
                             <UserX className="h-4 w-4 text-muted-foreground" />
@@ -305,49 +338,34 @@ export default function OdwiedzalnoscPage() {
                         </Select>
                     </div>
                     <div className="flex items-center gap-1 p-1 rounded-md border bg-card w-full sm:w-auto">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setCurrentDate(prev => add(prev, { months: -1 }))}><ChevronLeft /></Button>
+                        <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setCurrentDate(prev => add(prev, { months: -1 }))}><ChevronLeft /></Button>
                         <Select value={String(getMonth(currentDate))} onValueChange={v => setCurrentDate(setMonth(currentDate, Number(v)))}>
-                            <SelectTrigger className="flex-1 sm:w-32 h-8"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="flex-1 sm:w-32 h-10"><SelectValue /></SelectTrigger>
                             <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
                         </Select>
                         <Select value={String(getYear(currentDate))} onValueChange={v => setCurrentDate(setYear(currentDate, Number(v)))}>
-                            <SelectTrigger className="w-20 sm:w-24 h-8 shrink-0"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="w-20 sm:w-24 h-10 shrink-0"><SelectValue /></SelectTrigger>
                             <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                         </Select>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setCurrentDate(prev => add(prev, { months: 1 }))}><ChevronRight /></Button>
+                        <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setCurrentDate(prev => add(prev, { months: 1 }))}><ChevronRight /></Button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {filteredEmployees.map(emp => (
-                            <EmployeeAttendanceCard
-                                key={emp.id}
-                                employee={emp}
-                                absences={absences}
-                                currentDate={currentDate}
-                                holidays={holidays}
-                                onToggleAbsence={handleToggleAbsence}
-                            />
-                        ))}
+                {isMobile ? (
+                    <Tabs defaultValue="employees" className="space-y-4">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="employees" className="min-h-[44px]">Pracownicy</TabsTrigger>
+                            <TabsTrigger value="departments" className="min-h-[44px]">Działy</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="employees">{employeesContent}</TabsContent>
+                        <TabsContent value="departments">{statsContent}</TabsContent>
+                    </Tabs>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2">{employeesContent}</div>
+                        <div className="lg:col-span-1">{statsContent}</div>
                     </div>
-                    {filteredEmployees.length === 0 && (
-                        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed text-center p-12 text-muted-foreground h-full">
-                            <UserX className="h-12 w-12 mb-4" />
-                            <h3 className="text-lg font-semibold">Brak pracowników</h3>
-                            <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów.</p>
-                        </div>
-                    )}
-                    </div>
-                    <div className="lg:col-span-1">
-                    <DepartmentStats 
-                        departmentData={departmentStats}
-                        onCopy={handleCopy}
-                    />
-                    </div>
-                </div>
-                </div>
+                )}
             </>
         )}
     </div>

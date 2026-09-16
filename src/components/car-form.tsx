@@ -6,14 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, Check, ChevronsUpDown } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { commandExcelFilter } from '@/lib/search';
 import type { Car, Employee } from '@/lib/types';
 import { formatDate, parseMaybeDate } from '@/lib/date';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { EmployeeCombobox } from '@/components/employee-combobox';
 
 const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
     const dateValue = parseMaybeDate(value);
@@ -84,7 +83,6 @@ const getInitialFormData = (car: Car | null): Omit<Car, 'id' | 'status'> => {
 
 export function CarForm({ car, onSave, onCancel, employees }: CarFormProps) {
     const [formData, setFormData] = useState<Omit<Car, 'id' | 'status'>>(getInitialFormData(car));
-    const [openDriverCombo, setOpenDriverCombo] = useState(false);
 
     useEffect(() => {
         setFormData(getInitialFormData(car));
@@ -100,7 +98,6 @@ export function CarForm({ car, onSave, onCancel, employees }: CarFormProps) {
             driverId: driverId === "none" ? "" : driverId,
             driverFullName: driverName === "Brak kierowcy" ? "" : driverName
         }));
-        setOpenDriverCombo(false);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -151,49 +148,18 @@ export function CarForm({ car, onSave, onCancel, employees }: CarFormProps) {
                 
                 <div className="space-y-2 md:col-span-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Przypisany Kierowca</Label>
-                    <Popover open={openDriverCombo} onOpenChange={setOpenDriverCombo}>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={openDriverCombo}
-                                className="w-full h-11 justify-between font-normal"
-                            >
-                                {formData.driverFullName || "Brak kierowcy"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0" align="start">
-                            <Command filter={commandExcelFilter}>
-                                <CommandInput placeholder="Szukaj pracownika..." />
-                                <CommandList>
-                                    <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
-                                    <CommandGroup>
-                                        <CommandItem
-                                            onSelect={() => handleDriverSelect("none", "Brak kierowcy")}
-                                            className="font-medium text-muted-foreground"
-                                        >
-                                            <Check
-                                                className={cn("mr-2 h-4 w-4", !formData.driverId ? "opacity-100" : "opacity-0")}
-                                            />
-                                            Brak kierowcy
-                                        </CommandItem>
-                                        {activeEmployees.map((employee) => (
-                                            <CommandItem
-                                                key={employee.id}
-                                                onSelect={() => handleDriverSelect(employee.id, employee.fullName)}
-                                            >
-                                                <Check
-                                                    className={cn("mr-2 h-4 w-4", formData.driverId === employee.id ? "opacity-100" : "opacity-0")}
-                                                />
-                                                {employee.fullName}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <EmployeeCombobox
+                        employees={activeEmployees}
+                        value={formData.driverId || null}
+                        onValueChange={(id) => {
+                            const emp = activeEmployees.find((e) => e.id === id);
+                            handleDriverSelect(id, emp?.fullName ?? '');
+                        }}
+                        onSelectNone={() => handleDriverSelect('none', 'Brak kierowcy')}
+                        noneLabel="Brak kierowcy"
+                        placeholder={formData.driverFullName || 'Brak kierowcy'}
+                        triggerClassName="h-11 font-normal"
+                    />
                 </div>
 
                 <div className="space-y-2">

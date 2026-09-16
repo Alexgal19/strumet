@@ -145,7 +145,7 @@ function NoteCard({ note, onMarkRead, onDelete }: {
           <Button
             size="sm"
             variant="outline"
-            className="gap-1.5 text-xs h-7"
+            className="gap-1.5 text-xs h-11"
             onClick={() => onMarkRead(note.id)}
           >
             <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
@@ -158,7 +158,7 @@ function NoteCard({ note, onMarkRead, onDelete }: {
             <Button
               size="sm"
               variant="ghost"
-              className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-destructive ml-auto"
+              className="gap-1.5 text-xs h-11 text-muted-foreground hover:text-destructive ml-auto"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Usun
@@ -240,7 +240,7 @@ export default function NotatkiPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-5xl mx-auto w-full">
+    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
       <PageHeader
         title="Notatki"
         description="Twoje zadania i przypomnienia z powiadomieniami email"
@@ -264,7 +264,8 @@ export default function NotatkiPage() {
         </div>
       )}
 
-      <Card>
+      {/* Mobile: lista najpierw, formularz na dole (Android: dane > input); desktop: jak wcześniej */}
+      <Card className="order-last lg:order-first">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Plus className="h-4 w-4" />
@@ -353,7 +354,7 @@ export default function NotatkiPage() {
             <EmptyState
               message={
                 activeTab === 'all'
-                  ? 'Brak notatek. Dodaj pierwsza powyzej.'
+                  ? 'Brak notatek. Dodaj pierwszą, korzystając z formularza.'
                   : activeTab === 'unread'
                   ? 'Brak nieprzeczytanych notatek. Wszystko pod kontrola!'
                   : 'Brak przeczytanych notatek.'

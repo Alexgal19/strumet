@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, UserX, ClipboardCopy, Shirt } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, UserX, ClipboardCopy, Shirt, ArrowLeft, ArrowRight } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -62,6 +62,15 @@ interface EmployeeFormProps {
   config: AllConfig;
 }
 
+// Kroki kreatora na mobile — każdy panel = jeden ekran (Android wizard)
+const STEPS = ['Dane osobowe', 'Zatrudnienie', 'Identyfikacja', 'Planowanie'] as const;
+const STEP_FIELDS: Record<number, string[]> = {
+  0: ['lastName', 'firstName', 'nationality', 'legalizationStatus'],
+  1: ['department', 'jobTitle', 'manager', 'hireDate'],
+  2: ['cardNumber'],
+  3: ['vacationEndDate'],
+};
+
 const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
     if (employee) {
         return {
@@ -107,10 +116,13 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
 export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintClothing, config }: EmployeeFormProps) {
     const { departments, jobTitles, managers, nationalities } = config;
     const { toast } = useToast();
+    const isMobile = useIsMobile();
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [step, setStep] = useState(0);
+    const topRef = React.useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setFormData(getInitialFormData(employee));
@@ -125,9 +137,15 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             setLastName('');
         }
         setErrors({});
+        setStep(0);
     }, [employee]);
 
-    const validate = () => {
+    useEffect(() => {
+        // Po zmianie kroku przewiń na górę formularza (jeden ekran = jeden krok)
+        if (isMobile) topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [step, isMobile]);
+
+    const buildErrors = (): Record<string, string> => {
         const newErrors: Record<string, string> = {};
         if (!firstName.trim()) newErrors.firstName = "Imię jest wymagane.";
         if (!lastName.trim()) newErrors.lastName = "Nazwisko jest wymagane.";
@@ -147,9 +165,21 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 newErrors.vacationEndDate = "Data końcowa nie może być wcześniejsza niż początkowa.";
             }
         }
-        
+
+        return newErrors;
+    };
+
+    const validate = () => {
+        const newErrors = buildErrors();
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
+    };
+
+    const handleNextStep = () => {
+        const newErrors = buildErrors();
+        setErrors(newErrors);
+        const stepHasErrors = (STEP_FIELDS[step] ?? []).some((f) => newErrors[f]);
+        if (!stepHasErrors) setStep((s) => Math.min(s + 1, STEPS.length - 1));
     };
     
     const handleCopyFullName = () => {
@@ -216,8 +246,8 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     return (
         <div className="flex flex-col h-full relative">
             {/* Quick Actions Header */}
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 mb-6 rounded-xl bg-muted/30 border border-border/50 backdrop-blur-sm mx-6 mt-6">
-                <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 mb-4 md:mb-6 rounded-xl bg-muted/30 border border-border/50 backdrop-blur-sm">
+                <div ref={topRef} className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={handleCopyFullName} className="h-9 gap-2 bg-background/50">
                         <ClipboardCopy className="h-4 w-4" />
                         <span>Kopiuj dane</span>
@@ -238,10 +268,26 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col flex-grow">
+              {/* Kreator mobilny — wskaźnik postępu */}
+              {isMobile && (
+                <div className="px-6 pb-4">
+                  <p className="text-sm font-semibold text-foreground mb-2">
+                    Krok {step + 1} z {STEPS.length} — {STEPS[step]}
+                  </p>
+                  <div className="flex gap-1.5">
+                    {STEPS.map((s, i) => (
+                      <div
+                        key={s}
+                        className={cn('h-1.5 flex-1 rounded-full transition-colors', i <= step ? 'bg-primary' : 'bg-muted')}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 pb-8">
-                
+
                 {/* Panel 1: Dane osobowe */}
-                <div className="flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl">
+                <div className={cn('flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl', isMobile && step !== 0 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-primary" />
                       <h3 className="font-semibold text-foreground">Dane osobowe</h3>
@@ -285,7 +331,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
 
                 {/* Panel 2: Zatrudnienie */}
-                <div className="flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl">
+                <div className={cn('flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl', isMobile && step !== 1 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-blue-500" />
                       <h3 className="font-semibold text-foreground">Zatrudnienie</h3>
@@ -350,7 +396,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
 
                 {/* Panel 3: Identyfikacja */}
-                <div className="flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl">
+                <div className={cn('flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl', isMobile && step !== 2 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-purple-500" />
                       <h3 className="font-semibold text-foreground">Identyfikacja</h3>
@@ -375,7 +421,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
 
                 {/* Panel 4: Planowanie */}
-                <div className="flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl">
+                <div className={cn('flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl', isMobile && step !== 3 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-orange-500" />
                       <h3 className="font-semibold text-foreground">Planowanie</h3>
@@ -420,22 +466,52 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
               </div>
 
                 {/* Footer Actions */}
-                <div className="sticky bottom-0 mt-auto p-4 md:p-6 bg-background/80 backdrop-blur-xl border-t border-black/5 flex flex-wrap gap-4 justify-between items-center z-10">
-                    <div>
-                        {employee && employee.status === 'aktywny' && onTerminate && (
-                            <Button type="button" variant="ghost" onClick={() => onTerminate(employee.id, employee.fullName)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                {isMobile ? (
+                    <div className="sticky bottom-0 mt-auto p-4 bg-background/80 backdrop-blur-xl border-t border-black/5 z-10">
+                        {employee && employee.status === 'aktywny' && onTerminate && step === STEPS.length - 1 && (
+                            <Button type="button" variant="ghost" onClick={() => onTerminate(employee.id, employee.fullName)} className="w-full mb-2 text-destructive hover:text-destructive hover:bg-destructive/10">
                                 <UserX className="mr-2 h-4 w-4" />
-                                Zwolnij
+                                Zwolnij pracownika
                             </Button>
                         )}
+                        <div className="flex gap-2">
+                            <Button type="button" variant="outline" onClick={onCancel} className="h-12 flex-1">Anuluj</Button>
+                            {step > 0 && (
+                                <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} className="h-12 flex-1">
+                                    <ArrowLeft className="mr-1 h-4 w-4" />
+                                    Wstecz
+                                </Button>
+                            )}
+                            {step < STEPS.length - 1 ? (
+                                <Button type="button" onClick={handleNextStep} className="h-12 flex-1">
+                                    Dalej
+                                    <ArrowRight className="ml-1 h-4 w-4" />
+                                </Button>
+                            ) : (
+                                <Button type="submit" className="h-12 flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
+                                    Zapisz
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex gap-3 ml-auto">
-                        <Button type="button" variant="outline" onClick={onCancel} className="h-11 px-6">Anuluj</Button>
-                        <Button type="submit" className="h-11 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
-                            Zapisz zmiany
-                        </Button>
+                ) : (
+                    <div className="sticky bottom-0 mt-auto p-4 md:p-6 bg-background/80 backdrop-blur-xl border-t border-black/5 flex flex-wrap gap-4 justify-between items-center z-10">
+                        <div>
+                            {employee && employee.status === 'aktywny' && onTerminate && (
+                                <Button type="button" variant="ghost" onClick={() => onTerminate(employee.id, employee.fullName)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                    <UserX className="mr-2 h-4 w-4" />
+                                    Zwolnij
+                                </Button>
+                            )}
+                        </div>
+                        <div className="flex gap-3 ml-auto">
+                            <Button type="button" variant="outline" onClick={onCancel} className="h-11 px-6">Anuluj</Button>
+                            <Button type="submit" className="h-11 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
+                                Zapisz zmiany
+                            </Button>
+                        </div>
                     </div>
-                </div>
+                )}
             </form>
         </div>
     );

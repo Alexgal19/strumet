@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
@@ -410,21 +411,23 @@ function LockerSectionView({
   if (section.layout === 'grid' && section.gridCols) {
     return (
       <div className={cn("space-y-1", section.gridCols === 1 && "w-24")}>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
           {section.name}
         </p>
-        <div
-          className={cn(
-            'inline-grid gap-3 w-full',
-            section.gridCols === 1 && 'grid-cols-1',
-            section.gridCols === 2 && 'grid-cols-2',
-            section.gridCols === 4 && 'grid-cols-4',
-            section.gridCols === 6 && 'grid-cols-6',
-            section.gridCols === 12 && 'grid-cols-12',
-            section.gridCols === 14 && 'grid-cols-[repeat(14,minmax(64px,1fr))]',
-            section.gridCols === 16 && 'grid-cols-[repeat(16,minmax(64px,1fr))]',
-          )}
-        >
+        {/* Siatki >4 kolumn nie mieszczą się na mobile — poziomy scroll zamiast ucinania przez overflow-x-hidden shella */}
+        <div className="overflow-x-auto pb-1">
+          <div
+            className={cn(
+              'inline-grid gap-3 w-full min-w-max',
+              section.gridCols === 1 && 'grid-cols-1',
+              section.gridCols === 2 && 'grid-cols-2',
+              section.gridCols === 4 && 'grid-cols-4',
+              section.gridCols === 6 && 'grid-cols-[repeat(6,minmax(56px,1fr))]',
+              section.gridCols === 12 && 'grid-cols-[repeat(12,minmax(48px,1fr))]',
+              section.gridCols === 14 && 'grid-cols-[repeat(14,minmax(64px,1fr))]',
+              section.gridCols === 16 && 'grid-cols-[repeat(16,minmax(64px,1fr))]',
+            )}
+          >
           {section.lockers.map((locker) => {
             const currentLabel = labels[locker.id] ?? locker.defaultLabel;
             return (
@@ -440,7 +443,8 @@ function LockerSectionView({
                 onClick={() => onEdit(editingId === locker.id ? null : locker.id)}
               />
             );
-          })}
+           })}
+          </div>
         </div>
       </div>
     );
@@ -448,7 +452,7 @@ function LockerSectionView({
 
   return (
     <div className="space-y-1">
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+      <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
         {section.name}
       </p>
       <div className="flex flex-col gap-1">
@@ -778,10 +782,9 @@ export default function LockersPage() {
   };
 
   const handleReset = () => {
-    if (confirm('Czy na pewno chcesz przywrócić domyślną numerację?')) {
-      setLabels({});
-      setHasChanges(true);
-    }
+    // Potwierdzenie przez AlertDialog — window.confirm nie pasuje do UI (blokuje wątek, brak dark-mode)
+    setLabels({});
+    setHasChanges(true);
   };
 
   return (
@@ -793,15 +796,30 @@ export default function LockersPage() {
         <div className="flex items-center gap-2">
           {isAdmin && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-                disabled={isSaving}
-              >
-                <RotateCcw className="mr-1.5 h-4 w-4" />
-                Reset
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isSaving}
+                  >
+                    <RotateCcw className="mr-1.5 h-4 w-4" />
+                    Reset
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Przywrócić domyślną numerację?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Wszystkie zmiany numeracji zostaną cofnięte do wartości domyślnych. Pamiętaj o zapisaniu.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReset}>Przywróć</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Button
                 size="sm"
                 onClick={handleSave}

@@ -133,10 +133,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center bg-background p-4 overflow-hidden">
-      {/* Animated Background Blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-500/20 rounded-full blur-[100px] animate-pulse delay-1000" />
+    <div className="relative flex min-h-dvh w-full items-start justify-center bg-background p-4 pt-[12vh] sm:items-center sm:pt-4">
+      {/* Animated Background Blobs — odseparowane, aby nie powodowały scrolla */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-500/20 rounded-full blur-[100px] animate-pulse delay-1000" />
+      </div>
 
       <div className="z-10 w-full max-w-sm animate-in fade-in slide-in-from-bottom-5 duration-500">
         <Card className="w-full border-0 bg-card/50 backdrop-blur-xl shadow-2xl ring-1 ring-border">

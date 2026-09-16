@@ -5,6 +5,7 @@ import { Table } from "@tanstack/react-table"
 import { Search, X, Filter } from "lucide-react"
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -95,7 +96,7 @@ export function DataTableToolbar<TData>({
           placeholder="Szukaj: nazwisko, dział, nr karty..."
           value={searchValue}
           onChange={(event) => table.setGlobalFilter(event.target.value)}
-          className="h-9 w-full pl-8 pr-8 lg:w-64"
+          className="h-9 w-full pl-8 pr-10 lg:w-64"
         />
         {searchValue && (
           <button
@@ -103,7 +104,7 @@ export function DataTableToolbar<TData>({
             aria-label="Wyczyść wyszukiwanie"
             title="Wyczyść wyszukiwanie"
             onClick={() => table.setGlobalFilter("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+            className="absolute right-0.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -158,6 +159,13 @@ export function DataTableToolbar<TData>({
                 </Button>
               )}
             </div>
+            {isMobile && (
+              <SheetClose asChild>
+                <Button className="w-full mt-2" variant="secondary">
+                  Pokaż wyniki: {filteredCount} z {totalCount}
+                </Button>
+              </SheetClose>
+            )}
           </SheetContent>
         </Sheet>
       </div>

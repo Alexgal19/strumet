@@ -78,37 +78,46 @@ const SummarySection = ({
   employees: Employee[];
   emptyText: string;
   dateField: 'plannedTerminationDate' | 'terminationDate' | 'vacationStartDate';
-}) => (
-  <Card className="flex flex-col">
-    <CardHeader className="pb-3">
-      <CardTitle className="flex items-center gap-2 text-base">
-        {icon}
-        {title} ({employees.length})
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="flex-grow">
-      {employees.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>
-      ) : (
-        <ScrollArea className="max-h-[320px]">
-          <div className="space-y-2 pr-3">
-            {employees.map(employee => (
-              <EmployeeMiniRow
-                key={`${employee.id}-${dateField}`}
-                employee={employee}
-                right={
-                  <Badge variant="outline" className="shrink-0 tabular-nums">
-                    {formatDate(employee[dateField])}
-                  </Badge>
-                }
-              />
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-    </CardContent>
-  </Card>
-);
+}) => {
+  const rows = (
+    <div className="space-y-2 pr-3">
+      {employees.map(employee => (
+        <EmployeeMiniRow
+          key={`${employee.id}-${dateField}`}
+          employee={employee}
+          right={
+            <Badge variant="outline" className="shrink-0 tabular-nums">
+              {formatDate(employee[dateField])}
+            </Badge>
+          }
+        />
+      ))}
+    </div>
+  );
+
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          {icon}
+          {title} ({employees.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex-grow">
+        {employees.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>
+        ) : (
+          <>
+            <div className="hidden lg:block">
+              <ScrollArea className="max-h-[320px]">{rows}</ScrollArea>
+            </div>
+            <div className="lg:hidden">{rows}</div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 const HintCard = ({
   hint,
@@ -169,7 +178,7 @@ const HintCard = ({
         </div>
         <Button
           size="sm"
-          className="w-full gap-2"
+          className="h-11 sm:h-9 w-full gap-2 px-4"
           disabled={hint.count === 0 || isCreating}
           onClick={() => onCreateOrder(hint)}
         >
@@ -212,7 +221,7 @@ const VacationPersonRow = ({
       <Button
         size="sm"
         variant="outline"
-        className="shrink-0 gap-2 border-primary/30 text-primary hover:bg-primary/5"
+        className="h-11 sm:h-9 shrink-0 gap-2 border-primary/30 px-4 text-primary hover:bg-primary/5"
         onClick={() => onEndVacation(person)}
       >
         <CheckCircle2 className="h-4 w-4" />
@@ -293,22 +302,22 @@ export default function ZastepstwaPage() {
         <>
           <PageHeader
             title="Zastępstwa"
-            description={`Podsumowanie odejść i urlopów, wskazówki kadrowe oraz osoby nieobecne. Urlopy: horyzont ${UPCOMING_VACATION_HORIZON_DAYS} dni · odejścia: ${TERMINATION_WINDOW_DAYS} dni.`}
+            description="Podsumowanie odejść i urlopów, wskazówki kadrowe oraz osoby nieobecne."
           />
 
           <Tabs defaultValue="podsumowanie" className="flex-grow flex flex-col gap-4">
-            <TabsList className="w-full grid grid-cols-3 max-w-md">
-              <TabsTrigger value="podsumowanie" className="gap-1.5">
-                <ClipboardList className="h-4 w-4" />
-                <span className="hidden sm:inline">Podsumowanie</span>
+            <TabsList className="w-full grid grid-cols-3">
+              <TabsTrigger value="podsumowanie" className="min-h-[44px] gap-1.5">
+                <ClipboardList className="h-4 w-4 shrink-0" />
+                <span className="text-xs sm:text-sm">Podsumowanie</span>
               </TabsTrigger>
-              <TabsTrigger value="wskazowki" className="gap-1.5">
-                <Lightbulb className="h-4 w-4" />
-                <span className="hidden sm:inline">Wskazówki ({hints.length})</span>
+              <TabsTrigger value="wskazowki" className="min-h-[44px] gap-1.5">
+                <Lightbulb className="h-4 w-4 shrink-0" />
+                <span className="text-xs sm:text-sm">Wskazówki ({hints.length})</span>
               </TabsTrigger>
-              <TabsTrigger value="urlopy" className="gap-1.5">
-                <CalendarOff className="h-4 w-4" />
-                <span className="hidden sm:inline">Na urlopie ({vacationPeople.length})</span>
+              <TabsTrigger value="urlopy" className="min-h-[44px] gap-1.5">
+                <CalendarOff className="h-4 w-4 shrink-0" />
+                <span className="text-xs sm:text-sm">Na urlopie ({vacationPeople.length})</span>
               </TabsTrigger>
             </TabsList>
 

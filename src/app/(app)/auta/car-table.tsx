@@ -14,8 +14,16 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { Loader2, Car as CarIcon } from "lucide-react"
+import { Loader2, Car as CarIcon, MoreVertical, ShieldAlert, ShieldCheck, Wrench } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Table,
   TableBody,
@@ -26,7 +34,8 @@ import {
 } from "@/components/ui/table"
 import { Car } from "@/lib/types"
 import { getColumns } from "./columns"
-import { cn } from "@/lib/utils"
+import { formatDate, parseMaybeDate } from "@/lib/date"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface CarTableProps {
   data: Car[]
@@ -36,6 +45,59 @@ interface CarTableProps {
   onTerminate?: (car: Car) => void
   onRestore?: (car: Car) => void
   onDelete: (car: Car) => void
+}
+
+function getExpiryStatus(dateStr: string | null | undefined): 'ok' | 'warning' | 'expired' | 'none' {
+  if (!dateStr) return 'none';
+  const date = parseMaybeDate(dateStr);
+  if (!date) return 'none';
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(now.getDate() + 30);
+  thirtyDaysFromNow.setHours(0, 0, 0, 0);
+
+  if (date < now) return 'expired';
+  if (date <= thirtyDaysFromNow) return 'warning';
+  return 'ok';
+}
+
+function renderMobileStatusRow(dateStr: string | null | undefined, type: 'insurance' | 'inspection') {
+  const status = getExpiryStatus(dateStr);
+  const formatted = formatDate(dateStr, "dd.MM.yyyy");
+  const label = type === 'insurance' ? 'Ubezpieczenie' : 'Przegląd';
+
+  if (status === 'none') {
+    return (
+      <div key={type} className="flex items-center text-sm text-muted-foreground">
+        <span>{label}: -</span>
+      </div>
+    );
+  }
+
+  let icon = null;
+  let textColor = "text-foreground";
+
+  if (status === 'expired') {
+    icon = <ShieldAlert className="w-4 h-4 text-destructive mr-1.5" />;
+    textColor = "text-destructive font-bold";
+  } else if (status === 'warning') {
+    icon = <ShieldAlert className="w-4 h-4 text-amber-500 mr-1.5" />;
+    textColor = "text-amber-500 font-medium";
+  } else {
+    icon = type === 'insurance'
+      ? <ShieldCheck className="w-4 h-4 text-emerald-500 mr-1.5" />
+      : <Wrench className="w-4 h-4 text-emerald-500 mr-1.5" />;
+  }
+
+  return (
+    <div key={type} className={`flex items-center text-sm ${textColor}`}>
+      {icon}
+      <span>{label}: {formatted}</span>
+    </div>
+  );
 }
 
 export function CarTable({
@@ -96,6 +158,8 @@ export function CarTable({
     overscan: 10,
   })
 
+  const isMobile = useIsMobile()
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 bg-card/50 rounded-xl border border-border/50">
@@ -105,11 +169,64 @@ export function CarTable({
     )
   }
 
+  if (isMobile) {
+    return (
+      <div className="flex flex-col gap-3">
+        {data.length === 0 ? (
+          <div className="rounded-xl border bg-card/50 h-32 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <CarIcon className="h-8 w-8 opacity-20" />
+            <p className="text-sm">Brak aut w bazie.</p>
+          </div>
+        ) : (
+          data.map((car) => (
+            <Card key={car.id} className="p-4 flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-bold text-base uppercase tracking-wider">{car.registrationNumber}</span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label="Akcje">
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem className="min-h-[48px]" onClick={() => onEdit(car)}>
+                      Edytuj
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="min-h-[48px] text-destructive focus:text-destructive"
+                      onClick={() => onDelete(car)}
+                    >
+                      Usuń
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <p className="text-sm text-muted-foreground">{car.makeModel || "-"}</p>
+              <div className="text-sm">
+                {car.driverFullName ? (
+                  <span className="font-medium text-primary">{car.driverFullName}</span>
+                ) : (
+                  <span className="text-muted-foreground italic">Brak kierowcy</span>
+                )}
+              </div>
+              {tableStatus === 'active' && (
+                <div className="flex flex-col gap-1.5 pt-2 border-t border-border/50">
+                  {renderMobileStatusRow(car.insuranceEndDate, 'insurance')}
+                  {renderMobileStatusRow(car.inspectionEndDate, 'inspection')}
+                </div>
+              )}
+            </Card>
+          ))
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div 
         ref={parentRef} 
-        className="rounded-xl border bg-card/50 backdrop-blur-sm shadow-sm overflow-auto max-h-[calc(100dvh-220px)] custom-scrollbar"
+        className="rounded-xl border bg-card/50 backdrop-blur-sm shadow-sm overflow-auto max-h-[calc(100dvh-220px)] custom-scrollbar [&>div]:overflow-visible"
       >
         <Table>
           <TableHeader className="bg-muted/50 sticky top-0 z-20 backdrop-blur-md">

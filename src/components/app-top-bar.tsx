@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import {
-  Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight, Menu, Search
+  Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight, Menu, Search, ArrowLeft
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -179,6 +179,18 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
 
   const [commandOpen, setCommandOpen] = useState(false);
 
+  // Ekran edycji pracownika = tryb pełnoekranowy (Android):
+  // zamiast hamburgera — strzałka wstecz, zamiast brandu — tytuł ekranu
+  const isEditScreen = pathname.startsWith('/pracownicy/');
+
+  const handleBack = useCallback(() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/aktywni');
+    }
+  }, [router]);
+
   // On server render or before mount, don't show to avoid hydration mismatch
   if (!hasMounted) return null;
 
@@ -231,18 +243,30 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
 
         {/* Mobile Top Bar */}
         <header className="flex md:hidden h-16 items-center px-4 w-full">
-          <Button variant="ghost" size="icon" onClick={onOpenMenu} className="mr-3 text-foreground rounded-full h-10 w-10">
-            <Menu className="h-6 w-6" />
-          </Button>
-          
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-sm font-black text-white">S</span>
-            </div>
-            <span className="text-base font-bold tracking-tight">
-              Baza<span className="text-primary">-ST</span>
+          {isEditScreen ? (
+            <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Wróć" className="mr-3 text-foreground rounded-full h-11 w-11 -ml-2">
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" onClick={onOpenMenu} aria-label="Menu" className="mr-3 text-foreground rounded-full h-10 w-10">
+              <Menu className="h-6 w-6" />
+            </Button>
+          )}
+
+          {isEditScreen ? (
+            <span className="text-base font-bold tracking-tight truncate">
+              Edytuj pracownika
             </span>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
+                <span className="text-sm font-black text-white">S</span>
+              </div>
+              <span className="text-base font-bold tracking-tight">
+                Baza<span className="text-primary">-ST</span>
+              </span>
+            </div>
+          )}
 
           <div className="ml-auto flex items-center gap-1">
             {(isAdmin || isEditor) && <Notifications />}

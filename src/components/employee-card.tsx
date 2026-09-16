@@ -35,7 +35,7 @@ function LegalizationBadge({ status }: { status: string | undefined }) {
   if (!status || status === 'Brak') return null;
   const color = getStatusColor(status);
   return (
-    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold', color)}>
+    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold', color)}>
       {status}
     </span>
   );
@@ -145,7 +145,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
               onToggleAbsenceToday();
             }}
             className={cn(
-              'flex w-[76px] flex-col items-center justify-center gap-1 text-[11px] font-semibold text-white transition-colors',
+              'flex w-[76px] flex-col items-center justify-center gap-1 text-xs font-semibold text-white transition-colors',
               isAbsentToday ? 'bg-muted-foreground' : 'bg-primary'
             )}
           >
@@ -164,7 +164,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
                 e.stopPropagation();
                 runAction(onRestore);
               }}
-              className="flex w-[76px] flex-col items-center justify-center gap-1 bg-emerald-600 text-[11px] font-semibold text-white"
+              className="flex w-[76px] flex-col items-center justify-center gap-1 bg-emerald-600 text-xs font-semibold text-white"
             >
               <RotateCcw className="h-4 w-4" />
               Przywróć
@@ -176,7 +176,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
                 e.stopPropagation();
                 runAction(onTerminate);
               }}
-              className="flex w-[76px] flex-col items-center justify-center gap-1 bg-amber-600 text-[11px] font-semibold text-white"
+              className="flex w-[76px] flex-col items-center justify-center gap-1 bg-amber-600 text-xs font-semibold text-white"
             >
               <UserX className="h-4 w-4" />
               Zwolnij
@@ -221,7 +221,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
         {onToggleAbsenceToday && (
           <button
             className={cn(
-              'flex shrink-0 min-h-[40px] items-center gap-1 rounded-lg border px-2.5 py-2 text-[11px] font-semibold transition-colors',
+              'flex shrink-0 min-h-[44px] items-center gap-1 rounded-lg border px-2.5 py-2 text-xs font-semibold transition-colors',
               isAbsentToday
                 ? 'border-destructive/40 bg-destructive text-destructive-foreground'
                 : 'border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
@@ -242,7 +242,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="rounded-md p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={e => e.stopPropagation()}
             >
               <MoreHorizontal className="h-4 w-4" />

@@ -13,12 +13,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Trash2, Printer } from 'lucide-react';
+import { RotateCcw, Trash2, Printer, MoreHorizontal } from 'lucide-react';
 import type { Employee, ClothingIssuance } from '@/lib/types';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { PageHeader } from '@/components/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { EmployeeTable } from '../employees/employee-table';
@@ -46,6 +47,7 @@ export default function ZwolnieniPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [clothingPrintData, setClothingPrintData] = useState<{ employee: Employee; issuance: ClothingIssuance } | null>(null);
   const [legalizationEmployee, setLegalizationEmployee] = useState<Employee | null>(null);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const clothingPrintRef = React.useRef<HTMLDivElement>(null);
 
   const handlePrintClothingIssuance = (employee: Employee, issuance: ClothingIssuance) => {
@@ -80,57 +82,72 @@ export default function ZwolnieniPage() {
         title="Pracownicy zwolnieni"
         description="Przeglądaj historię zwolnionych pracowników."
       >
-        <div className="hidden md:flex shrink-0 items-center space-x-2">
-          <TerminatedExcelImportButton />
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="secondary">
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Przywróć wszystkich
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tej akcji nie można cofnąć. Spowoduje to przywrócenie wszystkich zwolnionych
-                  pracowników do listy aktywnych.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                <AlertDialogAction onClick={handleRestoreAllTerminatedEmployees}>Kontynuuj</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Usuń wszystkich
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                  pracowników (aktywnych i zwolnionych) z bazy danych.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-        <div className="flex md:hidden items-center gap-2 mt-2">
+        {/* Parzystość z /aktywni: eksport + ⋯ menu dostępne na każdym breakpointcie */}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <ExcelExportButton
             employees={terminatedEmployees}
             columns={exportColumns}
             fileName="zwolnieni_pracownicy"
           />
+          <Popover open={isMoreOpen} onOpenChange={setIsMoreOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" title="Więcej opcji">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2 flex flex-col gap-1" align="end">
+              <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Import i zarządzanie masowe</div>
+              <div className="[&>button]:w-full [&>button]:justify-start">
+                <TerminatedExcelImportButton />
+              </div>
+
+              <div className="my-1 h-px bg-border" />
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start h-9" onClick={() => setIsMoreOpen(false)}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Przywróć wszystkich
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tej akcji nie można cofnąć. Spowoduje to przywrócenie wszystkich zwolnionych
+                      pracowników do listy aktywnych.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRestoreAllTerminatedEmployees}>Kontynuuj</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsMoreOpen(false)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Usuń wszystkich
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
+                      pracowników (aktywnych i zwolnionych) z bazy danych.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </PopoverContent>
+          </Popover>
         </div>
       </PageHeader>
 

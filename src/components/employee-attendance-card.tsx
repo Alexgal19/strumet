@@ -60,7 +60,7 @@ export const EmployeeAttendanceCard: React.FC<EmployeeAttendanceCardProps> = ({
     return (
         <Card className="flex flex-col">
             <CardHeader className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-2">
                     <div className="min-w-0">
                         <CardTitle className="text-base truncate">{employee.fullName}</CardTitle>
                         <CardDescription className="text-xs truncate">{employee.jobTitle} - {employee.department}</CardDescription>
@@ -68,7 +68,7 @@ export const EmployeeAttendanceCard: React.FC<EmployeeAttendanceCardProps> = ({
                     <Button
                         variant={isAbsentToday ? 'destructive' : 'outline'}
                         size="sm"
-                        className={cn('shrink-0 h-8 gap-1.5', !isAbsentToday && 'text-muted-foreground')}
+                        className={cn('shrink-0 h-10 sm:h-8 w-full sm:w-auto gap-1.5', !isAbsentToday && 'text-muted-foreground')}
                         title={isAbsentToday ? 'Oznaczony jako nieobecny dziś — kliknij, aby cofnąć' : 'Oznacz jako nieobecny dziś'}
                         onClick={() => {
                             haptic(10);
@@ -81,7 +81,7 @@ export const EmployeeAttendanceCard: React.FC<EmployeeAttendanceCardProps> = ({
                 </div>
             </CardHeader>
             <CardContent className="flex-grow">
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-0.5 md:gap-1">
                     {days.map(day => {
                         const dateString = format(day, 'yyyy-MM-dd');
                         const isAbsent = employeeAbsences.some(a => a.date === dateString);
@@ -94,7 +94,7 @@ export const EmployeeAttendanceCard: React.FC<EmployeeAttendanceCardProps> = ({
                                 variant={isAbsent ? 'destructive' : isWknd || isHoliday ? 'ghost' : 'outline'}
                                 size="icon"
                                 className={cn(
-                                    "h-10 w-10 md:h-8 md:w-8 rounded-full text-sm md:text-xs",
+                                    "h-10 w-full max-w-10 md:h-8 md:w-8 rounded-full text-sm md:text-xs",
                                     (isWknd || isHoliday) && !isAbsent && "text-muted-foreground",
                                     isAbsent && "text-destructive-foreground"
                                 )}

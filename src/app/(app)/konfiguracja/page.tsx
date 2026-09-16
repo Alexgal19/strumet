@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Trash2, Loader2, Edit, Save, KeyRound, Users, ShieldCheck, Mail, Send, Eye, EyeOff } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Edit, Save, KeyRound, Users, ShieldCheck, Mail, Send, Eye, EyeOff, List, Shirt, AtSign, History, Database, ChevronRight, ArrowLeft, type LucideIcon } from 'lucide-react';
 import type { ConfigItem, ConfigType, JobTitle, JobTitleClothingSet, User, UserRole } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useHasMounted } from '@/hooks/use-mobile';
+import { useHasMounted, useIsMobile } from '@/hooks/use-mobile';
 import { useAppContext } from '@/context/app-context';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -43,6 +43,24 @@ const configLabels: Record<ConfigView, string> = {
   clothingItems: 'Odzież',
   jobTitleClothingSets: 'Zestawy odzieży'
 };
+
+type ConfigCategory = {
+  value: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  adminOnly?: boolean;
+};
+
+const CONFIG_CATEGORIES: ConfigCategory[] = [
+  { value: 'lists', label: 'Listy i słowniki', description: 'Działy, stanowiska, kierownicy, narodowości', icon: List },
+  { value: 'clothing_sets', label: 'Zestawy odzieży', description: 'Przypisanie odzieży do stanowisk', icon: Shirt },
+  { value: 'api_keys', label: 'Powiadomienia e-mail', description: 'SMTP i Gmail do wysyłki', icon: Mail, adminOnly: true },
+  { value: 'emails', label: 'Adresy odbiorców', description: 'Skrzynki otrzymujące powiadomienia', icon: AtSign, adminOnly: true },
+  { value: 'users', label: 'Użytkownicy', description: 'Role i uprawnienia', icon: Users, adminOnly: true },
+  { value: 'audit', label: 'Historia zmian', description: 'Kto, kiedy i co zmienił', icon: History, adminOnly: true },
+  { value: 'backup', label: 'Dane i kopia zapasowa', description: 'Eksport i przywracanie danych', icon: Database, adminOnly: true },
+];
 
 const JobTitleClothingSetsTab = () => {
     const { config, handleSaveJobTitleClothingSet, isAdmin } = useAppContext();
@@ -126,11 +144,12 @@ const JobTitleClothingSetsTab = () => {
 
 const UserManagementTab = () => {
     const { users, currentUser, handleUpdateUserRole } = useAppContext();
+    const { toast } = useToast();
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
     const handleRoleChange = (user: User, newRole: UserRole) => {
         if (user.id === currentUser?.uid) {
-            alert("Nie można zmienić własnej roli.");
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie można zmienić własnej roli.' });
             return;
         }
         setUpdatingUserId(user.id);
@@ -142,7 +161,7 @@ const UserManagementTab = () => {
     return (
         <Card>
             <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                 <CardTitle>Zarządzanie Użytkownikami</CardTitle>
                 <CardDescription>
@@ -230,6 +249,9 @@ const UserManagementTab = () => {
 export default function ConfigurationPage() {
   const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, handleSaveGmailCredentials, handleSaveSmtpSettings, updateRecipientEmails, isAdmin } = useAppContext();
   const hasMounted = useHasMounted();
+  const isMobile = useIsMobile();
+  const [hubOpen, setHubOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('lists');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -238,6 +260,7 @@ export default function ConfigurationPage() {
 
   const [editingItem, setEditingItem] = useState<{ id: string; name: string } | null>(null);
   const [editedItemName, setEditedItemName] = useState('');
+  const [itemToDelete, setItemToDelete] = useState<{ configType: ConfigType; itemId: string } | null>(null);
 
   const [gmailUser, setGmailUser] = useState('');
   const [gmailAppPassword, setGmailAppPassword] = useState('');
@@ -318,9 +341,8 @@ export default function ConfigurationPage() {
   };
 
   const handleRemoveItem = (configType: ConfigType, itemId: string) => {
-    if (window.confirm('Czy na pewno chcesz usunąć ten element?')) {
-      removeConfigItem(configType, itemId);
-    }
+    // Potwierdzenie przeniesione do AlertDialog (window.confirm blokuje wątek UI i nie ma dark-mode)
+    setItemToDelete({ configType, itemId });
   };
 
   const onSaveGmailCredentials = async () => {
@@ -396,6 +418,12 @@ export default function ConfigurationPage() {
     { type: 'clothingItems', items: config.clothingItems },
   ];
 
+  const visibleCategories = useMemo(
+    () => CONFIG_CATEGORIES.filter((category) => !category.adminOnly || isAdmin),
+    [isAdmin]
+  );
+  const activeCategory = visibleCategories.find((category) => category.value === activeTab);
+
   return (
     <div className="flex h-full flex-col">
       {isLoading || !hasMounted ? (
@@ -409,36 +437,80 @@ export default function ConfigurationPage() {
                 description="Zarządzaj opcjami dostępnymi w systemie."
             />
             
-            <Tabs defaultValue="lists" className="flex-grow flex flex-col">
-                <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-7" : "grid-cols-2")}>
-                    <TabsTrigger value="lists">Listy</TabsTrigger>
-                    <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
-                    {isAdmin && <TabsTrigger value="api_keys">E-mail (SMTP)</TabsTrigger>}
-                    {isAdmin && <TabsTrigger value="emails">Adresy email</TabsTrigger>}
-                    {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
-                    {isAdmin && <TabsTrigger value="audit">Historia</TabsTrigger>}
-                    {isAdmin && <TabsTrigger value="backup">Dane</TabsTrigger>}
-                </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col">
+                {!isMobile && (
+                    <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-2 sm:grid-cols-4 lg:grid-cols-7" : "grid-cols-2")}>
+                        <TabsTrigger value="lists">Listy</TabsTrigger>
+                        <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
+                        {isAdmin && <TabsTrigger value="api_keys">E-mail (SMTP)</TabsTrigger>}
+                        {isAdmin && <TabsTrigger value="emails">Adresy email</TabsTrigger>}
+                        {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
+                        {isAdmin && <TabsTrigger value="audit">Historia</TabsTrigger>}
+                        {isAdmin && <TabsTrigger value="backup">Dane</TabsTrigger>}
+                    </TabsList>
+                )}
+
+                {isMobile && hubOpen && (
+                    <div className="mt-2 space-y-2">
+                        {visibleCategories.map((category) => (
+                            <button
+                                key={category.value}
+                                type="button"
+                                onClick={() => {
+                                    setActiveTab(category.value);
+                                    setHubOpen(false);
+                                }}
+                                className="flex min-h-[64px] w-full items-center justify-start gap-3 rounded-2xl border p-4 text-left transition-colors hover:bg-muted/50 active:bg-muted"
+                            >
+                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted">
+                                    <category.icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                    <span className="block font-medium text-sm">{category.label}</span>
+                                    <span className="block truncate text-xs text-muted-foreground">{category.description}</span>
+                                </span>
+                                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {isMobile && !hubOpen && (
+                    <div className="mt-1 flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-11 w-11 shrink-0"
+                            onClick={() => setHubOpen(true)}
+                            aria-label="Wróć do listy ustawień"
+                        >
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <span className="min-w-0 truncate font-semibold">
+                            {activeCategory ? activeCategory.label : 'Konfiguracja'}
+                        </span>
+                    </div>
+                )}
 
                 {isAdmin && (
-                    <TabsContent value="audit" className="flex-grow mt-6">
+                    <TabsContent value="audit" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
                         <AuditLogList />
                     </TabsContent>
                 )}
 
                 {isAdmin && (
-                    <TabsContent value="backup" className="flex-grow mt-6">
+                    <TabsContent value="backup" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
                         <BackupCard />
                     </TabsContent>
                 )}
 
-                <TabsContent value="lists" className="flex-grow mt-6">
+                <TabsContent value="lists" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
                     <Card className="flex-grow flex flex-col">
                     <CardHeader>
                             <CardTitle>Listy Konfiguracyjne</CardTitle>
                             <CardDescription>Zarządzaj listami działów, stanowisk, etc.</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-grow overflow-y-auto">
+                        <CardContent className="flex-grow">
                             <Accordion type="multiple" className="w-full">
                                 {configLists.map(({ type, items }) => (
                                     <AccordionItem value={type} key={type}>
@@ -450,11 +522,11 @@ export default function ConfigurationPage() {
                                                 <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
                                                     <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
                                                     {isAdmin && (
-                                                        <div className="flex items-center gap-1 shrink-0">
-                                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => openEditDialog(type, item)}>
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-11 w-11" onClick={() => openEditDialog(type, item)}>
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
-                                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleRemoveItem(type, item.id)}>
+                                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-11 w-11" onClick={() => handleRemoveItem(type, item.id)}>
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
                                                         </div>
@@ -478,12 +550,12 @@ export default function ConfigurationPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="clothing_sets" className="flex-grow mt-6">
+                <TabsContent value="clothing_sets" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
                     <JobTitleClothingSetsTab />
                 </TabsContent>
 
                 {isAdmin && (
-                    <TabsContent value="api_keys" className="flex-grow mt-6">
+                    <TabsContent value="api_keys" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-3">
@@ -620,7 +692,7 @@ export default function ConfigurationPage() {
                 )}
 
                 {isAdmin && (
-                    <TabsContent value="emails" className="flex-grow mt-6">
+                    <TabsContent value="emails" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
                         <Card>
                             <CardHeader>
                                 <div className="flex items-start justify-between gap-4">
@@ -678,7 +750,7 @@ export default function ConfigurationPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="text-destructive hover:text-destructive h-8 w-8"
+                                                    className="text-destructive hover:text-destructive h-11 w-11"
                                                     onClick={() => removeEmail(email)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -693,7 +765,7 @@ export default function ConfigurationPage() {
                 )}
 
                 {isAdmin && (
-                    <TabsContent value="users" className="flex-grow mt-6">
+                    <TabsContent value="users" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
                         <UserManagementTab />
                     </TabsContent>
                 )}
@@ -757,6 +829,29 @@ export default function ConfigurationPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={itemToDelete !== null} onOpenChange={(open) => { if (!open) setItemToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usunąć element?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tej operacji nie można cofnąć. Element zostanie trwale usunięty z konfiguracji.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (itemToDelete) removeConfigItem(itemToDelete.configType, itemToDelete.itemId);
+                setItemToDelete(null);
+              }}
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );

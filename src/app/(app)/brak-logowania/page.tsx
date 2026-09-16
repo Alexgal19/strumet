@@ -16,14 +16,6 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
   Table,
   TableBody,
   TableCell,
@@ -42,7 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import { Loader2, CalendarIcon, ChevronsUpDown, CheckIcon, FilePlus2, Trash2, Briefcase, Building, Printer } from 'lucide-react';
+import { Loader2, CalendarIcon, FilePlus2, Trash2, Briefcase, Building, Printer } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
 import { AbsenceRecord, Employee } from '@/lib/types';
@@ -51,13 +43,13 @@ import { formatDate } from '@/lib/date';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { commandExcelFilter } from '@/lib/search';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AbsenceRecordPrintForm } from '@/components/absence-record-print-form';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
+import { EmployeeCombobox } from '@/components/employee-combobox';
 
 
 export default function NoLoginPage() {
@@ -70,8 +62,7 @@ export default function NoLoginPage() {
   const [reason, setReason] = useState<'no_card' | 'forgot_to_scan' | ''>('forgot_to_scan');
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
-  
+
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [printingRecord, setPrintingRecord] = useState<AbsenceRecord | null>(null);
   const printComponentRef = useRef<HTMLDivElement>(null);
@@ -153,7 +144,7 @@ export default function NoLoginPage() {
                 />
 
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                <div className="lg:col-span-1">
+                <div className="order-2 lg:order-1 lg:col-span-1">
                     <Card>
                     <CardHeader>
                         <CardTitle>Dodaj nowy zapis</CardTitle>
@@ -162,47 +153,11 @@ export default function NoLoginPage() {
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                         <Label>Pracownik</Label>
-                        <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                            <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={isComboboxOpen}
-                                className="w-full justify-between"
-                            >
-                                {selectedEmployee ? selectedEmployee.fullName : "Wybierz pracownika..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command filter={commandExcelFilter}>
-                                <CommandInput placeholder="Szukaj pracownika..." />
-                                <CommandList>
-                                <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
-                                <CommandGroup>
-                                    {activeEmployees.map((employee) => (
-                                    <CommandItem
-                                        key={employee.id}
-                                        value={employee.fullName}
-                                        onSelect={() => {
-                                        setSelectedEmployeeId(employee.id);
-                                        setIsComboboxOpen(false);
-                                        }}
-                                    >
-                                        <CheckIcon
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                        />
-                                        {employee.fullName}
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                            </PopoverContent>
-                        </Popover>
+                        <EmployeeCombobox
+                            employees={activeEmployees}
+                            value={selectedEmployeeId}
+                            onValueChange={setSelectedEmployeeId}
+                        />
                         </div>
 
                         <div className="space-y-2">
@@ -246,14 +201,26 @@ export default function NoLoginPage() {
                         <div className="space-y-3">
                             <Label>Przyczyna</Label>
                             <RadioGroup value={reason} onValueChange={(value) => setReason(value as any)} className="space-y-2">
-                                <div className="flex items-center space-x-2">
+                                <Label
+                                    htmlFor="r1"
+                                    className={cn(
+                                        "flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm font-medium transition-colors",
+                                        reason === 'no_card' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                                    )}
+                                >
                                     <RadioGroupItem value="no_card" id="r1" />
-                                    <Label htmlFor="r1">Nieodbicie dyskietki spowodowane było jej brakiem</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
+                                    <span>Nieodbicie dyskietki spowodowane było jej brakiem</span>
+                                </Label>
+                                <Label
+                                    htmlFor="r2"
+                                    className={cn(
+                                        "flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm font-medium transition-colors",
+                                        reason === 'forgot_to_scan' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                                    )}
+                                >
                                     <RadioGroupItem value="forgot_to_scan" id="r2" />
-                                    <Label htmlFor="r2">Nieodbicie dyskietki na wejściu/wyjściu wynikło z zapomnienia</Label>
-                                </div>
+                                    <span>Nieodbicie dyskietki na wejściu/wyjściu wynikło z zapomnienia</span>
+                                </Label>
                             </RadioGroup>
                         </div>
 
@@ -265,7 +232,7 @@ export default function NoLoginPage() {
                     </Card>
                 </div>
 
-                <div className="lg:col-span-2">
+                <div className="order-1 lg:order-2 lg:col-span-2">
                     <Card>
                     <CardHeader>
                         <div className="flex items-center justify-between">
@@ -336,11 +303,11 @@ export default function NoLoginPage() {
                                         <CardContent className="p-4 flex flex-col gap-2">
                                             <div className="flex justify-between items-start">
                                                 <span className="font-semibold text-lg">{rec.employeeFullName}</span>
-                                                <div className="flex gap-1 shrink-0">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrint(rec)}>
+                                                <div className="flex gap-2 shrink-0">
+                                                    <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handlePrint(rec)}>
                                                         <Printer className="h-4 w-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingId(rec.id)}>
+                                                    <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive" onClick={() => setDeletingId(rec.id)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>

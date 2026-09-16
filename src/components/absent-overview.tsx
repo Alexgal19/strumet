@@ -218,7 +218,7 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
                       <p className="text-xs leading-relaxed truncate">
                         {day.people.map((p) => p.fullName).join(', ')}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {day.people.length} {day.people.length === 1 ? 'osoba' : 'osób'}
                       </p>
                     </div>

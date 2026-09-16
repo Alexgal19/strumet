@@ -129,6 +129,21 @@ export default function StatisticsPieChart({
             </PieChart>
           </ResponsiveContainer>
         </ChartContainer>
+        {/* Legenda dotykowa — na mobile jedyna czytelna forma opisu wykresu (tap = filtr) */}
+        <div className="mt-2 flex w-full flex-wrap justify-center gap-x-4 gap-y-1.5 sm:hidden">
+          {data.map((entry, index) => (
+            <button
+              key={`legend-${index}`}
+              type="button"
+              className="flex min-h-[32px] items-center gap-1.5 text-xs text-muted-foreground active:text-primary"
+              onClick={() => onChartClick(entry.name, type)}
+            >
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
+              <span>{entry.name}</span>
+              <span className="font-bold text-foreground">{entry.value}</span>
+            </button>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

@@ -116,7 +116,7 @@ export default function EmailTemplatesPage() {
                   {template.triggerConfig?.event && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Event: {template.triggerConfig.event}
-                      {template.triggerConfig.daysBefore && ` · {template.triggerConfig.daysBefore} dni przed`}
+                      {template.triggerConfig.daysBefore && ` · ${template.triggerConfig.daysBefore} dni przed`}
                     </p>
                   )}
                 </div>
