@@ -36,7 +36,6 @@ import {
   CalendarClock,
   ArrowRight,
   Bell,
-  Fingerprint,
   LayoutDashboard,
   BarChart3,
   Settings,
@@ -64,8 +63,6 @@ import {
 import { pl } from 'date-fns/locale';
 import {
   EmployeeCard,
-  ContractCard,
-  FingerprintCard,
 } from '@/components/planning-cards';
 
 const CHART_COLORS = [
@@ -83,7 +80,6 @@ const CHART_COLORS = [
 export default function DashboardPage() {
   const {
     isLoading: isContextLoading,
-    fingerprintAppointments,
     notifications,
     statsHistory,
     absences,
@@ -164,54 +160,6 @@ export default function DashboardPage() {
       avgHeadcount: Math.round(avgHeadcount),
     };
   }, [statsHistory, today]);
-
-  // --- Planning alerts (top 3 each) ---
-  const threshold30 = addDays(today, 30);
-
-  const expiringContracts = useMemo(() => {
-    return activeEmployees
-      .filter((e) => {
-        if (!e.contractEndDate) return false;
-        const endDate = parseMaybeDate(e.contractEndDate);
-        return endDate
-          ? startOfDay(endDate) >= today && startOfDay(endDate) <= threshold30
-          : false;
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.contractEndDate!).getTime() -
-          new Date(b.contractEndDate!).getTime()
-      )
-  }, [activeEmployees, today, threshold30]);
-
-  const upcomingAppointments = useMemo(() => {
-    return fingerprintAppointments
-      .filter((a) => {
-        const apptDate = parseMaybeDate(a.appointmentDate);
-        return apptDate
-          ? startOfDay(apptDate) >= today && startOfDay(apptDate) <= threshold30
-          : false;
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.appointmentDate).getTime() -
-          new Date(b.appointmentDate).getTime()
-      );
-  }, [fingerprintAppointments, today, threshold30]);
-
-  const plannedTerminations = useMemo(() => {
-    return activeEmployees
-      .filter((e) => {
-        if (!e.plannedTerminationDate) return false;
-        const terminationDate = parseMaybeDate(e.plannedTerminationDate);
-        return terminationDate ? startOfDay(terminationDate) >= today : false;
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.plannedTerminationDate!).getTime() -
-          new Date(b.plannedTerminationDate!).getTime()
-      )
-  }, [activeEmployees, today]);
 
   const onVacation = useMemo(() => {
     return activeEmployees
@@ -334,149 +282,6 @@ export default function DashboardPage() {
     })),
   ];
 
-  const contractsCard = (
-    <Card className="glass-card">
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <CalendarClock className="h-5 w-5 text-orange-500 dark:text-orange-400" />
-          <CardTitle className="text-base">
-            Wygasające umowy ({expiringContracts.length})
-          </CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {expiringContracts.length > 0 ? (
-          <>
-            <div className="hidden lg:block">
-              <ScrollArea className="h-[280px]">
-                <div className="space-y-3 pr-4">
-                  {expiringContracts.map((employee) => (
-                    <ContractCard key={employee.id} employee={employee} />
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-            <div className="lg:hidden">
-              <ExpandableList
-                items={expiringContracts}
-                renderItem={(employee) => (
-                  <ContractCard key={employee.id} employee={employee} />
-                )}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <CalendarClock className="h-10 w-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">
-              Brak umów wygających w ciągu 30 dni.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  const fingerprintsCard = (
-    <Card className="glass-card">
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <Bell className="h-5 w-5 text-blue-500 dark:text-blue-400" />
-          <CardTitle className="text-base">
-            Odciski palców ({upcomingAppointments.length})
-          </CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {upcomingAppointments.length > 0 ? (
-          <>
-            <div className="hidden lg:block">
-              <ScrollArea className="h-[280px]">
-                <div className="space-y-3 pr-4">
-                  {upcomingAppointments.map((appointment) => (
-                    <FingerprintCard
-                      key={appointment.id}
-                      appointment={appointment}
-                    />
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-            <div className="lg:hidden">
-              <ExpandableList
-                items={upcomingAppointments}
-                renderItem={(appointment) => (
-                  <FingerprintCard
-                    key={appointment.id}
-                    appointment={appointment}
-                  />
-                )}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <Fingerprint className="h-10 w-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">
-              Brak zaplanowanych wizyt w ciągu 30 dni.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  const terminationsCard = (
-    <Card className="glass-card">
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <UserX className="h-5 w-5 text-destructive" />
-          <CardTitle className="text-base">
-            Planowane zwolnienia ({plannedTerminations.length})
-          </CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {plannedTerminations.length > 0 ? (
-          <>
-            <div className="hidden lg:block">
-              <ScrollArea className="h-[280px]">
-                <div className="space-y-3 pr-4">
-                  {plannedTerminations.map((employee) => (
-                    <EmployeeCard
-                      key={employee.id}
-                      employee={employee}
-                      type="termination"
-                    />
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-            <div className="lg:hidden">
-              <ExpandableList
-                items={plannedTerminations}
-                renderItem={(employee) => (
-                  <EmployeeCard
-                    key={employee.id}
-                    employee={employee}
-                    type="termination"
-                  />
-                )}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <UserX className="h-10 w-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">
-              Brak zaplanowanych zwolnień.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-
   const vacationsCard = (
     <Card className="glass-card">
       <CardHeader className="pb-3">
@@ -535,28 +340,6 @@ export default function DashboardPage() {
     </Card>
   );
 
-  const alertsSection = (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-bold tracking-tight">
-          Alerty planowania
-        </h2>
-        <Link
-          href="/planowanie"
-          className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
-        >
-          Zobacz wszystkie <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {contractsCard}
-        {fingerprintsCard}
-        {terminationsCard}
-        {vacationsCard}
-      </div>
-    </div>
-  );
 
   const chartsSection = (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -716,12 +499,9 @@ export default function DashboardPage() {
 
   const mobileTabs = (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid h-auto w-full grid-cols-3">
+      <TabsList className="grid h-auto w-full grid-cols-2">
         <TabsTrigger value="dzis" className="min-h-[44px] text-xs sm:text-sm">
           Dziś
-        </TabsTrigger>
-        <TabsTrigger value="alerty" className="min-h-[44px] text-xs sm:text-sm">
-          Alerty
         </TabsTrigger>
         <TabsTrigger
           value="statystyki"
@@ -736,13 +516,6 @@ export default function DashboardPage() {
           {absenceSearchCard}
           {vacationsCard}
           {notificationsCard}
-        </div>
-      </TabsContent>
-      <TabsContent value="alerty" className="mt-6">
-        <div className="space-y-6">
-          {contractsCard}
-          {fingerprintsCard}
-          {terminationsCard}
         </div>
       </TabsContent>
       <TabsContent value="statystyki" className="mt-6">
@@ -841,7 +614,7 @@ export default function DashboardPage() {
         <>
           {absentSection}
           {absenceSearchCard}
-          {alertsSection}
+          {vacationsCard}
           {chartsSection}
           {summarySection}
         </>
