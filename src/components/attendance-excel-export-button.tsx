@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getDate } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getDate, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { Employee, Absence } from '@/lib/types';
 import { getPolishHolidays } from '@/lib/holidays';
@@ -46,42 +46,95 @@ export function AttendanceExcelExportButton({
             absenceMap.get(a.employeeId)?.add(a.date);
         });
 
-        // 1. Employee Summary Sheet
-        const summaryData = employees.map(emp => {
+        // Grupowanie po działach: sortowanie (dział, nazwisko)
+        const departmentOf = (emp: Employee) => emp.department || 'Bez działu';
+        const sortedEmployees = [...employees].sort((a, b) => {
+            const depCompare = departmentOf(a).localeCompare(departmentOf(b), 'pl');
+            if (depCompare !== 0) return depCompare;
+            return a.fullName.localeCompare(b.fullName, 'pl');
+        });
+
+        // Daty nieobecności pracownika — chronologicznie, format dd.MM
+        const formatDateList = (dates: Set<string> | undefined): string => {
+            if (!dates || dates.size === 0) return '';
+            return [...dates]
+                .sort()
+                .map(d => {
+                    try {
+                        return format(parseISO(d), 'dd.MM');
+                    } catch {
+                        return d;
+                    }
+                })
+                .join(', ');
+        };
+
+        // 1. Employee Summary Sheet — pogrupowana po działach, z datami nieobecności
+        const summaryData = sortedEmployees.map(emp => {
             const empAbsences = absenceMap.get(emp.id);
             const absenceCount = empAbsences ? empAbsences.size : 0;
             const absencePercentage = workingDays > 0 ? (absenceCount / workingDays) : 0;
 
             return {
+                'Dział': departmentOf(emp),
                 'Imię i nazwisko': emp.fullName,
-                'Dział': emp.department,
                 'Stanowisko': emp.jobTitle,
                 'Liczba nieobecności': absenceCount,
+                'Dni nieobecności': formatDateList(empAbsences),
                 '% Nieobecności': absencePercentage
             };
         });
 
         const summaryWs = XLSX.utils.json_to_sheet(summaryData);
-        
-        // Format percentage column
+
+        // Format percentage column (6th column, index 5)
         const range = XLSX.utils.decode_range(summaryWs['!ref']!);
         for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-            const ref = XLSX.utils.encode_cell({ r: R, c: 4 }); // 5th column (index 4)
+            const ref = XLSX.utils.encode_cell({ r: R, c: 5 });
             if (!summaryWs[ref]) continue;
             summaryWs[ref].z = '0.00%';
             summaryWs[ref].t = 'n'; // ensure it's a number
         }
 
-        summaryWs['!cols'] = [{ wch: 30 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
+        summaryWs['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 18 }, { wch: 30 }, { wch: 15 }];
         XLSX.utils.book_append_sheet(workbook, summaryWs, 'Podsumowanie');
 
-        // 2. Attendance Matrix Sheet
+        // 2. Absence Dates Sheet — jeden wiersz na nieobecność, pogrupowany po działach
+        const listHeaders = ['Dział', 'Pracownik', 'Data', 'Dzień tygodnia'];
+        const listRows: any[][] = [listHeaders];
+
+        const employeeById = new Map(employees.map(e => [e.id, e]));
+        monthAbsences
+            .slice()
+            .sort((a, b) => {
+                const depA = departmentOf(employeeById.get(a.employeeId) ?? ({ department: '' } as Employee));
+                const depB = departmentOf(employeeById.get(b.employeeId) ?? ({ department: '' } as Employee));
+                if (depA !== depB) return depA.localeCompare(depB, 'pl');
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return (employeeById.get(a.employeeId)?.fullName ?? '').localeCompare(employeeById.get(b.employeeId)?.fullName ?? '', 'pl');
+            })
+            .forEach(a => {
+                const emp = employeeById.get(a.employeeId);
+                const dateObj = parseISO(a.date);
+                listRows.push([
+                    departmentOf(emp ?? ({ department: '' } as Employee)),
+                    emp?.fullName ?? a.employeeId,
+                    format(dateObj, 'dd.MM.yyyy'),
+                    format(dateObj, 'EEEE', { locale: pl }),
+                ]);
+            });
+
+        const listWs = XLSX.utils.aoa_to_sheet(listRows);
+        listWs['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 14 }, { wch: 16 }];
+        XLSX.utils.book_append_sheet(workbook, listWs, 'Nieobecności (daty)');
+
+        // 3. Attendance Matrix Sheet — również pogrupowana po działach
         // Headers: Employee Info + Days 1..31
-        const matrixHeaders = ['Imię i nazwisko', 'Dział', ...daysInMonth.map(d => getDate(d).toString())];
+        const matrixHeaders = ['Dział', 'Imię i nazwisko', ...daysInMonth.map(d => getDate(d).toString())];
         const matrixData = [matrixHeaders];
 
-        employees.sort((a, b) => a.fullName.localeCompare(b.fullName)).forEach(emp => {
-            const row: any[] = [emp.fullName, emp.department];
+        sortedEmployees.forEach(emp => {
+            const row: any[] = [departmentOf(emp), emp.fullName];
             const empAbsences = absenceMap.get(emp.id);
 
             daysInMonth.forEach(day => {
@@ -105,7 +158,7 @@ export function AttendanceExcelExportButton({
         const matrixWs = XLSX.utils.aoa_to_sheet(matrixData);
         
         // Basic styling for matrix columns
-        const matrixCols = [{ wch: 30 }, { wch: 20 }];
+        const matrixCols = [{ wch: 20 }, { wch: 30 }];
         for (let i = 0; i < daysInMonth.length; i++) {
             matrixCols.push({ wch: 3 }); // Narrow columns for days
         }
