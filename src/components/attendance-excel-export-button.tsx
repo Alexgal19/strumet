@@ -13,6 +13,8 @@ interface AttendanceExcelExportButtonProps {
     employees: Employee[];
     absences: Absence[];
     workingDays: number;
+    /** Filtr dat z aplikacji — gdy ustawiony, eksport obejmuje tylko wybrane dni i tylko nieobecnych */
+    selectedDates?: Date[];
 }
 
 export function AttendanceExcelExportButton({
@@ -20,6 +22,7 @@ export function AttendanceExcelExportButton({
     employees,
     absences,
     workingDays,
+    selectedDates,
 }: AttendanceExcelExportButtonProps) {
 
     const handleExport = async () => {
@@ -31,11 +34,15 @@ export function AttendanceExcelExportButton({
         const monthName = format(currentDate, 'LLLL yyyy', { locale: pl });
         const holidays = getPolishHolidays(currentDate.getFullYear());
 
-        // Filter absences for this month
-        const monthAbsences = absences.filter(a => {
-            const d = new Date(a.date);
-            return d >= monthStart && d <= monthEnd;
-        });
+        // Zakres eksportu: wybrane dni (filtr z aplikacji) albo cały miesiąc
+        const hasDateFilter = !!selectedDates && selectedDates.length > 0;
+        const scopeDates = hasDateFilter
+            ? [...selectedDates].sort((a, b) => a.getTime() - b.getTime())
+            : daysInMonth;
+        const scopeKeys = new Set(scopeDates.map(d => format(d, 'yyyy-MM-dd')));
+
+        // Nieobecności w zakresie
+        const monthAbsences = absences.filter(a => scopeKeys.has(a.date));
 
         // Map for quick lookup: employeeId -> Set of dates (YYYY-MM-DD)
         const absenceMap = new Map<string, Set<string>>();
@@ -54,6 +61,11 @@ export function AttendanceExcelExportButton({
             return a.fullName.localeCompare(b.fullName, 'pl');
         });
 
+        // Przy aktywnym filtrze dat — tylko pracownicy z nieobecnością w wybranych dniach
+        const exportEmployees = hasDateFilter
+            ? sortedEmployees.filter(emp => absenceMap.has(emp.id))
+            : sortedEmployees;
+
         // Daty nieobecności pracownika — chronologicznie, format dd.MM
         const formatDateList = (dates: Set<string> | undefined): string => {
             if (!dates || dates.size === 0) return '';
@@ -70,11 +82,21 @@ export function AttendanceExcelExportButton({
         };
 
         // 1. Employee Summary Sheet — pogrupowana po działach, z datami nieobecności
-        const summaryData = sortedEmployees.map(emp => {
+        const summaryData = exportEmployees.map(emp => {
             const empAbsences = absenceMap.get(emp.id);
             const absenceCount = empAbsences ? empAbsences.size : 0;
-            const absencePercentage = workingDays > 0 ? (absenceCount / workingDays) : 0;
 
+            if (hasDateFilter) {
+                return {
+                    'Dział': departmentOf(emp),
+                    'Imię i nazwisko': emp.fullName,
+                    'Stanowisko': emp.jobTitle,
+                    'Liczba dni': absenceCount,
+                    'Daty nieobecności': formatDateList(empAbsences),
+                };
+            }
+
+            const absencePercentage = workingDays > 0 ? (absenceCount / workingDays) : 0;
             return {
                 'Dział': departmentOf(emp),
                 'Imię i nazwisko': emp.fullName,
@@ -87,16 +109,20 @@ export function AttendanceExcelExportButton({
 
         const summaryWs = XLSX.utils.json_to_sheet(summaryData);
 
-        // Format percentage column (6th column, index 5)
-        const range = XLSX.utils.decode_range(summaryWs['!ref']!);
-        for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-            const ref = XLSX.utils.encode_cell({ r: R, c: 5 });
-            if (!summaryWs[ref]) continue;
-            summaryWs[ref].z = '0.00%';
-            summaryWs[ref].t = 'n'; // ensure it's a number
+        // Format percentage column (tylko pełny miesięczny wariant — 6. kolumna, index 5)
+        if (!hasDateFilter) {
+            const range = XLSX.utils.decode_range(summaryWs['!ref']!);
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                const ref = XLSX.utils.encode_cell({ r: R, c: 5 });
+                if (!summaryWs[ref]) continue;
+                summaryWs[ref].z = '0.00%';
+                summaryWs[ref].t = 'n'; // ensure it's a number
+            }
         }
 
-        summaryWs['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 18 }, { wch: 30 }, { wch: 15 }];
+        summaryWs['!cols'] = hasDateFilter
+            ? [{ wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 12 }, { wch: 30 }]
+            : [{ wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 18 }, { wch: 30 }, { wch: 15 }];
         XLSX.utils.book_append_sheet(workbook, summaryWs, 'Podsumowanie');
 
         // 2. Absence Dates Sheet — jeden wiersz na nieobecność, pogrupowany po działach
@@ -128,22 +154,24 @@ export function AttendanceExcelExportButton({
         listWs['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 14 }, { wch: 16 }];
         XLSX.utils.book_append_sheet(workbook, listWs, 'Nieobecności (daty)');
 
-        // 3. Attendance Matrix Sheet — również pogrupowana po działach
-        // Headers: Employee Info + Days 1..31
-        const matrixHeaders = ['Dział', 'Imię i nazwisko', ...daysInMonth.map(d => getDate(d).toString())];
+        // 3. Attendance Matrix Sheet — pogrupowana po działach;
+        // przy filtrze dat kolumny = wybrane dni (dd.MM), bez filtra = dni miesiąca (1..31)
+        const matrixHeaders = [
+            'Dział',
+            'Imię i nazwisko',
+            ...scopeDates.map(d => (hasDateFilter ? format(d, 'dd.MM') : getDate(d).toString())),
+        ];
         const matrixData = [matrixHeaders];
 
-        sortedEmployees.forEach(emp => {
+        exportEmployees.forEach(emp => {
             const row: any[] = [departmentOf(emp), emp.fullName];
             const empAbsences = absenceMap.get(emp.id);
 
-            daysInMonth.forEach(day => {
+            scopeDates.forEach(day => {
                 const dateStr = format(day, 'yyyy-MM-dd');
                 const isWknd = isWeekend(day);
-                const isHoliday = holidays.some(h => h.getTime() === day.getTime()); // Simple comparison might fail due to time, use string or simpler comp
-                // Ideally compare using date strings or set hours to 0
                 const isHolidayStr = holidays.some(h => format(h, 'yyyy-MM-dd') === dateStr);
-                
+
                 if (isWknd || isHolidayStr) {
                     row.push('-'); // Weekend/Holiday placeholder
                 } else if (empAbsences?.has(dateStr)) {
@@ -156,19 +184,20 @@ export function AttendanceExcelExportButton({
         });
 
         const matrixWs = XLSX.utils.aoa_to_sheet(matrixData);
-        
+
         // Basic styling for matrix columns
         const matrixCols = [{ wch: 20 }, { wch: 30 }];
-        for (let i = 0; i < daysInMonth.length; i++) {
-            matrixCols.push({ wch: 3 }); // Narrow columns for days
+        for (let i = 0; i < scopeDates.length; i++) {
+            matrixCols.push({ wch: hasDateFilter ? 8 : 3 }); // Wybrane dni czytelniej opisane
         }
         matrixWs['!cols'] = matrixCols;
 
-        XLSX.utils.book_append_sheet(workbook, matrixWs, 'Kalendarz Obecności');
+        XLSX.utils.book_append_sheet(workbook, matrixWs, hasDateFilter ? 'Kalendarz (wybrane dni)' : 'Kalendarz Obecności');
 
         // Save file
         const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm');
-        XLSX.writeFile(workbook, `obecnosc_${monthName.replace(/\s+/g, '_')}_${timestamp}.xlsx`);
+        const filterSuffix = hasDateFilter ? '_wybrane_dni' : '';
+        XLSX.writeFile(workbook, `obecnosc${filterSuffix}_${monthName.replace(/\s+/g, '_')}_${timestamp}.xlsx`);
     };
 
     return (

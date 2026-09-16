@@ -25,6 +25,7 @@ import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AbsentOverview } from '@/components/absent-overview';
+import { AbsenceDateSearchCard } from '@/components/absence-date-search-card';
 import { parseMaybeDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import {
@@ -299,6 +300,10 @@ export default function DashboardPage() {
   );
 
   // --- Sekcje pulpitu (wspólne dla desktopu i mobile) ---
+  const absenceSearchCard = (
+    <AbsenceDateSearchCard employees={activeEmployees} absences={absences} />
+  );
+
   const absentSection = (
     <div className="space-y-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -728,6 +733,7 @@ export default function DashboardPage() {
       <TabsContent value="dzis" className="mt-6">
         <div className="space-y-6">
           {absentSection}
+          {absenceSearchCard}
           {vacationsCard}
           {notificationsCard}
         </div>
@@ -834,6 +840,7 @@ export default function DashboardPage() {
         /* Desktop: jeden scroll, wszystkie sekcje */
         <>
           {absentSection}
+          {absenceSearchCard}
           {alertsSection}
           {chartsSection}
           {summarySection}

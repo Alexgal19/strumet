@@ -9,11 +9,11 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, CalendarIcon, ChevronLeft, ChevronRight, UserX, Copy, Info, Users } from 'lucide-react';
+import { Loader2, CalendarIcon, CalendarDays, ChevronLeft, ChevronRight, UserX, Copy, Info, Users, X } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import type { Employee, Absence } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { add, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, setYear, setMonth, isWeekend, getDaysInMonth } from 'date-fns';
+import { add, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, setYear, setMonth, isWeekend, getDaysInMonth, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
@@ -32,6 +32,8 @@ import { EmployeeAttendanceCard } from '@/components/employee-attendance-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { AttendanceExcelExportButton } from '@/components/attendance-excel-export-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { excelLikeMatch } from '@/lib/search';
 
 const DepartmentStats = ({
@@ -104,6 +106,8 @@ export default function OdwiedzalnoscPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+  // Filtr dat nieobecności — pokazuje kto był nieobecny w wybranych dniach
+  const [absenceDateFilter, setAbsenceDateFilter] = useState<Date[]>([]);
 
   const departmentOptions = useMemo(() => [
     { value: "all", label: "Wszystkie działy" },
@@ -150,6 +154,38 @@ export default function OdwiedzalnoscPage() {
     }
     return filtered;
   }, [activeEmployees, selectedDepartment, searchTerm]);
+
+  const isDateFilterActive = absenceDateFilter.length > 0;
+  const absenceDateFilterKeys = useMemo(
+    () => new Set(absenceDateFilter.map(d => format(d, 'yyyy-MM-dd'))),
+    [absenceDateFilter]
+  );
+
+  // Przy aktywnym filtrze dat — tylko pracownicy nieobecni w wybranych dniach
+  const dateFilteredEmployees = useMemo(() => {
+    if (!isDateFilterActive) return filteredEmployees;
+    return filteredEmployees.filter(emp =>
+      absences.some(a => a.employeeId === emp.id && absenceDateFilterKeys.has(a.date))
+    );
+  }, [filteredEmployees, absences, isDateFilterActive, absenceDateFilterKeys]);
+
+  // Podsumowanie: kto i w których dniach był nieobecny (grupowane po działach)
+  const absenceSummary = useMemo(() => {
+    if (!isDateFilterActive) return [];
+    return dateFilteredEmployees
+      .map(emp => ({
+        employee: emp,
+        dates: absences
+          .filter(a => a.employeeId === emp.id && absenceDateFilterKeys.has(a.date))
+          .map(a => a.date)
+          .sort(),
+      }))
+      .sort((a, b) => {
+        const depCompare = (a.employee.department || '').localeCompare(b.employee.department || '', 'pl');
+        if (depCompare !== 0) return depCompare;
+        return a.employee.fullName.localeCompare(b.employee.fullName, 'pl');
+      });
+  }, [dateFilteredEmployees, absences, isDateFilterActive, absenceDateFilterKeys]);
 
   const { totalAbsencesInMonth, departmentStats } = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
@@ -234,7 +270,7 @@ export default function OdwiedzalnoscPage() {
   const employeesContent = (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredEmployees.map(emp => (
+          {dateFilteredEmployees.map(emp => (
               <EmployeeAttendanceCard
                   key={emp.id}
                   employee={emp}
@@ -245,7 +281,7 @@ export default function OdwiedzalnoscPage() {
               />
           ))}
       </div>
-      {filteredEmployees.length === 0 && (
+      {dateFilteredEmployees.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed text-center p-12 text-muted-foreground h-full">
               <UserX className="h-12 w-12 mb-4" />
               <h3 className="text-lg font-semibold">Brak pracowników</h3>
@@ -312,9 +348,10 @@ export default function OdwiedzalnoscPage() {
                         </h2>
                         <AttendanceExcelExportButton
                             currentDate={currentDate}
-                            employees={filteredEmployees}
+                            employees={dateFilteredEmployees}
                             absences={absences}
                             workingDays={workingDaysInMonth}
+                            selectedDates={isDateFilterActive ? absenceDateFilter : undefined}
                         />
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -336,6 +373,41 @@ export default function OdwiedzalnoscPage() {
                                 ))}
                             </SelectContent>
                         </Select>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={isDateFilterActive ? 'secondary' : 'outline'}
+                                    className={cn(
+                                        'flex-1 min-w-[140px] sm:flex-none justify-start h-9',
+                                        isDateFilterActive && 'text-primary border-primary/40'
+                                    )}
+                                >
+                                    <CalendarDays className="mr-2 h-4 w-4 shrink-0" />
+                                    {isDateFilterActive ? `Wybrane dni: ${absenceDateFilter.length}` : 'Filtruj po datach'}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="multiple"
+                                    selected={absenceDateFilter}
+                                    onSelect={(dates) => setAbsenceDateFilter(dates ?? [])}
+                                    defaultMonth={currentDate}
+                                    locale={pl}
+                                />
+                                <div className="p-2 border-t">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full"
+                                        disabled={!isDateFilterActive}
+                                        onClick={() => setAbsenceDateFilter([])}
+                                    >
+                                        <X className="mr-2 h-4 w-4" />
+                                        Wyczyść filtr dat
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                     <div className="flex items-center gap-1 p-1 rounded-md border bg-card w-full sm:w-auto">
                         <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setCurrentDate(prev => add(prev, { months: -1 }))}><ChevronLeft /></Button>
@@ -350,6 +422,49 @@ export default function OdwiedzalnoscPage() {
                         <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setCurrentDate(prev => add(prev, { months: 1 }))}><ChevronRight /></Button>
                     </div>
                 </div>
+
+                {/* Wynik filtra dat: kto był nieobecny w wybranych dniach (grupowane po działach) */}
+                {isDateFilterActive && (
+                    <Card className="mb-6">
+                        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                                <CardTitle className="text-base">
+                                    Nieobecni w wybranych dniach ({absenceSummary.length})
+                                </CardTitle>
+                                <CardDescription className="break-words">
+                                    {absenceDateFilter
+                                        .slice()
+                                        .sort((a, b) => a.getTime() - b.getTime())
+                                        .map(d => format(d, 'dd.MM.yyyy', { locale: pl }))
+                                        .join(', ')}
+                                </CardDescription>
+                            </div>
+                            <Button variant="ghost" size="sm" className="w-full sm:w-auto shrink-0" onClick={() => setAbsenceDateFilter([])}>
+                                <X className="mr-2 h-4 w-4" />
+                                Wyczyść filtr
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            {absenceSummary.length === 0 ? (
+                                <p className="text-center text-sm text-muted-foreground py-4">
+                                    Brak nieobecności w wybranych dniach.
+                                </p>
+                            ) : (
+                                <div className="divide-y divide-border/60">
+                                    {absenceSummary.map(({ employee, dates }) => (
+                                        <div key={employee.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-medium truncate">{employee.fullName}</p>
+                                                <p className="text-xs text-muted-foreground">{employee.department || 'Bez działu'}</p>
+                                            </div>
+                                            <p className="text-sm font-semibold">{dates.map(d => format(parseISO(d), 'dd.MM')).join(', ')}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {isMobile ? (
                     <Tabs defaultValue="employees" className="space-y-4">
