@@ -8,7 +8,7 @@ import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { useToast } from '@/hooks/use-toast';
 import { getDB } from '@/lib/firebase';
-import { objectToArray } from '@/lib/utils';
+import { cn, objectToArray } from '@/lib/utils';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import type { Recruitment, RecruitmentArrival } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -139,6 +139,7 @@ const RecruitmentCard = ({
   departments,
   jobTitles,
   headcount,
+  jobTitleStats,
   onUpdateMeta,
   onDelete,
 }: {
@@ -146,6 +147,7 @@ const RecruitmentCard = ({
   departments: { id: string; name: string }[];
   jobTitles: { id: string; name: string }[];
   headcount: { department: number; jobTitle: number };
+  jobTitleStats: { jobTitle: string; count: number; toRecruit: number }[];
   onUpdateMeta: (recruitment: Recruitment, department: string, jobTitle: string) => Promise<boolean>;
   onDelete: (recruitment: Recruitment) => void;
 }) => {
@@ -379,6 +381,36 @@ const RecruitmentCard = ({
           </div>
         </div>
 
+        <div className="space-y-1.5 rounded-md border bg-muted/30 p-3">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Briefcase className="h-3.5 w-3.5 shrink-0" />
+            Stanowiska w dziale ({headcount.department} os.):
+          </p>
+          <div className="space-y-1">
+            {jobTitleStats.map(s => (
+              <div
+                key={s.jobTitle}
+                className={cn(
+                  'flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs',
+                  s.jobTitle === jobTitleLabel && 'font-semibold text-foreground'
+                )}
+              >
+                <span>
+                  {s.jobTitle} — {formatHeadcount(s.count)}
+                  {s.jobTitle === jobTitleLabel && (
+                    <span className="ml-1 font-normal text-primary">(ta pozycja)</span>
+                  )}
+                </span>
+                {s.toRecruit > 0 && (
+                  <Badge variant="destructive" className="tabular-nums">
+                    Rekrutacja: {s.toRecruit}
+                  </Badge>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-medium text-muted-foreground">
@@ -493,6 +525,38 @@ export default function RekrutacjaPage() {
     });
     return map;
   }, [activeEmployees]);
+
+  // Stanowiska w każdym dziale: obecna obsada + suma potrzeb rekrutacyjnych
+  const jobTitlesByDepartment = useMemo(() => {
+    const map = new Map<string, { jobTitle: string; count: number; toRecruit: number }[]>();
+    const ensure = (department: string) => {
+      let entries = map.get(department);
+      if (!entries) {
+        entries = [];
+        map.set(department, entries);
+      }
+      return entries;
+    };
+    activeEmployees.forEach(e => {
+      if (!e.department || !e.jobTitle) return;
+      const entries = ensure(e.department);
+      const existing = entries.find(x => x.jobTitle === e.jobTitle);
+      if (existing) existing.count += 1;
+      else entries.push({ jobTitle: e.jobTitle, count: 1, toRecruit: 0 });
+    });
+    recruitments.forEach(r => {
+      if (!r.department) return;
+      const entries = ensure(r.department);
+      const jobTitle = r.jobTitle?.trim() || '—';
+      const existing = entries.find(x => x.jobTitle === jobTitle);
+      if (existing) existing.toRecruit += Number(r.toRecruit) || 0;
+      else entries.push({ jobTitle, count: 0, toRecruit: Number(r.toRecruit) || 0 });
+    });
+    map.forEach(entries => {
+      entries.sort((a, b) => b.count - a.count || a.jobTitle.localeCompare(b.jobTitle, 'pl'));
+    });
+    return map;
+  }, [activeEmployees, recruitments]);
 
   const handleUpdateMeta = async (
     recruitment: Recruitment,
@@ -880,6 +944,7 @@ export default function RekrutacjaPage() {
                           `${recruitment.department}|${recruitment.jobTitle?.trim() || '—'}`
                         ) ?? 0,
                     }}
+                    jobTitleStats={jobTitlesByDepartment.get(recruitment.department) ?? []}
                     onUpdateMeta={handleUpdateMeta}
                     onDelete={setToDelete}
                   />
