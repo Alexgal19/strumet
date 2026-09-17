@@ -194,8 +194,8 @@ const RecruitmentCard = ({
   const plannedTotal = recruitment.arrivals.reduce((sum, a) => sum + (Number(a.count) || 0), 0);
   const missing = Math.max(0, (recruitment.toRecruit || 0) - plannedTotal);
   const surplus = Math.max(0, plannedTotal - (recruitment.toRecruit || 0));
-  // Obecnie na stanowisku + do zrekrutowania = ile osób będzie na dziale·stanowisku
-  const totalAfterRecruitment = headcount.jobTitle + (recruitment.toRecruit || 0);
+  // Obecnie w całym dziale + do zrekrutowania = ile osób będzie łącznie na dziale
+  const totalAfterRecruitment = headcount.department + (recruitment.toRecruit || 0);
 
   const handleCountBlur = async () => {
     const db = getDB();
@@ -380,7 +380,7 @@ const RecruitmentCard = ({
             />
             <span className="text-xs text-muted-foreground">os.</span>
             <span className="text-xs text-muted-foreground">
-              (jest {headcount.jobTitle} → będzie {totalAfterRecruitment})
+              (na dziale jest {headcount.department} → będzie {totalAfterRecruitment})
             </span>
           </div>
         </div>
@@ -603,15 +603,15 @@ export default function RekrutacjaPage() {
       const summaryRows = sortedRecruitments.map(r => {
         const planned = r.arrivals.reduce((s, a) => s + (Number(a.count) || 0), 0);
         const jobKey = `${r.department}|${r.jobTitle?.trim() || '—'}`;
-        const obecnie = headcountByDeptJob.get(jobKey) ?? 0;
         const doRekrutacji = r.toRecruit || 0;
+        const obecnieDzial = headcountByDepartment.get(r.department) ?? 0;
         return [
           r.department,
           r.jobTitle?.trim() || '—',
-          headcountByDepartment.get(r.department) ?? 0,
-          obecnie,
+          obecnieDzial,
+          headcountByDeptJob.get(jobKey) ?? 0,
           doRekrutacji,
-          obecnie + doRekrutacji,
+          obecnieDzial + doRekrutacji,
           planned,
           Math.max(0, doRekrutacji - planned),
         ];
@@ -639,17 +639,21 @@ export default function RekrutacjaPage() {
       ws1.getColumn(1).width = 28;
       ws1.getColumn(2).width = 26;
       [3, 4, 5, 6, 7, 8].forEach(col => (ws1.getColumn(col).width = 20));
-      const sumObecnie = sortedRecruitments.reduce(
-        (s, r) => s + (headcountByDeptJob.get(`${r.department}|${r.jobTitle?.trim() || '—'}`) ?? 0),
-        0
-      );
+      // Suma po unikalnych działach (wiersze dział·stanowisko powtarzają obsadę działu)
+      const uniqueDeptHeadcount = new Map<string, number>();
+      sortedRecruitments.forEach(r => {
+        if (!uniqueDeptHeadcount.has(r.department)) {
+          uniqueDeptHeadcount.set(r.department, headcountByDepartment.get(r.department) ?? 0);
+        }
+      });
+      const sumDeptHeadcount = [...uniqueDeptHeadcount.values()].reduce((a, b) => a + b, 0);
       const totalRow = ws1.addRow([
         'RAZEM',
         '',
+        sumDeptHeadcount,
         '',
-        sumObecnie,
         totalToRecruit,
-        sumObecnie + totalToRecruit,
+        sumDeptHeadcount + totalToRecruit,
         totalPlanned,
         Math.max(0, totalToRecruit - totalPlanned),
       ]);
