@@ -306,20 +306,14 @@ const RecruitmentCard = ({
               <Badge variant="outline" className="tabular-nums">
                 Na stanowisku: {headcount.jobTitle} os.
               </Badge>
-              <Badge
-                variant="outline"
-                className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
-              >
-                Będzie: {totalAfterRecruitment} os.
-              </Badge>
-              <Badge variant="outline" className="tabular-nums">
-                Rekrutacja: {recruitment.toRecruit || 0} os.
-              </Badge>
               {missing > 0 && (
                 <Badge variant="destructive" className="tabular-nums">
                   Brakuje: {missing}
                 </Badge>
               )}
+              <Badge variant="outline" className="tabular-nums">
+                Rekrutacja: {recruitment.toRecruit || 0} os.
+              </Badge>
               {surplus > 0 && (
                 <Badge
                   variant="outline"
