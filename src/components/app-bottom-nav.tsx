@@ -25,9 +25,7 @@ const ADMIN_PRIMARY: MenuItem[] = [
 ];
 
 const GUEST_PRIMARY: MenuItem[] = [
-  { href: '/pulpit', icon: LayoutDashboard, label: 'Pulpit' },
-  { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
-  { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
+  { href: '/planowanie', icon: CalendarClock, label: 'Harmonogram' },
 ];
 
 const EDITOR_PRIMARY: MenuItem[] = [

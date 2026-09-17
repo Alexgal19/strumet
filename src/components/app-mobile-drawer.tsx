@@ -42,6 +42,7 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
   };
 
   const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : GUEST_VIEWS;
+  const isGuest = allowedViews === GUEST_VIEWS;
   const visibleHrefs = new Set(
     (allowedViews
       ? ALL_NAV_ITEMS.filter((item) => allowedViews.includes(item.href))
@@ -51,7 +52,12 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
 
   const sections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => visibleHrefs.has(item.href)),
+    items: section.items
+      .filter((item) => visibleHrefs.has(item.href))
+      // Dla gości pozycja /planowanie widnieje jako „Harmonogram"
+      .map((item) =>
+        isGuest && item.href === '/planowanie' ? { ...item, label: 'Harmonogram' } : item
+      ),
   })).filter((section) => section.items.length > 0);
 
   return (

@@ -2,8 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { onValue, push, ref as dbRef, remove, set, update } from 'firebase/database';
-import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
-import { pl as plLocale } from 'date-fns/locale';
+import { format, startOfDay } from 'date-fns';
 import { PageHeader } from '@/components/page-header';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
@@ -11,8 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 import { getDB } from '@/lib/firebase';
 import { objectToArray } from '@/lib/utils';
 import { formatDate, parseMaybeDate } from '@/lib/date';
-import type { Employee, Recruitment, RecruitmentArrival, RecruitmentPosition } from '@/lib/types';
+import type { Recruitment, RecruitmentArrival, RecruitmentPosition } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { HarmonogramView } from '@/components/harmonogram-view';
+import type { HarmonogramData } from '@/lib/harmonogram';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,8 +38,6 @@ import {
   Briefcase,
   CalendarPlus,
   Check,
-  ChevronDown,
-  ChevronRight,
   Download,
   Loader2,
   Pencil,
@@ -615,14 +614,6 @@ export default function RekrutacjaPage() {
   const [toDelete, setToDelete] = useState<Recruitment | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [view, setView] = useState<'karty' | 'harmonogram'>('karty');
-  const [expandedDept, setExpandedDept] = useState<string | null>(null);
-  const [monthOffset, setMonthOffset] = useState(0);
-  const [cellTooltip, setCellTooltip] = useState<{
-    x: number;
-    y: number;
-    absentees: Employee[];
-    vacationers: Employee[];
-  } | null>(null);
 
   useEffect(() => {
     const db = getDB();
@@ -697,243 +688,6 @@ export default function RekrutacjaPage() {
     return map;
   }, [activeEmployees]);
 
-  // Harmonogram obsady — dni wybranego miesiąca (przełączanie ‹ ›)
-  const harmonogramMonth = useMemo(
-    () => startOfMonth(addMonths(new Date(), monthOffset)),
-    [monthOffset]
-  );
-  const harmonogramDays = useMemo(
-    () =>
-      Array.from({ length: getDaysInMonth(harmonogramMonth) }, (_, i) =>
-        addDays(harmonogramMonth, i)
-      ),
-    [harmonogramMonth]
-  );
-
-  const terminationsByDept = useMemo(() => {
-    const map = new Map<string, string[]>();
-    const today = startOfDay(new Date());
-    activeEmployees.forEach(e => {
-      const planned = parseMaybeDate(e.plannedTerminationDate);
-      if (!planned || startOfDay(planned).getTime() < today.getTime()) return;
-      const arr = map.get(e.department) ?? [];
-      arr.push(format(planned, 'yyyy-MM-dd'));
-      map.set(e.department, arr);
-    });
-    return map;
-  }, [activeEmployees]);
-
-  // Urlopy per dział i dział·stanowisko: okres (start–end) + pracownik
-  const vacationsByDept = useMemo(() => {
-    const map = new Map<string, { start: string; end: string; employee: Employee }[]>();
-    activeEmployees.forEach(e => {
-      if (!e.vacationStartDate) return;
-      const start = parseMaybeDate(e.vacationStartDate);
-      if (!start) return;
-      const endRaw = parseMaybeDate(e.vacationEndDate);
-      const arr = map.get(e.department) ?? [];
-      arr.push({
-        start: format(start, 'yyyy-MM-dd'),
-        end: endRaw ? format(endRaw, 'yyyy-MM-dd') : '9999-12-31',
-        employee: e,
-      });
-      map.set(e.department, arr);
-    });
-    return map;
-  }, [activeEmployees]);
-
-  const vacationsByDeptJob = useMemo(() => {
-    const map = new Map<string, { start: string; end: string; employee: Employee }[]>();
-    activeEmployees.forEach(e => {
-      if (!e.vacationStartDate || !e.jobTitle) return;
-      const start = parseMaybeDate(e.vacationStartDate);
-      if (!start) return;
-      const endRaw = parseMaybeDate(e.vacationEndDate);
-      const key = `${e.department}|${e.jobTitle}`;
-      const arr = map.get(key) ?? [];
-      arr.push({
-        start: format(start, 'yyyy-MM-dd'),
-        end: endRaw ? format(endRaw, 'yyyy-MM-dd') : '9999-12-31',
-        employee: e,
-      });
-      map.set(key, arr);
-    });
-    return map;
-  }, [activeEmployees]);
-
-  const arrivalsByDept = useMemo(() => {
-    const map = new Map<string, { date: string; count: number }[]>();
-    recruitments.forEach(r =>
-      r.arrivals.forEach(a => {
-        if (!a.date) return;
-        const arr = map.get(r.department) ?? [];
-        arr.push({ date: a.date, count: Number(a.count) || 0 });
-        map.set(r.department, arr);
-      })
-    );
-    return map;
-  }, [recruitments]);
-
-  // Nieobecności (z Obecności) per dział i dział·stanowisko: data → lista pracowników
-  const absencesByDept = useMemo(() => {
-    const map = new Map<string, Map<string, Employee[]>>();
-    absences.forEach(a => {
-      const emp = allEmployees.find(e => e.id === a.employeeId);
-      if (!emp || emp.status !== 'aktywny' || !a.date) return;
-      const byDate = map.get(emp.department) ?? new Map<string, Employee[]>();
-      const list = byDate.get(a.date) ?? [];
-      list.push(emp);
-      byDate.set(a.date, list);
-      map.set(emp.department, byDate);
-    });
-    return map;
-  }, [absences, allEmployees]);
-
-  const absencesByDeptJob = useMemo(() => {
-    const map = new Map<string, Map<string, Employee[]>>();
-    absences.forEach(a => {
-      const emp = allEmployees.find(e => e.id === a.employeeId);
-      if (!emp || emp.status !== 'aktywny' || !a.date) return;
-      const key = `${emp.department}|${emp.jobTitle}`;
-      const byDate = map.get(key) ?? new Map<string, Employee[]>();
-      const list = byDate.get(a.date) ?? [];
-      list.push(emp);
-      byDate.set(a.date, list);
-      map.set(key, byDate);
-    });
-    return map;
-  }, [absences, allEmployees]);
-
-  // Oś czasu per dział·stanowisko: zwolnienia + przydział przyjęć (kolejność pozycji w zamówieniu)
-  const positionTimelines = useMemo(() => {
-    const map = new Map<string, { termDates: string[]; arrivals: { date: string; count: number }[] }>();
-    const today = startOfDay(new Date());
-    const ensure = (key: string) => {
-      let entry = map.get(key);
-      if (!entry) {
-        entry = { termDates: [], arrivals: [] };
-        map.set(key, entry);
-      }
-      return entry;
-    };
-    activeEmployees.forEach(e => {
-      const planned = parseMaybeDate(e.plannedTerminationDate);
-      if (!planned || startOfDay(planned).getTime() < today.getTime()) return;
-      ensure(`${e.department}|${e.jobTitle}`).termDates.push(format(planned, 'yyyy-MM-dd'));
-    });
-    recruitments.forEach(r => {
-      const slots = r.positions.map(p => ({ jobTitle: p.jobTitle, left: Number(p.toRecruit) || 0 }));
-      const sorted = [...r.arrivals]
-        .filter(a => a.date)
-        .sort((a, b) => a.date.localeCompare(b.date));
-      sorted.forEach(a => {
-        let left = Number(a.count) || 0;
-        for (const slot of slots) {
-          if (left <= 0) break;
-          if (slot.left <= 0) continue;
-          const take = Math.min(slot.left, left);
-          ensure(`${r.department}|${slot.jobTitle}`).arrivals.push({ date: a.date, count: take });
-          slot.left -= take;
-          left -= take;
-        }
-      });
-    });
-    return map;
-  }, [activeEmployees, recruitments]);
-
-  const buildPositionDailyCells = (
-    department: string,
-    jobTitle: string,
-    obecnie: number
-  ) => {
-    const tl = positionTimelines.get(`${department}|${jobTitle}`);
-    const jobAbsences = absencesByDeptJob.get(`${department}|${jobTitle}`);
-    const jobVacations = vacationsByDeptJob.get(`${department}|${jobTitle}`) ?? [];
-    const cells = harmonogramDays.map(d => {
-      const key = format(d, 'yyyy-MM-dd');
-      const absentees = jobAbsences?.get(key) ?? [];
-      const vacationers = jobVacations
-        .filter(v => v.start <= key && key <= v.end)
-        .map(v => v.employee);
-      const mam =
-        obecnie -
-        (tl?.termDates.filter(t => t <= key).length ?? 0) +
-        (tl?.arrivals.filter(a => a.date <= key).reduce((s, a) => s + a.count, 0) ?? 0) -
-        absentees.length -
-        vacationers.length;
-      return { mam, absentees, vacationers };
-    });
-    return { cells };
-  };
-
-  const harmonogramRows = useMemo(() => {
-    const depts = new Set<string>();
-    recruitments.forEach(r => r.department && depts.add(r.department));
-    activeEmployees.forEach(e => e.department && depts.add(e.department));
-    return [...depts]
-      .sort((a, b) => a.localeCompare(b, 'pl'))
-      .map(dept => {
-        const obecnie = headcountByDepartment.get(dept) ?? 0;
-        const sumRekrut = recruitments
-          .filter(r => r.department === dept)
-          .reduce(
-            (s, r) => s + r.positions.reduce((x, p) => x + (Number(p.toRecruit) || 0), 0),
-            0
-          );
-        const potrzeby = obecnie + sumRekrut;
-        const termDates = terminationsByDept.get(dept) ?? [];
-        const arrivals = arrivalsByDept.get(dept) ?? [];
-        const vacations = vacationsByDept.get(dept) ?? [];
-        const deptAbsences = absencesByDept.get(dept);
-        const cells = harmonogramDays.map(d => {
-          const key = format(d, 'yyyy-MM-dd');
-          const absentees = deptAbsences?.get(key) ?? [];
-          const vacationers = vacations
-            .filter(v => v.start <= key && key <= v.end)
-            .map(v => v.employee);
-          const mam =
-            obecnie -
-            termDates.filter(t => t <= key).length +
-            arrivals.filter(a => a.date <= key).reduce((s, a) => s + a.count, 0) -
-            absentees.length -
-            vacationers.length;
-          const newTerms = termDates.filter(t => t === key).length;
-          const newArrivals = arrivals
-            .filter(a => a.date === key)
-            .reduce((s, a) => s + a.count, 0);
-          const changes: string[] = [];
-          if (newArrivals > 0) changes.push(`+${newArrivals} przyjęć`);
-          if (newTerms > 0) changes.push(`−${newTerms} zwolnień`);
-          if (absentees.length > 0) changes.push(`−${absentees.length} nieobecnych`);
-          if (vacationers.length > 0) changes.push(`−${vacationers.length} na urlopie`);
-          const details: string[] = [];
-          if (absentees.length > 0)
-            details.push(
-              `Nieobecni: ${absentees
-                .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
-                .join('; ')}`
-            );
-          if (vacationers.length > 0)
-            details.push(
-              `Na urlopie: ${vacationers
-                .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
-                .join('; ')}`
-            );
-          const title = [changes.join(', '), ...details].filter(Boolean).join(' | ');
-          return { key, mam, absentees, vacationers, title: title || undefined };
-        });
-        return { dept, potrzeby, obecnie, sumRekrut, cells };
-      });
-  }, [
-    recruitments,
-    activeEmployees,
-    headcountByDepartment,
-    terminationsByDept,
-    arrivalsByDept,
-    absencesByDept,
-    vacationsByDept,
-    harmonogramDays,
-  ]);
 
   // Stanowiska w każdym dziale: obecna obsada + planowane zwolnienia + potrzeby rekrutacyjne
   const jobTitlesByDepartment = useMemo(() => {
@@ -992,6 +746,42 @@ export default function RekrutacjaPage() {
     });
     return map;
   }, [activeEmployees, recruitments]);
+
+  const harmonogramData = useMemo(
+    () => ({
+      employees: activeEmployees.map(e => ({
+        department: e.department,
+        jobTitle: e.jobTitle,
+        fullName: e.fullName,
+        manager: e.manager,
+        vacationStartDate: e.vacationStartDate,
+        vacationEndDate: e.vacationEndDate,
+        plannedTerminationDate: e.plannedTerminationDate,
+      })),
+      absences: absences.map(a => {
+        const emp = allEmployees.find(x => x.id === a.employeeId);
+        return {
+          date: a.date,
+          department: emp?.department ?? '',
+          jobTitle: emp?.jobTitle ?? '',
+          fullName: emp?.fullName ?? '',
+          manager: emp?.manager,
+        };
+      }),
+      recruitments: recruitments.map(r => ({
+        department: r.department,
+        positions: r.positions.map(p => ({
+          jobTitle: p.jobTitle,
+          toRecruit: Number(p.toRecruit) || 0,
+        })),
+        arrivals: r.arrivals.map(a => ({
+          date: a.date,
+          count: Number(a.count) || 0,
+        })),
+      })),
+    }),
+    [activeEmployees, absences, allEmployees, recruitments]
+  );
 
   const usedDepartments = useMemo(
     () => new Set(recruitments.map(r => r.department)),
@@ -1247,90 +1037,6 @@ export default function RekrutacjaPage() {
       ws3.getColumn(2).width = 18;
       ws3.getColumn(3).width = 16;
 
-      // Arkusz 4: Harmonogram obsady — dni wybranego miesiąca, deficyty i nieobecności
-      // Pod każdym działem rozwijane wiersze stanowisk (grupa Excel) z dziennymi liczbami
-      // UWAGA: nie używamy cell.note (comments) — ExcelJS 4.4 zapisuje uszkodzone pliki z notatkami;
-      // zamiast tego nieobecności/urlopy lądują w kolumnie tekstowej „Nieobecni / Na urlopie”
-      const ws4 = wb.addWorksheet('Harmonogram obsady');
-      const ws4Rows: {
-        values: (string | number)[];
-        isSub: boolean;
-        cells?: { mam: number; absentees: Employee[]; vacationers: Employee[] }[];
-        uwagi?: string;
-      }[] = [];
-      harmonogramRows.forEach(row => {
-        ws4Rows.push({
-          values: [row.dept, row.potrzeby, row.obecnie, ...row.cells.map(c => c.mam)],
-          isSub: false,
-          cells: row.cells,
-        });
-        (jobTitlesByDepartment.get(row.dept) ?? []).forEach(s => {
-          const potrzebyPos = Math.max(0, s.count + s.toRecruit - s.terminations);
-          const posCells = buildPositionDailyCells(row.dept, s.jobTitle, s.count).cells;
-          ws4Rows.push({
-            values: [`   • ${s.jobTitle}`, potrzebyPos, s.count, ...posCells.map(c => c.mam)],
-            isSub: true,
-            cells: posCells,
-          });
-        });
-      });
-      const dayLabel = (j: number) => format(harmonogramDays[j], 'dd.MM');
-      ws4Rows.forEach(row => {
-        row.uwagi = (row.cells ?? [])
-          .map((cell, j) => {
-            const parts: string[] = [];
-            if (cell.absentees.length > 0)
-              parts.push(`Nieobecni: ${cell.absentees.map(e => e.fullName).join(', ')}`);
-            if (cell.vacationers.length > 0)
-              parts.push(`Na urlopie: ${cell.vacationers.map(e => e.fullName).join(', ')}`);
-            return parts.length > 0 ? `${dayLabel(j)} — ${parts.join('; ')}` : null;
-          })
-          .filter(Boolean)
-          .join(' | ');
-      });
-      ws4.addTable({
-        name: 'HarmonogramObsady',
-        ref: 'A1',
-        headerRow: true,
-        totalsRow: false,
-        style: { theme: 'TableStyleMedium2', showRowStripes: true },
-        columns: [
-          'Dział',
-          'Potrzeby',
-          'Mam teraz',
-          ...harmonogramDays.map(d => `Mam ${format(d, 'dd.MM')}`),
-          'Nieobecni / Na urlopie',
-        ].map(n => ({ name: n, filterButton: false })),
-        rows: ws4Rows.map(r => [...r.values, r.uwagi ?? '']),
-      });
-      ws4Rows.forEach((row, i) => {
-        const sheetRow = ws4.getRow(i + 2);
-        if (row.isSub) {
-          // UWAGA: styl na poziomie WIERSZA (row.font) generuje niepoprawny XML w ExcelJS —
-          // stylujemy wyłącznie komórki
-          sheetRow.outlineLevel = 1;
-          for (let c = 1; c <= row.values.length; c++) {
-            sheetRow.getCell(c).font = { italic: true, color: { argb: 'FF6B7280' } };
-          }
-        }
-        row.cells?.forEach((cell, j) => {
-          if (cell.absentees.length > 0) {
-            const tableCell = sheetRow.getCell(4 + j);
-            tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-            tableCell.font = { color: { argb: 'FF9C0006' }, bold: true };
-          } else if (cell.vacationers.length > 0) {
-            const tableCell = sheetRow.getCell(4 + j);
-            tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8BBD9' } };
-            tableCell.font = { color: { argb: 'FF880E4F' }, italic: true };
-          }
-        });
-        const uwagiCell = sheetRow.getCell(4 + harmonogramDays.length);
-        uwagiCell.alignment = { wrapText: true, vertical: 'top' };
-      });
-      ws4.getColumn(1).width = 24;
-      ws4.getColumn(2).width = 12;
-      ws4.getColumn(3).width = 12;
-      ws4.getColumn(4 + harmonogramDays.length).width = 60;
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
@@ -1397,493 +1103,203 @@ export default function RekrutacjaPage() {
             </div>
 
             {view === 'harmonogram' ? (
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <CardTitle className="text-base">
-                      Harmonogram obsady —{' '}
-                      {format(harmonogramMonth, 'LLLL yyyy', { locale: plLocale })}
-                    </CardTitle>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        className="h-8 w-8"
-                        onClick={() => setMonthOffset(m => m - 1)}
-                        aria-label="Poprzedni miesiąc"
-                      >
-                        <ChevronRight className="h-4 w-4 rotate-180" />
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8"
-                        onClick={() => setMonthOffset(0)}
-                      >
-                        Ten miesiąc
-                      </Button>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        className="h-8 w-8"
-                        onClick={() => setMonthOffset(m => m + 1)}
-                        aria-label="Następny miesiąc"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <span className="animate-absence-blink inline-block h-3 w-3 rounded" />
-                      nieobecni (najedź, aby zobaczyć kto)
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-3 w-3 rounded bg-pink-500/60" />
-                      na urlopie
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-3 w-3 rounded bg-emerald-500/60" />
-                      zmiany (przyjęcia / zwolnienia)
-                    </span>
-                    <span>
-                      Mamy [dzień] = obecnie − zwolnienia (od tego dnia) + przyjęcia (od tego dnia) −
-                      nieobecni (tego dnia) − urlopy (tego dnia)
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-max border-collapse text-xs">
-                      <thead>
-                        <tr>
-                          <th className="sticky left-0 z-10 min-w-[160px] border-b bg-background px-3 py-2 text-left font-semibold">
-                            Dział
-                          </th>
-                          <th className="sticky left-[160px] z-10 border-b bg-background px-3 py-2 text-right font-semibold">
-                            Potrzeby
-                          </th>
-                          <th className="sticky left-[220px] z-10 border-b bg-background px-3 py-2 text-right font-semibold">
-                            Za raz
-                          </th>
-                          {harmonogramDays.map((d, i) => (
-                            <th
-                              key={d.toISOString()}
-                              className={
-                                'border-b px-2.5 py-2 text-center font-semibold tabular-nums' +
-                                (i === 0 ? ' bg-primary/5' : '')
-                              }
-                            >
-                              {format(d, 'dd.MM')}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {harmonogramRows.map(row => {
-                          const isExpanded = expandedDept === row.dept;
-                          const stats = jobTitlesByDepartment.get(row.dept) ?? [];
-                          return (
-                            <React.Fragment key={row.dept}>
-                              <tr
-                                className="cursor-pointer border-b border-border/40 hover:bg-muted/40"
-                                onClick={() => setExpandedDept(isExpanded ? null : row.dept)}
-                              >
-                                <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
-                                  <span className="flex items-center gap-1.5">
-                                    {isExpanded ? (
-                                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                    ) : (
-                                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                    )}
-                                    {row.dept}
-                                  </span>
-                                </td>
-                                <td className="sticky left-[160px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
-                                  {row.potrzeby}
-                                </td>
-                                <td className="sticky left-[220px] z-10 bg-background px-3 py-2 text-right tabular-nums">
-                                  {row.obecnie}
-                                </td>
-                                {row.cells.map(cell => (
-                                  <td
-                                    key={cell.key}
-                                    onMouseEnter={e => {
-                                      if (
-                                        cell.absentees.length === 0 &&
-                                        cell.vacationers.length === 0
-                                      )
-                                        return;
-                                      const rect = e.currentTarget.getBoundingClientRect();
-                                      setCellTooltip({
-                                        x: Math.min(
-                                          rect.left + rect.width / 2,
-                                          window.innerWidth - 340
-                                        ),
-                                        y: rect.bottom + 4,
-                                        absentees: cell.absentees,
-                                        vacationers: cell.vacationers,
-                                      });
-                                    }}
-                                    onMouseLeave={() => setCellTooltip(null)}
-                                    className={
-                                      'px-2.5 py-2 text-center tabular-nums' +
-                                      (cell.absentees.length > 0
-                                        ? ' animate-absence-blink font-semibold'
-                                        : cell.vacationers.length > 0
-                                          ? ' bg-pink-500/25'
-                                          : cell.title
-                                            ? ' bg-emerald-500/15'
-                                            : '')
-                                    }
-                                  >
-                                    {cell.mam}
-                                  </td>
-                                ))}
-                              </tr>
-                              {isExpanded &&
-                                stats.map(s => {
-                                  const potrzebyPos = Math.max(
-                                    0,
-                                    s.count + s.toRecruit - s.terminations
-                                  );
-                                  const posCells = buildPositionDailyCells(
-                                    row.dept,
-                                    s.jobTitle,
-                                    s.count
-                                  ).cells;
-                                  return (
-                                    <tr key={s.jobTitle} className="bg-muted/40">
-                                      <td className="sticky left-0 z-10 bg-muted/40 py-1.5 pl-10 pr-3 text-xs italic text-muted-foreground">
-                                        • {s.jobTitle}
-                                      </td>
-                                      <td className="sticky left-[160px] z-10 bg-muted/40 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
-                                        {potrzebyPos}
-                                      </td>
-                                      <td className="sticky left-[220px] z-10 bg-muted/40 px-3 py-1.5 text-right text-xs tabular-nums">
-                                        {s.count}
-                                      </td>
-                                      {posCells.map((cell, ci) => {
-                                        const names = cell.absentees
-                                          .map(
-                                            e =>
-                                              `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`
-                                          )
-                                          .join('; ');
-                                        const vacationNames = cell.vacationers
-                                          .map(
-                                            e =>
-                                              `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`
-                                          )
-                                          .join('; ');
-                                        return (
-                                          <td
-                                            key={`${s.jobTitle}-${ci}`}
-                                            onMouseEnter={e => {
-                                              if (
-                                                cell.absentees.length === 0 &&
-                                                cell.vacationers.length === 0
-                                              )
-                                                return;
-                                              const rect = e.currentTarget.getBoundingClientRect();
-                                              setCellTooltip({
-                                                x: Math.min(
-                                                  rect.left + rect.width / 2,
-                                                  window.innerWidth - 340
-                                                ),
-                                                y: rect.bottom + 4,
-                                                absentees: cell.absentees,
-                                                vacationers: cell.vacationers,
-                                              });
-                                            }}
-                                            onMouseLeave={() => setCellTooltip(null)}
-                                            title={names ? `Nieobecni: ${names}` : undefined}
-                                            className={
-                                              'px-2.5 py-1.5 text-center text-xs tabular-nums' +
-                                              (cell.absentees.length > 0
-                                                ? ' animate-absence-blink font-semibold'
-                                                : cell.vacationers.length > 0
-                                                  ? ' bg-pink-500/25'
-                                                  : '')
-                                            }
-                                          >
-                                            {cell.mam}
-                                          </td>
-                                        );
-                                      })}
-                                    </tr>
-                                  );
-                                })}
-                            </React.Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  {harmonogramRows.length === 0 && (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                      Brak danych — dodaj zapotrzebowanie lub pracowników.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+              <HarmonogramView data={harmonogramData} />
             ) : (
               <>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm">
-                <Users className="h-4 w-4" />
-                Zapotrzebowania: {recruitments.length}
-              </Badge>
-              <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm">
-                <Briefcase className="h-4 w-4" />
-                Stanowiska: {totalPositions}
-              </Badge>
-              <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
-                <UserPlus className="h-4 w-4" />
-                Do rekrutacji łącznie: {totalToRecruit}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="gap-1.5 border-blue-500/60 px-3 py-1.5 text-sm text-blue-700 tabular-nums dark:text-blue-400"
-              >
-                <CalendarPlus className="h-4 w-4" />
-                Zaplanowane przyjęcia: {totalPlanned}
-              </Badge>
-            </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm">
+                    <Users className="h-4 w-4" />
+                    Zapotrzebowania: {recruitments.length}
+                  </Badge>
+                  <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm">
+                    <Briefcase className="h-4 w-4" />
+                    Stanowiska: {totalPositions}
+                  </Badge>
+                  <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
+                    <UserPlus className="h-4 w-4" />
+                    Do rekrutacji łącznie: {totalToRecruit}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="gap-1.5 border-blue-500/60 px-3 py-1.5 text-sm text-blue-700 tabular-nums dark:text-blue-400"
+                  >
+                    <CalendarPlus className="h-4 w-4" />
+                    Zaplanowane przyjęcia: {totalPlanned}
+                  </Badge>
+                </div>
 
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <Select
-                  value={newDepartment}
-                  onValueChange={value => {
-                    setNewDepartment(value);
-                    setFormRows([{ jobTitle: '', count: '' }]);
-                  }}
-                >
-                  <SelectTrigger className="w-full lg:w-80" aria-label="Wybierz dział">
-                    <SelectValue placeholder="Wybierz dział…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDepartments.length === 0 ? (
-                      <p className="px-3 py-2 text-sm text-muted-foreground">
-                        Brak dostępnych działów.
+              <Card>
+                <CardContent className="space-y-3 pt-6">
+                  <Select
+                    value={newDepartment}
+                    onValueChange={value => {
+                      setNewDepartment(value);
+                      setFormRows([{ jobTitle: '', count: '' }]);
+                    }}
+                  >
+                    <SelectTrigger className="w-full lg:w-80" aria-label="Wybierz dział">
+                      <SelectValue placeholder="Wybierz dział…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDepartments.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">
+                          Brak dostępnych działów.
+                        </p>
+                      ) : (
+                        availableDepartments.map(dept => (
+                          <SelectItem key={dept.id} value={dept.name}>
+                            {dept.name} ({formatHeadcount(headcountByDepartment.get(dept.name) ?? 0)})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+
+                  {newDepartment && (
+                    <div className="space-y-2">
+                      {formRows.map((row, index) => {
+                        const rowOptions = getRowJobTitleOptions(index);
+                        return (
+                          <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <Select
+                              value={row.jobTitle}
+                              onValueChange={value =>
+                                setFormRows(prev =>
+                                  prev.map((r, i) => (i === index ? { ...r, jobTitle: value } : r))
+                                )
+                              }
+                            >
+                              <SelectTrigger
+                                className="w-full sm:w-64"
+                                aria-label={`Stanowisko — wiersz ${index + 1}`}
+                              >
+                                <SelectValue placeholder="Wybierz stanowisko…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {rowOptions.length === 0 ? (
+                                  <p className="px-3 py-2 text-sm text-muted-foreground">
+                                    Brak dostępnych stanowisk.
+                                  </p>
+                                ) : (
+                                  rowOptions.map(jt => (
+                                    <SelectItem key={jt.id} value={jt.name}>
+                                      {jt.name}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="Ile osób?"
+                              value={row.count}
+                              onChange={e =>
+                                setFormRows(prev =>
+                                  prev.map((r, i) => (i === index ? { ...r, count: e.target.value } : r))
+                                )
+                              }
+                              className="w-full sm:w-32"
+                              aria-label={`Liczba osób — stanowisko ${index + 1}`}
+                            />
+                            {formRows.length > 1 && (
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                                onClick={() => setFormRows(prev => prev.filter((_, i) => i !== index))}
+                                aria-label={`Usuń wiersz ${index + 1}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                        onClick={() => setFormRows(prev => [...prev, { jobTitle: '', count: '' }])}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Dodaj stanowisko
+                      </Button>
+                    </div>
+                  )}
+
+                  {selectedDepartmentStats && (
+                    <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                      <p className="flex items-center gap-2 text-sm font-medium">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        Obecnie w dziale: {formatHeadcount(selectedDepartmentStats.total)}
                       </p>
-                    ) : (
-                      availableDepartments.map(dept => (
-                        <SelectItem key={dept.id} value={dept.name}>
-                          {dept.name} ({formatHeadcount(headcountByDepartment.get(dept.name) ?? 0)})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-
-                {newDepartment && (
-                  <div className="space-y-2">
-                    {formRows.map((row, index) => {
-                      const rowOptions = getRowJobTitleOptions(index);
-                      return (
-                        <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                          <Select
-                            value={row.jobTitle}
-                            onValueChange={value =>
-                              setFormRows(prev =>
-                                prev.map((r, i) => (i === index ? { ...r, jobTitle: value } : r))
-                              )
-                            }
-                          >
-                            <SelectTrigger
-                              className="w-full sm:w-64"
-                              aria-label={`Stanowisko — wiersz ${index + 1}`}
+                      {selectedDepartmentStats.rows.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          Brak aktywnych pracowników w tym dziale.
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {selectedDepartmentStats.rows.map(row => (
+                            <div
+                              key={row.jobTitle}
+                              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-xs"
                             >
-                              <SelectValue placeholder="Wybierz stanowisko…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {rowOptions.length === 0 ? (
-                                <p className="px-3 py-2 text-sm text-muted-foreground">
-                                  Brak dostępnych stanowisk.
-                                </p>
-                              ) : (
-                                rowOptions.map(jt => (
-                                  <SelectItem key={jt.id} value={jt.name}>
-                                    {jt.name}
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            type="number"
-                            min={1}
-                            placeholder="Ile osób?"
-                            value={row.count}
-                            onChange={e =>
-                              setFormRows(prev =>
-                                prev.map((r, i) => (i === index ? { ...r, count: e.target.value } : r))
-                              )
-                            }
-                            className="w-full sm:w-32"
-                            aria-label={`Liczba osób — stanowisko ${index + 1}`}
-                          />
-                          {formRows.length > 1 && (
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-                              onClick={() => setFormRows(prev => prev.filter((_, i) => i !== index))}
-                              aria-label={`Usuń wiersz ${index + 1}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
+                              <span className="flex items-center gap-1.5 font-medium">
+                                <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                {row.jobTitle} — {formatHeadcount(row.count)}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {row.managers.length > 0
+                                  ? `Kierownik: ${row.managers.join(', ')}`
+                                  : 'Brak kierownika'}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      );
-                    })}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
-                      onClick={() => setFormRows(prev => [...prev, { jobTitle: '', count: '' }])}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Dodaj stanowisko
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end">
+                    <Button className="gap-2" disabled={!canSubmitForm || isAdding} onClick={handleAdd}>
+                      {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      {formRows.length > 1 ? `Dodaj zapotrzebowanie (${formRows.length} stanowiska)` : 'Dodaj'}
                     </Button>
                   </div>
-                )}
-
-                {selectedDepartmentStats && (
-                  <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-                    <p className="flex items-center gap-2 text-sm font-medium">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      Obecnie w dziale: {formatHeadcount(selectedDepartmentStats.total)}
-                    </p>
-                    {selectedDepartmentStats.rows.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">
-                        Brak aktywnych pracowników w tym dziale.
-                      </p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {selectedDepartmentStats.rows.map(row => (
-                          <div
-                            key={row.jobTitle}
-                            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-xs"
-                          >
-                            <span className="flex items-center gap-1.5 font-medium">
-                              <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                              {row.jobTitle} — {formatHeadcount(row.count)}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {row.managers.length > 0
-                                ? `Kierownik: ${row.managers.join(', ')}`
-                                : 'Brak kierownika'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex justify-end">
-                  <Button className="gap-2" disabled={!canSubmitForm || isAdding} onClick={handleAdd}>
-                    {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    {formRows.length > 1 ? `Dodaj zapotrzebowanie (${formRows.length} stanowiska)` : 'Dodaj'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {recruitments.length === 0 ? (
-              <Card>
-                <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                  <UserPlus className="mx-auto mb-3 h-8 w-8 opacity-40" />
-                  Brak danych — wybierz dział i stanowiska powyżej, aby zaplanować rekrutację.
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                {sortedRecruitments.map(recruitment => (
-                  <RecruitmentCard
-                    key={recruitment.id}
-                    recruitment={recruitment}
-                    departments={config.departments}
-                    jobTitles={config.jobTitles}
-                    departmentHeadcount={headcountByDepartment.get(recruitment.department) ?? 0}
-                    headcountByDeptJob={headcountByDeptJob}
-                    terminationsByDeptJob={terminationsByDeptJob}
-                    jobTitleStats={jobTitlesByDepartment.get(recruitment.department) ?? []}
-                    onUpdateDepartment={handleUpdateDepartment}
-                    onDelete={setToDelete}
-                  />
-                ))}
-              </div>
-            )}
+
+              {recruitments.length === 0 ? (
+                <Card>
+                  <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                    <UserPlus className="mx-auto mb-3 h-8 w-8 opacity-40" />
+                    Brak danych — wybierz dział i stanowiska powyżej, aby zaplanować rekrutację.
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  {sortedRecruitments.map(recruitment => (
+                    <RecruitmentCard
+                      key={recruitment.id}
+                      recruitment={recruitment}
+                      departments={config.departments}
+                      jobTitles={config.jobTitles}
+                      departmentHeadcount={headcountByDepartment.get(recruitment.department) ?? 0}
+                      headcountByDeptJob={headcountByDeptJob}
+                      terminationsByDeptJob={terminationsByDeptJob}
+                      jobTitleStats={jobTitlesByDepartment.get(recruitment.department) ?? []}
+                      onUpdateDepartment={handleUpdateDepartment}
+                      onDelete={setToDelete}
+                    />
+                  ))}
+                </div>
+              )}
               </>
             )}
           </div>
-
-          {cellTooltip && (cellTooltip.absentees.length > 0 || cellTooltip.vacationers.length > 0) && (
-            <div
-              className="pointer-events-none fixed z-50 w-[340px] -translate-x-1/2 overflow-hidden rounded-lg border bg-background shadow-xl"
-              style={{ left: cellTooltip.x, top: cellTooltip.y }}
-            >
-              {cellTooltip.absentees.length > 0 && (
-                <div>
-                  <p className="animate-absence-blink px-3 py-1.5 text-xs font-semibold text-destructive">
-                    Nieobecni ({cellTooltip.absentees.length})
-                  </p>
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b text-left text-muted-foreground">
-                        <th className="px-3 py-1 font-medium">Pracownik</th>
-                        <th className="px-2 py-1 font-medium">Stanowisko</th>
-                        <th className="px-3 py-1 font-medium">Kierownik</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cellTooltip.absentees.map(emp => (
-                        <tr key={emp.id} className="border-b border-border/40">
-                          <td className="px-3 py-1 font-medium">{emp.fullName}</td>
-                          <td className="px-2 py-1">{emp.jobTitle}</td>
-                          <td className="px-3 py-1 text-muted-foreground">{emp.manager || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              {cellTooltip.vacationers.length > 0 && (
-                <div>
-                  <p className="bg-pink-500/15 px-3 py-1.5 text-xs font-semibold text-pink-600 dark:text-pink-400">
-                    Na urlopie ({cellTooltip.vacationers.length})
-                  </p>
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b text-left text-muted-foreground">
-                        <th className="px-3 py-1 font-medium">Pracownik</th>
-                        <th className="px-2 py-1 font-medium">Stanowisko</th>
-                        <th className="px-3 py-1 font-medium">Kierownik</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cellTooltip.vacationers.map(emp => (
-                        <tr key={emp.id} className="border-b border-border/40">
-                          <td className="px-3 py-1 font-medium">{emp.fullName}</td>
-                          <td className="px-2 py-1">{emp.jobTitle}</td>
-                          <td className="px-3 py-1 text-muted-foreground">{emp.manager || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
 
           <AlertDialog open={!!toDelete} onOpenChange={open => !open && setToDelete(null)}>
             <AlertDialogContent>

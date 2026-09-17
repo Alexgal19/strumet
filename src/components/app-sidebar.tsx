@@ -17,6 +17,7 @@ import {
   Car,
   NotebookPen,
   CalendarRange,
+  CalendarCheck,
   UserPlus,
 } from 'lucide-react';
 
@@ -44,8 +45,9 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/aktywni', icon: Users, label: 'Pracownicy aktywni' },
       { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni' },
-      { href: '/rekrutacja', icon: UserPlus, label: 'Rekrutacja' },
+      { href: '/rekrutacja', icon: UserPlus, label: 'Harmonogram' },
       { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
+      { href: '/terminy', icon: CalendarCheck, label: 'Terminy' },
       { href: '/kalendarz', icon: CalendarRange, label: 'Kalendarz' },
       { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
       { href: '/notatki', icon: NotebookPen, label: 'Notatki' },
@@ -75,10 +77,10 @@ export const NAV_SECTIONS: NavSection[] = [
 
 export const ALL_NAV_ITEMS: MenuItem[] = NAV_SECTIONS.flatMap((s) => s.items);
 
-export const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie', '/notatki'];
+export const GUEST_VIEWS = ['/planowanie'];
 
 /** Widoki dodatkowe dla roli 'kolega' (editor) */
-export const EDITOR_VIEWS = [...GUEST_VIEWS, '/kalendarz', '/odwiedzalnosc', '/rekrutacja'];
+export const EDITOR_VIEWS = [...GUEST_VIEWS, '/kalendarz', '/odwiedzalnosc', '/rekrutacja', '/terminy'];
 
 const SIDEBAR_COLLAPSED_KEY = 'baza-st-sidebar-collapsed';
 
@@ -110,11 +112,18 @@ export function AppSidebar() {
   };
 
   const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : GUEST_VIEWS;
+  const isGuest = allowedViews === GUEST_VIEWS;
   const sections = NAV_SECTIONS.map((section) => ({
     ...section,
     items: allowedViews
       ? section.items.filter((item) => allowedViews.includes(item.href))
       : section.items,
+  })).map((section) => ({
+    ...section,
+    // Dla gości jedyna pozycja /planowanie widnieje jako „Harmonogram"
+    items: section.items.map((item) =>
+      isGuest && item.href === '/planowanie' ? { ...item, label: 'Harmonogram' } : item
+    ),
   })).filter((section) => section.items.length > 0);
 
   return (
