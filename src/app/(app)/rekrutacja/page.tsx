@@ -1247,13 +1247,16 @@ export default function RekrutacjaPage() {
       ws3.getColumn(2).width = 18;
       ws3.getColumn(3).width = 16;
 
-      // Arkusz 4: Harmonogram obsady — 30 dni, deficyt na czerwono
+      // Arkusz 4: Harmonogram obsady — dni wybranego miesiąca, deficyty i nieobecności
       // Pod każdym działem rozwijane wiersze stanowisk (grupa Excel) z dziennymi liczbami
+      // UWAGA: nie używamy cell.note (comments) — ExcelJS 4.4 zapisuje uszkodzone pliki z notatkami;
+      // zamiast tego nieobecności/urlopy lądują w kolumnie tekstowej „Nieobecni / Na urlopie”
       const ws4 = wb.addWorksheet('Harmonogram obsady');
       const ws4Rows: {
         values: (string | number)[];
         isSub: boolean;
         cells?: { mam: number; absentees: Employee[]; vacationers: Employee[] }[];
+        uwagi?: string;
       }[] = [];
       harmonogramRows.forEach(row => {
         ws4Rows.push({
@@ -1271,16 +1274,34 @@ export default function RekrutacjaPage() {
           });
         });
       });
+      const dayLabel = (j: number) => format(harmonogramDays[j], 'dd.MM');
+      ws4Rows.forEach(row => {
+        row.uwagi = (row.cells ?? [])
+          .map((cell, j) => {
+            const parts: string[] = [];
+            if (cell.absentees.length > 0)
+              parts.push(`Nieobecni: ${cell.absentees.map(e => e.fullName).join(', ')}`);
+            if (cell.vacationers.length > 0)
+              parts.push(`Na urlopie: ${cell.vacationers.map(e => e.fullName).join(', ')}`);
+            return parts.length > 0 ? `${dayLabel(j)} — ${parts.join('; ')}` : null;
+          })
+          .filter(Boolean)
+          .join(' | ');
+      });
       ws4.addTable({
         name: 'HarmonogramObsady',
         ref: 'A1',
         headerRow: true,
         totalsRow: false,
         style: { theme: 'TableStyleMedium2', showRowStripes: true },
-        columns: ['Dział', 'Potrzeby', 'Mam teraz', ...harmonogramDays.map(d => `Mam ${format(d, 'dd.MM')}`)].map(
-          n => ({ name: n, filterButton: false })
-        ),
-        rows: ws4Rows.map(r => r.values),
+        columns: [
+          'Dział',
+          'Potrzeby',
+          'Mam teraz',
+          ...harmonogramDays.map(d => `Mam ${format(d, 'dd.MM')}`),
+          'Nieobecni / Na urlopie',
+        ].map(n => ({ name: n, filterButton: false })),
+        rows: ws4Rows.map(r => [...r.values, r.uwagi ?? '']),
       });
       ws4Rows.forEach((row, i) => {
         const sheetRow = ws4.getRow(i + 2);
@@ -1297,22 +1318,19 @@ export default function RekrutacjaPage() {
             const tableCell = sheetRow.getCell(4 + j);
             tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
             tableCell.font = { color: { argb: 'FF9C0006' }, bold: true };
-            tableCell.note = `Nieobecni: ${cell.absentees
-              .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
-              .join('; ')}`;
           } else if (cell.vacationers.length > 0) {
             const tableCell = sheetRow.getCell(4 + j);
             tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8BBD9' } };
             tableCell.font = { color: { argb: 'FF880E4F' }, italic: true };
-            tableCell.note = `Na urlopie: ${cell.vacationers
-              .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
-              .join('; ')}`;
           }
         });
+        const uwagiCell = sheetRow.getCell(4 + harmonogramDays.length);
+        uwagiCell.alignment = { wrapText: true, vertical: 'top' };
       });
       ws4.getColumn(1).width = 24;
       ws4.getColumn(2).width = 12;
       ws4.getColumn(3).width = 12;
+      ws4.getColumn(4 + harmonogramDays.length).width = 60;
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
