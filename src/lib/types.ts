@@ -145,7 +145,6 @@ export interface Recruitment {
   department: string;
   jobTitle: string; // stanowisko — dział może mieć różne stanowiska
   toRecruit: number; // ile osób trzeba zrekrutować
-  targetHeadcount?: number; // etat — ile osób ma być na dziale·stanowisku
   arrivals: RecruitmentArrival[]; // planowane daty przyjęcia (wiele na dział)
   createdAt: string; // ISO string
 }

@@ -153,8 +153,6 @@ const RecruitmentCard = ({
   const jobTitleLabel = recruitment.jobTitle?.trim() || '—';
   const [countDraft, setCountDraft] = useState(String(recruitment.toRecruit ?? 0));
   const [isFocused, setIsFocused] = useState(false);
-  const [targetDraft, setTargetDraft] = useState(String(recruitment.targetHeadcount ?? 0));
-  const [isTargetFocused, setIsTargetFocused] = useState(false);
   const [isAddingArrival, setIsAddingArrival] = useState(false);
   const [isEditingMeta, setIsEditingMeta] = useState(false);
   const [deptDraft, setDeptDraft] = useState(recruitment.department);
@@ -183,10 +181,6 @@ const RecruitmentCard = ({
     if (!isFocused) setCountDraft(String(recruitment.toRecruit ?? 0));
   }, [recruitment.toRecruit, isFocused]);
 
-  useEffect(() => {
-    if (!isTargetFocused) setTargetDraft(String(recruitment.targetHeadcount ?? 0));
-  }, [recruitment.targetHeadcount, isTargetFocused]);
-
   const sortedArrivals = useMemo(
     () =>
       [...recruitment.arrivals].sort((a, b) => {
@@ -200,24 +194,8 @@ const RecruitmentCard = ({
   const plannedTotal = recruitment.arrivals.reduce((sum, a) => sum + (Number(a.count) || 0), 0);
   const missing = Math.max(0, (recruitment.toRecruit || 0) - plannedTotal);
   const surplus = Math.max(0, plannedTotal - (recruitment.toRecruit || 0));
-  const etat = recruitment.targetHeadcount ?? 0;
-  const shortOfTarget = Math.max(0, etat - headcount.jobTitle);
-
-  const handleTargetBlur = async () => {
-    const db = getDB();
-    if (!db) return;
-    const parsed = parseInt(targetDraft, 10);
-    if (Number.isNaN(parsed) || parsed < 0) {
-      setTargetDraft(String(recruitment.targetHeadcount ?? 0));
-      return;
-    }
-    if (parsed === (recruitment.targetHeadcount ?? 0)) return;
-    try {
-      await update(dbRef(db, `recruitment/${recruitment.id}`), { targetHeadcount: parsed });
-    } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać etatu.' });
-    }
-  };
+  // Obecnie na stanowisku + do zrekrutowania = ile osób będzie na dziale·stanowisku
+  const totalAfterRecruitment = headcount.jobTitle + (recruitment.toRecruit || 0);
 
   const handleCountBlur = async () => {
     const db = getDB();
@@ -322,18 +300,17 @@ const RecruitmentCard = ({
           )}
           {!isEditingMeta && (
             <div className="flex flex-wrap items-center gap-2">
-              {etat > 0 && (
-                <Badge variant="outline" className="tabular-nums">
-                  Etat: {etat} · Jest: {headcount.jobTitle}
-                </Badge>
-              )}
-              {etat > 0 && shortOfTarget > 0 && (
-                <Badge variant="destructive" className="tabular-nums">
-                  Brakuje do etatu: {shortOfTarget}
-                </Badge>
-              )}
               <Badge variant="outline" className="tabular-nums">
                 Na dziale: {headcount.department} os.
+              </Badge>
+              <Badge variant="outline" className="tabular-nums">
+                Na stanowisku: {headcount.jobTitle} os.
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
+              >
+                Będzie: {totalAfterRecruitment} os.
               </Badge>
               <Badge variant="outline" className="tabular-nums">
                 Rekrutacja: {recruitment.toRecruit || 0} os.
@@ -384,34 +361,6 @@ const RecruitmentCard = ({
       <CardContent className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <label className="w-full text-xs font-medium text-muted-foreground sm:w-auto">
-            Ile osób ma być (etat):
-          </label>
-          <div className="flex items-center gap-1.5">
-            <Input
-              type="number"
-              min={0}
-              value={targetDraft}
-              onChange={e => setTargetDraft(e.target.value)}
-              onFocus={() => setIsTargetFocused(true)}
-              onBlur={() => {
-                setIsTargetFocused(false);
-                handleTargetBlur();
-              }}
-              onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-              className="h-9 w-24 tabular-nums"
-              aria-label={`Etat — ${recruitment.department} · ${jobTitleLabel}`}
-            />
-            <span className="text-xs text-muted-foreground">os.</span>
-          </div>
-          {etat > 0 && (
-            <span className="text-xs text-muted-foreground">
-              (jest {headcount.jobTitle} → brakuje {shortOfTarget})
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="w-full text-xs font-medium text-muted-foreground sm:w-auto">
             Ile osób zrekrutować:
           </label>
           <div className="flex items-center gap-1.5">
@@ -430,6 +379,9 @@ const RecruitmentCard = ({
               aria-label={`Liczba osób do rekrutacji — ${recruitment.department}`}
             />
             <span className="text-xs text-muted-foreground">os.</span>
+            <span className="text-xs text-muted-foreground">
+              (jest {headcount.jobTitle} → będzie {totalAfterRecruitment})
+            </span>
           </div>
         </div>
 
@@ -651,18 +603,17 @@ export default function RekrutacjaPage() {
       const summaryRows = sortedRecruitments.map(r => {
         const planned = r.arrivals.reduce((s, a) => s + (Number(a.count) || 0), 0);
         const jobKey = `${r.department}|${r.jobTitle?.trim() || '—'}`;
-        const etat = r.targetHeadcount ?? 0;
         const obecnie = headcountByDeptJob.get(jobKey) ?? 0;
+        const doRekrutacji = r.toRecruit || 0;
         return [
           r.department,
           r.jobTitle?.trim() || '—',
-          etat,
-          obecnie,
-          Math.max(0, etat - obecnie),
           headcountByDepartment.get(r.department) ?? 0,
-          r.toRecruit || 0,
+          obecnie,
+          doRekrutacji,
+          obecnie + doRekrutacji,
           planned,
-          Math.max(0, (r.toRecruit || 0) - planned),
+          Math.max(0, doRekrutacji - planned),
         ];
       });
 
@@ -676,11 +627,10 @@ export default function RekrutacjaPage() {
         columns: [
           'Dział',
           'Stanowisko',
-          'Etat (ile ma być)',
-          'Obecnie na stanowisku',
-          'Brakuje do etatu',
           'Obecnie na dziale',
-          'Do rekrutacji',
+          'Obecnie na stanowisku',
+          'Do zrekrutowania',
+          'Razem będzie',
           'Zaplanowane przyjęcia',
           'Brakuje',
         ].map(n => ({ name: n, filterButton: true })),
@@ -688,8 +638,7 @@ export default function RekrutacjaPage() {
       });
       ws1.getColumn(1).width = 28;
       ws1.getColumn(2).width = 26;
-      [3, 4, 5, 6, 7, 8, 9].forEach(col => (ws1.getColumn(col).width = 20));
-      const sumEtat = sortedRecruitments.reduce((s, r) => s + (r.targetHeadcount ?? 0), 0);
+      [3, 4, 5, 6, 7, 8].forEach(col => (ws1.getColumn(col).width = 20));
       const sumObecnie = sortedRecruitments.reduce(
         (s, r) => s + (headcountByDeptJob.get(`${r.department}|${r.jobTitle?.trim() || '—'}`) ?? 0),
         0
@@ -697,11 +646,10 @@ export default function RekrutacjaPage() {
       const totalRow = ws1.addRow([
         'RAZEM',
         '',
-        sumEtat,
-        sumObecnie,
-        Math.max(0, sumEtat - sumObecnie),
         '',
+        sumObecnie,
         totalToRecruit,
+        sumObecnie + totalToRecruit,
         totalPlanned,
         Math.max(0, totalToRecruit - totalPlanned),
       ]);
