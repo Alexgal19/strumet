@@ -35,12 +35,15 @@ import {
 import {
   Briefcase,
   CalendarPlus,
+  Check,
   Download,
   Loader2,
+  Pencil,
   Plus,
   Trash2,
   UserPlus,
   Users,
+  X,
 } from 'lucide-react';
 
 const formatHeadcount = (count: number) => `${count} os.`;
@@ -133,20 +136,56 @@ const ArrivalRow = ({
 
 const RecruitmentCard = ({
   recruitment,
+  departments,
+  jobTitles,
+  headcount,
+  onUpdateMeta,
   onDelete,
 }: {
   recruitment: Recruitment;
+  departments: { id: string; name: string }[];
+  jobTitles: { id: string; name: string }[];
+  headcount: { department: number; jobTitle: number };
+  onUpdateMeta: (recruitment: Recruitment, department: string, jobTitle: string) => Promise<boolean>;
   onDelete: (recruitment: Recruitment) => void;
 }) => {
   const { toast } = useToast();
   const jobTitleLabel = recruitment.jobTitle?.trim() || '—';
   const [countDraft, setCountDraft] = useState(String(recruitment.toRecruit ?? 0));
   const [isFocused, setIsFocused] = useState(false);
+  const [targetDraft, setTargetDraft] = useState(String(recruitment.targetHeadcount ?? 0));
+  const [isTargetFocused, setIsTargetFocused] = useState(false);
   const [isAddingArrival, setIsAddingArrival] = useState(false);
+  const [isEditingMeta, setIsEditingMeta] = useState(false);
+  const [deptDraft, setDeptDraft] = useState(recruitment.department);
+  const [jobTitleDraft, setJobTitleDraft] = useState(recruitment.jobTitle ?? '');
+  const [isSavingMeta, setIsSavingMeta] = useState(false);
+
+  const startEditingMeta = () => {
+    setDeptDraft(recruitment.department);
+    setJobTitleDraft(recruitment.jobTitle ?? '');
+    setIsEditingMeta(true);
+  };
+
+  const handleSaveMeta = async () => {
+    if (isSavingMeta) return;
+    if (!deptDraft || !jobTitleDraft) {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Wybierz dział i stanowisko.' });
+      return;
+    }
+    setIsSavingMeta(true);
+    const ok = await onUpdateMeta(recruitment, deptDraft, jobTitleDraft);
+    setIsSavingMeta(false);
+    if (ok) setIsEditingMeta(false);
+  };
 
   useEffect(() => {
     if (!isFocused) setCountDraft(String(recruitment.toRecruit ?? 0));
   }, [recruitment.toRecruit, isFocused]);
+
+  useEffect(() => {
+    if (!isTargetFocused) setTargetDraft(String(recruitment.targetHeadcount ?? 0));
+  }, [recruitment.targetHeadcount, isTargetFocused]);
 
   const sortedArrivals = useMemo(
     () =>
@@ -161,6 +200,24 @@ const RecruitmentCard = ({
   const plannedTotal = recruitment.arrivals.reduce((sum, a) => sum + (Number(a.count) || 0), 0);
   const missing = Math.max(0, (recruitment.toRecruit || 0) - plannedTotal);
   const surplus = Math.max(0, plannedTotal - (recruitment.toRecruit || 0));
+  const etat = recruitment.targetHeadcount ?? 0;
+  const shortOfTarget = Math.max(0, etat - headcount.jobTitle);
+
+  const handleTargetBlur = async () => {
+    const db = getDB();
+    if (!db) return;
+    const parsed = parseInt(targetDraft, 10);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      setTargetDraft(String(recruitment.targetHeadcount ?? 0));
+      return;
+    }
+    if (parsed === (recruitment.targetHeadcount ?? 0)) return;
+    try {
+      await update(dbRef(db, `recruitment/${recruitment.id}`), { targetHeadcount: parsed });
+    } catch {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać etatu.' });
+    }
+  };
 
   const handleCountBlur = async () => {
     const db = getDB();
@@ -206,50 +263,153 @@ const RecruitmentCard = ({
     <Card>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <CardTitle className="text-base">{recruitment.department}</CardTitle>
-            <Badge variant="secondary" className="max-w-full truncate">
-              {jobTitleLabel}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="tabular-nums">
-              Rekrutacja: {recruitment.toRecruit || 0} os.
-            </Badge>
-            {missing > 0 && (
-              <Badge variant="destructive" className="tabular-nums">
-                Brakuje: {missing}
+          {isEditingMeta ? (
+            <div className="flex w-full flex-wrap items-center gap-2">
+              <Select value={deptDraft} onValueChange={setDeptDraft}>
+                <SelectTrigger className="h-9 w-full sm:w-56" aria-label="Edytuj dział">
+                  <SelectValue placeholder="Dział…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map(d => (
+                    <SelectItem key={d.id} value={d.name}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={jobTitleDraft} onValueChange={setJobTitleDraft}>
+                <SelectTrigger className="h-9 w-full sm:w-52" aria-label="Edytuj stanowisko">
+                  <SelectValue placeholder="Stanowisko…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobTitles.map(jt => (
+                    <SelectItem key={jt.id} value={jt.name}>
+                      {jt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 border-emerald-500/50 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                  disabled={isSavingMeta || !deptDraft || !jobTitleDraft}
+                  onClick={handleSaveMeta}
+                  aria-label="Zapisz zmiany"
+                >
+                  {isSavingMeta ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  disabled={isSavingMeta}
+                  onClick={() => setIsEditingMeta(false)}
+                  aria-label="Anuluj edycję"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <CardTitle className="text-base">{recruitment.department}</CardTitle>
+              <Badge variant="secondary" className="max-w-full truncate">
+                {jobTitleLabel}
               </Badge>
-            )}
-            {surplus > 0 && (
-              <Badge
-                variant="outline"
-                className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
+            </div>
+          )}
+          {!isEditingMeta && (
+            <div className="flex flex-wrap items-center gap-2">
+              {etat > 0 && (
+                <Badge variant="outline" className="tabular-nums">
+                  Etat: {etat} · Jest: {headcount.jobTitle}
+                </Badge>
+              )}
+              {etat > 0 && shortOfTarget > 0 && (
+                <Badge variant="destructive" className="tabular-nums">
+                  Brakuje do etatu: {shortOfTarget}
+                </Badge>
+              )}
+              <Badge variant="outline" className="tabular-nums">
+                Na dziale: {headcount.department} os.
+              </Badge>
+              <Badge variant="outline" className="tabular-nums">
+                Rekrutacja: {recruitment.toRecruit || 0} os.
+              </Badge>
+              {missing > 0 && (
+                <Badge variant="destructive" className="tabular-nums">
+                  Brakuje: {missing}
+                </Badge>
+              )}
+              {surplus > 0 && (
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
+                >
+                  Nadwyżka: +{surplus}
+                </Badge>
+              )}
+              {plannedTotal > 0 && missing === 0 && surplus === 0 && (
+                <Badge
+                  variant="outline"
+                  className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
+                >
+                  Komplet: {plannedTotal}/{recruitment.toRecruit}
+                </Badge>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                onClick={startEditingMeta}
+                aria-label={`Edytuj ${recruitment.department} — ${jobTitleLabel}`}
               >
-                Nadwyżka: +{surplus}
-              </Badge>
-            )}
-            {plannedTotal > 0 && missing === 0 && surplus === 0 && (
-              <Badge
-                variant="outline"
-                className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={() => onDelete(recruitment)}
+                aria-label={`Usuń ${recruitment.department} — ${jobTitleLabel}`}
               >
-                Komplet: {plannedTotal}/{recruitment.toRecruit}
-              </Badge>
-            )}
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              onClick={() => onDelete(recruitment)}
-              aria-label={`Usuń ${recruitment.department} — ${jobTitleLabel}`}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="w-full text-xs font-medium text-muted-foreground sm:w-auto">
+            Ile osób ma być (etat):
+          </label>
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="number"
+              min={0}
+              value={targetDraft}
+              onChange={e => setTargetDraft(e.target.value)}
+              onFocus={() => setIsTargetFocused(true)}
+              onBlur={() => {
+                setIsTargetFocused(false);
+                handleTargetBlur();
+              }}
+              onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+              className="h-9 w-24 tabular-nums"
+              aria-label={`Etat — ${recruitment.department} · ${jobTitleLabel}`}
+            />
+            <span className="text-xs text-muted-foreground">os.</span>
+          </div>
+          {etat > 0 && (
+            <span className="text-xs text-muted-foreground">
+              (jest {headcount.jobTitle} → brakuje {shortOfTarget})
+            </span>
+          )}
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <label className="w-full text-xs font-medium text-muted-foreground sm:w-auto">
             Ile osób zrekrutować:
@@ -379,6 +539,44 @@ export default function RekrutacjaPage() {
     return map;
   }, [activeEmployees]);
 
+  const headcountByDeptJob = useMemo(() => {
+    const map = new Map<string, number>();
+    activeEmployees.forEach(e => {
+      const key = `${e.department}|${e.jobTitle}`;
+      map.set(key, (map.get(key) ?? 0) + 1);
+    });
+    return map;
+  }, [activeEmployees]);
+
+  const handleUpdateMeta = async (
+    recruitment: Recruitment,
+    department: string,
+    jobTitle: string
+  ): Promise<boolean> => {
+    const db = getDB();
+    if (!db) return false;
+    const combo = `${department}|${jobTitle}`;
+    const taken = recruitments.some(
+      r => r.id !== recruitment.id && `${r.department}|${r.jobTitle?.trim() || '—'}` === combo
+    );
+    if (taken) {
+      toast({
+        variant: 'destructive',
+        title: 'Duplikat',
+        description: `${department} · ${jobTitle} — taka pozycja już istnieje.`,
+      });
+      return false;
+    }
+    try {
+      await update(dbRef(db, `recruitment/${recruitment.id}`), { department, jobTitle });
+      toast({ title: 'Zapisano', description: `${department} · ${jobTitle}` });
+      return true;
+    } catch {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać zmian.' });
+      return false;
+    }
+  };
+
   const selectedDepartmentStats = useMemo(() => {
     if (!newDepartment) return null;
     const deptEmployees = activeEmployees.filter(e => e.department === newDepartment);
@@ -452,9 +650,16 @@ export default function RekrutacjaPage() {
 
       const summaryRows = sortedRecruitments.map(r => {
         const planned = r.arrivals.reduce((s, a) => s + (Number(a.count) || 0), 0);
+        const jobKey = `${r.department}|${r.jobTitle?.trim() || '—'}`;
+        const etat = r.targetHeadcount ?? 0;
+        const obecnie = headcountByDeptJob.get(jobKey) ?? 0;
         return [
           r.department,
           r.jobTitle?.trim() || '—',
+          etat,
+          obecnie,
+          Math.max(0, etat - obecnie),
+          headcountByDepartment.get(r.department) ?? 0,
           r.toRecruit || 0,
           planned,
           Math.max(0, (r.toRecruit || 0) - planned),
@@ -468,16 +673,33 @@ export default function RekrutacjaPage() {
         headerRow: true,
         totalsRow: false,
         style: { theme: 'TableStyleMedium2', showRowStripes: true },
-        columns: ['Dział', 'Stanowisko', 'Do rekrutacji', 'Zaplanowane przyjęcia', 'Brakuje'].map(
-          n => ({ name: n, filterButton: true })
-        ),
+        columns: [
+          'Dział',
+          'Stanowisko',
+          'Etat (ile ma być)',
+          'Obecnie na stanowisku',
+          'Brakuje do etatu',
+          'Obecnie na dziale',
+          'Do rekrutacji',
+          'Zaplanowane przyjęcia',
+          'Brakuje',
+        ].map(n => ({ name: n, filterButton: true })),
         rows: summaryRows,
       });
       ws1.getColumn(1).width = 28;
       ws1.getColumn(2).width = 26;
-      [3, 4, 5].forEach(col => (ws1.getColumn(col).width = 20));
+      [3, 4, 5, 6, 7, 8, 9].forEach(col => (ws1.getColumn(col).width = 20));
+      const sumEtat = sortedRecruitments.reduce((s, r) => s + (r.targetHeadcount ?? 0), 0);
+      const sumObecnie = sortedRecruitments.reduce(
+        (s, r) => s + (headcountByDeptJob.get(`${r.department}|${r.jobTitle?.trim() || '—'}`) ?? 0),
+        0
+      );
       const totalRow = ws1.addRow([
         'RAZEM',
+        '',
+        sumEtat,
+        sumObecnie,
+        Math.max(0, sumEtat - sumObecnie),
         '',
         totalToRecruit,
         totalPlanned,
@@ -703,6 +925,16 @@ export default function RekrutacjaPage() {
                   <RecruitmentCard
                     key={recruitment.id}
                     recruitment={recruitment}
+                    departments={config.departments}
+                    jobTitles={config.jobTitles}
+                    headcount={{
+                      department: headcountByDepartment.get(recruitment.department) ?? 0,
+                      jobTitle:
+                        headcountByDeptJob.get(
+                          `${recruitment.department}|${recruitment.jobTitle?.trim() || '—'}`
+                        ) ?? 0,
+                    }}
+                    onUpdateMeta={handleUpdateMeta}
                     onDelete={setToDelete}
                   />
                 ))}
