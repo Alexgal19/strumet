@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, UserX, ClipboardCopy, Shirt, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, UserX, ClipboardCopy, Shirt, ArrowLeft, ArrowRight, CalendarOff, X } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ import { Separator } from './ui/separator';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
 import { useToast } from '@/hooks/use-toast';
+import { useAppContext } from '@/context/app-context';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -116,13 +117,63 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
 export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintClothing, config }: EmployeeFormProps) {
     const { departments, jobTitles, managers, nationalities } = config;
     const { toast } = useToast();
+    const { absences, addAbsence, deleteAbsence } = useAppContext();
     const isMobile = useIsMobile();
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [step, setStep] = useState(0);
+    const [isSavingAbsence, setIsSavingAbsence] = useState(false);
     const topRef = React.useRef<HTMLDivElement>(null);
+
+    const employeeAbsences = React.useMemo(
+        () => absences.filter(a => a.employeeId === employee?.id),
+        [absences, employee?.id]
+    );
+
+    const absenceDates = React.useMemo(
+        () =>
+            employeeAbsences
+                .map(a => ({ id: a.id, date: parseMaybeDate(a.date), key: a.date }))
+                .filter((a): a is { id: string; date: Date; key: string } => !!a.date)
+                .sort((a, b) => a.date.getTime() - b.date.getTime()),
+        [employeeAbsences]
+    );
+
+    const handleToggleAbsenceDays = async (days: Date[] | undefined) => {
+        if (!employee?.id || isSavingAbsence) return;
+        const selectedKeys = new Set((days ?? []).map(d => formatFns(d, 'yyyy-MM-dd')));
+        const currentKeys = new Map(absenceDates.map(a => [a.key, a.id]));
+        const toDelete = [...currentKeys.entries()].filter(([key]) => !selectedKeys.has(key));
+        const toAdd = [...selectedKeys].filter(key => !currentKeys.has(key));
+        if (toDelete.length === 0 && toAdd.length === 0) return;
+        setIsSavingAbsence(true);
+        try {
+            for (const [, absenceId] of toDelete) {
+                await deleteAbsence(absenceId);
+            }
+            for (const date of toAdd) {
+                await addAbsence(employee.id, date);
+            }
+        } catch {
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać nieobecności.' });
+        } finally {
+            setIsSavingAbsence(false);
+        }
+    };
+
+    const handleRemoveAbsence = async (absenceId: string) => {
+        if (isSavingAbsence) return;
+        setIsSavingAbsence(true);
+        try {
+            await deleteAbsence(absenceId);
+        } catch {
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć nieobecności.' });
+        } finally {
+            setIsSavingAbsence(false);
+        }
+    };
 
     useEffect(() => {
         setFormData(getInitialFormData(employee));
@@ -252,6 +303,71 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         <ClipboardCopy className="h-4 w-4" />
                         <span>Kopiuj dane</span>
                     </Button>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={!employee}
+                                className={cn(
+                                    'h-9 gap-2 bg-background/50',
+                                    absenceDates.length > 0 && 'border-destructive/40 text-destructive'
+                                )}
+                            >
+                                <CalendarOff className="h-4 w-4" />
+                                <span>Nieobecność</span>
+                                {absenceDates.length > 0 && (
+                                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-semibold text-white">
+                                        {absenceDates.length}
+                                    </span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" side="bottom">
+                            <div className="flex flex-col">
+                                <Calendar
+                                    mode="multiple"
+                                    selected={absenceDates.map(a => a.date)}
+                                    onSelect={handleToggleAbsenceDays}
+                                    locale={pl}
+                                    initialFocus
+                                />
+                                <div className="border-t p-3 space-y-2">
+                                    <p className="text-xs text-muted-foreground">
+                                        Kliknij dzień, aby oznaczyć nieobecność — zapisuje się od razu i
+                                        synchronizuje z zakładką „Obecność”. Strzałkami przełączasz
+                                        miesiące.
+                                    </p>
+                                    {absenceDates.length > 0 && (
+                                        <div className="space-y-1.5">
+                                            <p className="text-xs font-medium">
+                                                Dni nieobecności ({absenceDates.length}):
+                                            </p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {absenceDates.map(a => (
+                                                    <span
+                                                        key={a.id}
+                                                        className="inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
+                                                    >
+                                                        {formatDate(a.key)}
+                                                        <button
+                                                            type="button"
+                                                            aria-label={`Usuń nieobecność ${formatDate(a.key)}`}
+                                                            className="rounded-sm hover:bg-destructive/20"
+                                                            onClick={() => handleRemoveAbsence(a.id)}
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </div>
                 {clothingSet && (
                     <Button
