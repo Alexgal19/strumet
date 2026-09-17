@@ -5,6 +5,7 @@ import { onValue, push, ref as dbRef, remove, set, update } from 'firebase/datab
 import { format } from 'date-fns';
 import { PageHeader } from '@/components/page-header';
 import { useAppContext } from '@/context/app-context';
+import { useEmployees } from '@/hooks/use-employees';
 import { useToast } from '@/hooks/use-toast';
 import { getDB } from '@/lib/firebase';
 import { objectToArray } from '@/lib/utils';
@@ -32,6 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Briefcase,
   CalendarPlus,
   Download,
   Loader2,
@@ -40,6 +42,8 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
+
+const formatHeadcount = (count: number) => `${count} os.`;
 
 const ArrivalRow = ({
   recruitmentId,
@@ -301,6 +305,7 @@ const RecruitmentCard = ({
 
 export default function RekrutacjaPage() {
   const { isLoading: isContextLoading, config } = useAppContext();
+  const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const { toast } = useToast();
 
   const [recruitments, setRecruitments] = useState<Recruitment[]>([]);
@@ -351,6 +356,36 @@ export default function RekrutacjaPage() {
     (sum, r) => sum + r.arrivals.reduce((s, a) => s + (Number(a.count) || 0), 0),
     0
   );
+
+  const headcountByDepartment = useMemo(() => {
+    const map = new Map<string, number>();
+    activeEmployees.forEach(e => {
+      map.set(e.department, (map.get(e.department) ?? 0) + 1);
+    });
+    return map;
+  }, [activeEmployees]);
+
+  const selectedDepartmentStats = useMemo(() => {
+    if (!newDepartment) return null;
+    const deptEmployees = activeEmployees.filter(e => e.department === newDepartment);
+    const byJobTitle = new Map<string, { count: number; managers: Set<string> }>();
+    deptEmployees.forEach(e => {
+      const entry = byJobTitle.get(e.jobTitle) ?? { count: 0, managers: new Set<string>() };
+      entry.count += 1;
+      if (e.manager) entry.managers.add(e.manager);
+      byJobTitle.set(e.jobTitle, entry);
+    });
+    return {
+      total: deptEmployees.length,
+      rows: [...byJobTitle.entries()]
+        .map(([jobTitle, { count, managers }]) => ({
+          jobTitle,
+          count,
+          managers: [...managers].sort((a, b) => a.localeCompare(b, 'pl')),
+        }))
+        .sort((a, b) => b.count - a.count || a.jobTitle.localeCompare(b.jobTitle, 'pl')),
+    };
+  }, [activeEmployees, newDepartment]);
 
   const handleAdd = async () => {
     const db = getDB();
@@ -463,7 +498,7 @@ export default function RekrutacjaPage() {
     }
   };
 
-  const isLoading = isContextLoading || isDataLoading;
+  const isLoading = isContextLoading || isDataLoading || isEmployeesLoading;
 
   return (
     <div className="h-full flex flex-col">
@@ -508,42 +543,77 @@ export default function RekrutacjaPage() {
             </div>
 
             <Card>
-              <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center">
-                <Select value={newDepartment} onValueChange={setNewDepartment}>
-                  <SelectTrigger className="w-full sm:w-64" aria-label="Wybierz dział">
-                    <SelectValue placeholder="Wybierz dział…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDepartments.length === 0 ? (
-                      <p className="px-3 py-2 text-sm text-muted-foreground">
-                        Wszystkie działy zostały dodane.
+              <CardContent className="flex flex-col gap-3 pt-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Select value={newDepartment} onValueChange={setNewDepartment}>
+                    <SelectTrigger className="w-full sm:w-80" aria-label="Wybierz dział">
+                      <SelectValue placeholder="Wybierz dział…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDepartments.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">
+                          Wszystkie działy zostały dodane.
+                        </p>
+                      ) : (
+                        availableDepartments.map(dept => (
+                          <SelectItem key={dept.id} value={dept.name}>
+                            {dept.name} ({formatHeadcount(headcountByDepartment.get(dept.name) ?? 0)})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="Ile osób?"
+                    value={newCount}
+                    onChange={e => setNewCount(e.target.value)}
+                    className="w-full sm:w-36"
+                    aria-label="Liczba osób do rekrutacji"
+                  />
+                  <Button
+                    className="gap-2 sm:ml-auto"
+                    disabled={!newDepartment || !newCount || parseInt(newCount, 10) < 1 || isAdding}
+                    onClick={handleAdd}
+                  >
+                    {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    Dodaj dział
+                  </Button>
+                </div>
+
+                {selectedDepartmentStats && (
+                  <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                    <p className="flex items-center gap-2 text-sm font-medium">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      Obecnie w dziale: {formatHeadcount(selectedDepartmentStats.total)}
+                    </p>
+                    {selectedDepartmentStats.rows.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        Brak aktywnych pracowników w tym dziale.
                       </p>
                     ) : (
-                      availableDepartments.map(dept => (
-                        <SelectItem key={dept.id} value={dept.name}>
-                          {dept.name}
-                        </SelectItem>
-                      ))
+                      <div className="space-y-1.5">
+                        {selectedDepartmentStats.rows.map(row => (
+                          <div
+                            key={row.jobTitle}
+                            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-xs"
+                          >
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              {row.jobTitle} — {formatHeadcount(row.count)}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {row.managers.length > 0
+                                ? `Kierownik: ${row.managers.join(', ')}`
+                                : 'Brak kierownika'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="Ile osób?"
-                  value={newCount}
-                  onChange={e => setNewCount(e.target.value)}
-                  className="w-full sm:w-36"
-                  aria-label="Liczba osób do rekrutacji"
-                />
-                <Button
-                  className="gap-2 sm:ml-auto"
-                  disabled={!newDepartment || !newCount || parseInt(newCount, 10) < 1 || isAdding}
-                  onClick={handleAdd}
-                >
-                  {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                  Dodaj dział
-                </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
