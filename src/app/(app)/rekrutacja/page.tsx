@@ -212,6 +212,14 @@ const RecruitmentCard = ({
     return jobTitles.filter(jt => !usedHere.has(jt.name));
   };
 
+  const getPositionStat = (pos: RecruitmentPosition) => {
+    const key = `${recruitment.department}|${pos.jobTitle}`;
+    const obecnie = headcountByDeptJob.get(key) ?? 0;
+    const zwalnia = terminationsByDeptJob.get(key) ?? 0;
+    const potrzeby = Math.max(0, obecnie + (Number(pos.toRecruit) || 0) - zwalnia);
+    return { obecnie, zwalnia, potrzeby };
+  };
+
   const handlePositionJobTitleChange = async (posId: string, jobTitle: string) => {
     const db = getDB();
     if (!db) return;
@@ -442,6 +450,15 @@ const RecruitmentCard = ({
                     <PositionCountInput recruitmentId={recruitment.id} position={pos} />
                     <span className="text-xs text-muted-foreground">os.</span>
                   </div>
+                  {pos.jobTitle && (
+                    <span className="text-xs text-muted-foreground">
+                      Potrzeby:{' '}
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        {getPositionStat(pos).potrzeby} os.
+                      </span>{' '}
+                      (jest {getPositionStat(pos).obecnie}, zwalnia {getPositionStat(pos).zwalnia})
+                    </span>
+                  )}
                   <Button
                     size="icon"
                     variant="ghost"
