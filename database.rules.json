@@ -56,6 +56,11 @@
       ".read": "auth != null",
       ".indexOn": ["department", "jobTitle", "type", "createdAt"]
     },
+    "recruitment": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() != 'guest'",
+      ".indexOn": ["department", "createdAt"]
+    },
     "notifications": {
       ".read": "auth != null",
       ".indexOn": ["createdAt", "read"]

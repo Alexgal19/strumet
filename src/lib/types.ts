@@ -134,24 +134,18 @@ export interface Order {
   neededUntil?: string; // ISO String — for temporary replacement orders (e.g. vacation cover)
 }
 
-export type StaffingHintReason = 'urlop' | 'odejście';
-
-export interface StaffingHint {
-  id: string; // `${department}|${jobTitle}|${reason}`
-  department: string;
-  jobTitle: string;
-  reason: StaffingHintReason;
-  count: number; // how many people are needed
-  from: string; // ISO string — earliest absence start
-  to?: string; // ISO string — latest absence end (undefined for permanent replacements)
-  employees: Employee[]; // source absences
-  orderedOutstanding: number; // replacement headcount already ordered but not yet realized
+export interface RecruitmentArrival {
+  id: string;
+  date: string; // YYYY-MM-DD
+  count: number;
 }
 
-export interface VacationPerson {
-  employee: Employee;
-  status: 'aktywny' | 'zwolniony';
-  phase: 'na-urlopie' | 'zakończony' | 'planowany';
+export interface Recruitment {
+  id: string;
+  department: string;
+  toRecruit: number; // ile osób trzeba zrekrutować
+  arrivals: RecruitmentArrival[]; // planowane daty przyjęcia (wiele na dział)
+  createdAt: string; // ISO string
 }
 
 export interface StatsSnapshot {

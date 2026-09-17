@@ -10,6 +10,11 @@
       ".read": "auth != null",
       ".indexOn": ["status_fullName", "status"]
     },
+    "recruitment": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() != 'guest'",
+      ".indexOn": ["department", "createdAt"]
+    },
     ".read": "auth != null",
     ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
   }

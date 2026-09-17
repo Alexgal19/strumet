@@ -17,7 +17,7 @@ import {
   Car,
   NotebookPen,
   CalendarRange,
-  Repeat,
+  UserPlus,
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -44,7 +44,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/aktywni', icon: Users, label: 'Pracownicy aktywni' },
       { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni' },
-      { href: '/zastepstwa', icon: Repeat, label: 'Zastępstwa' },
+      { href: '/rekrutacja', icon: UserPlus, label: 'Rekrutacja' },
       { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
       { href: '/kalendarz', icon: CalendarRange, label: 'Kalendarz' },
       { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
@@ -78,7 +78,7 @@ export const ALL_NAV_ITEMS: MenuItem[] = NAV_SECTIONS.flatMap((s) => s.items);
 export const GUEST_VIEWS = ['/pulpit', '/statystyki', '/planowanie', '/notatki'];
 
 /** Widoki dodatkowe dla roli 'kolega' (editor) */
-export const EDITOR_VIEWS = [...GUEST_VIEWS, '/kalendarz', '/odwiedzalnosc', '/zastepstwa'];
+export const EDITOR_VIEWS = [...GUEST_VIEWS, '/kalendarz', '/odwiedzalnosc', '/rekrutacja'];
 
 const SIDEBAR_COLLAPSED_KEY = 'baza-st-sidebar-collapsed';
 
