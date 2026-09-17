@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getDB } from '@/lib/firebase';
 import { objectToArray } from '@/lib/utils';
 import { formatDate, parseMaybeDate } from '@/lib/date';
-import type { Recruitment, RecruitmentArrival, RecruitmentPosition } from '@/lib/types';
+import type { Employee, Recruitment, RecruitmentArrival, RecruitmentPosition } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -600,7 +600,7 @@ const PositionCountInput = ({
 };
 
 export default function RekrutacjaPage() {
-  const { isLoading: isContextLoading, config } = useAppContext();
+  const { isLoading: isContextLoading, config, employees: allEmployees, absences } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const { toast } = useToast();
 
@@ -721,6 +721,96 @@ export default function RekrutacjaPage() {
     return map;
   }, [recruitments]);
 
+  // Nieobecności (z Obecności) per dział i dział·stanowisko: data → lista pracowników
+  const absencesByDept = useMemo(() => {
+    const map = new Map<string, Map<string, Employee[]>>();
+    absences.forEach(a => {
+      const emp = allEmployees.find(e => e.id === a.employeeId);
+      if (!emp || emp.status !== 'aktywny' || !a.date) return;
+      const byDate = map.get(emp.department) ?? new Map<string, Employee[]>();
+      const list = byDate.get(a.date) ?? [];
+      list.push(emp);
+      byDate.set(a.date, list);
+      map.set(emp.department, byDate);
+    });
+    return map;
+  }, [absences, allEmployees]);
+
+  const absencesByDeptJob = useMemo(() => {
+    const map = new Map<string, Map<string, Employee[]>>();
+    absences.forEach(a => {
+      const emp = allEmployees.find(e => e.id === a.employeeId);
+      if (!emp || emp.status !== 'aktywny' || !a.date) return;
+      const key = `${emp.department}|${emp.jobTitle}`;
+      const byDate = map.get(key) ?? new Map<string, Employee[]>();
+      const list = byDate.get(a.date) ?? [];
+      list.push(emp);
+      byDate.set(a.date, list);
+      map.set(key, byDate);
+    });
+    return map;
+  }, [absences, allEmployees]);
+
+  // Oś czasu per dział·stanowisko: zwolnienia + przydział przyjęć (kolejność pozycji w zamówieniu)
+  const positionTimelines = useMemo(() => {
+    const map = new Map<string, { termDates: string[]; arrivals: { date: string; count: number }[] }>();
+    const today = startOfDay(new Date());
+    const ensure = (key: string) => {
+      let entry = map.get(key);
+      if (!entry) {
+        entry = { termDates: [], arrivals: [] };
+        map.set(key, entry);
+      }
+      return entry;
+    };
+    activeEmployees.forEach(e => {
+      const planned = parseMaybeDate(e.plannedTerminationDate);
+      if (!planned || startOfDay(planned).getTime() < today.getTime()) return;
+      ensure(`${e.department}|${e.jobTitle}`).termDates.push(format(planned, 'yyyy-MM-dd'));
+    });
+    recruitments.forEach(r => {
+      const slots = r.positions.map(p => ({ jobTitle: p.jobTitle, left: Number(p.toRecruit) || 0 }));
+      const sorted = [...r.arrivals]
+        .filter(a => a.date)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      sorted.forEach(a => {
+        let left = Number(a.count) || 0;
+        for (const slot of slots) {
+          if (left <= 0) break;
+          if (slot.left <= 0) continue;
+          const take = Math.min(slot.left, left);
+          ensure(`${r.department}|${slot.jobTitle}`).arrivals.push({ date: a.date, count: take });
+          slot.left -= take;
+          left -= take;
+        }
+      });
+    });
+    return map;
+  }, [activeEmployees, recruitments]);
+
+  const buildPositionDailyCells = (
+    department: string,
+    jobTitle: string,
+    obecnie: number,
+    toRecruit: number,
+    terminations: number
+  ) => {
+    const tl = positionTimelines.get(`${department}|${jobTitle}`);
+    const jobAbsences = absencesByDeptJob.get(`${department}|${jobTitle}`);
+    const potrzeby = Math.max(0, obecnie + toRecruit - terminations);
+    const cells = harmonogramDays.map(d => {
+      const key = format(d, 'yyyy-MM-dd');
+      const absentees = jobAbsences?.get(key) ?? [];
+      const mam =
+        obecnie -
+        (tl?.termDates.filter(t => t <= key).length ?? 0) +
+        (tl?.arrivals.filter(a => a.date <= key).reduce((s, a) => s + a.count, 0) ?? 0) -
+        absentees.length;
+      return { mam, deficit: mam < potrzeby, absentees };
+    });
+    return { potrzeby, cells };
+  };
+
   const harmonogramRows = useMemo(() => {
     const depts = new Set<string>();
     recruitments.forEach(r => r.department && depts.add(r.department));
@@ -738,12 +828,15 @@ export default function RekrutacjaPage() {
         const potrzeby = obecnie + sumRekrut;
         const termDates = terminationsByDept.get(dept) ?? [];
         const arrivals = arrivalsByDept.get(dept) ?? [];
+        const deptAbsences = absencesByDept.get(dept);
         const cells = harmonogramDays.map(d => {
           const key = format(d, 'yyyy-MM-dd');
+          const absentees = deptAbsences?.get(key) ?? [];
           const mam =
             obecnie -
             termDates.filter(t => t <= key).length +
-            arrivals.filter(a => a.date <= key).reduce((s, a) => s + a.count, 0);
+            arrivals.filter(a => a.date <= key).reduce((s, a) => s + a.count, 0) -
+            absentees.length;
           const newTerms = termDates.filter(t => t === key).length;
           const newArrivals = arrivals
             .filter(a => a.date === key)
@@ -751,16 +844,28 @@ export default function RekrutacjaPage() {
           const changes: string[] = [];
           if (newArrivals > 0) changes.push(`+${newArrivals} przyjęć`);
           if (newTerms > 0) changes.push(`−${newTerms} zwolnień`);
+          if (absentees.length > 0) changes.push(`−${absentees.length} nieobecnych`);
+          const title = [
+            changes.join(', '),
+            absentees.length > 0
+              ? `Nieobecni: ${absentees
+                  .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
+                  .join('; ')}`
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' | ');
           return {
             key,
             mam,
             deficit: mam < potrzeby,
-            title: changes.length > 0 ? changes.join(', ') : undefined,
+            title: title || undefined,
+            absentees,
           };
         });
         return { dept, potrzeby, obecnie, sumRekrut, cells };
       });
-  }, [recruitments, activeEmployees, headcountByDepartment, terminationsByDept, arrivalsByDept, harmonogramDays]);
+  }, [recruitments, activeEmployees, headcountByDepartment, terminationsByDept, arrivalsByDept, absencesByDept, harmonogramDays]);
 
   // Stanowiska w każdym dziale: obecna obsada + planowane zwolnienia + potrzeby rekrutacyjne
   const jobTitlesByDepartment = useMemo(() => {
@@ -1075,26 +1180,32 @@ export default function RekrutacjaPage() {
       ws3.getColumn(3).width = 16;
 
       // Arkusz 4: Harmonogram obsady — 30 dni, deficyt na czerwono
-      // Pod każdym działem rozwijane wiersze stanowisk (grupa Excel — plus/minus po lewej)
+      // Pod każdym działem rozwijane wiersze stanowisk (grupa Excel) z dziennymi liczbami
       const ws4 = wb.addWorksheet('Harmonogram obsady');
-      const harmonogramTableRows: (string | number)[][] = [];
-      const harmonogramSubRows: boolean[] = [];
+      const ws4Rows: {
+        values: (string | number)[];
+        isSub: boolean;
+        cells?: { mam: number; deficit: boolean; absentees: Employee[] }[];
+      }[] = [];
       harmonogramRows.forEach(row => {
-        harmonogramTableRows.push([
-          row.dept,
-          row.potrzeby,
-          row.obecnie,
-          ...row.cells.map(c => c.mam),
-        ]);
-        harmonogramSubRows.push(false);
+        ws4Rows.push({
+          values: [row.dept, row.potrzeby, row.obecnie, ...row.cells.map(c => c.mam)],
+          isSub: false,
+          cells: row.cells,
+        });
         (jobTitlesByDepartment.get(row.dept) ?? []).forEach(s => {
-          harmonogramTableRows.push([
-            `   • ${s.jobTitle}`,
-            Math.max(0, s.count + s.toRecruit - s.terminations),
+          const { potrzeby: potrzebyPos, cells: posCells } = buildPositionDailyCells(
+            row.dept,
+            s.jobTitle,
             s.count,
-            ...harmonogramDays.map(() => ''),
-          ]);
-          harmonogramSubRows.push(true);
+            s.toRecruit,
+            s.terminations
+          );
+          ws4Rows.push({
+            values: [`   • ${s.jobTitle}`, potrzebyPos, s.count, ...posCells.map(c => c.mam)],
+            isSub: true,
+            cells: posCells,
+          });
         });
       });
       ws4.addTable({
@@ -1106,32 +1217,32 @@ export default function RekrutacjaPage() {
         columns: ['Dział', 'Potrzeby', 'Mam teraz', ...harmonogramDays.map(d => `Mam ${format(d, 'dd.MM')}`)].map(
           n => ({ name: n, filterButton: false })
         ),
-        rows: harmonogramTableRows,
+        rows: ws4Rows.map(r => r.values),
       });
-      harmonogramSubRows.forEach((isSub, i) => {
+      ws4Rows.forEach((row, i) => {
         const sheetRow = ws4.getRow(i + 2);
-        if (isSub) {
+        if (row.isSub) {
           sheetRow.outlineLevel = 1;
           sheetRow.font = { italic: true, color: { argb: 'FF6B7280' } };
         }
+        row.cells?.forEach((cell, j) => {
+          if (cell.deficit) {
+            const tableCell = sheetRow.getCell(4 + j);
+            tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+            tableCell.font = { color: { argb: 'FF9C0006' }, bold: true };
+          } else if (cell.absentees.length > 0) {
+            const tableCell = sheetRow.getCell(4 + j);
+            tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } };
+            tableCell.font = { color: { argb: 'FF9C6500' }, italic: true };
+            tableCell.note = `Nieobecni: ${cell.absentees
+              .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
+              .join('; ')}`;
+          }
+        });
       });
       ws4.getColumn(1).width = 24;
       ws4.getColumn(2).width = 12;
       ws4.getColumn(3).width = 12;
-      harmonogramRows.forEach((row, i) => {
-        const subCount = (jobTitlesByDepartment.get(row.dept) ?? []).length;
-        if (subCount === 0) return;
-        const offset = harmonogramRows
-          .slice(0, i)
-          .reduce((s, r) => s + (jobTitlesByDepartment.get(r.dept)?.length ?? 0) + 1, 0);
-        row.cells.forEach((cell, j) => {
-          if (cell.deficit) {
-            const tableCell = ws4.getRow(offset + 2).getCell(4 + j);
-            tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-            tableCell.font = { color: { argb: 'FF9C0006' }, bold: true };
-          }
-        });
-      });
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
@@ -1213,8 +1324,13 @@ export default function RekrutacjaPage() {
                       <span className="inline-block h-3 w-3 rounded bg-destructive/70" />
                       deficyt (poniżej Potrzeby)
                     </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block h-3 w-3 rounded bg-amber-500/70" />
+                      nieobecni (najedź, aby zobaczyć kto)
+                    </span>
                     <span>
-                      Mamy [dzień] = obecnie − zwolnienia (od tego dnia) + przyjęcia (od tego dnia)
+                      Mamy [dzień] = obecnie − zwolnienia (od tego dnia) + przyjęcia (od tego dnia) −
+                      nieobecni (tego dnia)
                     </span>
                   </div>
                 </CardHeader>
@@ -1279,53 +1395,69 @@ export default function RekrutacjaPage() {
                                       'px-2.5 py-2 text-center tabular-nums' +
                                       (cell.deficit
                                         ? ' bg-destructive/15 font-semibold text-destructive'
-                                        : cell.title
-                                          ? ' bg-emerald-500/15'
-                                          : '')
+                                        : cell.absentees.length > 0
+                                          ? ' bg-amber-500/20'
+                                          : cell.title
+                                            ? ' bg-emerald-500/15'
+                                            : '')
                                     }
                                   >
                                     {cell.mam}
                                   </td>
                                 ))}
                               </tr>
-                              {isExpanded && (
-                                <tr>
-                                  <td colSpan={3 + harmonogramDays.length} className="bg-muted/40 px-6 py-3">
-                                    <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                                      <Briefcase className="h-3.5 w-3.5 shrink-0" />
-                                      Stanowiska w dziale ({formatHeadcount(row.obecnie)}):
-                                    </p>
-                                    {stats.length === 0 ? (
-                                      <p className="text-xs text-muted-foreground">
-                                        Brak aktywnych pracowników w tym dziale.
-                                      </p>
-                                    ) : (
-                                      <div className="space-y-1">
-                                        {stats.map(s => (
-                                          <div
-                                            key={s.jobTitle}
-                                            className="flex flex-wrap items-center justify-between gap-x-3 text-xs"
+                              {isExpanded &&
+                                stats.map(s => {
+                                  const { potrzeby: potrzebyPos, cells: posCells } =
+                                    buildPositionDailyCells(
+                                      row.dept,
+                                      s.jobTitle,
+                                      s.count,
+                                      s.toRecruit,
+                                      s.terminations
+                                    );
+                                  return (
+                                    <tr key={s.jobTitle} className="bg-muted/40">
+                                      <td className="sticky left-0 z-10 bg-muted/40 py-1.5 pl-10 pr-3 text-xs italic text-muted-foreground">
+                                        • {s.jobTitle}
+                                      </td>
+                                      <td className="sticky left-[160px] z-10 bg-muted/40 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
+                                        {potrzebyPos}
+                                      </td>
+                                      <td className="sticky left-[220px] z-10 bg-muted/40 px-3 py-1.5 text-right text-xs tabular-nums">
+                                        {s.count}
+                                      </td>
+                                      {posCells.map((cell, ci) => {
+                                        const names = cell.absentees
+                                          .map(
+                                            e =>
+                                              `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`
+                                          )
+                                          .join('; ');
+                                        return (
+                                          <td
+                                            key={`${s.jobTitle}-${ci}`}
+                                            title={
+                                              cell.absentees.length > 0
+                                                ? `Nieobecni: ${names}`
+                                                : undefined
+                                            }
+                                            className={
+                                              'px-2.5 py-1.5 text-center text-xs tabular-nums' +
+                                              (cell.deficit
+                                                ? ' bg-destructive/10 font-semibold text-destructive'
+                                                : cell.absentees.length > 0
+                                                  ? ' bg-amber-500/20'
+                                                  : '')
+                                            }
                                           >
-                                            <span>
-                                              {s.jobTitle} — {formatHeadcount(s.count)}
-                                              {s.terminations > 0 && (
-                                                <span className="ml-1 text-amber-600 dark:text-amber-400">
-                                                  (zwalnia się: {s.terminations})
-                                                </span>
-                                              )}
-                                            </span>
-                                            {s.toRecruit > 0 && (
-                                              <Badge variant="destructive" className="tabular-nums">
-                                                Rekrutacja: {s.toRecruit}
-                                              </Badge>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </td>
-                                </tr>
-                              )}
+                                            {cell.mam}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  );
+                                })}
                             </React.Fragment>
                           );
                         })}
