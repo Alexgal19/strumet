@@ -198,6 +198,8 @@ const RecruitmentCard = ({
   const surplus = Math.max(0, plannedTotal - (recruitment.toRecruit || 0));
   // Obecnie w całym dziale + do zrekrutowania = ile osób będzie łącznie na dziale
   const totalAfterRecruitment = headcount.department + (recruitment.toRecruit || 0);
+  // Potrzeby = na stanowisku + do zrekrutowania
+  const positionNeeds = headcount.jobTitle + (recruitment.toRecruit || 0);
 
   const handleCountBlur = async () => {
     const db = getDB();
@@ -307,6 +309,12 @@ const RecruitmentCard = ({
               </Badge>
               <Badge variant="outline" className="tabular-nums">
                 Na stanowisku: {headcount.jobTitle} os.
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
+              >
+                Potrzeby: {positionNeeds} os.
               </Badge>
               {missing > 0 && (
                 <Badge variant="destructive" className="tabular-nums">
@@ -663,12 +671,14 @@ export default function RekrutacjaPage() {
         const jobKey = `${r.department}|${r.jobTitle?.trim() || '—'}`;
         const doRekrutacji = r.toRecruit || 0;
         const obecnieDzial = headcountByDepartment.get(r.department) ?? 0;
+        const obecnieStanowisko = headcountByDeptJob.get(jobKey) ?? 0;
         return [
           r.department,
           r.jobTitle?.trim() || '—',
           obecnieDzial,
-          headcountByDeptJob.get(jobKey) ?? 0,
+          obecnieStanowisko,
           doRekrutacji,
+          obecnieStanowisko + doRekrutacji,
           obecnieDzial + doRekrutacji,
           planned,
           Math.max(0, doRekrutacji - planned),
@@ -688,7 +698,8 @@ export default function RekrutacjaPage() {
           'Obecnie na dziale',
           'Obecnie na stanowisku',
           'Do zrekrutowania',
-          'Razem będzie',
+          'Potrzeby (stanowisko)',
+          'Razem będzie (dział)',
           'Zaplanowane przyjęcia',
           'Brakuje',
         ].map(n => ({ name: n, filterButton: true })),
@@ -696,7 +707,7 @@ export default function RekrutacjaPage() {
       });
       ws1.getColumn(1).width = 28;
       ws1.getColumn(2).width = 26;
-      [3, 4, 5, 6, 7, 8].forEach(col => (ws1.getColumn(col).width = 20));
+      [3, 4, 5, 6, 7, 8, 9].forEach(col => (ws1.getColumn(col).width = 20));
       // Suma po unikalnych działach (wiersze dział·stanowisko powtarzają obsadę działu)
       const uniqueDeptHeadcount = new Map<string, number>();
       sortedRecruitments.forEach(r => {
@@ -705,12 +716,17 @@ export default function RekrutacjaPage() {
         }
       });
       const sumDeptHeadcount = [...uniqueDeptHeadcount.values()].reduce((a, b) => a + b, 0);
+      const sumObecnieStanowisko = sortedRecruitments.reduce(
+        (s, r) => s + (headcountByDeptJob.get(`${r.department}|${r.jobTitle?.trim() || '—'}`) ?? 0),
+        0
+      );
       const totalRow = ws1.addRow([
         'RAZEM',
         '',
         sumDeptHeadcount,
-        '',
+        sumObecnieStanowisko,
         totalToRecruit,
+        sumObecnieStanowisko + totalToRecruit,
         sumDeptHeadcount + totalToRecruit,
         totalPlanned,
         Math.max(0, totalToRecruit - totalPlanned),
