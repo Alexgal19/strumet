@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { onValue, push, ref as dbRef, remove, set, update } from 'firebase/database';
-import { format, startOfDay } from 'date-fns';
+import { addDays, format, startOfDay } from 'date-fns';
 import { PageHeader } from '@/components/page-header';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
@@ -611,6 +611,7 @@ export default function RekrutacjaPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [toDelete, setToDelete] = useState<Recruitment | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [view, setView] = useState<'karty' | 'harmonogram'>('karty');
 
   useEffect(() => {
     const db = getDB();
@@ -684,6 +685,79 @@ export default function RekrutacjaPage() {
     });
     return map;
   }, [activeEmployees]);
+
+  // Harmonogram obsady — 30 dni od dziś
+  const harmonogramDays = useMemo(
+    () => Array.from({ length: 30 }, (_, i) => addDays(startOfDay(new Date()), i)),
+    []
+  );
+
+  const terminationsByDept = useMemo(() => {
+    const map = new Map<string, string[]>();
+    const today = startOfDay(new Date());
+    activeEmployees.forEach(e => {
+      const planned = parseMaybeDate(e.plannedTerminationDate);
+      if (!planned || startOfDay(planned).getTime() < today.getTime()) return;
+      const arr = map.get(e.department) ?? [];
+      arr.push(format(planned, 'yyyy-MM-dd'));
+      map.set(e.department, arr);
+    });
+    return map;
+  }, [activeEmployees]);
+
+  const arrivalsByDept = useMemo(() => {
+    const map = new Map<string, { date: string; count: number }[]>();
+    recruitments.forEach(r =>
+      r.arrivals.forEach(a => {
+        if (!a.date) return;
+        const arr = map.get(r.department) ?? [];
+        arr.push({ date: a.date, count: Number(a.count) || 0 });
+        map.set(r.department, arr);
+      })
+    );
+    return map;
+  }, [recruitments]);
+
+  const harmonogramRows = useMemo(() => {
+    const depts = new Set<string>();
+    recruitments.forEach(r => r.department && depts.add(r.department));
+    activeEmployees.forEach(e => e.department && depts.add(e.department));
+    return [...depts]
+      .sort((a, b) => a.localeCompare(b, 'pl'))
+      .map(dept => {
+        const obecnie = headcountByDepartment.get(dept) ?? 0;
+        const sumRekrut = recruitments
+          .filter(r => r.department === dept)
+          .reduce(
+            (s, r) => s + r.positions.reduce((x, p) => x + (Number(p.toRecruit) || 0), 0),
+            0
+          );
+        const potrzeby = obecnie + sumRekrut;
+        const termDates = terminationsByDept.get(dept) ?? [];
+        const arrivals = arrivalsByDept.get(dept) ?? [];
+        const cells = harmonogramDays.map(d => {
+          const key = format(d, 'yyyy-MM-dd');
+          const mam =
+            obecnie -
+            termDates.filter(t => t <= key).length +
+            arrivals.filter(a => a.date <= key).reduce((s, a) => s + a.count, 0);
+          const newTerms = termDates.filter(t => t === key).length;
+          const newArrivals = arrivals
+            .filter(a => a.date === key)
+            .reduce((s, a) => s + a.count, 0);
+          const changes: string[] = [];
+          if (newArrivals > 0) changes.push(`+${newArrivals} przyjęć`);
+          if (newTerms > 0) changes.push(`−${newTerms} zwolnień`);
+          return {
+            key,
+            mam,
+            deficit: mam < potrzeby,
+            title: changes.length > 0 ? changes.join(', ') : undefined,
+          };
+        });
+        return { dept, potrzeby, obecnie, sumRekrut, cells };
+      });
+  }, [recruitments, activeEmployees, headcountByDepartment, terminationsByDept, arrivalsByDept, harmonogramDays]);
 
   // Stanowiska w każdym dziale: obecna obsada + planowane zwolnienia + potrzeby rekrutacyjne
   const jobTitlesByDepartment = useMemo(() => {
@@ -997,6 +1071,37 @@ export default function RekrutacjaPage() {
       ws3.getColumn(2).width = 18;
       ws3.getColumn(3).width = 16;
 
+      // Arkusz 4: Harmonogram obsady — 30 dni, deficyt na czerwono
+      const ws4 = wb.addWorksheet('Harmonogram obsady');
+      ws4.addTable({
+        name: 'HarmonogramObsady',
+        ref: 'A1',
+        headerRow: true,
+        totalsRow: false,
+        style: { theme: 'TableStyleMedium2', showRowStripes: true },
+        columns: ['Dział', 'Potrzeby', 'Mam teraz', ...harmonogramDays.map(d => `Mam ${format(d, 'dd.MM')}`)].map(
+          n => ({ name: n, filterButton: false })
+        ),
+        rows: harmonogramRows.map(row => [
+          row.dept,
+          row.potrzeby,
+          row.obecnie,
+          ...row.cells.map(c => c.mam),
+        ]),
+      });
+      ws4.getColumn(1).width = 24;
+      ws4.getColumn(2).width = 12;
+      ws4.getColumn(3).width = 12;
+      harmonogramRows.forEach((row, i) => {
+        row.cells.forEach((cell, j) => {
+          if (cell.deficit) {
+            const tableCell = ws4.getRow(i + 2).getCell(4 + j);
+            tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+            tableCell.font = { color: { argb: 'FF9C0006' }, bold: true };
+          }
+        });
+      });
+
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1038,6 +1143,119 @@ export default function RekrutacjaPage() {
           </PageHeader>
 
           <div className="flex flex-col gap-4 overflow-y-auto pb-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex overflow-hidden rounded-lg border border-border">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={view === 'karty' ? 'default' : 'ghost'}
+                  className="rounded-none border-0"
+                  onClick={() => setView('karty')}
+                >
+                  Zapotrzebowania
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={view === 'harmonogram' ? 'default' : 'ghost'}
+                  className="rounded-none border-0"
+                  onClick={() => setView('harmonogram')}
+                >
+                  Harmonogram obsady (30 dni)
+                </Button>
+              </div>
+            </div>
+
+            {view === 'harmonogram' ? (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">
+                    Harmonogram obsady — 30 dni ({format(harmonogramDays[0], 'dd.MM')} –{' '}
+                    {format(harmonogramDays[harmonogramDays.length - 1], 'dd.MM')})
+                  </CardTitle>
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block h-3 w-3 rounded bg-emerald-500/60" />
+                      obsada wystarczająca
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block h-3 w-3 rounded bg-destructive/70" />
+                      deficyt (poniżej Potrzeby)
+                    </span>
+                    <span>
+                      Mamy [dzień] = obecnie − zwolnienia (od tego dnia) + przyjęcia (od tego dnia)
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-max border-collapse text-xs">
+                      <thead>
+                        <tr>
+                          <th className="sticky left-0 z-10 min-w-[160px] border-b bg-background px-3 py-2 text-left font-semibold">
+                            Dział
+                          </th>
+                          <th className="sticky left-[160px] z-10 border-b bg-background px-3 py-2 text-right font-semibold">
+                            Potrzeby
+                          </th>
+                          <th className="sticky left-[220px] z-10 border-b bg-background px-3 py-2 text-right font-semibold">
+                            Za raz
+                          </th>
+                          {harmonogramDays.map((d, i) => (
+                            <th
+                              key={d.toISOString()}
+                              className={
+                                'border-b px-2.5 py-2 text-center font-semibold tabular-nums' +
+                                (i === 0 ? ' bg-primary/5' : '')
+                              }
+                            >
+                              {format(d, 'dd.MM')}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {harmonogramRows.map(row => (
+                          <tr key={row.dept} className="border-b border-border/40">
+                            <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
+                              {row.dept}
+                            </td>
+                            <td className="sticky left-[160px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
+                              {row.potrzeby}
+                            </td>
+                            <td className="sticky left-[220px] z-10 bg-background px-3 py-2 text-right tabular-nums">
+                              {row.obecnie}
+                            </td>
+                            {row.cells.map(cell => (
+                              <td
+                                key={cell.key}
+                                title={cell.title}
+                                className={
+                                  'px-2.5 py-2 text-center tabular-nums' +
+                                  (cell.deficit
+                                    ? ' bg-destructive/15 font-semibold text-destructive'
+                                    : cell.title
+                                      ? ' bg-emerald-500/15'
+                                      : '')
+                                }
+                              >
+                                {cell.mam}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {harmonogramRows.length === 0 && (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      Brak danych — dodaj zapotrzebowanie lub pracowników.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm">
                 <Users className="h-4 w-4" />
@@ -1228,6 +1446,8 @@ export default function RekrutacjaPage() {
                   />
                 ))}
               </div>
+            )}
+              </>
             )}
           </div>
 
