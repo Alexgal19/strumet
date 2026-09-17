@@ -36,6 +36,8 @@ import {
   Briefcase,
   CalendarPlus,
   Check,
+  ChevronDown,
+  ChevronRight,
   Download,
   Loader2,
   Pencil,
@@ -612,6 +614,7 @@ export default function RekrutacjaPage() {
   const [toDelete, setToDelete] = useState<Recruitment | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [view, setView] = useState<'karty' | 'harmonogram'>('karty');
+  const [expandedDept, setExpandedDept] = useState<string | null>(null);
 
   useEffect(() => {
     const db = getDB();
@@ -1072,7 +1075,28 @@ export default function RekrutacjaPage() {
       ws3.getColumn(3).width = 16;
 
       // Arkusz 4: Harmonogram obsady — 30 dni, deficyt na czerwono
+      // Pod każdym działem rozwijane wiersze stanowisk (grupa Excel — plus/minus po lewej)
       const ws4 = wb.addWorksheet('Harmonogram obsady');
+      const harmonogramTableRows: (string | number)[][] = [];
+      const harmonogramSubRows: boolean[] = [];
+      harmonogramRows.forEach(row => {
+        harmonogramTableRows.push([
+          row.dept,
+          row.potrzeby,
+          row.obecnie,
+          ...row.cells.map(c => c.mam),
+        ]);
+        harmonogramSubRows.push(false);
+        (jobTitlesByDepartment.get(row.dept) ?? []).forEach(s => {
+          harmonogramTableRows.push([
+            `   • ${s.jobTitle}`,
+            Math.max(0, s.count + s.toRecruit - s.terminations),
+            s.count,
+            ...harmonogramDays.map(() => ''),
+          ]);
+          harmonogramSubRows.push(true);
+        });
+      });
       ws4.addTable({
         name: 'HarmonogramObsady',
         ref: 'A1',
@@ -1082,20 +1106,27 @@ export default function RekrutacjaPage() {
         columns: ['Dział', 'Potrzeby', 'Mam teraz', ...harmonogramDays.map(d => `Mam ${format(d, 'dd.MM')}`)].map(
           n => ({ name: n, filterButton: false })
         ),
-        rows: harmonogramRows.map(row => [
-          row.dept,
-          row.potrzeby,
-          row.obecnie,
-          ...row.cells.map(c => c.mam),
-        ]),
+        rows: harmonogramTableRows,
+      });
+      harmonogramSubRows.forEach((isSub, i) => {
+        const sheetRow = ws4.getRow(i + 2);
+        if (isSub) {
+          sheetRow.outlineLevel = 1;
+          sheetRow.font = { italic: true, color: { argb: 'FF6B7280' } };
+        }
       });
       ws4.getColumn(1).width = 24;
       ws4.getColumn(2).width = 12;
       ws4.getColumn(3).width = 12;
       harmonogramRows.forEach((row, i) => {
+        const subCount = (jobTitlesByDepartment.get(row.dept) ?? []).length;
+        if (subCount === 0) return;
+        const offset = harmonogramRows
+          .slice(0, i)
+          .reduce((s, r) => s + (jobTitlesByDepartment.get(r.dept)?.length ?? 0) + 1, 0);
         row.cells.forEach((cell, j) => {
           if (cell.deficit) {
-            const tableCell = ws4.getRow(i + 2).getCell(4 + j);
+            const tableCell = ws4.getRow(offset + 2).getCell(4 + j);
             tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
             tableCell.font = { color: { argb: 'FF9C0006' }, bold: true };
           }
@@ -1215,35 +1246,89 @@ export default function RekrutacjaPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {harmonogramRows.map(row => (
-                          <tr key={row.dept} className="border-b border-border/40">
-                            <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
-                              {row.dept}
-                            </td>
-                            <td className="sticky left-[160px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
-                              {row.potrzeby}
-                            </td>
-                            <td className="sticky left-[220px] z-10 bg-background px-3 py-2 text-right tabular-nums">
-                              {row.obecnie}
-                            </td>
-                            {row.cells.map(cell => (
-                              <td
-                                key={cell.key}
-                                title={cell.title}
-                                className={
-                                  'px-2.5 py-2 text-center tabular-nums' +
-                                  (cell.deficit
-                                    ? ' bg-destructive/15 font-semibold text-destructive'
-                                    : cell.title
-                                      ? ' bg-emerald-500/15'
-                                      : '')
-                                }
+                        {harmonogramRows.map(row => {
+                          const isExpanded = expandedDept === row.dept;
+                          const stats = jobTitlesByDepartment.get(row.dept) ?? [];
+                          return (
+                            <React.Fragment key={row.dept}>
+                              <tr
+                                className="cursor-pointer border-b border-border/40 hover:bg-muted/40"
+                                onClick={() => setExpandedDept(isExpanded ? null : row.dept)}
                               >
-                                {cell.mam}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
+                                <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
+                                  <span className="flex items-center gap-1.5">
+                                    {isExpanded ? (
+                                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                    ) : (
+                                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                    )}
+                                    {row.dept}
+                                  </span>
+                                </td>
+                                <td className="sticky left-[160px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
+                                  {row.potrzeby}
+                                </td>
+                                <td className="sticky left-[220px] z-10 bg-background px-3 py-2 text-right tabular-nums">
+                                  {row.obecnie}
+                                </td>
+                                {row.cells.map(cell => (
+                                  <td
+                                    key={cell.key}
+                                    title={cell.title}
+                                    className={
+                                      'px-2.5 py-2 text-center tabular-nums' +
+                                      (cell.deficit
+                                        ? ' bg-destructive/15 font-semibold text-destructive'
+                                        : cell.title
+                                          ? ' bg-emerald-500/15'
+                                          : '')
+                                    }
+                                  >
+                                    {cell.mam}
+                                  </td>
+                                ))}
+                              </tr>
+                              {isExpanded && (
+                                <tr>
+                                  <td colSpan={3 + harmonogramDays.length} className="bg-muted/40 px-6 py-3">
+                                    <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                                      <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                                      Stanowiska w dziale ({formatHeadcount(row.obecnie)}):
+                                    </p>
+                                    {stats.length === 0 ? (
+                                      <p className="text-xs text-muted-foreground">
+                                        Brak aktywnych pracowników w tym dziale.
+                                      </p>
+                                    ) : (
+                                      <div className="space-y-1">
+                                        {stats.map(s => (
+                                          <div
+                                            key={s.jobTitle}
+                                            className="flex flex-wrap items-center justify-between gap-x-3 text-xs"
+                                          >
+                                            <span>
+                                              {s.jobTitle} — {formatHeadcount(s.count)}
+                                              {s.terminations > 0 && (
+                                                <span className="ml-1 text-amber-600 dark:text-amber-400">
+                                                  (zwalnia się: {s.terminations})
+                                                </span>
+                                              )}
+                                            </span>
+                                            {s.toRecruit > 0 && (
+                                              <Badge variant="destructive" className="tabular-nums">
+                                                Rekrutacja: {s.toRecruit}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
