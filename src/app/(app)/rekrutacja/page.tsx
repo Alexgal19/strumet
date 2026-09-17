@@ -1285,8 +1285,12 @@ export default function RekrutacjaPage() {
       ws4Rows.forEach((row, i) => {
         const sheetRow = ws4.getRow(i + 2);
         if (row.isSub) {
+          // UWAGA: styl na poziomie WIERSZA (row.font) generuje niepoprawny XML w ExcelJS —
+          // stylujemy wyłącznie komórki
           sheetRow.outlineLevel = 1;
-          sheetRow.font = { italic: true, color: { argb: 'FF6B7280' } };
+          for (let c = 1; c <= row.values.length; c++) {
+            sheetRow.getCell(c).font = { italic: true, color: { argb: 'FF6B7280' } };
+          }
         }
         row.cells?.forEach((cell, j) => {
           if (cell.absentees.length > 0) {
