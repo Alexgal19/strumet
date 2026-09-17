@@ -15,8 +15,17 @@ import {
 import type { Employee } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/lib/haptics";
+import { vacationHasStarted, parseMaybeDate, formatDate } from "@/lib/date";
 import { EmployeeSummary } from "./employee-summary";
 import { getStatusColor } from "@/lib/legalization-statuses";
+
+const isPlannedTermination = (employee: Employee): boolean => {
+  const planned = parseMaybeDate(employee.plannedTerminationDate);
+  if (!planned) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return planned.setHours(0, 0, 0, 0) >= today.getTime();
+};
 
 // Deterministic avatar color based on first character of name
 const AVATAR_COLORS = [
@@ -66,6 +75,8 @@ export const EmployeeCard = React.memo(function EmployeeCard({
 }: EmployeeCardProps) {
   const initial = employee.fullName?.charAt(0)?.toUpperCase() ?? '?';
   const avatarColor = getAvatarColor(employee.fullName ?? '');
+  const onVacation = vacationHasStarted(employee.vacationStartDate);
+  const plannedTerm = isPlannedTermination(employee);
 
   // --- Swipe (strefa kciuka): w lewo -> akcje, w prawo -> nieobecność ---
   const [revealed, setRevealed] = useState<'start' | 'end' | null>(null);
@@ -192,7 +203,10 @@ export const EmployeeCard = React.memo(function EmployeeCard({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
-        className="relative z-10 flex items-center gap-3 bg-white p-3 transition-shadow cursor-pointer hover:shadow-md dark:bg-secondary"
+        className={cn(
+          'relative z-10 flex items-center gap-3 bg-white p-3 transition-shadow cursor-pointer hover:shadow-md dark:bg-secondary',
+          onVacation && 'animate-vacation-blink'
+        )}
         style={{
           transform: `translateX(${x}px)`,
           transition: dragging ? 'none' : 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
@@ -212,6 +226,26 @@ export const EmployeeCard = React.memo(function EmployeeCard({
           <p className="truncate text-xs text-muted-foreground">
             {employee.department}{employee.jobTitle ? ` · ${employee.jobTitle}` : ''}
           </p>
+          {(onVacation || plannedTerm) && (
+            <div className="mt-0.5 flex flex-wrap items-center gap-1">
+              {onVacation && (
+                <span
+                  className="animate-pulse inline-flex rounded-full bg-pink-500 px-2 py-0.5 text-[11px] font-semibold text-white"
+                  title={`Na urlopie${employee.vacationEndDate ? ` do ${formatDate(employee.vacationEndDate)}` : ''}`}
+                >
+                  URLOP
+                </span>
+              )}
+              {plannedTerm && (
+                <span
+                  className="inline-flex rounded-full border border-orange-500/60 px-2 py-0.5 text-[11px] font-semibold text-orange-600 dark:text-orange-400"
+                  title={`Planowane zwolnienie: ${formatDate(employee.plannedTerminationDate)}`}
+                >
+                  Zwalnia się
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Status badge */}

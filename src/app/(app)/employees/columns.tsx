@@ -7,11 +7,25 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
 import { Employee } from "@/lib/types"
-import { formatDate, parseMaybeDate } from "@/lib/date"
+import { formatDate, parseMaybeDate, vacationHasStarted } from "@/lib/date"
 import { getStatusColor } from "@/lib/legalization-statuses"
 import { cn } from "@/lib/utils"
 import { Copy, UserX } from "lucide-react"
 import { EmployeeRowActions } from "./employee-actions"
+
+const isPlannedTermination = (employee: Employee): boolean => {
+  const planned = parseMaybeDate(employee.plannedTerminationDate);
+  if (!planned) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return startOfDayCompare(planned, today) >= 0;
+};
+
+const startOfDayCompare = (a: Date, b: Date): number => {
+  const aDay = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const bDay = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  return aDay - bDay;
+};
 
 interface GetColumnsProps {
   onEdit: (employee: Employee) => void
@@ -89,9 +103,33 @@ export function getColumns({
         <DataTableColumnHeader column={column} title="Nazwisko" />
       ),
       cell: ({ row }) => {
-        const nameParts = row.original.fullName.trim().split(' ');
+        const employee = row.original;
+        const nameParts = employee.fullName.trim().split(' ');
         const lastName = nameParts.pop() || '';
-        return <span className="font-medium">{lastName}</span>;
+        const onVacation = vacationHasStarted(employee.vacationStartDate);
+        const plannedTerm = isPlannedTermination(employee);
+        return (
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">{lastName}</span>
+            {onVacation && (
+              <Badge
+                className="animate-pulse bg-pink-500 text-white hover:bg-pink-500"
+                title={`Na urlopie${employee.vacationEndDate ? ` do ${formatDate(employee.vacationEndDate)}` : ''}`}
+              >
+                URLOP
+              </Badge>
+            )}
+            {plannedTerm && (
+              <Badge
+                variant="outline"
+                className="whitespace-nowrap border-orange-500/60 text-orange-600 dark:text-orange-400"
+                title={`Planowane zwolnienie: ${formatDate(employee.plannedTerminationDate)}`}
+              >
+                Zwalnia się
+              </Badge>
+            )}
+          </div>
+        );
       },
       enableSorting: true,
     },

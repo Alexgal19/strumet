@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/table"
 import { Employee, AllConfig } from "@/lib/types"
 import { excelLikeMatch } from "@/lib/search"
+import { vacationHasStarted } from "@/lib/date"
 import { useAppContext } from "@/context/app-context"
 import { DataTableToolbar } from "./data-table-toolbar"
 import { getColumns } from "./columns"
@@ -497,6 +498,10 @@ export function EmployeeTable({
                   if (legalizationStatus && legalizationStatus !== 'Brak') {
                     const colorClass = getStatusColor(legalizationStatus, true);
                     rowClassName = cn(rowClassName, colorClass);
+                  }
+                  // Pracownik na urlopie — wiersz pulsuje na różowo (nie znika z listy)
+                  if (tableStatus === 'aktywny' && vacationHasStarted(row.original.vacationStartDate)) {
+                    rowClassName = cn(rowClassName, 'animate-vacation-blink');
                   }
 
                   return (

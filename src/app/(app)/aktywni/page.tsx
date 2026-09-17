@@ -63,7 +63,8 @@ const exportColumns = [
 
 export default function AktywniPage() {
   const { config, isLoading: isContextLoading, handleTerminateEmployee, handleDeleteAllHireDates, handleDeleteAllEmployees, handleDeleteEmployeePermanently, handleSaveEmployee } = useAppContext();
-  const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny', { excludeOnVacation: true });
+  // Pracownik na urlopie NIE znika z listy — wiersz pulsuje na różowo (patrz employee-table/columns)
+  const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const router = useRouter();
   const isMobile = useIsMobile();
 

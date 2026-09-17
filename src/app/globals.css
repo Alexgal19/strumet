@@ -206,5 +206,18 @@
     .print-only { display: flex !important; justify-content: center; align-items: flex-start; visibility: visible !important; position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     .print-only * { visibility: visible !important; }
   }
+
+  /* Pracownik na urlopie — pulsujące różowe tło wiersza/karty */
+  @keyframes vacation-blink {
+    0%, 100% { background-color: rgb(236 72 153 / 0.08); }
+    50% { background-color: rgb(236 72 153 / 0.35); }
+  }
+  .animate-vacation-blink {
+    animation: vacation-blink 1.6s ease-in-out infinite;
+  }
+
+  @media print {
+    .animate-vacation-blink { animation: none !important; background-color: rgb(236 72 153 / 0.15) !important; }
+  }
 }
 

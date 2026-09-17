@@ -34,7 +34,7 @@ import { format, startOfDay, isEqual, isBefore, subDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
 import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
-import { formatDate, parseMaybeDate } from '@/lib/date';
+import { formatDate, parseMaybeDate, vacationHasStarted } from '@/lib/date';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const StatisticsPieChart = dynamic(() => import('@/components/statistics-pie-chart'), {
@@ -79,7 +79,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
     // although "use client" handles most cases.
     // We can use a mounted check if needed, but Recharts usually behaves.
 
-    const { stats, departmentData, nationalityData, jobTitleData } = useMemo(() => {
+    const { stats, departmentData, nationalityData, jobTitleData, onVacationCount, plannedTerminationCount } = useMemo(() => {
         const deptCounts: { [key: string]: number } = {};
         const nationCounts: { [key: string]: number } = {};
         const jobCounts: { [key: string]: number } = {};
@@ -110,7 +110,18 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             totalJobTitles: Object.keys(jobCounts).length,
         };
 
-        return { stats, departmentData, nationalityData, jobTitleData };
+        const onVacationCount = activeEmployees.filter(e => vacationHasStarted(e.vacationStartDate)).length;
+        const todayMidnight = new Date();
+        todayMidnight.setHours(0, 0, 0, 0);
+        const plannedTerminationCount = activeEmployees.filter(e => {
+            const planned = parseMaybeDate(e.plannedTerminationDate);
+            if (!planned) return false;
+            const plannedMidnight = new Date(planned);
+            plannedMidnight.setHours(0, 0, 0, 0);
+            return plannedMidnight.getTime() >= todayMidnight.getTime();
+        }).length;
+
+        return { stats, departmentData, nationalityData, jobTitleData, onVacationCount, plannedTerminationCount };
     }, [activeEmployees]);
 
     const handleChartClick = (name: string, type: "department" | "nationality" | "jobTitle") => {
@@ -200,7 +211,17 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                 <AccordionContent>
                                     <div className="pl-4 border-l-2 border-border ml-2">
                                         {emps.map(employee => (<button key={employee.id} className={cn("flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-2 text-sm text-left", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={isAdmin ? () => handleEmployeeClick(employee) : undefined}>
-                                            <span>{employee.fullName}</span>
+                                            <span className="flex items-center gap-1.5">
+                                                {employee.fullName}
+                                                {vacationHasStarted(employee.vacationStartDate) && (
+                                                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">URLOP</span>
+                                                )}
+                                                {(() => {
+                                                    const planned = parseMaybeDate(employee.plannedTerminationDate);
+                                                    if (!planned || startOfDay(planned) < startOfDay(new Date())) return null;
+                                                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">Zwalnia się</span>;
+                                                })()}
+                                            </span>
                                             <span className="flex items-center gap-1">
                                                 <span className="text-xs text-muted-foreground">{employee.cardNumber}</span>
                                                 {isAdmin && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
@@ -216,7 +237,17 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         }
         const employeesToShow = dialogContent.data as Employee[];
         return employeesToShow.map(employee => (<button key={employee.id} className={cn("flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-2 text-sm text-left", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={isAdmin ? () => handleEmployeeClick(employee) : undefined}>
-            <span className="font-medium">{employee.fullName}</span>
+            <span className="flex items-center gap-1.5 font-medium">
+                {employee.fullName}
+                {vacationHasStarted(employee.vacationStartDate) && (
+                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">URLOP</span>
+                )}
+                {(() => {
+                    const planned = parseMaybeDate(employee.plannedTerminationDate);
+                    if (!planned || startOfDay(planned) < startOfDay(new Date())) return null;
+                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">Zwalnia się</span>;
+                })()}
+            </span>
             <span className="flex items-center gap-1">
                 <span className="text-muted-foreground text-xs">{employee.cardNumber}</span>
                 {isAdmin && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
@@ -261,7 +292,23 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-gradient-primary">{stats.totalActiveEmployees}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Całkowita liczba pracowników</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Całkowita liczba pracowników
+                                {(onVacationCount > 0 || plannedTerminationCount > 0) && (
+                                    <span className="mt-1 block space-x-2">
+                                        {onVacationCount > 0 && (
+                                            <span className="inline-flex animate-pulse rounded-full bg-pink-500 px-2 py-0.5 font-semibold text-white">
+                                                Na urlopie: {onVacationCount}
+                                            </span>
+                                        )}
+                                        {plannedTerminationCount > 0 && (
+                                            <span className="inline-flex rounded-full border border-orange-500/60 px-2 py-0.5 font-semibold text-orange-600 dark:text-orange-400">
+                                                Zwalnia się: {plannedTerminationCount}
+                                            </span>
+                                        )}
+                                    </span>
+                                )}
+                            </p>
                         </CardContent>
                     </Card>
                 </div>
