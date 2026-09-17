@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { onValue, push, ref as dbRef, remove, set, update } from 'firebase/database';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { PageHeader } from '@/components/page-header';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
@@ -146,8 +146,8 @@ const RecruitmentCard = ({
   recruitment: Recruitment;
   departments: { id: string; name: string }[];
   jobTitles: { id: string; name: string }[];
-  headcount: { department: number; jobTitle: number };
-  jobTitleStats: { jobTitle: string; count: number; toRecruit: number }[];
+  headcount: { department: number; jobTitle: number; terminations: number };
+  jobTitleStats: { jobTitle: string; count: number; toRecruit: number; terminations: number }[];
   onUpdateMeta: (recruitment: Recruitment, department: string, jobTitle: string) => Promise<boolean>;
   onDelete: (recruitment: Recruitment) => void;
 }) => {
@@ -198,8 +198,11 @@ const RecruitmentCard = ({
   const surplus = Math.max(0, plannedTotal - (recruitment.toRecruit || 0));
   // Obecnie w całym dziale + do zrekrutowania = ile osób będzie łącznie na dziale
   const totalAfterRecruitment = headcount.department + (recruitment.toRecruit || 0);
-  // Potrzeby = na stanowisku + do zrekrutowania
-  const positionNeeds = headcount.jobTitle + (recruitment.toRecruit || 0);
+  // Potrzeby = na stanowisku + do zrekrutowania − planowane zwolnienia
+  const positionNeeds = Math.max(
+    0,
+    headcount.jobTitle + (recruitment.toRecruit || 0) - headcount.terminations
+  );
 
   const handleCountBlur = async () => {
     const db = getDB();
@@ -310,6 +313,14 @@ const RecruitmentCard = ({
               <Badge variant="outline" className="tabular-nums">
                 Na stanowisku: {headcount.jobTitle} os.
               </Badge>
+              {headcount.terminations > 0 && (
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
+                >
+                  Zwalnia się: −{headcount.terminations}
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
@@ -405,6 +416,11 @@ const RecruitmentCard = ({
               >
                 <span>
                   {s.jobTitle} — {formatHeadcount(s.count)}
+                  {s.terminations > 0 && (
+                    <span className="ml-1 text-amber-600 dark:text-amber-400">
+                      (zwalnia się: {s.terminations})
+                    </span>
+                  )}
                   {s.jobTitle === jobTitleLabel && (
                     <span className="ml-1 font-normal text-primary">(ta pozycja)</span>
                   )}
@@ -534,9 +550,30 @@ export default function RekrutacjaPage() {
     return map;
   }, [activeEmployees]);
 
-  // Stanowiska w każdym dziale: obecna obsada + suma potrzeb rekrutacyjnych
+  // Planowane zwolnienia per dział·stanowisko (data >= dziś)
+  const terminationsByDeptJob = useMemo(() => {
+    const map = new Map<string, number>();
+    const today = startOfDay(new Date());
+    activeEmployees.forEach(e => {
+      const planned = parseMaybeDate(e.plannedTerminationDate);
+      if (!planned || startOfDay(planned).getTime() < today.getTime()) return;
+      const key = `${e.department}|${e.jobTitle}`;
+      map.set(key, (map.get(key) ?? 0) + 1);
+    });
+    return map;
+  }, [activeEmployees]);
+
+  // Stanowiska w każdym dziale: obecna obsada + planowane zwolnienia + potrzeby rekrutacyjne
   const jobTitlesByDepartment = useMemo(() => {
-    const map = new Map<string, { jobTitle: string; count: number; toRecruit: number }[]>();
+    const map = new Map<
+      string,
+      { jobTitle: string; count: number; toRecruit: number; terminations: number }[]
+    >();
+    const today = startOfDay(new Date());
+    const isPlannedTerm = (plannedTerminationDate?: string) => {
+      const planned = parseMaybeDate(plannedTerminationDate);
+      return !!planned && startOfDay(planned).getTime() >= today.getTime();
+    };
     const ensure = (department: string) => {
       let entries = map.get(department);
       if (!entries) {
@@ -549,8 +586,18 @@ export default function RekrutacjaPage() {
       if (!e.department || !e.jobTitle) return;
       const entries = ensure(e.department);
       const existing = entries.find(x => x.jobTitle === e.jobTitle);
-      if (existing) existing.count += 1;
-      else entries.push({ jobTitle: e.jobTitle, count: 1, toRecruit: 0 });
+      const terminating = isPlannedTerm(e.plannedTerminationDate);
+      if (existing) {
+        existing.count += 1;
+        if (terminating) existing.terminations += 1;
+      } else {
+        entries.push({
+          jobTitle: e.jobTitle,
+          count: 1,
+          toRecruit: 0,
+          terminations: terminating ? 1 : 0,
+        });
+      }
     });
     recruitments.forEach(r => {
       if (!r.department) return;
@@ -558,7 +605,8 @@ export default function RekrutacjaPage() {
       const jobTitle = r.jobTitle?.trim() || '—';
       const existing = entries.find(x => x.jobTitle === jobTitle);
       if (existing) existing.toRecruit += Number(r.toRecruit) || 0;
-      else entries.push({ jobTitle, count: 0, toRecruit: Number(r.toRecruit) || 0 });
+      else
+        entries.push({ jobTitle, count: 0, toRecruit: Number(r.toRecruit) || 0, terminations: 0 });
     });
     map.forEach(entries => {
       entries.sort((a, b) => b.count - a.count || a.jobTitle.localeCompare(b.jobTitle, 'pl'));
@@ -672,13 +720,15 @@ export default function RekrutacjaPage() {
         const doRekrutacji = r.toRecruit || 0;
         const obecnieDzial = headcountByDepartment.get(r.department) ?? 0;
         const obecnieStanowisko = headcountByDeptJob.get(jobKey) ?? 0;
+        const zwalnia = terminationsByDeptJob.get(jobKey) ?? 0;
         return [
           r.department,
           r.jobTitle?.trim() || '—',
           obecnieDzial,
           obecnieStanowisko,
+          zwalnia,
           doRekrutacji,
-          obecnieStanowisko + doRekrutacji,
+          Math.max(0, obecnieStanowisko + doRekrutacji - zwalnia),
           obecnieDzial + doRekrutacji,
           planned,
           Math.max(0, doRekrutacji - planned),
@@ -697,6 +747,7 @@ export default function RekrutacjaPage() {
           'Stanowisko',
           'Obecnie na dziale',
           'Obecnie na stanowisku',
+          'Zwalnia się',
           'Do zrekrutowania',
           'Potrzeby (stanowisko)',
           'Razem będzie (dział)',
@@ -707,7 +758,7 @@ export default function RekrutacjaPage() {
       });
       ws1.getColumn(1).width = 28;
       ws1.getColumn(2).width = 26;
-      [3, 4, 5, 6, 7, 8, 9].forEach(col => (ws1.getColumn(col).width = 20));
+      [3, 4, 5, 6, 7, 8, 9, 10].forEach(col => (ws1.getColumn(col).width = 20));
       // Suma po unikalnych działach (wiersze dział·stanowisko powtarzają obsadę działu)
       const uniqueDeptHeadcount = new Map<string, number>();
       sortedRecruitments.forEach(r => {
@@ -720,13 +771,18 @@ export default function RekrutacjaPage() {
         (s, r) => s + (headcountByDeptJob.get(`${r.department}|${r.jobTitle?.trim() || '—'}`) ?? 0),
         0
       );
+      const sumZwalnia = sortedRecruitments.reduce(
+        (s, r) => s + (terminationsByDeptJob.get(`${r.department}|${r.jobTitle?.trim() || '—'}`) ?? 0),
+        0
+      );
       const totalRow = ws1.addRow([
         'RAZEM',
         '',
         sumDeptHeadcount,
         sumObecnieStanowisko,
+        sumZwalnia,
         totalToRecruit,
-        sumObecnieStanowisko + totalToRecruit,
+        Math.max(0, sumObecnieStanowisko + totalToRecruit - sumZwalnia),
         sumDeptHeadcount + totalToRecruit,
         totalPlanned,
         Math.max(0, totalToRecruit - totalPlanned),
@@ -957,6 +1013,10 @@ export default function RekrutacjaPage() {
                       department: headcountByDepartment.get(recruitment.department) ?? 0,
                       jobTitle:
                         headcountByDeptJob.get(
+                          `${recruitment.department}|${recruitment.jobTitle?.trim() || '—'}`
+                        ) ?? 0,
+                      terminations:
+                        terminationsByDeptJob.get(
                           `${recruitment.department}|${recruitment.jobTitle?.trim() || '—'}`
                         ) ?? 0,
                     }}
