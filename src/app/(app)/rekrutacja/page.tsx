@@ -8,9 +8,9 @@ import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { useToast } from '@/hooks/use-toast';
 import { getDB } from '@/lib/firebase';
-import { cn, objectToArray } from '@/lib/utils';
+import { objectToArray } from '@/lib/utils';
 import { formatDate, parseMaybeDate } from '@/lib/date';
-import type { Recruitment, RecruitmentArrival } from '@/lib/types';
+import type { Recruitment, RecruitmentArrival, RecruitmentPosition } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -138,50 +138,47 @@ const RecruitmentCard = ({
   recruitment,
   departments,
   jobTitles,
-  headcount,
+  departmentHeadcount,
+  headcountByDeptJob,
+  terminationsByDeptJob,
   jobTitleStats,
-  onUpdateMeta,
+  onUpdateDepartment,
   onDelete,
 }: {
   recruitment: Recruitment;
   departments: { id: string; name: string }[];
   jobTitles: { id: string; name: string }[];
-  headcount: { department: number; jobTitle: number; terminations: number };
+  departmentHeadcount: number;
+  headcountByDeptJob: Map<string, number>;
+  terminationsByDeptJob: Map<string, number>;
   jobTitleStats: { jobTitle: string; count: number; toRecruit: number; terminations: number }[];
-  onUpdateMeta: (recruitment: Recruitment, department: string, jobTitle: string) => Promise<boolean>;
+  onUpdateDepartment: (recruitment: Recruitment, department: string) => Promise<boolean>;
   onDelete: (recruitment: Recruitment) => void;
 }) => {
   const { toast } = useToast();
-  const jobTitleLabel = recruitment.jobTitle?.trim() || '—';
-  const [countDraft, setCountDraft] = useState(String(recruitment.toRecruit ?? 0));
-  const [isFocused, setIsFocused] = useState(false);
-  const [isAddingArrival, setIsAddingArrival] = useState(false);
-  const [isEditingMeta, setIsEditingMeta] = useState(false);
+  const [isEditingDept, setIsEditingDept] = useState(false);
   const [deptDraft, setDeptDraft] = useState(recruitment.department);
-  const [jobTitleDraft, setJobTitleDraft] = useState(recruitment.jobTitle ?? '');
-  const [isSavingMeta, setIsSavingMeta] = useState(false);
+  const [isSavingDept, setIsSavingDept] = useState(false);
+  const [isAddingArrival, setIsAddingArrival] = useState(false);
 
-  const startEditingMeta = () => {
+  const positions = recruitment.positions;
+
+  const startEditingDept = () => {
     setDeptDraft(recruitment.department);
-    setJobTitleDraft(recruitment.jobTitle ?? '');
-    setIsEditingMeta(true);
+    setIsEditingDept(true);
   };
 
-  const handleSaveMeta = async () => {
-    if (isSavingMeta) return;
-    if (!deptDraft || !jobTitleDraft) {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Wybierz dział i stanowisko.' });
+  const handleSaveDept = async () => {
+    if (isSavingDept) return;
+    if (!deptDraft) {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Wybierz dział.' });
       return;
     }
-    setIsSavingMeta(true);
-    const ok = await onUpdateMeta(recruitment, deptDraft, jobTitleDraft);
-    setIsSavingMeta(false);
-    if (ok) setIsEditingMeta(false);
+    setIsSavingDept(true);
+    const ok = await onUpdateDepartment(recruitment, deptDraft);
+    setIsSavingDept(false);
+    if (ok) setIsEditingDept(false);
   };
-
-  useEffect(() => {
-    if (!isFocused) setCountDraft(String(recruitment.toRecruit ?? 0));
-  }, [recruitment.toRecruit, isFocused]);
 
   const sortedArrivals = useMemo(
     () =>
@@ -193,30 +190,66 @@ const RecruitmentCard = ({
     [recruitment.arrivals]
   );
 
+  const sumToRecruit = positions.reduce((s, p) => s + (Number(p.toRecruit) || 0), 0);
   const plannedTotal = recruitment.arrivals.reduce((sum, a) => sum + (Number(a.count) || 0), 0);
-  const missing = Math.max(0, (recruitment.toRecruit || 0) - plannedTotal);
-  const surplus = Math.max(0, plannedTotal - (recruitment.toRecruit || 0));
-  // Obecnie w całym dziale + do zrekrutowania = ile osób będzie łącznie na dziale
-  const totalAfterRecruitment = headcount.department + (recruitment.toRecruit || 0);
-  // Potrzeby = na stanowisku + do zrekrutowania − planowane zwolnienia
-  const positionNeeds = Math.max(
-    0,
-    headcount.jobTitle + (recruitment.toRecruit || 0) - headcount.terminations
-  );
+  const missing = Math.max(0, sumToRecruit - plannedTotal);
+  const surplus = Math.max(0, plannedTotal - sumToRecruit);
 
-  const handleCountBlur = async () => {
+  const sumZwalnia = positions.reduce(
+    (s, p) => s + (terminationsByDeptJob.get(`${recruitment.department}|${p.jobTitle}`) ?? 0),
+    0
+  );
+  const sumPotrzeby = positions.reduce((s, p) => {
+    const obecnie = headcountByDeptJob.get(`${recruitment.department}|${p.jobTitle}`) ?? 0;
+    const zwalnia = terminationsByDeptJob.get(`${recruitment.department}|${p.jobTitle}`) ?? 0;
+    return s + Math.max(0, obecnie + (Number(p.toRecruit) || 0) - zwalnia);
+  }, 0);
+
+  const getPositionOptions = (posId: string) => {
+    const usedHere = new Set(
+      positions.filter(p => p.id !== posId).map(p => p.jobTitle)
+    );
+    return jobTitles.filter(jt => !usedHere.has(jt.name));
+  };
+
+  const handlePositionJobTitleChange = async (posId: string, jobTitle: string) => {
     const db = getDB();
     if (!db) return;
-    const parsed = parseInt(countDraft, 10);
-    if (Number.isNaN(parsed) || parsed < 0) {
-      setCountDraft(String(recruitment.toRecruit ?? 0));
+    try {
+      await update(dbRef(db, `recruitment/${recruitment.id}/positions/${posId}`), { jobTitle });
+    } catch {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać stanowiska.' });
+    }
+  };
+
+  const handleAddPosition = async () => {
+    const db = getDB();
+    if (!db) return;
+    const taken = new Set(positions.map(p => p.jobTitle));
+    const free = jobTitles.find(jt => !taken.has(jt.name));
+    if (!free) {
+      toast({
+        variant: 'destructive',
+        title: 'Błąd',
+        description: 'Wszystkie stanowiska zostały już dodane.',
+      });
       return;
     }
-    if (parsed === recruitment.toRecruit) return;
     try {
-      await update(dbRef(db, `recruitment/${recruitment.id}`), { toRecruit: parsed });
+      const posRef = push(dbRef(db, `recruitment/${recruitment.id}/positions`));
+      await set(posRef, { jobTitle: free.name, toRecruit: 1 });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać liczby osób.' });
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać stanowiska.' });
+    }
+  };
+
+  const handleRemovePosition = async (posId: string) => {
+    const db = getDB();
+    if (!db) return;
+    try {
+      await remove(dbRef(db, `recruitment/${recruitment.id}/positions/${posId}`));
+    } catch {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć stanowiska.' });
     }
   };
 
@@ -248,10 +281,10 @@ const RecruitmentCard = ({
     <Card>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          {isEditingMeta ? (
+          {isEditingDept ? (
             <div className="flex w-full flex-wrap items-center gap-2">
               <Select value={deptDraft} onValueChange={setDeptDraft}>
-                <SelectTrigger className="h-9 w-full sm:w-56" aria-label="Edytuj dział">
+                <SelectTrigger className="h-9 w-full sm:w-64" aria-label="Edytuj dział">
                   <SelectValue placeholder="Dział…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -262,35 +295,23 @@ const RecruitmentCard = ({
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={jobTitleDraft} onValueChange={setJobTitleDraft}>
-                <SelectTrigger className="h-9 w-full sm:w-52" aria-label="Edytuj stanowisko">
-                  <SelectValue placeholder="Stanowisko…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobTitles.map(jt => (
-                    <SelectItem key={jt.id} value={jt.name}>
-                      {jt.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <div className="flex items-center gap-1">
                 <Button
                   size="icon"
                   variant="outline"
                   className="h-8 w-8 border-emerald-500/50 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
-                  disabled={isSavingMeta || !deptDraft || !jobTitleDraft}
-                  onClick={handleSaveMeta}
+                  disabled={isSavingDept || !deptDraft}
+                  onClick={handleSaveDept}
                   aria-label="Zapisz zmiany"
                 >
-                  {isSavingMeta ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {isSavingDept ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8"
-                  disabled={isSavingMeta}
-                  onClick={() => setIsEditingMeta(false)}
+                  disabled={isSavingDept}
+                  onClick={() => setIsEditingDept(false)}
                   aria-label="Anuluj edycję"
                 >
                   <X className="h-4 w-4" />
@@ -301,31 +322,28 @@ const RecruitmentCard = ({
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <CardTitle className="text-base">{recruitment.department}</CardTitle>
               <Badge variant="secondary" className="max-w-full truncate">
-                {jobTitleLabel}
+                {positions.length} {positions.length === 1 ? 'stanowisko' : 'stanowiska'}
               </Badge>
             </div>
           )}
-          {!isEditingMeta && (
+          {!isEditingDept && (
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="tabular-nums">
-                Na dziale: {headcount.department} os.
+                Na dziale: {departmentHeadcount} os.
               </Badge>
-              <Badge variant="outline" className="tabular-nums">
-                Na stanowisku: {headcount.jobTitle} os.
-              </Badge>
-              {headcount.terminations > 0 && (
+              {sumZwalnia > 0 && (
                 <Badge
                   variant="outline"
                   className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
                 >
-                  Zwalnia się: −{headcount.terminations}
+                  Zwalnia się: −{sumZwalnia}
                 </Badge>
               )}
               <Badge
                 variant="outline"
                 className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
               >
-                Potrzeby: {positionNeeds} os.
+                Potrzeby: {sumPotrzeby} os.
               </Badge>
               {missing > 0 && (
                 <Badge variant="destructive" className="tabular-nums">
@@ -333,7 +351,7 @@ const RecruitmentCard = ({
                 </Badge>
               )}
               <Badge variant="outline" className="tabular-nums">
-                Rekrutacja: {recruitment.toRecruit || 0} os.
+                Rekrutacja: {sumToRecruit} os.
               </Badge>
               {surplus > 0 && (
                 <Badge
@@ -348,15 +366,15 @@ const RecruitmentCard = ({
                   variant="outline"
                   className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
                 >
-                  Komplet: {plannedTotal}/{recruitment.toRecruit}
+                  Komplet: {plannedTotal}/{sumToRecruit}
                 </Badge>
               )}
               <Button
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8 text-muted-foreground hover:text-primary"
-                onClick={startEditingMeta}
-                aria-label={`Edytuj ${recruitment.department} — ${jobTitleLabel}`}
+                onClick={startEditingDept}
+                aria-label={`Edytuj dział ${recruitment.department}`}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -365,7 +383,7 @@ const RecruitmentCard = ({
                 variant="ghost"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 onClick={() => onDelete(recruitment)}
-                aria-label={`Usuń ${recruitment.department} — ${jobTitleLabel}`}
+                aria-label={`Usuń zapotrzebowanie ${recruitment.department}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -374,66 +392,106 @@ const RecruitmentCard = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="w-full text-xs font-medium text-muted-foreground sm:w-auto">
-            Ile osób zrekrutować:
-          </label>
-          <div className="flex items-center gap-1.5">
-            <Input
-              type="number"
-              min={0}
-              value={countDraft}
-              onChange={e => setCountDraft(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => {
-                setIsFocused(false);
-                handleCountBlur();
-              }}
-              onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-              className="h-9 w-24 tabular-nums"
-              aria-label={`Liczba osób do rekrutacji — ${recruitment.department}`}
-            />
-            <span className="text-xs text-muted-foreground">os.</span>
-            <span className="text-xs text-muted-foreground">
-              (na dziale jest {headcount.department} → będzie {totalAfterRecruitment})
-            </span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              Stanowiska i liczba osób:
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 border-primary/30 px-3 text-primary hover:bg-primary/5"
+              onClick={handleAddPosition}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Dodaj stanowisko
+            </Button>
           </div>
+          {positions.length === 0 ? (
+            <p className="rounded-md border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">
+              Brak stanowisk — kliknij „Dodaj stanowisko”.
+            </p>
+          ) : (
+            positions.map(pos => {
+              const rowOptions = getPositionOptions(pos.id);
+              return (
+                <div
+                  key={pos.id}
+                  className="flex flex-wrap items-center gap-2 rounded-md border bg-background/50 px-3 py-2"
+                >
+                  <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <Select
+                    value={pos.jobTitle}
+                    onValueChange={value => handlePositionJobTitleChange(pos.id, value)}
+                  >
+                    <SelectTrigger
+                      className="h-9 w-full sm:w-56"
+                      aria-label="Stanowisko"
+                    >
+                      <SelectValue placeholder="Wybierz stanowisko…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rowOptions.map(jt => (
+                        <SelectItem key={jt.id} value={jt.name}>
+                          {jt.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-1.5">
+                    <PositionCountInput recruitmentId={recruitment.id} position={pos} />
+                    <span className="text-xs text-muted-foreground">os.</span>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="ml-auto h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleRemovePosition(pos.id)}
+                    aria-label="Usuń stanowisko"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            })
+          )}
         </div>
 
-        <div className="space-y-1.5 rounded-md border bg-muted/30 p-3">
-          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <Briefcase className="h-3.5 w-3.5 shrink-0" />
-            Stanowiska w dziale ({headcount.department} os.):
-          </p>
-          <div className="space-y-1">
-            {jobTitleStats.map(s => (
-              <div
-                key={s.jobTitle}
-                className={cn(
-                  'flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs',
-                  s.jobTitle === jobTitleLabel && 'font-semibold text-foreground'
-                )}
-              >
-                <span>
-                  {s.jobTitle} — {formatHeadcount(s.count)}
-                  {s.terminations > 0 && (
-                    <span className="ml-1 text-amber-600 dark:text-amber-400">
-                      (zwalnia się: {s.terminations})
-                    </span>
+        {jobTitleStats.length > 0 && (
+          <div className="space-y-1.5 rounded-md border bg-muted/30 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Briefcase className="h-3.5 w-3.5 shrink-0" />
+              Stanowiska w dziale ({departmentHeadcount} os.):
+            </p>
+            <div className="space-y-1">
+              {jobTitleStats.map(s => (
+                <div
+                  key={s.jobTitle}
+                  className={[
+                    'flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs',
+                    positions.some(p => p.jobTitle === s.jobTitle) && 'font-semibold text-foreground',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  <span>
+                    {s.jobTitle} — {formatHeadcount(s.count)}
+                    {s.terminations > 0 && (
+                      <span className="ml-1 text-amber-600 dark:text-amber-400">
+                        (zwalnia się: {s.terminations})
+                      </span>
+                    )}
+                  </span>
+                  {s.toRecruit > 0 && (
+                    <Badge variant="destructive" className="tabular-nums">
+                      Rekrutacja: {s.toRecruit}
+                    </Badge>
                   )}
-                  {s.jobTitle === jobTitleLabel && (
-                    <span className="ml-1 font-normal text-primary">(ta pozycja)</span>
-                  )}
-                </span>
-                {s.toRecruit > 0 && (
-                  <Badge variant="destructive" className="tabular-nums">
-                    Rekrutacja: {s.toRecruit}
-                  </Badge>
-                )}
-              </div>
-            ))}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
@@ -471,6 +529,57 @@ const RecruitmentCard = ({
   );
 };
 
+const PositionCountInput = ({
+  recruitmentId,
+  position,
+}: {
+  recruitmentId: string;
+  position: RecruitmentPosition;
+}) => {
+  const { toast } = useToast();
+  const [draft, setDraft] = useState(String(position.toRecruit ?? 0));
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) setDraft(String(position.toRecruit ?? 0));
+  }, [position.toRecruit, isFocused]);
+
+  const handleBlur = async () => {
+    const db = getDB();
+    if (!db) return;
+    const parsed = parseInt(draft, 10);
+    if (Number.isNaN(parsed) || parsed < 1) {
+      setDraft(String(position.toRecruit ?? 0));
+      return;
+    }
+    if (parsed === position.toRecruit) return;
+    try {
+      await update(dbRef(db, `recruitment/${recruitmentId}/positions/${position.id}`), {
+        toRecruit: parsed,
+      });
+    } catch {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać liczby osób.' });
+    }
+  };
+
+  return (
+    <Input
+      type="number"
+      min={1}
+      value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => {
+        setIsFocused(false);
+        handleBlur();
+      }}
+      onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+      className="h-9 w-24 tabular-nums"
+      aria-label="Liczba osób do rekrutacji"
+    />
+  );
+};
+
 export default function RekrutacjaPage() {
   const { isLoading: isContextLoading, config } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
@@ -491,10 +600,18 @@ export default function RekrutacjaPage() {
     if (!db) return;
     const recruitmentRef = dbRef(db, 'recruitment');
     const unsubscribe = onValue(recruitmentRef, snapshot => {
-      const rows = objectToArray(snapshot.val()).map(row => ({
-        ...row,
-        arrivals: objectToArray(row.arrivals),
-      })) as Recruitment[];
+      const rows = objectToArray(snapshot.val()).map(row => {
+        // Nowy model: positions[] — stare wpisy (jobTitle/toRecruit) mapujemy do jednej pozycji
+        const positions = row.positions
+          ? objectToArray(row.positions).map((p: Record<string, unknown>) => ({
+              ...p,
+              toRecruit: Number(p.toRecruit) || 0,
+            }))
+          : row.jobTitle
+            ? [{ id: 'legacy', jobTitle: row.jobTitle, toRecruit: Number(row.toRecruit) || 0 }]
+            : [];
+        return { ...row, positions, arrivals: objectToArray(row.arrivals) };
+      }) as Recruitment[];
       setRecruitments(rows);
       setIsDataLoading(false);
     }, () => {
@@ -505,42 +622,17 @@ export default function RekrutacjaPage() {
 
   const sortedRecruitments = useMemo(
     () =>
-      [...recruitments].sort(
-        (a, b) =>
-          a.department.localeCompare(b.department, 'pl') ||
-          (a.jobTitle ?? '').localeCompare(b.jobTitle ?? '', 'pl')
+      [...recruitments].sort((a, b) =>
+        a.department.localeCompare(b.department, 'pl')
       ),
     [recruitments]
   );
 
-  const usedCombos = useMemo(
-    () => new Set(recruitments.map(r => `${r.department}|${r.jobTitle || '—'}`)),
-    [recruitments]
+  const totalToRecruit = recruitments.reduce(
+    (sum, r) => sum + r.positions.reduce((s, p) => s + (Number(p.toRecruit) || 0), 0),
+    0
   );
-
-  const availableDepartments = useMemo(
-    () =>
-      config.departments.filter(d =>
-        config.jobTitles.some(jt => !usedCombos.has(`${d.name}|${jt.name}`))
-      ),
-    [config.departments, config.jobTitles, usedCombos]
-  );
-
-  // Stanowiska dostępne w wierszu formularza — wolne kombinacje + nieużyte w innych wierszach
-  const getRowJobTitleOptions = (rowIndex: number) =>
-    config.jobTitles.filter(
-      jt =>
-        !usedCombos.has(`${newDepartment}|${jt.name}`) &&
-        !formRows.some((row, i) => i !== rowIndex && row.jobTitle === jt.name)
-    );
-
-  const canSubmitForm =
-    !!newDepartment &&
-    formRows.length > 0 &&
-    formRows.every(r => r.jobTitle && parseInt(r.count, 10) >= 1) &&
-    new Set(formRows.map(r => r.jobTitle)).size === formRows.length;
-
-  const totalToRecruit = recruitments.reduce((sum, r) => sum + (Number(r.toRecruit) || 0), 0);
+  const totalPositions = recruitments.reduce((s, r) => s + r.positions.length, 0);
   const totalPlanned = recruitments.reduce(
     (sum, r) => sum + r.arrivals.reduce((s, a) => s + (Number(a.count) || 0), 0),
     0
@@ -614,12 +706,19 @@ export default function RekrutacjaPage() {
     });
     recruitments.forEach(r => {
       if (!r.department) return;
-      const entries = ensure(r.department);
-      const jobTitle = r.jobTitle?.trim() || '—';
-      const existing = entries.find(x => x.jobTitle === jobTitle);
-      if (existing) existing.toRecruit += Number(r.toRecruit) || 0;
-      else
-        entries.push({ jobTitle, count: 0, toRecruit: Number(r.toRecruit) || 0, terminations: 0 });
+      r.positions.forEach(p => {
+        const entries = ensure(r.department);
+        const jobTitle = p.jobTitle?.trim() || '—';
+        const existing = entries.find(x => x.jobTitle === jobTitle);
+        if (existing) existing.toRecruit += Number(p.toRecruit) || 0;
+        else
+          entries.push({
+            jobTitle,
+            count: 0,
+            toRecruit: Number(p.toRecruit) || 0,
+            terminations: 0,
+          });
+      });
     });
     map.forEach(entries => {
       entries.sort((a, b) => b.count - a.count || a.jobTitle.localeCompare(b.jobTitle, 'pl'));
@@ -627,34 +726,27 @@ export default function RekrutacjaPage() {
     return map;
   }, [activeEmployees, recruitments]);
 
-  const handleUpdateMeta = async (
-    recruitment: Recruitment,
-    department: string,
-    jobTitle: string
-  ): Promise<boolean> => {
-    const db = getDB();
-    if (!db) return false;
-    const combo = `${department}|${jobTitle}`;
-    const taken = recruitments.some(
-      r => r.id !== recruitment.id && `${r.department}|${r.jobTitle?.trim() || '—'}` === combo
+  const usedDepartments = useMemo(
+    () => new Set(recruitments.map(r => r.department)),
+    [recruitments]
+  );
+
+  const availableDepartments = useMemo(
+    () => config.departments.filter(d => !usedDepartments.has(d.name)),
+    [config.departments, usedDepartments]
+  );
+
+  const getRowJobTitleOptions = (rowIndex: number) =>
+    config.jobTitles.filter(
+      jt =>
+        !formRows.some((row, i) => i !== rowIndex && row.jobTitle === jt.name)
     );
-    if (taken) {
-      toast({
-        variant: 'destructive',
-        title: 'Duplikat',
-        description: `${department} · ${jobTitle} — taka pozycja już istnieje.`,
-      });
-      return false;
-    }
-    try {
-      await update(dbRef(db, `recruitment/${recruitment.id}`), { department, jobTitle });
-      toast({ title: 'Zapisano', description: `${department} · ${jobTitle}` });
-      return true;
-    } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać zmian.' });
-      return false;
-    }
-  };
+
+  const canSubmitForm =
+    !!newDepartment &&
+    formRows.length > 0 &&
+    formRows.every(r => r.jobTitle && parseInt(r.count, 10) >= 1) &&
+    new Set(formRows.map(r => r.jobTitle)).size === formRows.length;
 
   const selectedDepartmentStats = useMemo(() => {
     if (!newDepartment) return null;
@@ -683,26 +775,51 @@ export default function RekrutacjaPage() {
     if (!db || !newDepartment || !canSubmitForm) return;
     setIsAdding(true);
     try {
+      const newRef = push(dbRef(db, 'recruitment'));
+      await set(newRef, { department: newDepartment, createdAt: new Date().toISOString() });
       for (const row of formRows) {
-        const newRef = push(dbRef(db, 'recruitment'));
-        await set(newRef, {
-          department: newDepartment,
+        const posRef = push(dbRef(db, `recruitment/${newRef.key}/positions`));
+        await set(posRef, {
           jobTitle: row.jobTitle,
           toRecruit: parseInt(row.count, 10),
-          createdAt: new Date().toISOString(),
         });
       }
       const totalOs = formRows.reduce((s, r) => s + parseInt(r.count, 10), 0);
       toast({
-        title: formRows.length > 1 ? `Dodano ${formRows.length} pozycje` : 'Dodano pozycję',
+        title: formRows.length > 1 ? `Dodano ${formRows.length} stanowiska` : 'Dodano zapotrzebowanie',
         description: `${newDepartment} — ${totalOs} os. do rekrutacji`,
       });
       setNewDepartment('');
       setFormRows([{ jobTitle: '', count: '' }]);
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać pozycji.' });
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zapotrzebowania.' });
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleUpdateDepartment = async (
+    recruitment: Recruitment,
+    department: string
+  ): Promise<boolean> => {
+    const db = getDB();
+    if (!db) return false;
+    const taken = recruitments.some(r => r.id !== recruitment.id && r.department === department);
+    if (taken) {
+      toast({
+        variant: 'destructive',
+        title: 'Duplikat',
+        description: `Zapotrzebowanie dla działu ${department} już istnieje.`,
+      });
+      return false;
+    }
+    try {
+      await update(dbRef(db, `recruitment/${recruitment.id}`), { department });
+      toast({ title: 'Zapisano', description: department });
+      return true;
+    } catch {
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać zmian.' });
+      return false;
     }
   };
 
@@ -715,7 +832,7 @@ export default function RekrutacjaPage() {
       await remove(dbRef(db, `recruitment/${toDelete.id}`));
       setToDelete(null);
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć działu.' });
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapotrzebowania.' });
     } finally {
       setIsDeleting(false);
     }
@@ -728,22 +845,26 @@ export default function RekrutacjaPage() {
       const { saveAs } = await import('file-saver');
       const wb = new ExcelJS.Workbook();
 
-      const summaryRows = sortedRecruitments.map(r => {
+      const orderRows = sortedRecruitments.map(r => {
         const planned = r.arrivals.reduce((s, a) => s + (Number(a.count) || 0), 0);
-        const jobKey = `${r.department}|${r.jobTitle?.trim() || '—'}`;
-        const doRekrutacji = r.toRecruit || 0;
-        const obecnieDzial = headcountByDepartment.get(r.department) ?? 0;
-        const obecnieStanowisko = headcountByDeptJob.get(jobKey) ?? 0;
-        const zwalnia = terminationsByDeptJob.get(jobKey) ?? 0;
+        const doRekrutacji = r.positions.reduce((s, p) => s + (Number(p.toRecruit) || 0), 0);
+        const zwalnia = r.positions.reduce(
+          (s, p) => s + (terminationsByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0),
+          0
+        );
+        const potrzeby = r.positions.reduce((s, p) => {
+          const obecnie = headcountByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0;
+          const z = terminationsByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0;
+          return s + Math.max(0, obecnie + (Number(p.toRecruit) || 0) - z);
+        }, 0);
+        const pozycje = r.positions.map(p => `${p.jobTitle}: ${p.toRecruit}`).join(', ');
         return [
           r.department,
-          r.jobTitle?.trim() || '—',
-          obecnieDzial,
-          obecnieStanowisko,
+          pozycje,
+          headcountByDepartment.get(r.department) ?? 0,
           zwalnia,
           doRekrutacji,
-          Math.max(0, obecnieStanowisko + doRekrutacji - zwalnia),
-          obecnieDzial + doRekrutacji,
+          potrzeby,
           planned,
           Math.max(0, doRekrutacji - planned),
         ];
@@ -758,22 +879,19 @@ export default function RekrutacjaPage() {
         style: { theme: 'TableStyleMedium2', showRowStripes: true },
         columns: [
           'Dział',
-          'Stanowisko',
+          'Stanowiska (ile osób)',
           'Obecnie na dziale',
-          'Obecnie na stanowisku',
           'Zwalnia się',
           'Do zrekrutowania',
-          'Potrzeby (stanowisko)',
-          'Razem będzie (dział)',
+          'Potrzeby',
           'Zaplanowane przyjęcia',
           'Brakuje',
         ].map(n => ({ name: n, filterButton: true })),
-        rows: summaryRows,
+        rows: orderRows,
       });
       ws1.getColumn(1).width = 28;
-      ws1.getColumn(2).width = 26;
-      [3, 4, 5, 6, 7, 8, 9, 10].forEach(col => (ws1.getColumn(col).width = 20));
-      // Suma po unikalnych działach (wiersze dział·stanowisko powtarzają obsadę działu)
+      ws1.getColumn(2).width = 46;
+      [3, 4, 5, 6, 7, 8].forEach(col => (ws1.getColumn(col).width = 20));
       const uniqueDeptHeadcount = new Map<string, number>();
       sortedRecruitments.forEach(r => {
         if (!uniqueDeptHeadcount.has(r.department)) {
@@ -781,62 +899,86 @@ export default function RekrutacjaPage() {
         }
       });
       const sumDeptHeadcount = [...uniqueDeptHeadcount.values()].reduce((a, b) => a + b, 0);
-      const sumObecnieStanowisko = sortedRecruitments.reduce(
-        (s, r) => s + (headcountByDeptJob.get(`${r.department}|${r.jobTitle?.trim() || '—'}`) ?? 0),
-        0
-      );
-      const sumZwalnia = sortedRecruitments.reduce(
-        (s, r) => s + (terminationsByDeptJob.get(`${r.department}|${r.jobTitle?.trim() || '—'}`) ?? 0),
-        0
-      );
+      const sumZwalniaAll = orderRows.reduce((s, row) => s + (Number(row[3]) || 0), 0);
+      const sumPotrzebyAll = orderRows.reduce((s, row) => s + (Number(row[5]) || 0), 0);
       const totalRow = ws1.addRow([
         'RAZEM',
         '',
         sumDeptHeadcount,
-        sumObecnieStanowisko,
-        sumZwalnia,
+        sumZwalniaAll,
         totalToRecruit,
-        Math.max(0, sumObecnieStanowisko + totalToRecruit - sumZwalnia),
-        sumDeptHeadcount + totalToRecruit,
+        sumPotrzebyAll,
         totalPlanned,
         Math.max(0, totalToRecruit - totalPlanned),
       ]);
       totalRow.font = { bold: true };
 
+      const positionRows = sortedRecruitments.flatMap(r =>
+        r.positions.map(p => {
+          const jobKey = `${r.department}|${p.jobTitle}`;
+          const obecnie = headcountByDeptJob.get(jobKey) ?? 0;
+          const zwalnia = terminationsByDeptJob.get(jobKey) ?? 0;
+          const doRekrutacji = Number(p.toRecruit) || 0;
+          return [
+            r.department,
+            p.jobTitle,
+            obecnie,
+            zwalnia,
+            doRekrutacji,
+            Math.max(0, obecnie + doRekrutacji - zwalnia),
+          ];
+        })
+      );
+
+      const ws2 = wb.addWorksheet('Stanowiska');
+      ws2.addTable({
+        name: 'Stanowiska',
+        ref: 'A1',
+        headerRow: true,
+        totalsRow: false,
+        style: { theme: 'TableStyleMedium2', showRowStripes: true },
+        columns: [
+          'Dział',
+          'Stanowisko',
+          'Obecnie na stanowisku',
+          'Zwalnia się',
+          'Do zrekrutowania',
+          'Potrzeby',
+        ].map(n => ({ name: n, filterButton: true })),
+        rows: positionRows,
+      });
+      ws2.getColumn(1).width = 28;
+      ws2.getColumn(2).width = 26;
+      [3, 4, 5, 6].forEach(col => (ws2.getColumn(col).width = 20));
+
       const arrivalRows = sortedRecruitments.flatMap(r =>
         r.arrivals.length === 0
-          ? [[r.department, r.jobTitle?.trim() || '—', '—', 0]]
+          ? [[r.department, '—', 0]]
           : [...r.arrivals]
               .sort((a, b) => {
                 const da = parseMaybeDate(a.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
                 const dbTime = parseMaybeDate(b.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
                 return da - dbTime;
               })
-              .map(a => [
-                r.department,
-                r.jobTitle?.trim() || '—',
-                formatDate(a.date) || '—',
-                Number(a.count) || 0,
-              ])
+              .map(a => [r.department, formatDate(a.date) || '—', Number(a.count) || 0])
       );
 
-      const ws2 = wb.addWorksheet('Daty przyjęć');
-      ws2.addTable({
+      const ws3 = wb.addWorksheet('Daty przyjęć');
+      ws3.addTable({
         name: 'DatyPrzyjec',
         ref: 'A1',
         headerRow: true,
         totalsRow: false,
         style: { theme: 'TableStyleMedium2', showRowStripes: true },
-        columns: ['Dział', 'Stanowisko', 'Data przyjęcia', 'Liczba osób'].map(n => ({
+        columns: ['Dział', 'Data przyjęcia', 'Liczba osób'].map(n => ({
           name: n,
           filterButton: true,
         })),
         rows: arrivalRows,
       });
-      ws2.getColumn(1).width = 28;
-      ws2.getColumn(2).width = 26;
-      ws2.getColumn(3).width = 16;
-      ws2.getColumn(4).width = 14;
+      ws3.getColumn(1).width = 28;
+      ws3.getColumn(2).width = 18;
+      ws3.getColumn(3).width = 16;
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
@@ -882,7 +1024,11 @@ export default function RekrutacjaPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm">
                 <Users className="h-4 w-4" />
-                Pozycje (dział · stanowisko): {recruitments.length}
+                Zapotrzebowania: {recruitments.length}
+              </Badge>
+              <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm">
+                <Briefcase className="h-4 w-4" />
+                Stanowiska: {totalPositions}
               </Badge>
               <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
                 <UserPlus className="h-4 w-4" />
@@ -898,121 +1044,106 @@ export default function RekrutacjaPage() {
             </div>
 
             <Card>
-              <CardContent className="flex flex-col gap-3 pt-6">
-                <div className="space-y-3">
-                  <Select
-                    value={newDepartment}
-                    onValueChange={value => {
-                      setNewDepartment(value);
-                      setFormRows([{ jobTitle: '', count: '' }]);
-                    }}
-                  >
-                    <SelectTrigger className="w-full lg:w-80" aria-label="Wybierz dział">
-                      <SelectValue placeholder="Wybierz dział…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableDepartments.length === 0 ? (
-                        <p className="px-3 py-2 text-sm text-muted-foreground">
-                          Brak dostępnych działów.
-                        </p>
-                      ) : (
-                        availableDepartments.map(dept => (
-                          <SelectItem key={dept.id} value={dept.name}>
-                            {dept.name} ({formatHeadcount(headcountByDepartment.get(dept.name) ?? 0)})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+              <CardContent className="space-y-3 pt-6">
+                <Select
+                  value={newDepartment}
+                  onValueChange={value => {
+                    setNewDepartment(value);
+                    setFormRows([{ jobTitle: '', count: '' }]);
+                  }}
+                >
+                  <SelectTrigger className="w-full lg:w-80" aria-label="Wybierz dział">
+                    <SelectValue placeholder="Wybierz dział…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDepartments.length === 0 ? (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">
+                        Brak dostępnych działów.
+                      </p>
+                    ) : (
+                      availableDepartments.map(dept => (
+                        <SelectItem key={dept.id} value={dept.name}>
+                          {dept.name} ({formatHeadcount(headcountByDepartment.get(dept.name) ?? 0)})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
 
-                  {newDepartment && (
-                    <div className="space-y-2">
-                      {formRows.map((row, index) => {
-                        const rowOptions = getRowJobTitleOptions(index);
-                        return (
-                          <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <Select
-                              value={row.jobTitle}
-                              onValueChange={value =>
-                                setFormRows(prev =>
-                                  prev.map((r, i) => (i === index ? { ...r, jobTitle: value } : r))
-                                )
-                              }
+                {newDepartment && (
+                  <div className="space-y-2">
+                    {formRows.map((row, index) => {
+                      const rowOptions = getRowJobTitleOptions(index);
+                      return (
+                        <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <Select
+                            value={row.jobTitle}
+                            onValueChange={value =>
+                              setFormRows(prev =>
+                                prev.map((r, i) => (i === index ? { ...r, jobTitle: value } : r))
+                              )
+                            }
+                          >
+                            <SelectTrigger
+                              className="w-full sm:w-64"
+                              aria-label={`Stanowisko — wiersz ${index + 1}`}
                             >
-                              <SelectTrigger
-                                className="w-full sm:w-64"
-                                aria-label={`Stanowisko — wiersz ${index + 1}`}
-                              >
-                                <SelectValue placeholder="Wybierz stanowisko…" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {rowOptions.length === 0 ? (
-                                  <p className="px-3 py-2 text-sm text-muted-foreground">
-                                    Brak dostępnych stanowisk.
-                                  </p>
-                                ) : (
-                                  rowOptions.map(jt => (
-                                    <SelectItem key={jt.id} value={jt.name}>
-                                      {jt.name}
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              type="number"
-                              min={1}
-                              placeholder="Ile osób?"
-                              value={row.count}
-                              onChange={e =>
-                                setFormRows(prev =>
-                                  prev.map((r, i) => (i === index ? { ...r, count: e.target.value } : r))
-                                )
-                              }
-                              className="w-full sm:w-32"
-                              aria-label={`Liczba osób — stanowisko ${index + 1}`}
-                            />
-                            {formRows.length > 1 && (
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-                                onClick={() =>
-                                  setFormRows(prev => prev.filter((_, i) => i !== index))
-                                }
-                                aria-label={`Usuń wiersz ${index + 1}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      })}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
-                        onClick={() => setFormRows(prev => [...prev, { jobTitle: '', count: '' }])}
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        Dodaj stanowisko
-                      </Button>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end">
+                              <SelectValue placeholder="Wybierz stanowisko…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {rowOptions.length === 0 ? (
+                                <p className="px-3 py-2 text-sm text-muted-foreground">
+                                  Brak dostępnych stanowisk.
+                                </p>
+                              ) : (
+                                rowOptions.map(jt => (
+                                  <SelectItem key={jt.id} value={jt.name}>
+                                    {jt.name}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            min={1}
+                            placeholder="Ile osób?"
+                            value={row.count}
+                            onChange={e =>
+                              setFormRows(prev =>
+                                prev.map((r, i) => (i === index ? { ...r, count: e.target.value } : r))
+                              )
+                            }
+                            className="w-full sm:w-32"
+                            aria-label={`Liczba osób — stanowisko ${index + 1}`}
+                          />
+                          {formRows.length > 1 && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => setFormRows(prev => prev.filter((_, i) => i !== index))}
+                              aria-label={`Usuń wiersz ${index + 1}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
                     <Button
-                      className="gap-2"
-                      disabled={!canSubmitForm || isAdding}
-                      onClick={handleAdd}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                      onClick={() => setFormRows(prev => [...prev, { jobTitle: '', count: '' }])}
                     >
-                      {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      {formRows.length > 1 ? `Dodaj pozycje (${formRows.length})` : 'Dodaj'}
+                      <Plus className="h-3.5 w-3.5" />
+                      Dodaj stanowisko
                     </Button>
                   </div>
-                </div>
+                )}
 
                 {selectedDepartmentStats && (
                   <div className="space-y-2 rounded-md border bg-muted/30 p-3">
@@ -1046,6 +1177,13 @@ export default function RekrutacjaPage() {
                     )}
                   </div>
                 )}
+
+                <div className="flex justify-end">
+                  <Button className="gap-2" disabled={!canSubmitForm || isAdding} onClick={handleAdd}>
+                    {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    {formRows.length > 1 ? `Dodaj zapotrzebowanie (${formRows.length} stanowiska)` : 'Dodaj'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -1053,7 +1191,7 @@ export default function RekrutacjaPage() {
               <Card>
                 <CardContent className="py-10 text-center text-sm text-muted-foreground">
                   <UserPlus className="mx-auto mb-3 h-8 w-8 opacity-40" />
-                  Brak danych — wybierz dział i stanowisko powyżej, aby zaplanować rekrutację.
+                  Brak danych — wybierz dział i stanowiska powyżej, aby zaplanować rekrutację.
                 </CardContent>
               </Card>
             ) : (
@@ -1064,19 +1202,11 @@ export default function RekrutacjaPage() {
                     recruitment={recruitment}
                     departments={config.departments}
                     jobTitles={config.jobTitles}
-                    headcount={{
-                      department: headcountByDepartment.get(recruitment.department) ?? 0,
-                      jobTitle:
-                        headcountByDeptJob.get(
-                          `${recruitment.department}|${recruitment.jobTitle?.trim() || '—'}`
-                        ) ?? 0,
-                      terminations:
-                        terminationsByDeptJob.get(
-                          `${recruitment.department}|${recruitment.jobTitle?.trim() || '—'}`
-                        ) ?? 0,
-                    }}
+                    departmentHeadcount={headcountByDepartment.get(recruitment.department) ?? 0}
+                    headcountByDeptJob={headcountByDeptJob}
+                    terminationsByDeptJob={terminationsByDeptJob}
                     jobTitleStats={jobTitlesByDepartment.get(recruitment.department) ?? []}
-                    onUpdateMeta={handleUpdateMeta}
+                    onUpdateDepartment={handleUpdateDepartment}
                     onDelete={setToDelete}
                   />
                 ))}
@@ -1087,11 +1217,11 @@ export default function RekrutacjaPage() {
           <AlertDialog open={!!toDelete} onOpenChange={open => !open && setToDelete(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Usunąć plan rekrutacji?</AlertDialogTitle>
+                <AlertDialogTitle>Usunąć zapotrzebowanie?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Pozycja „{toDelete?.department} · {toDelete?.jobTitle?.trim() || '—'}” zostanie
-                  usunięta razem z liczbą osób i wszystkimi datami przyjęć. Tej operacji nie można
-                  cofnąć.
+                  Zapotrzebowanie dla działu „{toDelete?.department}” ({toDelete?.positions.length ?? 0}{' '}
+                  pozycji) zostanie usunięte razem z liczbami osób i wszystkimi datami przyjęć. Tej
+                  operacji nie można cofnąć.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

@@ -140,12 +140,17 @@ export interface RecruitmentArrival {
   count: number;
 }
 
+export interface RecruitmentPosition {
+  id: string;
+  jobTitle: string;
+  toRecruit: number;
+}
+
 export interface Recruitment {
   id: string;
   department: string;
-  jobTitle: string; // stanowisko — dział może mieć różne stanowiska
-  toRecruit: number; // ile osób trzeba zrekrutować
-  arrivals: RecruitmentArrival[]; // planowane daty przyjęcia (wiele na dział)
+  positions: RecruitmentPosition[]; // kilka stanowisk w jednym zapotrzebowaniu
+  arrivals: RecruitmentArrival[]; // planowane daty przyjęcia (dla całego zamówienia)
   createdAt: string; // ISO string
 }
 
