@@ -139,6 +139,7 @@ const RecruitmentCard = ({
   onDelete: (recruitment: Recruitment) => void;
 }) => {
   const { toast } = useToast();
+  const jobTitleLabel = recruitment.jobTitle?.trim() || '—';
   const [countDraft, setCountDraft] = useState(String(recruitment.toRecruit ?? 0));
   const [isFocused, setIsFocused] = useState(false);
   const [isAddingArrival, setIsAddingArrival] = useState(false);
@@ -205,7 +206,12 @@ const RecruitmentCard = ({
     <Card>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-base">{recruitment.department}</CardTitle>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <CardTitle className="text-base">{recruitment.department}</CardTitle>
+            <Badge variant="secondary" className="max-w-full truncate">
+              {jobTitleLabel}
+            </Badge>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="tabular-nums">
               Rekrutacja: {recruitment.toRecruit || 0} os.
@@ -236,7 +242,7 @@ const RecruitmentCard = ({
               variant="ghost"
               className="h-8 w-8 text-muted-foreground hover:text-destructive"
               onClick={() => onDelete(recruitment)}
-              aria-label={`Usuń dział ${recruitment.department}`}
+              aria-label={`Usuń ${recruitment.department} — ${jobTitleLabel}`}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -311,6 +317,7 @@ export default function RekrutacjaPage() {
   const [recruitments, setRecruitments] = useState<Recruitment[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [newDepartment, setNewDepartment] = useState('');
+  const [newJobTitle, setNewJobTitle] = useState('');
   const [newCount, setNewCount] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [toDelete, setToDelete] = useState<Recruitment | null>(null);
@@ -335,21 +342,28 @@ export default function RekrutacjaPage() {
 
   const sortedRecruitments = useMemo(
     () =>
-      [...recruitments].sort((a, b) =>
-        a.department.localeCompare(b.department, 'pl')
+      [...recruitments].sort(
+        (a, b) =>
+          a.department.localeCompare(b.department, 'pl') ||
+          (a.jobTitle ?? '').localeCompare(b.jobTitle ?? '', 'pl')
       ),
     [recruitments]
   );
 
-  const usedDepartments = useMemo(
-    () => new Set(recruitments.map(r => r.department)),
+  const usedCombos = useMemo(
+    () => new Set(recruitments.map(r => `${r.department}|${r.jobTitle?.trim() || '—'}`)),
     [recruitments]
   );
 
   const availableDepartments = useMemo(
-    () => config.departments.filter(d => !usedDepartments.has(d.name)),
-    [config.departments, usedDepartments]
+    () => config.departments.filter(d => !usedCombos.has(`${d.name}|${newJobTitle?.trim() || '—'}`)),
+    [config.departments, usedCombos, newJobTitle]
   );
+
+  const availableJobTitles = useMemo(() => {
+    if (!newDepartment) return [];
+    return config.jobTitles.filter(jt => !usedCombos.has(`${newDepartment}|${jt.name?.trim() || '—'}`));
+  }, [config.jobTitles, usedCombos, newDepartment]);
 
   const totalToRecruit = recruitments.reduce((sum, r) => sum + (Number(r.toRecruit) || 0), 0);
   const totalPlanned = recruitments.reduce(
@@ -390,20 +404,25 @@ export default function RekrutacjaPage() {
   const handleAdd = async () => {
     const db = getDB();
     const parsedCount = parseInt(newCount, 10);
-    if (!db || !newDepartment || Number.isNaN(parsedCount) || parsedCount < 1) return;
+    if (!db || !newDepartment || !newJobTitle || Number.isNaN(parsedCount) || parsedCount < 1) return;
     setIsAdding(true);
     try {
       const newRef = push(dbRef(db, 'recruitment'));
       await set(newRef, {
         department: newDepartment,
+        jobTitle: newJobTitle,
         toRecruit: parsedCount,
         createdAt: new Date().toISOString(),
       });
       setNewDepartment('');
+      setNewJobTitle('');
       setNewCount('');
-      toast({ title: 'Dodano dział', description: `${newDepartment} — ${parsedCount} os. do rekrutacji` });
+      toast({
+        title: 'Dodano pozycję',
+        description: `${newDepartment} · ${newJobTitle} — ${parsedCount} os. do rekrutacji`,
+      });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać działu.' });
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać pozycji.' });
     } finally {
       setIsAdding(false);
     }
@@ -433,7 +452,13 @@ export default function RekrutacjaPage() {
 
       const summaryRows = sortedRecruitments.map(r => {
         const planned = r.arrivals.reduce((s, a) => s + (Number(a.count) || 0), 0);
-        return [r.department, r.toRecruit || 0, planned, Math.max(0, (r.toRecruit || 0) - planned)];
+        return [
+          r.department,
+          r.jobTitle?.trim() || '—',
+          r.toRecruit || 0,
+          planned,
+          Math.max(0, (r.toRecruit || 0) - planned),
+        ];
       });
 
       const ws1 = wb.addWorksheet('Podsumowanie');
@@ -443,27 +468,38 @@ export default function RekrutacjaPage() {
         headerRow: true,
         totalsRow: false,
         style: { theme: 'TableStyleMedium2', showRowStripes: true },
-        columns: ['Dział', 'Do rekrutacji', 'Zaplanowane przyjęcia', 'Brakuje'].map(n => ({
-          name: n,
-          filterButton: true,
-        })),
+        columns: ['Dział', 'Stanowisko', 'Do rekrutacji', 'Zaplanowane przyjęcia', 'Brakuje'].map(
+          n => ({ name: n, filterButton: true })
+        ),
         rows: summaryRows,
       });
-      ws1.getColumn(1).width = 30;
-      [2, 3, 4].forEach(col => (ws1.getColumn(col).width = 22));
-      const totalRow = ws1.addRow(['RAZEM', totalToRecruit, totalPlanned, Math.max(0, totalToRecruit - totalPlanned)]);
+      ws1.getColumn(1).width = 28;
+      ws1.getColumn(2).width = 26;
+      [3, 4, 5].forEach(col => (ws1.getColumn(col).width = 20));
+      const totalRow = ws1.addRow([
+        'RAZEM',
+        '',
+        totalToRecruit,
+        totalPlanned,
+        Math.max(0, totalToRecruit - totalPlanned),
+      ]);
       totalRow.font = { bold: true };
 
       const arrivalRows = sortedRecruitments.flatMap(r =>
         r.arrivals.length === 0
-          ? [[r.department, '—', 0]]
+          ? [[r.department, r.jobTitle?.trim() || '—', '—', 0]]
           : [...r.arrivals]
               .sort((a, b) => {
                 const da = parseMaybeDate(a.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
                 const dbTime = parseMaybeDate(b.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
                 return da - dbTime;
               })
-              .map(a => [r.department, formatDate(a.date) || '—', Number(a.count) || 0])
+              .map(a => [
+                r.department,
+                r.jobTitle?.trim() || '—',
+                formatDate(a.date) || '—',
+                Number(a.count) || 0,
+              ])
       );
 
       const ws2 = wb.addWorksheet('Daty przyjęć');
@@ -473,15 +509,16 @@ export default function RekrutacjaPage() {
         headerRow: true,
         totalsRow: false,
         style: { theme: 'TableStyleMedium2', showRowStripes: true },
-        columns: ['Dział', 'Data przyjęcia', 'Liczba osób'].map(n => ({
+        columns: ['Dział', 'Stanowisko', 'Data przyjęcia', 'Liczba osób'].map(n => ({
           name: n,
           filterButton: true,
         })),
         rows: arrivalRows,
       });
-      ws2.getColumn(1).width = 30;
-      ws2.getColumn(2).width = 18;
+      ws2.getColumn(1).width = 28;
+      ws2.getColumn(2).width = 26;
       ws2.getColumn(3).width = 16;
+      ws2.getColumn(4).width = 14;
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
@@ -527,7 +564,7 @@ export default function RekrutacjaPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm">
                 <Users className="h-4 w-4" />
-                Działy: {recruitments.length}
+                Pozycje (dział · stanowisko): {recruitments.length}
               </Badge>
               <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
                 <UserPlus className="h-4 w-4" />
@@ -544,20 +581,50 @@ export default function RekrutacjaPage() {
 
             <Card>
               <CardContent className="flex flex-col gap-3 pt-6">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Select value={newDepartment} onValueChange={setNewDepartment}>
-                    <SelectTrigger className="w-full sm:w-80" aria-label="Wybierz dział">
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
+                  <Select
+                    value={newDepartment}
+                    onValueChange={value => {
+                      setNewDepartment(value);
+                      setNewJobTitle('');
+                    }}
+                  >
+                    <SelectTrigger className="w-full lg:w-72" aria-label="Wybierz dział">
                       <SelectValue placeholder="Wybierz dział…" />
                     </SelectTrigger>
                     <SelectContent>
                       {availableDepartments.length === 0 ? (
                         <p className="px-3 py-2 text-sm text-muted-foreground">
-                          Wszystkie działy zostały dodane.
+                          Brak dostępnych działów.
                         </p>
                       ) : (
                         availableDepartments.map(dept => (
                           <SelectItem key={dept.id} value={dept.name}>
                             {dept.name} ({formatHeadcount(headcountByDepartment.get(dept.name) ?? 0)})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={newJobTitle}
+                    onValueChange={setNewJobTitle}
+                    disabled={!newDepartment}
+                  >
+                    <SelectTrigger className="w-full lg:w-64" aria-label="Wybierz stanowisko">
+                      <SelectValue
+                        placeholder={newDepartment ? 'Wybierz stanowisko…' : 'Najpierw dział…'}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableJobTitles.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">
+                          Wszystkie stanowiska dla tego działu zostały dodane.
+                        </p>
+                      ) : (
+                        availableJobTitles.map(jt => (
+                          <SelectItem key={jt.id} value={jt.name}>
+                            {jt.name}
                           </SelectItem>
                         ))
                       )}
@@ -569,16 +636,22 @@ export default function RekrutacjaPage() {
                     placeholder="Ile osób?"
                     value={newCount}
                     onChange={e => setNewCount(e.target.value)}
-                    className="w-full sm:w-36"
+                    className="w-full lg:w-32"
                     aria-label="Liczba osób do rekrutacji"
                   />
                   <Button
-                    className="gap-2 sm:ml-auto"
-                    disabled={!newDepartment || !newCount || parseInt(newCount, 10) < 1 || isAdding}
+                    className="gap-2 lg:ml-auto"
+                    disabled={
+                      !newDepartment ||
+                      !newJobTitle ||
+                      !newCount ||
+                      parseInt(newCount, 10) < 1 ||
+                      isAdding
+                    }
                     onClick={handleAdd}
                   >
                     {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    Dodaj dział
+                    Dodaj
                   </Button>
                 </div>
 
@@ -621,7 +694,7 @@ export default function RekrutacjaPage() {
               <Card>
                 <CardContent className="py-10 text-center text-sm text-muted-foreground">
                   <UserPlus className="mx-auto mb-3 h-8 w-8 opacity-40" />
-                  Brak danych — wybierz dział powyżej, aby zaplanować rekrutację.
+                  Brak danych — wybierz dział i stanowisko powyżej, aby zaplanować rekrutację.
                 </CardContent>
               </Card>
             ) : (
@@ -642,8 +715,9 @@ export default function RekrutacjaPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Usunąć plan rekrutacji?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Dział „{toDelete?.department}” zostanie usunięty razem z liczbą osób i wszystkimi
-                  datami przyjęć. Tej operacji nie można cofnąć.
+                  Pozycja „{toDelete?.department} · {toDelete?.jobTitle?.trim() || '—'}” zostanie
+                  usunięta razem z liczbą osób i wszystkimi datami przyjęć. Tej operacji nie można
+                  cofnąć.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
