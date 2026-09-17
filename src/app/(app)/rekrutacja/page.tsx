@@ -479,8 +479,9 @@ export default function RekrutacjaPage() {
   const [recruitments, setRecruitments] = useState<Recruitment[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [newDepartment, setNewDepartment] = useState('');
-  const [newJobTitle, setNewJobTitle] = useState('');
-  const [newCount, setNewCount] = useState('');
+  const [formRows, setFormRows] = useState<{ jobTitle: string; count: string }[]>([
+    { jobTitle: '', count: '' },
+  ]);
   const [isAdding, setIsAdding] = useState(false);
   const [toDelete, setToDelete] = useState<Recruitment | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -513,19 +514,31 @@ export default function RekrutacjaPage() {
   );
 
   const usedCombos = useMemo(
-    () => new Set(recruitments.map(r => `${r.department}|${r.jobTitle?.trim() || '—'}`)),
+    () => new Set(recruitments.map(r => `${r.department}|${r.jobTitle || '—'}`)),
     [recruitments]
   );
 
   const availableDepartments = useMemo(
-    () => config.departments.filter(d => !usedCombos.has(`${d.name}|${newJobTitle?.trim() || '—'}`)),
-    [config.departments, usedCombos, newJobTitle]
+    () =>
+      config.departments.filter(d =>
+        config.jobTitles.some(jt => !usedCombos.has(`${d.name}|${jt.name}`))
+      ),
+    [config.departments, config.jobTitles, usedCombos]
   );
 
-  const availableJobTitles = useMemo(() => {
-    if (!newDepartment) return [];
-    return config.jobTitles.filter(jt => !usedCombos.has(`${newDepartment}|${jt.name?.trim() || '—'}`));
-  }, [config.jobTitles, usedCombos, newDepartment]);
+  // Stanowiska dostępne w wierszu formularza — wolne kombinacje + nieużyte w innych wierszach
+  const getRowJobTitleOptions = (rowIndex: number) =>
+    config.jobTitles.filter(
+      jt =>
+        !usedCombos.has(`${newDepartment}|${jt.name}`) &&
+        !formRows.some((row, i) => i !== rowIndex && row.jobTitle === jt.name)
+    );
+
+  const canSubmitForm =
+    !!newDepartment &&
+    formRows.length > 0 &&
+    formRows.every(r => r.jobTitle && parseInt(r.count, 10) >= 1) &&
+    new Set(formRows.map(r => r.jobTitle)).size === formRows.length;
 
   const totalToRecruit = recruitments.reduce((sum, r) => sum + (Number(r.toRecruit) || 0), 0);
   const totalPlanned = recruitments.reduce(
@@ -667,24 +680,25 @@ export default function RekrutacjaPage() {
 
   const handleAdd = async () => {
     const db = getDB();
-    const parsedCount = parseInt(newCount, 10);
-    if (!db || !newDepartment || !newJobTitle || Number.isNaN(parsedCount) || parsedCount < 1) return;
+    if (!db || !newDepartment || !canSubmitForm) return;
     setIsAdding(true);
     try {
-      const newRef = push(dbRef(db, 'recruitment'));
-      await set(newRef, {
-        department: newDepartment,
-        jobTitle: newJobTitle,
-        toRecruit: parsedCount,
-        createdAt: new Date().toISOString(),
+      for (const row of formRows) {
+        const newRef = push(dbRef(db, 'recruitment'));
+        await set(newRef, {
+          department: newDepartment,
+          jobTitle: row.jobTitle,
+          toRecruit: parseInt(row.count, 10),
+          createdAt: new Date().toISOString(),
+        });
+      }
+      const totalOs = formRows.reduce((s, r) => s + parseInt(r.count, 10), 0);
+      toast({
+        title: formRows.length > 1 ? `Dodano ${formRows.length} pozycje` : 'Dodano pozycję',
+        description: `${newDepartment} — ${totalOs} os. do rekrutacji`,
       });
       setNewDepartment('');
-      setNewJobTitle('');
-      setNewCount('');
-      toast({
-        title: 'Dodano pozycję',
-        description: `${newDepartment} · ${newJobTitle} — ${parsedCount} os. do rekrutacji`,
-      });
+      setFormRows([{ jobTitle: '', count: '' }]);
     } catch {
       toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać pozycji.' });
     } finally {
@@ -885,15 +899,15 @@ export default function RekrutacjaPage() {
 
             <Card>
               <CardContent className="flex flex-col gap-3 pt-6">
-                <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
+                <div className="space-y-3">
                   <Select
                     value={newDepartment}
                     onValueChange={value => {
                       setNewDepartment(value);
-                      setNewJobTitle('');
+                      setFormRows([{ jobTitle: '', count: '' }]);
                     }}
                   >
-                    <SelectTrigger className="w-full lg:w-72" aria-label="Wybierz dział">
+                    <SelectTrigger className="w-full lg:w-80" aria-label="Wybierz dział">
                       <SelectValue placeholder="Wybierz dział…" />
                     </SelectTrigger>
                     <SelectContent>
@@ -910,53 +924,94 @@ export default function RekrutacjaPage() {
                       )}
                     </SelectContent>
                   </Select>
-                  <Select
-                    value={newJobTitle}
-                    onValueChange={setNewJobTitle}
-                    disabled={!newDepartment}
-                  >
-                    <SelectTrigger className="w-full lg:w-64" aria-label="Wybierz stanowisko">
-                      <SelectValue
-                        placeholder={newDepartment ? 'Wybierz stanowisko…' : 'Najpierw dział…'}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableJobTitles.length === 0 ? (
-                        <p className="px-3 py-2 text-sm text-muted-foreground">
-                          Wszystkie stanowiska dla tego działu zostały dodane.
-                        </p>
-                      ) : (
-                        availableJobTitles.map(jt => (
-                          <SelectItem key={jt.id} value={jt.name}>
-                            {jt.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    min={1}
-                    placeholder="Ile osób?"
-                    value={newCount}
-                    onChange={e => setNewCount(e.target.value)}
-                    className="w-full lg:w-32"
-                    aria-label="Liczba osób do rekrutacji"
-                  />
-                  <Button
-                    className="gap-2 lg:ml-auto"
-                    disabled={
-                      !newDepartment ||
-                      !newJobTitle ||
-                      !newCount ||
-                      parseInt(newCount, 10) < 1 ||
-                      isAdding
-                    }
-                    onClick={handleAdd}
-                  >
-                    {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    Dodaj
-                  </Button>
+
+                  {newDepartment && (
+                    <div className="space-y-2">
+                      {formRows.map((row, index) => {
+                        const rowOptions = getRowJobTitleOptions(index);
+                        return (
+                          <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <Select
+                              value={row.jobTitle}
+                              onValueChange={value =>
+                                setFormRows(prev =>
+                                  prev.map((r, i) => (i === index ? { ...r, jobTitle: value } : r))
+                                )
+                              }
+                            >
+                              <SelectTrigger
+                                className="w-full sm:w-64"
+                                aria-label={`Stanowisko — wiersz ${index + 1}`}
+                              >
+                                <SelectValue placeholder="Wybierz stanowisko…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {rowOptions.length === 0 ? (
+                                  <p className="px-3 py-2 text-sm text-muted-foreground">
+                                    Brak dostępnych stanowisk.
+                                  </p>
+                                ) : (
+                                  rowOptions.map(jt => (
+                                    <SelectItem key={jt.id} value={jt.name}>
+                                      {jt.name}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="Ile osób?"
+                              value={row.count}
+                              onChange={e =>
+                                setFormRows(prev =>
+                                  prev.map((r, i) => (i === index ? { ...r, count: e.target.value } : r))
+                                )
+                              }
+                              className="w-full sm:w-32"
+                              aria-label={`Liczba osób — stanowisko ${index + 1}`}
+                            />
+                            {formRows.length > 1 && (
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                                onClick={() =>
+                                  setFormRows(prev => prev.filter((_, i) => i !== index))
+                                }
+                                aria-label={`Usuń wiersz ${index + 1}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                        onClick={() => setFormRows(prev => [...prev, { jobTitle: '', count: '' }])}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Dodaj stanowisko
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end">
+                    <Button
+                      className="gap-2"
+                      disabled={!canSubmitForm || isAdding}
+                      onClick={handleAdd}
+                    >
+                      {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      {formRows.length > 1 ? `Dodaj pozycje (${formRows.length})` : 'Dodaj'}
+                    </Button>
+                  </div>
                 </div>
 
                 {selectedDepartmentStats && (
