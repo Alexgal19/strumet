@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { onValue, push, ref as dbRef, remove, set, update } from 'firebase/database';
-import { addDays, format, startOfDay } from 'date-fns';
+import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
+import { pl as plLocale } from 'date-fns/locale';
 import { PageHeader } from '@/components/page-header';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
@@ -615,6 +616,13 @@ export default function RekrutacjaPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [view, setView] = useState<'karty' | 'harmonogram'>('karty');
   const [expandedDept, setExpandedDept] = useState<string | null>(null);
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [cellTooltip, setCellTooltip] = useState<{
+    x: number;
+    y: number;
+    absentees: Employee[];
+    vacationers: Employee[];
+  } | null>(null);
 
   useEffect(() => {
     const db = getDB();
@@ -689,10 +697,17 @@ export default function RekrutacjaPage() {
     return map;
   }, [activeEmployees]);
 
-  // Harmonogram obsady — 30 dni od dziś
+  // Harmonogram obsady — dni wybranego miesiąca (przełączanie ‹ ›)
+  const harmonogramMonth = useMemo(
+    () => startOfMonth(addMonths(new Date(), monthOffset)),
+    [monthOffset]
+  );
   const harmonogramDays = useMemo(
-    () => Array.from({ length: 30 }, (_, i) => addDays(startOfDay(new Date()), i)),
-    []
+    () =>
+      Array.from({ length: getDaysInMonth(harmonogramMonth) }, (_, i) =>
+        addDays(harmonogramMonth, i)
+      ),
+    [harmonogramMonth]
   );
 
   const terminationsByDept = useMemo(() => {
@@ -704,6 +719,44 @@ export default function RekrutacjaPage() {
       const arr = map.get(e.department) ?? [];
       arr.push(format(planned, 'yyyy-MM-dd'));
       map.set(e.department, arr);
+    });
+    return map;
+  }, [activeEmployees]);
+
+  // Urlopy per dział i dział·stanowisko: okres (start–end) + pracownik
+  const vacationsByDept = useMemo(() => {
+    const map = new Map<string, { start: string; end: string; employee: Employee }[]>();
+    activeEmployees.forEach(e => {
+      if (!e.vacationStartDate) return;
+      const start = parseMaybeDate(e.vacationStartDate);
+      if (!start) return;
+      const endRaw = parseMaybeDate(e.vacationEndDate);
+      const arr = map.get(e.department) ?? [];
+      arr.push({
+        start: format(start, 'yyyy-MM-dd'),
+        end: endRaw ? format(endRaw, 'yyyy-MM-dd') : '9999-12-31',
+        employee: e,
+      });
+      map.set(e.department, arr);
+    });
+    return map;
+  }, [activeEmployees]);
+
+  const vacationsByDeptJob = useMemo(() => {
+    const map = new Map<string, { start: string; end: string; employee: Employee }[]>();
+    activeEmployees.forEach(e => {
+      if (!e.vacationStartDate || !e.jobTitle) return;
+      const start = parseMaybeDate(e.vacationStartDate);
+      if (!start) return;
+      const endRaw = parseMaybeDate(e.vacationEndDate);
+      const key = `${e.department}|${e.jobTitle}`;
+      const arr = map.get(key) ?? [];
+      arr.push({
+        start: format(start, 'yyyy-MM-dd'),
+        end: endRaw ? format(endRaw, 'yyyy-MM-dd') : '9999-12-31',
+        employee: e,
+      });
+      map.set(key, arr);
     });
     return map;
   }, [activeEmployees]);
@@ -791,24 +844,26 @@ export default function RekrutacjaPage() {
   const buildPositionDailyCells = (
     department: string,
     jobTitle: string,
-    obecnie: number,
-    toRecruit: number,
-    terminations: number
+    obecnie: number
   ) => {
     const tl = positionTimelines.get(`${department}|${jobTitle}`);
     const jobAbsences = absencesByDeptJob.get(`${department}|${jobTitle}`);
-    const potrzeby = Math.max(0, obecnie + toRecruit - terminations);
+    const jobVacations = vacationsByDeptJob.get(`${department}|${jobTitle}`) ?? [];
     const cells = harmonogramDays.map(d => {
       const key = format(d, 'yyyy-MM-dd');
       const absentees = jobAbsences?.get(key) ?? [];
+      const vacationers = jobVacations
+        .filter(v => v.start <= key && key <= v.end)
+        .map(v => v.employee);
       const mam =
         obecnie -
         (tl?.termDates.filter(t => t <= key).length ?? 0) +
         (tl?.arrivals.filter(a => a.date <= key).reduce((s, a) => s + a.count, 0) ?? 0) -
-        absentees.length;
-      return { mam, deficit: mam < potrzeby, absentees };
+        absentees.length -
+        vacationers.length;
+      return { mam, absentees, vacationers };
     });
-    return { potrzeby, cells };
+    return { cells };
   };
 
   const harmonogramRows = useMemo(() => {
@@ -828,15 +883,20 @@ export default function RekrutacjaPage() {
         const potrzeby = obecnie + sumRekrut;
         const termDates = terminationsByDept.get(dept) ?? [];
         const arrivals = arrivalsByDept.get(dept) ?? [];
+        const vacations = vacationsByDept.get(dept) ?? [];
         const deptAbsences = absencesByDept.get(dept);
         const cells = harmonogramDays.map(d => {
           const key = format(d, 'yyyy-MM-dd');
           const absentees = deptAbsences?.get(key) ?? [];
+          const vacationers = vacations
+            .filter(v => v.start <= key && key <= v.end)
+            .map(v => v.employee);
           const mam =
             obecnie -
             termDates.filter(t => t <= key).length +
             arrivals.filter(a => a.date <= key).reduce((s, a) => s + a.count, 0) -
-            absentees.length;
+            absentees.length -
+            vacationers.length;
           const newTerms = termDates.filter(t => t === key).length;
           const newArrivals = arrivals
             .filter(a => a.date === key)
@@ -845,27 +905,35 @@ export default function RekrutacjaPage() {
           if (newArrivals > 0) changes.push(`+${newArrivals} przyjęć`);
           if (newTerms > 0) changes.push(`−${newTerms} zwolnień`);
           if (absentees.length > 0) changes.push(`−${absentees.length} nieobecnych`);
-          const title = [
-            changes.join(', '),
-            absentees.length > 0
-              ? `Nieobecni: ${absentees
-                  .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
-                  .join('; ')}`
-              : '',
-          ]
-            .filter(Boolean)
-            .join(' | ');
-          return {
-            key,
-            mam,
-            deficit: mam < potrzeby,
-            title: title || undefined,
-            absentees,
-          };
+          if (vacationers.length > 0) changes.push(`−${vacationers.length} na urlopie`);
+          const details: string[] = [];
+          if (absentees.length > 0)
+            details.push(
+              `Nieobecni: ${absentees
+                .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
+                .join('; ')}`
+            );
+          if (vacationers.length > 0)
+            details.push(
+              `Na urlopie: ${vacationers
+                .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
+                .join('; ')}`
+            );
+          const title = [changes.join(', '), ...details].filter(Boolean).join(' | ');
+          return { key, mam, absentees, vacationers, title: title || undefined };
         });
         return { dept, potrzeby, obecnie, sumRekrut, cells };
       });
-  }, [recruitments, activeEmployees, headcountByDepartment, terminationsByDept, arrivalsByDept, absencesByDept, harmonogramDays]);
+  }, [
+    recruitments,
+    activeEmployees,
+    headcountByDepartment,
+    terminationsByDept,
+    arrivalsByDept,
+    absencesByDept,
+    vacationsByDept,
+    harmonogramDays,
+  ]);
 
   // Stanowiska w każdym dziale: obecna obsada + planowane zwolnienia + potrzeby rekrutacyjne
   const jobTitlesByDepartment = useMemo(() => {
@@ -1185,7 +1253,7 @@ export default function RekrutacjaPage() {
       const ws4Rows: {
         values: (string | number)[];
         isSub: boolean;
-        cells?: { mam: number; deficit: boolean; absentees: Employee[] }[];
+        cells?: { mam: number; absentees: Employee[]; vacationers: Employee[] }[];
       }[] = [];
       harmonogramRows.forEach(row => {
         ws4Rows.push({
@@ -1194,13 +1262,8 @@ export default function RekrutacjaPage() {
           cells: row.cells,
         });
         (jobTitlesByDepartment.get(row.dept) ?? []).forEach(s => {
-          const { potrzeby: potrzebyPos, cells: posCells } = buildPositionDailyCells(
-            row.dept,
-            s.jobTitle,
-            s.count,
-            s.toRecruit,
-            s.terminations
-          );
+          const potrzebyPos = Math.max(0, s.count + s.toRecruit - s.terminations);
+          const posCells = buildPositionDailyCells(row.dept, s.jobTitle, s.count).cells;
           ws4Rows.push({
             values: [`   • ${s.jobTitle}`, potrzebyPos, s.count, ...posCells.map(c => c.mam)],
             isSub: true,
@@ -1226,15 +1289,18 @@ export default function RekrutacjaPage() {
           sheetRow.font = { italic: true, color: { argb: 'FF6B7280' } };
         }
         row.cells?.forEach((cell, j) => {
-          if (cell.deficit) {
+          if (cell.absentees.length > 0) {
             const tableCell = sheetRow.getCell(4 + j);
             tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
             tableCell.font = { color: { argb: 'FF9C0006' }, bold: true };
-          } else if (cell.absentees.length > 0) {
-            const tableCell = sheetRow.getCell(4 + j);
-            tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } };
-            tableCell.font = { color: { argb: 'FF9C6500' }, italic: true };
             tableCell.note = `Nieobecni: ${cell.absentees
+              .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
+              .join('; ')}`;
+          } else if (cell.vacationers.length > 0) {
+            const tableCell = sheetRow.getCell(4 + j);
+            tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8BBD9' } };
+            tableCell.font = { color: { argb: 'FF880E4F' }, italic: true };
+            tableCell.note = `Na urlopie: ${cell.vacationers
               .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
               .join('; ')}`;
           }
@@ -1303,7 +1369,7 @@ export default function RekrutacjaPage() {
                   className="rounded-none border-0"
                   onClick={() => setView('harmonogram')}
                 >
-                  Harmonogram obsady (30 dni)
+                  Harmonogram obsady
                 </Button>
               </div>
             </div>
@@ -1311,26 +1377,59 @@ export default function RekrutacjaPage() {
             {view === 'harmonogram' ? (
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">
-                    Harmonogram obsady — 30 dni ({format(harmonogramDays[0], 'dd.MM')} –{' '}
-                    {format(harmonogramDays[harmonogramDays.length - 1], 'dd.MM')})
-                  </CardTitle>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <CardTitle className="text-base">
+                      Harmonogram obsady —{' '}
+                      {format(harmonogramMonth, 'LLLL yyyy', { locale: plLocale })}
+                    </CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8"
+                        onClick={() => setMonthOffset(m => m - 1)}
+                        aria-label="Poprzedni miesiąc"
+                      >
+                        <ChevronRight className="h-4 w-4 rotate-180" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        onClick={() => setMonthOffset(0)}
+                      >
+                        Ten miesiąc
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8"
+                        onClick={() => setMonthOffset(m => m + 1)}
+                        aria-label="Następny miesiąc"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-3 w-3 rounded bg-emerald-500/60" />
-                      obsada wystarczająca
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-3 w-3 rounded bg-destructive/70" />
-                      deficyt (poniżej Potrzeby)
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-3 w-3 rounded bg-amber-500/70" />
+                      <span className="animate-absence-blink inline-block h-3 w-3 rounded" />
                       nieobecni (najedź, aby zobaczyć kto)
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block h-3 w-3 rounded bg-pink-500/60" />
+                      na urlopie
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block h-3 w-3 rounded bg-emerald-500/60" />
+                      zmiany (przyjęcia / zwolnienia)
                     </span>
                     <span>
                       Mamy [dzień] = obecnie − zwolnienia (od tego dnia) + przyjęcia (od tego dnia) −
-                      nieobecni (tego dnia)
+                      nieobecni (tego dnia) − urlopy (tego dnia)
                     </span>
                   </div>
                 </CardHeader>
@@ -1390,13 +1489,30 @@ export default function RekrutacjaPage() {
                                 {row.cells.map(cell => (
                                   <td
                                     key={cell.key}
-                                    title={cell.title}
+                                    onMouseEnter={e => {
+                                      if (
+                                        cell.absentees.length === 0 &&
+                                        cell.vacationers.length === 0
+                                      )
+                                        return;
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setCellTooltip({
+                                        x: Math.min(
+                                          rect.left + rect.width / 2,
+                                          window.innerWidth - 340
+                                        ),
+                                        y: rect.bottom + 4,
+                                        absentees: cell.absentees,
+                                        vacationers: cell.vacationers,
+                                      });
+                                    }}
+                                    onMouseLeave={() => setCellTooltip(null)}
                                     className={
                                       'px-2.5 py-2 text-center tabular-nums' +
-                                      (cell.deficit
-                                        ? ' bg-destructive/15 font-semibold text-destructive'
-                                        : cell.absentees.length > 0
-                                          ? ' bg-amber-500/20'
+                                      (cell.absentees.length > 0
+                                        ? ' animate-absence-blink font-semibold'
+                                        : cell.vacationers.length > 0
+                                          ? ' bg-pink-500/25'
                                           : cell.title
                                             ? ' bg-emerald-500/15'
                                             : '')
@@ -1408,14 +1524,15 @@ export default function RekrutacjaPage() {
                               </tr>
                               {isExpanded &&
                                 stats.map(s => {
-                                  const { potrzeby: potrzebyPos, cells: posCells } =
-                                    buildPositionDailyCells(
-                                      row.dept,
-                                      s.jobTitle,
-                                      s.count,
-                                      s.toRecruit,
-                                      s.terminations
-                                    );
+                                  const potrzebyPos = Math.max(
+                                    0,
+                                    s.count + s.toRecruit - s.terminations
+                                  );
+                                  const posCells = buildPositionDailyCells(
+                                    row.dept,
+                                    s.jobTitle,
+                                    s.count
+                                  ).cells;
                                   return (
                                     <tr key={s.jobTitle} className="bg-muted/40">
                                       <td className="sticky left-0 z-10 bg-muted/40 py-1.5 pl-10 pr-3 text-xs italic text-muted-foreground">
@@ -1434,20 +1551,40 @@ export default function RekrutacjaPage() {
                                               `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`
                                           )
                                           .join('; ');
+                                        const vacationNames = cell.vacationers
+                                          .map(
+                                            e =>
+                                              `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`
+                                          )
+                                          .join('; ');
                                         return (
                                           <td
                                             key={`${s.jobTitle}-${ci}`}
-                                            title={
-                                              cell.absentees.length > 0
-                                                ? `Nieobecni: ${names}`
-                                                : undefined
-                                            }
+                                            onMouseEnter={e => {
+                                              if (
+                                                cell.absentees.length === 0 &&
+                                                cell.vacationers.length === 0
+                                              )
+                                                return;
+                                              const rect = e.currentTarget.getBoundingClientRect();
+                                              setCellTooltip({
+                                                x: Math.min(
+                                                  rect.left + rect.width / 2,
+                                                  window.innerWidth - 340
+                                                ),
+                                                y: rect.bottom + 4,
+                                                absentees: cell.absentees,
+                                                vacationers: cell.vacationers,
+                                              });
+                                            }}
+                                            onMouseLeave={() => setCellTooltip(null)}
+                                            title={names ? `Nieobecni: ${names}` : undefined}
                                             className={
                                               'px-2.5 py-1.5 text-center text-xs tabular-nums' +
-                                              (cell.deficit
-                                                ? ' bg-destructive/10 font-semibold text-destructive'
-                                                : cell.absentees.length > 0
-                                                  ? ' bg-amber-500/20'
+                                              (cell.absentees.length > 0
+                                                ? ' animate-absence-blink font-semibold'
+                                                : cell.vacationers.length > 0
+                                                  ? ' bg-pink-500/25'
                                                   : '')
                                             }
                                           >
@@ -1667,6 +1804,64 @@ export default function RekrutacjaPage() {
               </>
             )}
           </div>
+
+          {cellTooltip && (cellTooltip.absentees.length > 0 || cellTooltip.vacationers.length > 0) && (
+            <div
+              className="pointer-events-none fixed z-50 w-[340px] -translate-x-1/2 overflow-hidden rounded-lg border bg-background shadow-xl"
+              style={{ left: cellTooltip.x, top: cellTooltip.y }}
+            >
+              {cellTooltip.absentees.length > 0 && (
+                <div>
+                  <p className="animate-absence-blink px-3 py-1.5 text-xs font-semibold text-destructive">
+                    Nieobecni ({cellTooltip.absentees.length})
+                  </p>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="px-3 py-1 font-medium">Pracownik</th>
+                        <th className="px-2 py-1 font-medium">Stanowisko</th>
+                        <th className="px-3 py-1 font-medium">Kierownik</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cellTooltip.absentees.map(emp => (
+                        <tr key={emp.id} className="border-b border-border/40">
+                          <td className="px-3 py-1 font-medium">{emp.fullName}</td>
+                          <td className="px-2 py-1">{emp.jobTitle}</td>
+                          <td className="px-3 py-1 text-muted-foreground">{emp.manager || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {cellTooltip.vacationers.length > 0 && (
+                <div>
+                  <p className="bg-pink-500/15 px-3 py-1.5 text-xs font-semibold text-pink-600 dark:text-pink-400">
+                    Na urlopie ({cellTooltip.vacationers.length})
+                  </p>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="px-3 py-1 font-medium">Pracownik</th>
+                        <th className="px-2 py-1 font-medium">Stanowisko</th>
+                        <th className="px-3 py-1 font-medium">Kierownik</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cellTooltip.vacationers.map(emp => (
+                        <tr key={emp.id} className="border-b border-border/40">
+                          <td className="px-3 py-1 font-medium">{emp.fullName}</td>
+                          <td className="px-2 py-1">{emp.jobTitle}</td>
+                          <td className="px-3 py-1 text-muted-foreground">{emp.manager || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
 
           <AlertDialog open={!!toDelete} onOpenChange={open => !open && setToDelete(null)}>
             <AlertDialogContent>
