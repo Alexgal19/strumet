@@ -754,6 +754,7 @@ export default function RekrutacjaPage() {
         jobTitle: e.jobTitle,
         fullName: e.fullName,
         manager: e.manager,
+        hireDate: e.hireDate,
         vacationStartDate: e.vacationStartDate,
         vacationEndDate: e.vacationEndDate,
         plannedTerminationDate: e.plannedTerminationDate,
@@ -1064,7 +1065,7 @@ export default function RekrutacjaPage() {
       ) : (
         <>
           <PageHeader
-            title="Rekrutacja"
+            title="Obsada"
             description="Zaplanuj, ile osób trzeba zrekrutować do każdego działu i kiedy mają przyjść."
           >
             <Button

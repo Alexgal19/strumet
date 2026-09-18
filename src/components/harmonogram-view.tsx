@@ -24,7 +24,8 @@ export function HarmonogramView({
   const [expandedDept, setExpandedDept] = useState<string | null>(null);
   const [cellTooltip, setCellTooltip] = useState<{
     x: number;
-    y: number;
+    top: number;
+    bottom: number;
     absentees: HarmonogramCell['absentees'];
     vacationers: HarmonogramCell['vacationers'];
   } | null>(null);
@@ -113,8 +114,8 @@ export function HarmonogramView({
             zmiany (przyjęcia / zwolnienia)
           </span>
           <span>
-            Mam [dzień] = obecnie − zwolnienia (od tego dnia) + przyjęcia (od tego dnia) −
-            nieobecni (tego dnia) − urlopy (tego dnia)
+            Mam [dzień] = obecnie − zatrudnienia po tym dniu − zwolnienia (od dnia po zwolnieniu) +
+            przyjęcia (od tego dnia) − nieobecni (tego dnia) − urlopy (tego dnia)
           </span>
         </div>
       </CardHeader>
@@ -170,7 +171,8 @@ export function HarmonogramView({
       {cellTooltip && (cellTooltip.absentees.length > 0 || cellTooltip.vacationers.length > 0) && (
         <TooltipPanel
           x={cellTooltip.x}
-          y={cellTooltip.y}
+          top={cellTooltip.top}
+          bottom={cellTooltip.bottom}
           absentees={cellTooltip.absentees}
           vacationers={cellTooltip.vacationers}
         />
@@ -179,21 +181,44 @@ export function HarmonogramView({
   );
 }
 
+const TOOLTIP_WIDTH = 340;
+const TOOLTIP_MARGIN = 8;
+
 function TooltipPanel({
   x,
-  y,
+  top,
+  bottom,
   absentees,
   vacationers,
 }: {
   x: number;
-  y: number;
+  top: number;
+  bottom: number;
   absentees: HarmonogramCell['absentees'];
   vacationers: HarmonogramCell['vacationers'];
 }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [style, setStyle] = React.useState<React.CSSProperties>({
+    left: x,
+    top: bottom + 4,
+  });
+
+  React.useLayoutEffect(() => {
+    const h = ref.current?.offsetHeight ?? 0;
+    const left = Math.max(
+      TOOLTIP_MARGIN,
+      Math.min(x - TOOLTIP_WIDTH / 2, window.innerWidth - TOOLTIP_WIDTH - TOOLTIP_MARGIN)
+    );
+    const fitsBelow = bottom + 4 + h <= window.innerHeight - TOOLTIP_MARGIN;
+    const nextTop = fitsBelow ? bottom + 4 : Math.max(TOOLTIP_MARGIN, top - h - 4);
+    setStyle({ left, top: nextTop });
+  }, [x, top, bottom]);
+
   return (
     <div
-      className="pointer-events-none fixed z-50 w-[340px] -translate-x-1/2 overflow-hidden rounded-lg border bg-background shadow-xl"
-      style={{ left: x, top: y }}
+      ref={ref}
+      className="pointer-events-none fixed z-50 w-[340px] overflow-hidden rounded-lg border bg-background shadow-xl"
+      style={style}
     >
       {absentees.length > 0 && (
         <div>
@@ -270,7 +295,8 @@ function HarmonogramDeptRows({
   onToggle: () => void;
   onCellHover: (t: {
     x: number;
-    y: number;
+    top: number;
+    bottom: number;
     absentees: HarmonogramCell['absentees'];
     vacationers: HarmonogramCell['vacationers'];
   }) => void;
@@ -280,8 +306,9 @@ function HarmonogramDeptRows({
     if (cell.absentees.length === 0 && cell.vacationers.length === 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     onCellHover({
-      x: Math.min(rect.left + rect.width / 2, window.innerWidth - 340),
-      y: rect.bottom + 4,
+      x: rect.left + rect.width / 2,
+      top: rect.top,
+      bottom: rect.bottom,
       absentees: cell.absentees,
       vacationers: cell.vacationers,
     });
@@ -312,7 +339,6 @@ function HarmonogramDeptRows({
         {row.cells.map((cell, i) => (
           <td
             key={`${row.dept}-${i}`}
-            title={cell.title}
             onMouseEnter={e => handleHover(e, cell)}
             onMouseLeave={onCellLeave}
             className={
@@ -345,7 +371,6 @@ function HarmonogramDeptRows({
             {pos.cells.map((cell, i) => (
               <td
                 key={`${row.dept}-${pos.jobTitle}-${i}`}
-                title={cell.title}
                 onMouseEnter={e => handleHover(e, cell)}
                 onMouseLeave={onCellLeave}
                 className={

@@ -30,6 +30,7 @@ export async function GET() {
         jobTitle: e.jobTitle ?? '',
         fullName: e.fullName ?? '',
         manager: e.manager ?? '',
+        hireDate: e.hireDate || undefined,
         vacationStartDate: e.vacationStartDate || undefined,
         vacationEndDate: e.vacationEndDate || undefined,
         plannedTerminationDate: e.plannedTerminationDate || undefined,

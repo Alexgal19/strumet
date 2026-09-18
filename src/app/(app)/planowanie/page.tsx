@@ -67,8 +67,8 @@ function PublicPlanowanieView() {
       ) : (
         <>
           <PageHeader
-            title="Rekrutacja"
-            description="Zaplanuj, ile osĂłb trzeba zrekrutowaÄ‡ do kaĹĽdego dziaĹ‚u i kiedy majÄ… przyjĹ›Ä‡."
+            title="Obsada"
+            description="Zaplanuj, ile osób trzeba zrekrutować do każdego działu i kiedy mają przyjść."
           />
 
           <div className="flex flex-col gap-4 overflow-y-auto pb-6">

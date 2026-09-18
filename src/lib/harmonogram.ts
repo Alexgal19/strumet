@@ -6,6 +6,7 @@ export interface HarmonogramEmployee {
   jobTitle: string;
   fullName: string;
   manager?: string;
+  hireDate?: string;
   vacationStartDate?: string;
   vacationEndDate?: string;
   plannedTerminationDate?: string;
@@ -79,10 +80,19 @@ export function buildHarmonogram(
     const planned = e.plannedTerminationDate
       ? startOfDay(new Date(e.plannedTerminationDate))
       : null;
-    if (!planned || planned.getTime() < today.getTime()) return;
+    if (!planned || Number.isNaN(planned.getTime())) return;
     const arr = terminationsByDept.get(e.department) ?? [];
     arr.push(dayKey(planned));
     terminationsByDept.set(e.department, arr);
+  });
+
+  const hiresByDept = new Map<string, string[]>();
+  data.employees.forEach(e => {
+    const hire = e.hireDate ? startOfDay(new Date(e.hireDate)) : null;
+    if (!hire || Number.isNaN(hire.getTime())) return;
+    const arr = hiresByDept.get(e.department) ?? [];
+    arr.push(dayKey(hire));
+    hiresByDept.set(e.department, arr);
   });
 
   // Urlopy per dziaĹ‚ i dziaĹ‚Â·stanowisko
@@ -167,22 +177,24 @@ export function buildHarmonogram(
   // PrzydziaĹ‚ przyjÄ™Ä‡ do pozycji zamĂłwienia (po kolei)
   const positionTimelines = new Map<
     string,
-    { termDates: string[]; arrivals: { date: string; count: number }[] }
+    { hireDates: string[]; termDates: string[]; arrivals: { date: string; count: number }[] }
   >();
   const ensureTimeline = (key: string) => {
     let entry = positionTimelines.get(key);
     if (!entry) {
-      entry = { termDates: [], arrivals: [] };
+      entry = { hireDates: [], termDates: [], arrivals: [] };
       positionTimelines.set(key, entry);
     }
     return entry;
   };
   data.employees.forEach(e => {
+    const tl = ensureTimeline(`${e.department}|${e.jobTitle}`);
+    const hire = e.hireDate ? startOfDay(new Date(e.hireDate)) : null;
+    if (hire && !Number.isNaN(hire.getTime())) tl.hireDates.push(dayKey(hire));
     const planned = e.plannedTerminationDate
       ? startOfDay(new Date(e.plannedTerminationDate))
       : null;
-    if (!planned || planned.getTime() < today.getTime()) return;
-    ensureTimeline(`${e.department}|${e.jobTitle}`).termDates.push(dayKey(planned));
+    if (planned && !Number.isNaN(planned.getTime())) tl.termDates.push(dayKey(planned));
   });
   data.recruitments.forEach(r => {
     const slots = r.positions.map(p => ({ jobTitle: p.jobTitle, left: Number(p.toRecruit) || 0 }));
@@ -232,7 +244,8 @@ export function buildHarmonogram(
           .map(v => v.employee);
         const mam =
           obecnie -
-          termDates.filter(t => t <= key).length +
+          (hiresByDept.get(dept)?.filter(h => h > key).length ?? 0) -
+          termDates.filter(t => t < key).length +
           arrivalsOf(dept, data)
             .filter(a => a.date <= key)
             .reduce((s, a) => s + a.count, 0) -
@@ -255,7 +268,8 @@ export function buildHarmonogram(
             .map(v => v.employee);
           const mam =
             s.count -
-            (tl?.termDates.filter(t => t <= key).length ?? 0) +
+            (tl?.hireDates.filter(h => h > key).length ?? 0) -
+            (tl?.termDates.filter(t => t < key).length ?? 0) +
             (tl?.arrivals.filter(a => a.date <= key).reduce((x, a) => x + a.count, 0) ?? 0) -
             absentees.length -
             vacationers.length;
