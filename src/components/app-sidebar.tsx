@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -110,20 +110,14 @@ export function AppSidebar() {
     });
   };
 
-  const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : GUEST_VIEWS;
-  const isGuest = allowedViews === GUEST_VIEWS;
+  const isGuest = !isAdmin && !isEditor;
   const sections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: allowedViews
-      ? section.items.filter((item) => allowedViews.includes(item.href))
-      : section.items,
-  })).map((section) => ({
-    ...section,
-    // Dla gości jedyna pozycja /planowanie widnieje jako „Harmonogram"
+    // Gość widzi wszystkie zakładki — zablokowane poza Harmonogramem
     items: section.items.map((item) =>
       isGuest && item.href === '/planowanie' ? { ...item, label: 'Harmonogram' } : item
     ),
-  })).filter((section) => section.items.length > 0);
+  }));
 
   return (
     <aside
@@ -161,6 +155,46 @@ export function AppSidebar() {
               {section.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname.startsWith(item.href);
+                const locked = isGuest && item.href !== '/planowanie';
+                const inner = (
+                  <>
+                    {isActive && !locked && (
+                      <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
+                    )}
+                    <Icon
+                      className="h-5 w-5 shrink-0"
+                      strokeWidth={isActive && !locked ? 2.25 : 1.75}
+                    />
+                    {!collapsed && (
+                      <span className="whitespace-nowrap">{item.label}</span>
+                    )}
+                    {locked && !collapsed && (
+                      <Lock className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                    )}
+                    {locked && collapsed && (
+                      <Lock className="absolute bottom-1 right-1.5 h-3 w-3 text-muted-foreground/70" />
+                    )}
+                  </>
+                );
+                if (locked) {
+                  return (
+                    <div
+                      key={item.href}
+                      title={
+                        collapsed
+                          ? `${item.label} — dostępne po zalogowaniu`
+                          : 'Dostępne po zalogowaniu'
+                      }
+                      aria-disabled="true"
+                      className={cn(
+                        'relative flex h-10 items-center gap-3 overflow-hidden rounded-xl px-3 text-sm font-medium text-muted-foreground/50 cursor-not-allowed select-none',
+                        collapsed && 'justify-center px-0'
+                      )}
+                    >
+                      {inner}
+                    </div>
+                  );
+                }
                 return (
                   <Link
                     key={item.href}
@@ -174,16 +208,7 @@ export function AppSidebar() {
                         : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                     )}
                   >
-                    {isActive && (
-                      <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
-                    )}
-                    <Icon
-                      className="h-5 w-5 shrink-0"
-                      strokeWidth={isActive ? 2.25 : 1.75}
-                    />
-                    {!collapsed && (
-                      <span className="whitespace-nowrap">{item.label}</span>
-                    )}
+                    {inner}
                   </Link>
                 );
               })}

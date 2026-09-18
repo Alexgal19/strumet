@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { LogOut } from 'lucide-react';
+import { LogOut, LogIn, Lock } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -16,7 +16,7 @@ import { useAppContext } from '@/context/app-context';
 import { getFirebaseServices } from '@/lib/firebase';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-import { ALL_NAV_ITEMS, GUEST_VIEWS, EDITOR_VIEWS, NAV_SECTIONS } from './app-sidebar';
+import { EDITOR_VIEWS, NAV_SECTIONS } from './app-sidebar';
 
 interface AppMobileDrawerProps {
   open: boolean;
@@ -41,24 +41,14 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
     router.push('/login');
   };
 
-  const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : GUEST_VIEWS;
-  const isGuest = allowedViews === GUEST_VIEWS;
-  const visibleHrefs = new Set(
-    (allowedViews
-      ? ALL_NAV_ITEMS.filter((item) => allowedViews.includes(item.href))
-      : ALL_NAV_ITEMS
-    ).map((item) => item.href)
-  );
-
+  const isGuest = !isAdmin && !isEditor;
   const sections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items
-      .filter((item) => visibleHrefs.has(item.href))
-      // Dla gości pozycja /planowanie widnieje jako „Harmonogram"
-      .map((item) =>
-        isGuest && item.href === '/planowanie' ? { ...item, label: 'Harmonogram' } : item
-      ),
-  })).filter((section) => section.items.length > 0);
+    // Gość widzi wszystkie zakładki — zablokowane poza Harmonogramem
+    items: section.items.map((item) =>
+      isGuest && item.href === '/planowanie' ? { ...item, label: 'Harmonogram' } : item
+    ),
+  }));
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -86,6 +76,21 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname.startsWith(item.href);
+                    const locked = isGuest && item.href !== '/planowanie';
+                    if (locked) {
+                      return (
+                        <div
+                          key={item.href}
+                          title="Dostępne po zalogowaniu"
+                          aria-disabled="true"
+                          className="flex items-center gap-3 min-h-[48px] px-3 py-2 rounded-2xl border border-border/30 bg-muted/20 text-muted-foreground/50 cursor-not-allowed select-none"
+                        >
+                          <Icon className="h-5 w-5 shrink-0" />
+                          <span className="text-[13px] leading-tight">{item.label}</span>
+                          <Lock className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                        </div>
+                      );
+                    }
                     return (
                       <Link
                         key={item.href}
@@ -110,13 +115,26 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
         </ScrollArea>
 
         <div className="p-4 border-t pb-[calc(1rem+env(safe-area-inset-bottom))] shrink-0">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-4 px-3 min-h-[48px] w-full rounded-2xl text-destructive hover:bg-destructive/10 transition-colors font-medium"
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Wyloguj</span>
-          </button>
+          {isGuest ? (
+            <button
+              onClick={() => {
+                onOpenChange(false);
+                router.push('/login');
+              }}
+              className="flex items-center gap-4 px-3 min-h-[48px] w-full rounded-2xl text-primary hover:bg-primary/10 transition-colors font-medium"
+            >
+              <LogIn className="h-5 w-5" />
+              <span>Zaloguj się</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-4 px-3 min-h-[48px] w-full rounded-2xl text-destructive hover:bg-destructive/10 transition-colors font-medium"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Wyloguj</span>
+            </button>
+          )}
         </div>
       </SheetContent>
     </Sheet>

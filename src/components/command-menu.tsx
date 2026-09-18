@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { SunMoon } from 'lucide-react';
+import { SunMoon, Lock } from 'lucide-react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/command';
 import { useAppContext } from '@/context/app-context';
 import { commandExcelFilter } from '@/lib/search';
-import { ALL_NAV_ITEMS, GUEST_VIEWS, EDITOR_VIEWS, NAV_SECTIONS } from '@/components/app-sidebar';
+import { ALL_NAV_ITEMS, EDITOR_VIEWS, NAV_SECTIONS } from '@/components/app-sidebar';
 
 interface CommandMenuProps {
   open: boolean;
@@ -38,7 +38,8 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
     return () => document.removeEventListener('keydown', down);
   }, [open, onOpenChange]);
 
-  const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : GUEST_VIEWS;
+  const isGuest = !isAdmin && !isEditor;
+  const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : null;
   const visibleItems = React.useMemo(
     () =>
       allowedViews
@@ -69,13 +70,19 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
             <CommandGroup key={section.title} heading={section.title}>
               {items.map((item) => {
                 const Icon = item.icon;
+                const locked = isGuest && item.href !== '/planowanie';
+                const label = isGuest && item.href === '/planowanie' ? 'Harmonogram' : item.label;
                 return (
                   <CommandItem
                     key={item.href}
+                    disabled={locked}
                     onSelect={() => run(() => router.push(item.href))}
                   >
                     <Icon className="mr-2 h-4 w-4" />
-                    {item.label}
+                    {label}
+                    {locked && (
+                      <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                    )}
                   </CommandItem>
                 );
               })}
