@@ -20,11 +20,11 @@ export default function PlanowaniePage() {
       </div>
     );
   }
-  // /harmonogram zawsze otwiera harmonogram obsady � dla go�ci i zalogowanych
+  // /harmonogram zawsze otwiera harmonogram obsady — dla gości i zalogowanych
   return <PublicPlanowanieView />;
 }
 
-/** Widok publiczny (bez logowania): tylko do odczytu � zapotrzebowania + harmonogram */
+/** Widok publiczny (bez logowania): tylko do odczytu — zapotrzebowania + harmonogram */
 function PublicPlanowanieView() {
   const [data, setData] = useState<HarmonogramData | null>(null);
   const [error, setError] = useState(false);
@@ -52,7 +52,7 @@ function PublicPlanowanieView() {
     <div className="h-full flex flex-col">
       {error ? (
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          Nie uda�o si� pobra� danych harmonogramu.
+          Nie udało się pobrać danych harmonogramu.
         </div>
       ) : !data ? (
         <div className="flex h-full items-center justify-center">
@@ -62,7 +62,7 @@ function PublicPlanowanieView() {
         <>
           <PageHeader
             title="Obsada"
-            description="Zaplanuj, ile os�b trzeba zrekrutowa� do ka�dego dzia�u i kiedy maj� przyj��."
+            description="Zaplanuj, ile osób trzeba zrekrutować do każdego działu i kiedy mają przyjść."
           />
 
           <div className="flex flex-col gap-4 overflow-y-auto pb-6">
@@ -149,7 +149,7 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
       if (!r.department) return;
       r.positions.forEach(p => {
         const entries = ensure(r.department);
-        const jobTitle = p.jobTitle?.trim() || '�';
+        const jobTitle = p.jobTitle?.trim() || '—';
         const existing = entries.find(x => x.jobTitle === jobTitle);
         if (existing) existing.toRecruit += Number(p.toRecruit) || 0;
         else
@@ -195,14 +195,14 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
         </Badge>
         <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
           <UserPlus className="h-4 w-4" />
-          Do rekrutacji ��cznie: {totalToRecruit}
+          Do rekrutacji łącznie: {totalToRecruit}
         </Badge>
         <Badge
           variant="outline"
           className="gap-1.5 border-blue-500/60 px-3 py-1.5 text-sm text-blue-700 tabular-nums dark:text-blue-400"
         >
           <CalendarPlus className="h-4 w-4" />
-          Zaplanowane przyj�cia: {totalPlanned}
+          Zaplanowane przyjęcia: {totalPlanned}
         </Badge>
       </div>
 
@@ -255,7 +255,7 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                           variant="outline"
                           className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
                         >
-                          Zwalnia si�: -{sumZwalnia}
+                          Zwalnia się: −{sumZwalnia}
                         </Badge>
                       )}
                       <Badge
@@ -277,7 +277,7 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                           variant="outline"
                           className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
                         >
-                          Nadwy�ka: +{surplus}
+                          Nadwyżka: +{surplus}
                         </Badge>
                       )}
                       {plannedTotal > 0 && missing === 0 && surplus === 0 && (
@@ -294,7 +294,7 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                 <CardContent className="space-y-3">
                   <div className="space-y-1.5">
                     <p className="text-xs font-medium text-muted-foreground">
-                      Stanowiska i liczba os�b:
+                      Stanowiska i liczba osób:
                     </p>
                     {positions.length === 0 ? (
                       <p className="rounded-md border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">
@@ -302,7 +302,7 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                       </p>
                     ) : (
                       positions.map((p, i) => {
-                        const jobTitle = p.jobTitle?.trim() || '�';
+                        const jobTitle = p.jobTitle?.trim() || '—';
                         const obecnie =
                           headcountByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0;
                         const zwalnia =
@@ -346,7 +346,7 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                             key={s.jobTitle}
                             className={[
                               'flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs',
-                              positions.some(p => (p.jobTitle?.trim() || '�') === s.jobTitle)
+                              positions.some(p => (p.jobTitle?.trim() || '—') === s.jobTitle)
                                 ? 'font-semibold text-foreground'
                                 : '',
                             ]
@@ -354,10 +354,10 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                               .join(' ')}
                           >
                             <span>
-                              {s.jobTitle} � {s.count} os.
+                              {s.jobTitle} — {s.count} os.
                               {s.terminations > 0 && (
                                 <span className="ml-1 text-amber-600 dark:text-amber-400">
-                                  (zwalnia si�: {s.terminations})
+                                  (zwalnia się: {s.terminations})
                                 </span>
                               )}
                             </span>
@@ -374,11 +374,11 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
 
                   <div className="space-y-1.5">
                     <p className="text-xs font-medium text-muted-foreground">
-                      Planowane przyj�cia ({plannedTotal} os.):
+                      Planowane przyjęcia ({plannedTotal} os.):
                     </p>
                     {order.arrivals.length === 0 ? (
                       <p className="rounded-md border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">
-                        Brak zaplanowanych dat przyj��.
+                        Brak zaplanowanych dat przyjęć.
                       </p>
                     ) : (
                       [...order.arrivals]
