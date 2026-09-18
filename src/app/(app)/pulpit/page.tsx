@@ -475,7 +475,7 @@ export default function DashboardPage() {
           label="Statystyki"
         />
         <QuickLink
-          href="/planowanie"
+          href="/harmonogram"
           icon={<CalendarClock className="h-4 w-4" />}
           label="Planowanie"
         />

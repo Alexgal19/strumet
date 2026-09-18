@@ -25,7 +25,7 @@ const ADMIN_PRIMARY: MenuItem[] = [
 ];
 
 const GUEST_PRIMARY: MenuItem[] = [
-  { href: '/planowanie', icon: CalendarClock, label: 'Harmonogram' },
+  { href: '/harmonogram', icon: CalendarClock, label: 'Harmonogram' },
 ];
 
 const EDITOR_PRIMARY: MenuItem[] = [

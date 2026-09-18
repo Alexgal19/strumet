@@ -208,7 +208,7 @@ export default function LoginPage() {
               type="button"
               variant="outline"
               className="w-full h-11"
-              onClick={() => router.push('/planowanie')}
+              onClick={() => router.push('/harmonogram')}
             >
               <User className="mr-2 h-4 w-4" />
               Wejdź jako gość

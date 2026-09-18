@@ -34,6 +34,15 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', 'date-fns', 'recharts', 'framer-motion', '@radix-ui/react-dialog', '@radix-ui/react-popover', '@radix-ui/react-select'],
   },
   serverExternalPackages: ['express'],
+  async redirects() {
+    return [
+      {
+        source: '/planowanie',
+        destination: '/harmonogram',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

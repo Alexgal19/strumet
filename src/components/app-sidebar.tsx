@@ -76,7 +76,7 @@ export const NAV_SECTIONS: NavSection[] = [
 
 export const ALL_NAV_ITEMS: MenuItem[] = NAV_SECTIONS.flatMap((s) => s.items);
 
-export const GUEST_VIEWS = ['/planowanie'];
+export const GUEST_VIEWS = ['/harmonogram'];
 
 /** Widoki dodatkowe dla roli 'kolega' (editor) */
 export const EDITOR_VIEWS = ['/kalendarz', '/odwiedzalnosc', '/rekrutacja', '/terminy'];
@@ -115,7 +115,7 @@ export function AppSidebar() {
     ...section,
     // Gość widzi wszystkie zakładki — zablokowane poza Harmonogramem
     items: section.items.map((item) =>
-      isGuest && item.href === '/planowanie' ? { ...item, label: 'Harmonogram' } : item
+      isGuest && item.href === '/harmonogram' ? { ...item, label: 'Harmonogram' } : item
     ),
   }));
 
@@ -155,7 +155,7 @@ export function AppSidebar() {
               {section.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname.startsWith(item.href);
-                const locked = isGuest && item.href !== '/planowanie';
+                const locked = isGuest && item.href !== '/harmonogram';
                 const inner = (
                   <>
                     {isActive && !locked && (

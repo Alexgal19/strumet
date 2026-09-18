@@ -70,8 +70,8 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
             <CommandGroup key={section.title} heading={section.title}>
               {items.map((item) => {
                 const Icon = item.icon;
-                const locked = isGuest && item.href !== '/planowanie';
-                const label = isGuest && item.href === '/planowanie' ? 'Harmonogram' : item.label;
+                const locked = isGuest && item.href !== '/harmonogram';
+                const label = isGuest && item.href === '/harmonogram' ? 'Harmonogram' : item.label;
                 return (
                   <CommandItem
                     key={item.href}

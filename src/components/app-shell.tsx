@@ -51,11 +51,11 @@ export const AppShell = React.memo(function AppShell({ children }: { children: R
 
   const isAuthPage = pathname === '/login' || pathname === '/register';
   // Publiczna strona dostępna bez logowania (wyświetlana gościom zamiast przekierowania)
-  const isPublicPage = pathname === '/planowanie';
+  const isPublicPage = pathname === '/harmonogram';
 
   useEffect(() => {
     if (!isLoading && !currentUser && !isAuthPage && !isPublicPage) {
-      router.push('/planowanie');
+      router.push('/harmonogram');
     }
   }, [isLoading, currentUser, isAuthPage, isPublicPage, router]);
 

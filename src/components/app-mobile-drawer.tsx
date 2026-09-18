@@ -46,7 +46,7 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
     ...section,
     // Gość widzi wszystkie zakładki — zablokowane poza Harmonogramem
     items: section.items.map((item) =>
-      isGuest && item.href === '/planowanie' ? { ...item, label: 'Harmonogram' } : item
+      isGuest && item.href === '/harmonogram' ? { ...item, label: 'Harmonogram' } : item
     ),
   }));
 
@@ -76,7 +76,7 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname.startsWith(item.href);
-                    const locked = isGuest && item.href !== '/planowanie';
+                    const locked = isGuest && item.href !== '/harmonogram';
                     if (locked) {
                       return (
                         <div
