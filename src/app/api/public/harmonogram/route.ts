@@ -66,15 +66,22 @@ export async function GET() {
         string,
         { date?: string; count?: number }
       >;
+      // Nowy model: positions[] — stare wpisy (jobTitle/toRecruit) mapujemy do jednej pozycji
+      const legacyJobTitle = typeof rec.jobTitle === 'string' ? rec.jobTitle : undefined;
+      const positions = Object.keys(positionsRaw).length
+        ? Object.values(positionsRaw).map((p) => ({
+            jobTitle: p.jobTitle ?? '',
+            toRecruit: Number(p.toRecruit) || 0,
+          }))
+        : legacyJobTitle
+          ? [{ jobTitle: legacyJobTitle, toRecruit: Number(rec.toRecruit) || 0 }]
+          : [];
       return {
         department: (rec.department as string) ?? '',
-        positions: Object.values(positionsRaw).map(p => ({
-          jobTitle: p.jobTitle ?? '',
-          toRecruit: Number(p.toRecruit) || 0,
-        })),
+        positions,
         arrivals: Object.values(arrivalsRaw)
-          .filter(a => !!a.date)
-          .map(a => ({ date: a.date as string, count: Number(a.count) || 0 })),
+          .filter((a) => !!a.date)
+          .map((a) => ({ date: a.date as string, count: Number(a.count) || 0 })),
       };
     });
 
