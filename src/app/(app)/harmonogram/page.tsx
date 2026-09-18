@@ -32,7 +32,7 @@ function PublicPlanowanieView() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/public/harmonogram')
+    fetch('/api/public/harmonogram', { cache: 'no-store' })
       .then(res => {
         if (!res.ok) throw new Error(String(res.status));
         return res.json();

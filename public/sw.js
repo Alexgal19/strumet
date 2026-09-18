@@ -1,6 +1,6 @@
 // public/sw.js
 
-const CACHE_NAME = 'baza-st-cache-v2'; // Increment version to force update
+const CACHE_NAME = 'baza-st-cache-v3'; // Increment version to force update
 
 // On install, perform setup.
 self.addEventListener('install', (event) => {
@@ -29,6 +29,14 @@ self.addEventListener('activate', (event) => {
 
 // On fetch, serve from cache, falling back to network.
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // API — zawsze z sieci (dane na żywo), nigdy z cache.
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   // For navigation requests, use a network-first strategy.
   if (event.request.mode === 'navigate') {
     event.respondWith(
