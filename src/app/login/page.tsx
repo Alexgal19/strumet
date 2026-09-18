@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Database, Download, Loader2, Share, PlusSquare } from "lucide-react";
+import { Database, Download, Loader2, Share, PlusSquare, User } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getFirebaseServices } from "@/lib/firebase";
@@ -203,6 +203,16 @@ export default function LoginPage() {
                 <span className="bg-transparent px-2 text-muted-foreground">Lub</span>
               </div>
             </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-11"
+              onClick={() => router.push('/planowanie')}
+            >
+              <User className="mr-2 h-4 w-4" />
+              Wejdź jako gość
+            </Button>
 
             <div className="text-center text-sm">
               <span className="text-muted-foreground">Nie masz konta? </span>

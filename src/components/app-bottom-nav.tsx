@@ -32,7 +32,6 @@ const EDITOR_PRIMARY: MenuItem[] = [
   { href: '/pulpit', icon: LayoutDashboard, label: 'Pulpit' },
   { href: '/aktywni', icon: Users, label: 'Pracownicy' },
   { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
-  { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
 ];
 
 interface AppBottomNavProps {

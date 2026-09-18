@@ -46,7 +46,6 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: '/aktywni', icon: Users, label: 'Pracownicy aktywni' },
       { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni' },
       { href: '/rekrutacja', icon: UserPlus, label: 'Harmonogram' },
-      { href: '/planowanie', icon: CalendarClock, label: 'Planowanie' },
       { href: '/terminy', icon: CalendarCheck, label: 'Terminy' },
       { href: '/kalendarz', icon: CalendarRange, label: 'Kalendarz' },
       { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
@@ -80,7 +79,7 @@ export const ALL_NAV_ITEMS: MenuItem[] = NAV_SECTIONS.flatMap((s) => s.items);
 export const GUEST_VIEWS = ['/planowanie'];
 
 /** Widoki dodatkowe dla roli 'kolega' (editor) */
-export const EDITOR_VIEWS = [...GUEST_VIEWS, '/kalendarz', '/odwiedzalnosc', '/rekrutacja', '/terminy'];
+export const EDITOR_VIEWS = ['/kalendarz', '/odwiedzalnosc', '/rekrutacja', '/terminy'];
 
 const SIDEBAR_COLLAPSED_KEY = 'baza-st-sidebar-collapsed';
 
