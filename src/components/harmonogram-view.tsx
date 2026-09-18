@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import { ChevronDown, ChevronRight, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,7 @@ export function HarmonogramView({
   };
 
   return (
-    <Card>
+    <Card className="flex min-h-0 flex-1 flex-col">
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base capitalize">
@@ -119,26 +120,26 @@ export function HarmonogramView({
           </span>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto pb-2">
+      <CardContent className="flex min-h-0 flex-1 flex-col">
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-auto pb-2">
           <table className="w-max border-collapse text-xs">
             <thead>
               <tr>
-                <th className="sticky left-0 z-10 min-w-[160px] border-b bg-background px-3 py-2 text-left font-semibold">
+                <th className="sticky left-0 top-0 z-30 min-w-[160px] border-b bg-background px-3 py-2 text-left font-semibold">
                   Dział / Stanowisko
                 </th>
-                <th className="sticky left-[160px] z-10 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
+                <th className="sticky left-[160px] top-0 z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
                   Potrzeby
                 </th>
-                <th className="sticky left-[230px] z-10 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
+                <th className="sticky left-[230px] top-0 z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
                   Mam teraz
                 </th>
                 {result.days.map((d, i) => (
                   <th
                     key={d.toISOString()}
                     className={
-                      'border-b px-2.5 py-2 text-center font-semibold tabular-nums' +
-                      (i === 0 ? ' bg-primary/5' : '')
+                      'sticky top-0 z-20 border-b bg-background px-2.5 py-2 text-center font-semibold tabular-nums' +
+                      (i === 0 ? ' text-primary' : '')
                     }
                   >
                     {format(d, 'dd.MM')}
@@ -211,10 +212,14 @@ function TooltipPanel({
     );
     const fitsBelow = bottom + 4 + h <= window.innerHeight - TOOLTIP_MARGIN;
     const nextTop = fitsBelow ? bottom + 4 : Math.max(TOOLTIP_MARGIN, top - h - 4);
-    setStyle({ left, top: nextTop });
+    const clampedTop = Math.min(
+      nextTop,
+      Math.max(TOOLTIP_MARGIN, window.innerHeight - h - TOOLTIP_MARGIN)
+    );
+    setStyle({ left, top: clampedTop });
   }, [x, top, bottom]);
 
-  return (
+  return createPortal(
     <div
       ref={ref}
       className="pointer-events-none fixed z-50 w-[340px] overflow-hidden rounded-lg border bg-background shadow-xl"
@@ -250,7 +255,8 @@ function TooltipPanel({
           />
         </div>
       )}
-    </div>
+      </div>,
+    document.body
   );
 }
 
