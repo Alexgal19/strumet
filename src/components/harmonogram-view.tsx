@@ -3,7 +3,16 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Download, Loader2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Download,
+  Loader2,
+  User,
+  Users,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,6 +21,9 @@ import {
   HarmonogramCell,
   HarmonogramData,
   HarmonogramRow,
+  HarmonogramManagerRow,
+  HarmonogramPositionRow,
+  HarmonogramEmployeeRow,
 } from '@/lib/harmonogram';
 
 export function HarmonogramView({
@@ -22,13 +34,17 @@ export function HarmonogramView({
   showExport?: boolean;
 }) {
   const [monthOffset, setMonthOffset] = useState(0);
-  const [expandedDept, setExpandedDept] = useState<string | null>(null);
+  const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
+  const [expandedManagers, setExpandedManagers] = useState<Set<string>>(new Set());
+  const [expandedPositions, setExpandedPositions] = useState<Set<string>>(new Set());
+
   const [cellTooltip, setCellTooltip] = useState<{
     x: number;
     top: number;
     bottom: number;
     absentees: HarmonogramCell['absentees'];
     vacationers: HarmonogramCell['vacationers'];
+    singleTitle?: string;
   } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -41,6 +57,60 @@ export function HarmonogramView({
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const toggleDept = (dept: string) => {
+    setExpandedDepts(prev => {
+      const next = new Set(prev);
+      if (next.has(dept)) next.delete(dept);
+      else next.add(dept);
+      return next;
+    });
+  };
+
+  const toggleManager = (key: string) => {
+    setExpandedManagers(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const togglePosition = (key: string) => {
+    setExpandedPositions(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    const allDepts = new Set<string>();
+    const allManagers = new Set<string>();
+    const allPositions = new Set<string>();
+
+    result.rows.forEach(dept => {
+      allDepts.add(dept.dept);
+      dept.managers.forEach(mgr => {
+        const mgrKey = `${dept.dept}|${mgr.manager}`;
+        allManagers.add(mgrKey);
+        mgr.positions.forEach(pos => {
+          allPositions.add(`${mgrKey}|${pos.jobTitle}`);
+        });
+      });
+    });
+
+    setExpandedDepts(allDepts);
+    setExpandedManagers(allManagers);
+    setExpandedPositions(allPositions);
+  };
+
+  const collapseAll = () => {
+    setExpandedDepts(new Set());
+    setExpandedManagers(new Set());
+    setExpandedPositions(new Set());
   };
 
   return (
@@ -82,6 +152,32 @@ export function HarmonogramView({
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
+
+            <div className="flex items-center gap-1 border-l pl-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                onClick={expandAll}
+                title="Rozwiń wszystkie poziomy"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                Rozwiń wszystko
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                onClick={collapseAll}
+                title="Zwiń wszystkie poziomy"
+              >
+                <Minimize2 className="h-3.5 w-3.5" />
+                Zwiń wszystko
+              </Button>
+            </div>
+
             {showExport && (
               <Button
                 type="button"
@@ -112,11 +208,11 @@ export function HarmonogramView({
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded bg-emerald-500/60" />
-            zmiany (przyjęcia / zwolnienia)
+            zmiany / przyjęcia
           </span>
-          <span>
-            Mam [dzień] = obecnie − zatrudnienia po tym dniu − zwolnienia (od dnia po zwolnieniu) +
-            przyjęcia (od tego dnia) − nieobecni (tego dnia) − urlopy (tego dnia)
+          <span className="flex items-center gap-1.5">
+            <span className="text-muted-foreground font-mono">—</span>
+            zwolniony / przed zatrudnieniem
           </span>
         </div>
       </CardHeader>
@@ -125,13 +221,13 @@ export function HarmonogramView({
           <table className="w-max border-collapse text-xs">
             <thead>
               <tr>
-                <th className="sticky left-0 top-0 z-30 min-w-[160px] border-b bg-background px-3 py-2 text-left font-semibold">
-                  Dział / Stanowisko
+                <th className="sticky left-0 top-0 z-30 min-w-[220px] border-b bg-background px-3 py-2 text-left font-semibold">
+                  Dział / Kierownik / Stanowisko / Pracownik
                 </th>
-                <th className="sticky left-[160px] top-0 z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
+                <th className="sticky left-[220px] top-0 z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
                   Potrzeby
                 </th>
-                <th className="sticky left-[230px] top-0 z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
+                <th className="sticky left-[290px] top-0 z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
                   Mam teraz
                 </th>
                 {result.days.map((d, i) => (
@@ -148,19 +244,160 @@ export function HarmonogramView({
               </tr>
             </thead>
             <tbody>
-              {result.rows.map(row => (
-                <HarmonogramDeptRows
-                  key={row.dept}
-                  row={row}
-                  dayCount={result.days.length}
-                  expanded={expandedDept === row.dept}
-                  onToggle={() =>
-                    setExpandedDept(prev => (prev === row.dept ? null : row.dept))
-                  }
-                  onCellHover={setCellTooltip}
-                  onCellLeave={() => setCellTooltip(null)}
-                />
-              ))}
+              {result.rows.map(deptRow => {
+                const isDeptExpanded = expandedDepts.has(deptRow.dept);
+                return (
+                  <React.Fragment key={deptRow.dept}>
+                    {/* Poziom 0: Dział */}
+                    <tr
+                      className="cursor-pointer border-b border-border/40 hover:bg-muted/40 transition-colors"
+                      onClick={() => toggleDept(deptRow.dept)}
+                    >
+                      <td className="sticky left-0 z-10 bg-background px-3 py-2 font-semibold">
+                        <span className="flex items-center gap-1.5">
+                          {isDeptExpanded ? (
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          )}
+                          <span>{deptRow.dept}</span>
+                        </span>
+                      </td>
+                      <td className="sticky left-[220px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
+                        {deptRow.potrzeby}
+                      </td>
+                      <td className="sticky left-[290px] z-10 bg-background px-3 py-2 text-right tabular-nums">
+                        {deptRow.obecnie}
+                      </td>
+                      {deptRow.cells.map((cell, i) => (
+                        <CellWithTooltip
+                          key={`${deptRow.dept}-${i}`}
+                          cell={cell}
+                          onHover={setCellTooltip}
+                          onLeave={() => setCellTooltip(null)}
+                        />
+                      ))}
+                    </tr>
+
+                    {/* Poziom 1: Kierownik */}
+                    {isDeptExpanded &&
+                      deptRow.managers.map(mgrRow => {
+                        const mgrKey = `${deptRow.dept}|${mgrRow.manager}`;
+                        const isMgrExpanded = expandedManagers.has(mgrKey);
+
+                        return (
+                          <React.Fragment key={mgrKey}>
+                            <tr
+                              className="cursor-pointer border-b border-border/30 bg-muted/50 hover:bg-muted/70 transition-colors"
+                              onClick={() => toggleManager(mgrKey)}
+                            >
+                              <td className="sticky left-0 z-10 bg-muted/50 py-1.5 pl-6 pr-3 text-xs font-medium">
+                                <span className="flex items-center gap-1.5">
+                                  {isMgrExpanded ? (
+                                    <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                  )}
+                                  <Users className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                                  <span>
+                                    {mgrRow.manager === 'Brak kierownika'
+                                      ? 'Brak kierownika'
+                                      : `Kierownik: ${mgrRow.manager}`}
+                                  </span>
+                                </span>
+                              </td>
+                              <td className="sticky left-[220px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
+                                {mgrRow.potrzeby}
+                              </td>
+                              <td className="sticky left-[290px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs tabular-nums">
+                                {mgrRow.obecnie}
+                              </td>
+                              {mgrRow.cells.map((cell, i) => (
+                                <CellWithTooltip
+                                  key={`${mgrKey}-${i}`}
+                                  cell={cell}
+                                  onHover={setCellTooltip}
+                                  onLeave={() => setCellTooltip(null)}
+                                />
+                              ))}
+                            </tr>
+
+                            {/* Poziom 2: Stanowisko */}
+                            {isMgrExpanded &&
+                              mgrRow.positions.map(posRow => {
+                                const posKey = `${mgrKey}|${posRow.jobTitle}`;
+                                const isPosExpanded = expandedPositions.has(posKey);
+
+                                return (
+                                  <React.Fragment key={posKey}>
+                                    <tr
+                                      className="cursor-pointer border-b border-border/20 bg-muted/25 hover:bg-muted/40 transition-colors"
+                                      onClick={() => togglePosition(posKey)}
+                                    >
+                                      <td className="sticky left-0 z-10 bg-muted/25 py-1.5 pl-11 pr-3 text-xs italic text-muted-foreground">
+                                        <span className="flex items-center gap-1.5">
+                                          {isPosExpanded ? (
+                                            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                          ) : (
+                                            <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                          )}
+                                          <span>• {posRow.jobTitle}</span>
+                                        </span>
+                                      </td>
+                                      <td className="sticky left-[220px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
+                                        {posRow.potrzeby}
+                                      </td>
+                                      <td className="sticky left-[290px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs tabular-nums">
+                                        {posRow.obecnie}
+                                      </td>
+                                      {posRow.cells.map((cell, i) => (
+                                        <CellWithTooltip
+                                          key={`${posKey}-${i}`}
+                                          cell={cell}
+                                          onHover={setCellTooltip}
+                                          onLeave={() => setCellTooltip(null)}
+                                        />
+                                      ))}
+                                    </tr>
+
+                                    {/* Poziom 3: Pracownik */}
+                                    {isPosExpanded &&
+                                      posRow.employees.map(empRow => (
+                                        <tr
+                                          key={`${posKey}-${empRow.fullName}`}
+                                          className="border-b border-border/10 bg-background/60 hover:bg-muted/20 transition-colors"
+                                        >
+                                          <td className="sticky left-0 z-10 bg-background/90 py-1 pl-16 pr-3 text-xs text-foreground/85">
+                                            <span className="flex items-center gap-1.5">
+                                              <User className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+                                              <span>{empRow.fullName}</span>
+                                            </span>
+                                          </td>
+                                          <td className="sticky left-[220px] z-10 bg-background/90 px-3 py-1 text-right text-xs text-muted-foreground/60">
+                                            —
+                                          </td>
+                                          <td className="sticky left-[290px] z-10 bg-background/90 px-3 py-1 text-right text-xs tabular-nums">
+                                            {empRow.obecnie}
+                                          </td>
+                                          {empRow.cells.map((cell, i) => (
+                                            <EmployeeCellWithTooltip
+                                              key={`${empRow.fullName}-${i}`}
+                                              cell={cell}
+                                              onHover={setCellTooltip}
+                                              onLeave={() => setCellTooltip(null)}
+                                            />
+                                          ))}
+                                        </tr>
+                                      ))}
+                                  </React.Fragment>
+                                );
+                              })}
+                          </React.Fragment>
+                        );
+                      })}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
           {result.rows.length === 0 && (
@@ -169,16 +406,117 @@ export function HarmonogramView({
         </div>
       </CardContent>
 
-      {cellTooltip && (cellTooltip.absentees.length > 0 || cellTooltip.vacationers.length > 0) && (
+      {cellTooltip && (
         <TooltipPanel
           x={cellTooltip.x}
           top={cellTooltip.top}
           bottom={cellTooltip.bottom}
           absentees={cellTooltip.absentees}
           vacationers={cellTooltip.vacationers}
+          singleTitle={cellTooltip.singleTitle}
         />
       )}
     </Card>
+  );
+}
+
+function CellWithTooltip({
+  cell,
+  onHover,
+  onLeave,
+}: {
+  cell: HarmonogramCell;
+  onHover: (t: {
+    x: number;
+    top: number;
+    bottom: number;
+    absentees: HarmonogramCell['absentees'];
+    vacationers: HarmonogramCell['vacationers'];
+    singleTitle?: string;
+  }) => void;
+  onLeave: () => void;
+}) {
+  const handleMouseEnter = (e: React.MouseEvent<HTMLTableCellElement>) => {
+    if (cell.absentees.length === 0 && cell.vacationers.length === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    onHover({
+      x: rect.left + rect.width / 2,
+      top: rect.top,
+      bottom: rect.bottom,
+      absentees: cell.absentees,
+      vacationers: cell.vacationers,
+    });
+  };
+
+  return (
+    <td
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={onLeave}
+      className={
+        'px-2.5 py-1.5 text-center tabular-nums text-xs' +
+        (cell.absentees.length > 0
+          ? ' animate-absence-blink font-semibold'
+          : cell.vacationers.length > 0
+            ? ' bg-pink-500/25'
+            : cell.title && cell.title.includes('przyjęć')
+              ? ' bg-emerald-500/15'
+              : '')
+      }
+    >
+      {cell.mam}
+    </td>
+  );
+}
+
+function EmployeeCellWithTooltip({
+  cell,
+  onHover,
+  onLeave,
+}: {
+  cell: HarmonogramCell;
+  onHover: (t: {
+    x: number;
+    top: number;
+    bottom: number;
+    absentees: HarmonogramCell['absentees'];
+    vacationers: HarmonogramCell['vacationers'];
+    singleTitle?: string;
+  }) => void;
+  onLeave: () => void;
+}) {
+  const handleMouseEnter = (e: React.MouseEvent<HTMLTableCellElement>) => {
+    if (!cell.title) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    onHover({
+      x: rect.left + rect.width / 2,
+      top: rect.top,
+      bottom: rect.bottom,
+      absentees: cell.absentees,
+      vacationers: cell.vacationers,
+      singleTitle: cell.title,
+    });
+  };
+
+  let displayContent: React.ReactNode = cell.mam;
+  let cellClass = 'px-2.5 py-1 text-center tabular-nums text-xs ';
+
+  if (cell.statusType === 'absent') {
+    displayContent = '0';
+    cellClass += ' animate-absence-blink font-bold text-destructive';
+  } else if (cell.statusType === 'vacation') {
+    displayContent = '0';
+    cellClass += ' bg-pink-500/25 font-medium text-pink-600 dark:text-pink-400';
+  } else if (cell.statusType === 'terminated' || cell.statusType === 'not_hired') {
+    displayContent = '—';
+    cellClass += ' text-muted-foreground/40';
+  } else {
+    cellClass += ' text-foreground/80';
+  }
+
+  return (
+    <td onMouseEnter={handleMouseEnter} onMouseLeave={onLeave} className={cellClass}>
+      {displayContent}
+    </td>
   );
 }
 
@@ -191,12 +529,14 @@ function TooltipPanel({
   bottom,
   absentees,
   vacationers,
+  singleTitle,
 }: {
   x: number;
   top: number;
   bottom: number;
   absentees: HarmonogramCell['absentees'];
   vacationers: HarmonogramCell['vacationers'];
+  singleTitle?: string;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const [style, setStyle] = React.useState<React.CSSProperties>({
@@ -219,12 +559,32 @@ function TooltipPanel({
     setStyle({ left, top: clampedTop });
   }, [x, top, bottom]);
 
+  if (singleTitle && absentees.length === 0 && vacationers.length === 0) {
+    return createPortal(
+      <div
+        ref={ref}
+        className="pointer-events-none fixed z-50 max-w-[340px] rounded-md border bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-lg"
+        style={style}
+      >
+        {singleTitle}
+      </div>,
+      document.body
+    );
+  }
+
+  if (absentees.length === 0 && vacationers.length === 0) return null;
+
   return createPortal(
     <div
       ref={ref}
       className="pointer-events-none fixed z-50 w-[340px] overflow-hidden rounded-lg border bg-background shadow-xl"
       style={style}
     >
+      {singleTitle && (
+        <div className="border-b bg-muted/40 px-3 py-1 text-xs font-semibold">
+          {singleTitle}
+        </div>
+      )}
       {absentees.length > 0 && (
         <div>
           <p className="animate-absence-blink px-3 py-1.5 text-xs font-semibold text-destructive">
@@ -255,7 +615,7 @@ function TooltipPanel({
           />
         </div>
       )}
-      </div>,
+    </div>,
     document.body
   );
 }
@@ -284,119 +644,5 @@ function AbsenceTooltipTable({
         ))}
       </tbody>
     </table>
-  );
-}
-
-function HarmonogramDeptRows({
-  row,
-  dayCount,
-  expanded,
-  onToggle,
-  onCellHover,
-  onCellLeave,
-}: {
-  row: HarmonogramRow;
-  dayCount: number;
-  expanded: boolean;
-  onToggle: () => void;
-  onCellHover: (t: {
-    x: number;
-    top: number;
-    bottom: number;
-    absentees: HarmonogramCell['absentees'];
-    vacationers: HarmonogramCell['vacationers'];
-  }) => void;
-  onCellLeave: () => void;
-}) {
-  const handleHover = (e: React.MouseEvent<HTMLTableCellElement>, cell: HarmonogramCell) => {
-    if (cell.absentees.length === 0 && cell.vacationers.length === 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    onCellHover({
-      x: rect.left + rect.width / 2,
-      top: rect.top,
-      bottom: rect.bottom,
-      absentees: cell.absentees,
-      vacationers: cell.vacationers,
-    });
-  };
-
-  return (
-    <>
-      <tr
-        className="cursor-pointer border-b border-border/40 hover:bg-muted/40"
-        onClick={onToggle}
-      >
-        <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
-          <span className="flex items-center gap-1.5">
-            {expanded ? (
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            )}
-            {row.dept}
-          </span>
-        </td>
-        <td className="sticky left-[160px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
-          {row.potrzeby}
-        </td>
-        <td className="sticky left-[230px] z-10 bg-background px-3 py-2 text-right tabular-nums">
-          {row.obecnie}
-        </td>
-        {row.cells.map((cell, i) => (
-          <td
-            key={`${row.dept}-${i}`}
-            onMouseEnter={e => handleHover(e, cell)}
-            onMouseLeave={onCellLeave}
-            className={
-              'px-2.5 py-2 text-center tabular-nums' +
-              (cell.absentees.length > 0
-                ? ' animate-absence-blink font-semibold'
-                : cell.vacationers.length > 0
-                  ? ' bg-pink-500/25'
-                  : cell.title && cell.title.includes('przyjęć')
-                    ? ' bg-emerald-500/15'
-                    : '')
-            }
-          >
-            {cell.mam}
-          </td>
-        ))}
-      </tr>
-      {expanded &&
-        row.positions.map(pos => (
-          <tr key={`${row.dept}-${pos.jobTitle}`} className="bg-muted/40">
-            <td className="sticky left-0 z-10 bg-muted/40 py-1.5 pl-10 pr-3 text-xs italic text-muted-foreground">
-              • {pos.jobTitle}
-            </td>
-            <td className="sticky left-[160px] z-10 bg-muted/40 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
-              {pos.potrzeby}
-            </td>
-            <td className="sticky left-[230px] z-10 bg-muted/40 px-3 py-1.5 text-right text-xs tabular-nums">
-              {pos.obecnie}
-            </td>
-            {pos.cells.map((cell, i) => (
-              <td
-                key={`${row.dept}-${pos.jobTitle}-${i}`}
-                onMouseEnter={e => handleHover(e, cell)}
-                onMouseLeave={onCellLeave}
-                className={
-                  'px-2.5 py-1.5 text-center text-xs tabular-nums' +
-                  (cell.absentees.length > 0
-                    ? ' animate-absence-blink font-semibold'
-                    : cell.vacationers.length > 0
-                      ? ' bg-pink-500/25'
-                      : '')
-                }
-              >
-                {cell.mam}
-              </td>
-            ))}
-            {dayCount > pos.cells.length &&
-              Array.from({ length: dayCount - pos.cells.length }, (_, i) => (
-                <td key={`pad-${i}`} />
-              ))}
-          </tr>
-        ))}
-    </>
   );
 }

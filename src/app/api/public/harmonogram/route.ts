@@ -24,7 +24,11 @@ export async function GET() {
 
     const employees = Object.entries(employeesRaw)
       .map(([, val]) => val as Record<string, string>)
-      .filter(e => e.status === 'aktywny')
+      .filter(
+        e =>
+          e.status === 'aktywny' ||
+          (e.status === 'zwolniony' && (e.terminationDate || e.plannedTerminationDate))
+      )
       .map(e => ({
         department: e.department ?? '',
         jobTitle: e.jobTitle ?? '',
@@ -34,6 +38,8 @@ export async function GET() {
         vacationStartDate: e.vacationStartDate || undefined,
         vacationEndDate: e.vacationEndDate || undefined,
         plannedTerminationDate: e.plannedTerminationDate || undefined,
+        terminationDate: e.terminationDate || undefined,
+        status: e.status ?? 'aktywny',
       }));
 
     const absenceEntries = Object.entries(absencesRaw)
@@ -45,7 +51,7 @@ export async function GET() {
     const absences = absenceEntries
       .map(a => {
         const emp = employeeById.get(a.employeeId);
-        if (!emp || emp.status !== 'aktywny') return null;
+        if (!emp) return null;
         return {
           date: a.date,
           department: emp.department ?? '',

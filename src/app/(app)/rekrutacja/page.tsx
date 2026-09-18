@@ -749,16 +749,24 @@ export default function RekrutacjaPage() {
 
   const harmonogramData = useMemo(
     () => ({
-      employees: activeEmployees.map(e => ({
-        department: e.department,
-        jobTitle: e.jobTitle,
-        fullName: e.fullName,
-        manager: e.manager,
-        hireDate: e.hireDate,
-        vacationStartDate: e.vacationStartDate,
-        vacationEndDate: e.vacationEndDate,
-        plannedTerminationDate: e.plannedTerminationDate,
-      })),
+      employees: allEmployees
+        .filter(
+          e =>
+            e.status === 'aktywny' ||
+            (e.status === 'zwolniony' && (e.terminationDate || e.plannedTerminationDate))
+        )
+        .map(e => ({
+          department: e.department,
+          jobTitle: e.jobTitle,
+          fullName: e.fullName,
+          manager: e.manager,
+          hireDate: e.hireDate,
+          vacationStartDate: e.vacationStartDate,
+          vacationEndDate: e.vacationEndDate,
+          plannedTerminationDate: e.plannedTerminationDate,
+          terminationDate: e.terminationDate,
+          status: e.status,
+        })),
       absences: absences.map(a => {
         const emp = allEmployees.find(x => x.id === a.employeeId);
         return {
@@ -781,7 +789,7 @@ export default function RekrutacjaPage() {
         })),
       })),
     }),
-    [activeEmployees, absences, allEmployees, recruitments]
+    [allEmployees, absences, recruitments]
   );
 
   const usedDepartments = useMemo(

@@ -1,4 +1,4 @@
-﻿import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
+import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
 import { pl as plLocale } from 'date-fns/locale';
 
 export interface HarmonogramEmployee {
@@ -10,6 +10,8 @@ export interface HarmonogramEmployee {
   vacationStartDate?: string;
   vacationEndDate?: string;
   plannedTerminationDate?: string;
+  terminationDate?: string;
+  status?: string;
 }
 
 export interface HarmonogramAbsence {
@@ -37,13 +39,38 @@ export interface HarmonogramCell {
   absentees: HarmonogramAbsence[];
   vacationers: HarmonogramEmployee[];
   title?: string;
+  statusType?: 'present' | 'absent' | 'vacation' | 'terminated' | 'not_hired';
+}
+
+export interface HarmonogramEmployeeRow {
+  fullName: string;
+  jobTitle: string;
+  manager: string;
+  department: string;
+  hireDate?: string;
+  terminationDate?: string;
+  plannedTerminationDate?: string;
+  obecnie: number;
+  cells: HarmonogramCell[];
 }
 
 export interface HarmonogramPositionRow {
   jobTitle: string;
+  manager: string;
+  department: string;
   potrzeby: number;
   obecnie: number;
   cells: HarmonogramCell[];
+  employees: HarmonogramEmployeeRow[];
+}
+
+export interface HarmonogramManagerRow {
+  manager: string;
+  department: string;
+  potrzeby: number;
+  obecnie: number;
+  cells: HarmonogramCell[];
+  positions: HarmonogramPositionRow[];
 }
 
 export interface HarmonogramRow {
@@ -51,7 +78,8 @@ export interface HarmonogramRow {
   potrzeby: number;
   obecnie: number;
   cells: HarmonogramCell[];
-  positions: HarmonogramPositionRow[];
+  managers: HarmonogramManagerRow[];
+  positions: HarmonogramPositionRow[]; // dla kompatybilności wstecznej
 }
 
 export interface HarmonogramResult {
@@ -63,6 +91,12 @@ export interface HarmonogramResult {
 
 const dayKey = (d: Date) => format(d, 'yyyy-MM-dd');
 
+function parseSafeDate(d?: string): Date | null {
+  if (!d) return null;
+  const parsed = new Date(d);
+  return Number.isNaN(parsed.getTime()) ? null : startOfDay(parsed);
+}
+
 export function buildHarmonogram(
   data: HarmonogramData,
   monthOffset = 0,
@@ -72,132 +106,33 @@ export function buildHarmonogram(
   const days = Array.from({ length: getDaysInMonth(monthDate) }, (_, i) =>
     addDays(monthDate, i)
   );
+  const startDay = days[0];
+  const endDay = days[days.length - 1];
   const today = startOfDay(now);
 
-  // Zwolnienia planowane per dziaĹ‚ (data >= dziĹ›)
-  const terminationsByDept = new Map<string, string[]>();
-  data.employees.forEach(e => {
-    const planned = e.plannedTerminationDate
-      ? startOfDay(new Date(e.plannedTerminationDate))
-      : null;
-    if (!planned || Number.isNaN(planned.getTime())) return;
-    const arr = terminationsByDept.get(e.department) ?? [];
-    arr.push(dayKey(planned));
-    terminationsByDept.set(e.department, arr);
-  });
-
-  const hiresByDept = new Map<string, string[]>();
-  data.employees.forEach(e => {
-    const hire = e.hireDate ? startOfDay(new Date(e.hireDate)) : null;
-    if (!hire || Number.isNaN(hire.getTime())) return;
-    const arr = hiresByDept.get(e.department) ?? [];
-    arr.push(dayKey(hire));
-    hiresByDept.set(e.department, arr);
-  });
-
-  // Urlopy per dziaĹ‚ i dziaĹ‚Â·stanowisko
-  const vacationsByDept = new Map<
-    string,
-    { start: string; end: string; employee: HarmonogramEmployee }[]
-  >();
-  const vacationsByDeptJob = new Map<
-    string,
-    { start: string; end: string; employee: HarmonogramEmployee }[]
-  >();
-  data.employees.forEach(e => {
-    if (!e.vacationStartDate) return;
-    const start = startOfDay(new Date(e.vacationStartDate));
-    if (Number.isNaN(start.getTime())) return;
-    const endRaw = e.vacationEndDate ? new Date(e.vacationEndDate) : null;
-    const entry = {
-      start: dayKey(start),
-      end: endRaw && !Number.isNaN(endRaw.getTime()) ? dayKey(startOfDay(endRaw)) : '9999-12-31',
-      employee: e,
-    };
-    const arrDept = vacationsByDept.get(e.department) ?? [];
-    arrDept.push(entry);
-    vacationsByDept.set(e.department, arrDept);
-    const keyJob = `${e.department}|${e.jobTitle}`;
-    const arrJob = vacationsByDeptJob.get(keyJob) ?? [];
-    arrJob.push(entry);
-    vacationsByDeptJob.set(keyJob, arrJob);
-  });
-
-  // NieobecnoĹ›ci per dziaĹ‚ i dziaĹ‚Â·stanowisko
-  const absencesByDept = new Map<string, Map<string, HarmonogramAbsence[]>>();
-  const absencesByDeptJob = new Map<string, Map<string, HarmonogramAbsence[]>>();
+  // Mapa nieobecności: data|fullNameLowerCase -> HarmonogramAbsence[]
+  const absencesByDateName = new Map<string, HarmonogramAbsence[]>();
   data.absences.forEach(a => {
-    if (!a.date) return;
-    const byDept = absencesByDept.get(a.department) ?? new Map<string, HarmonogramAbsence[]>();
-    const listDept = byDept.get(a.date) ?? [];
-    listDept.push(a);
-    byDept.set(a.date, listDept);
-    absencesByDept.set(a.department, byDept);
-    const keyJob = `${a.department}|${a.jobTitle}`;
-    const byDateJob = absencesByDeptJob.get(keyJob) ?? new Map<string, HarmonogramAbsence[]>();
-    const listJob = byDateJob.get(a.date) ?? [];
-    listJob.push(a);
-    byDateJob.set(a.date, listJob);
-    absencesByDeptJob.set(keyJob, byDateJob);
+    if (!a.date || !a.fullName) return;
+    const key = `${a.date}|${a.fullName.trim().toLowerCase()}`;
+    const list = absencesByDateName.get(key) ?? [];
+    list.push(a);
+    absencesByDateName.set(key, list);
   });
 
-  // Obsada: dziaĹ‚y, stan na dziĹ›
-  const headcountByDept = new Map<string, number>();
-  const headcountByDeptJob = new Map<string, number>();
-  const jobTitlesByDept = new Map<
-    string,
-    { jobTitle: string; count: number; toRecruit: number; terminations: number }[]
-  >();
-  data.employees.forEach(e => {
-    headcountByDept.set(e.department, (headcountByDept.get(e.department) ?? 0) + 1);
-    const keyJob = `${e.department}|${e.jobTitle}`;
-    headcountByDeptJob.set(keyJob, (headcountByDeptJob.get(keyJob) ?? 0) + 1);
-    let entries = jobTitlesByDept.get(e.department);
-    if (!entries) {
-      entries = [];
-      jobTitlesByDept.set(e.department, entries);
-    }
-    const terminating =
-      !!e.plannedTerminationDate &&
-      startOfDay(new Date(e.plannedTerminationDate)).getTime() >= today.getTime();
-    const existing = entries.find(x => x.jobTitle === e.jobTitle);
-    if (existing) {
-      existing.count += 1;
-      if (terminating) existing.terminations += 1;
-    } else {
-      entries.push({
-        jobTitle: e.jobTitle,
-        count: 1,
-        toRecruit: 0,
-        terminations: terminating ? 1 : 0,
-      });
-    }
-  });
+  // Przydział planowanych przyjęć (arrivals) per dział i stanowisko
+  const arrivalsByDeptJob = new Map<string, { date: string; count: number }[]>();
+  const toRecruitByDeptJob = new Map<string, number>();
 
-  // PrzydziaĹ‚ przyjÄ™Ä‡ do pozycji zamĂłwienia (po kolei)
-  const positionTimelines = new Map<
-    string,
-    { hireDates: string[]; termDates: string[]; arrivals: { date: string; count: number }[] }
-  >();
-  const ensureTimeline = (key: string) => {
-    let entry = positionTimelines.get(key);
-    if (!entry) {
-      entry = { hireDates: [], termDates: [], arrivals: [] };
-      positionTimelines.set(key, entry);
-    }
-    return entry;
-  };
-  data.employees.forEach(e => {
-    const tl = ensureTimeline(`${e.department}|${e.jobTitle}`);
-    const hire = e.hireDate ? startOfDay(new Date(e.hireDate)) : null;
-    if (hire && !Number.isNaN(hire.getTime())) tl.hireDates.push(dayKey(hire));
-    const planned = e.plannedTerminationDate
-      ? startOfDay(new Date(e.plannedTerminationDate))
-      : null;
-    if (planned && !Number.isNaN(planned.getTime())) tl.termDates.push(dayKey(planned));
-  });
   data.recruitments.forEach(r => {
-    const slots = r.positions.map(p => ({ jobTitle: p.jobTitle, left: Number(p.toRecruit) || 0 }));
+    const slots = r.positions.map(p => {
+      const job = p.jobTitle?.trim() || 'Inne';
+      const needed = Number(p.toRecruit) || 0;
+      const key = `${r.department}|${job}`;
+      toRecruitByDeptJob.set(key, (toRecruitByDeptJob.get(key) ?? 0) + needed);
+      return { jobTitle: job, left: needed };
+    });
+
     [...r.arrivals]
       .filter(a => a.date)
       .sort((a, b) => a.date.localeCompare(b.date))
@@ -207,80 +142,285 @@ export function buildHarmonogram(
           if (left <= 0) break;
           if (slot.left <= 0) continue;
           const take = Math.min(slot.left, left);
-          ensureTimeline(`${r.department}|${slot.jobTitle}`).arrivals.push({
-            date: a.date,
-            count: take,
-          });
+          const key = `${r.department}|${slot.jobTitle}`;
+          const arr = arrivalsByDeptJob.get(key) ?? [];
+          arr.push({ date: a.date, count: take });
+          arrivalsByDeptJob.set(key, arr);
           slot.left -= take;
           left -= take;
         }
       });
   });
 
-  const depts = new Set<string>();
-  data.recruitments.forEach(r => r.department && depts.add(r.department));
-  data.employees.forEach(e => e.department && depts.add(e.department));
+  // Wszyscy unikalni pracownicy przefiltrowani pod kątem widoczności w danym miesiącu
+  // Pracownik jest widoczny, jeśli nie został zwolniony przed początkiem tego miesiąca
+  // i nie został zatrudniony po końcu tego miesiąca.
+  const relevantEmployees = data.employees.filter(e => {
+    const hire = parseSafeDate(e.hireDate);
+    const term = parseSafeDate(e.terminationDate) || parseSafeDate(e.plannedTerminationDate);
 
-  const rows: HarmonogramRow[] = [...depts]
-    .sort((a, b) => a.localeCompare(b, 'pl'))
-    .map(dept => {
-      const obecnie = headcountByDept.get(dept) ?? 0;
-      const sumRekrut = data.recruitments
-        .filter(r => r.department === dept)
-        .reduce(
-          (s, r) => s + r.positions.reduce((x, p) => x + (Number(p.toRecruit) || 0), 0),
-          0
-        );
-      const potrzeby = obecnie + sumRekrut;
-      const termDates = terminationsByDept.get(dept) ?? [];
-      const vacations = vacationsByDept.get(dept) ?? [];
-      const deptAbsences = absencesByDept.get(dept);
+    if (hire && hire > endDay) return false;
+    if (term && term < startDay) return false;
+    return true;
+  });
 
-      const cells: HarmonogramCell[] = days.map(d => {
-        const key = dayKey(d);
-        const absentees = deptAbsences?.get(key) ?? [];
-        const vacationers = vacations
-          .filter(v => v.start <= key && key <= v.end)
-          .map(v => v.employee);
-        const mam =
-          obecnie -
-          (hiresByDept.get(dept)?.filter(h => h > key).length ?? 0) -
-          termDates.filter(t => t < key).length +
-          arrivalsOf(dept, data)
-            .filter(a => a.date <= key)
-            .reduce((s, a) => s + a.count, 0) -
-          absentees.length -
-          vacationers.length;
-        const title = buildTitle({ absentees, vacationers, mam });
-        return { mam, absentees, vacationers, title };
-      });
+  // Lista wszystkich działów (z pracowników oraz z zapotrzebowań)
+  const deptsSet = new Set<string>();
+  data.recruitments.forEach(r => r.department && deptsSet.add(r.department));
+  data.employees.forEach(e => e.department && deptsSet.add(e.department));
+  const sortedDepts = [...deptsSet].sort((a, b) => a.localeCompare(b, 'pl'));
 
-      const positions: HarmonogramPositionRow[] = (jobTitlesByDept.get(dept) ?? []).map(s => {
-        const tl = positionTimelines.get(`${dept}|${s.jobTitle}`);
-        const jobAbsences = absencesByDeptJob.get(`${dept}|${s.jobTitle}`);
-        const jobVacations = vacationsByDeptJob.get(`${dept}|${s.jobTitle}`) ?? [];
-        const potrzebyPos = Math.max(0, s.count + s.toRecruit - s.terminations);
-        const posCells: HarmonogramCell[] = days.map(d => {
-          const key = dayKey(d);
-          const absentees = jobAbsences?.get(key) ?? [];
-          const vacationers = jobVacations
-            .filter(v => v.start <= key && key <= v.end)
-            .map(v => v.employee);
-          const mam =
-            s.count -
-            (tl?.hireDates.filter(h => h > key).length ?? 0) -
-            (tl?.termDates.filter(t => t < key).length ?? 0) +
-            (tl?.arrivals.filter(a => a.date <= key).reduce((x, a) => x + a.count, 0) ?? 0) -
-            absentees.length -
-            vacationers.length;
+  const rows: HarmonogramRow[] = sortedDepts.map(dept => {
+    const deptEmployees = relevantEmployees.filter(e => e.department === dept);
+
+    // Grupowanie pracowników według kierownika (manager)
+    const employeesByManager = new Map<string, HarmonogramEmployee[]>();
+    deptEmployees.forEach(e => {
+      const mgr = e.manager?.trim() || 'Brak kierownika';
+      const list = employeesByManager.get(mgr) ?? [];
+      list.push(e);
+      employeesByManager.set(mgr, list);
+    });
+
+    // Jeśli brak pracowników w dziale, upewnijmy się, że istnieje grupa dla zapotrzebowań
+    if (employeesByManager.size === 0) {
+      employeesByManager.set('Brak kierownika', []);
+    }
+
+    // Stanowiska z zapotrzebowań w tym dziale
+    const deptRecruitPositions = data.recruitments
+      .filter(r => r.department === dept)
+      .flatMap(r => r.positions.map(p => p.jobTitle?.trim() || 'Inne'));
+
+    const managers: HarmonogramManagerRow[] = [...employeesByManager.entries()]
+      .sort(([a], [b]) => {
+        if (a === 'Brak kierownika') return 1;
+        if (b === 'Brak kierownika') return -1;
+        return a.localeCompare(b, 'pl');
+      })
+      .map(([mgrName, mgrEmployees]) => {
+        // Grupowanie pracowników według stanowiska (jobTitle)
+        const employeesByJob = new Map<string, HarmonogramEmployee[]>();
+        mgrEmployees.forEach(e => {
+          const job = e.jobTitle?.trim() || 'Inne';
+          const list = employeesByJob.get(job) ?? [];
+          list.push(e);
+          employeesByJob.set(job, list);
+        });
+
+        // Jeśli to 'Brak kierownika' (lub jedyny kierownik), dodaj stanowiska z rekrutacji, które nie mają pracowników
+        if (mgrName === 'Brak kierownika' || employeesByManager.size === 1) {
+          deptRecruitPositions.forEach(job => {
+            if (!employeesByJob.has(job)) {
+              employeesByJob.set(job, []);
+            }
+          });
+        }
+
+        const positions: HarmonogramPositionRow[] = [...employeesByJob.entries()]
+          .sort(([a], [b]) => a.localeCompare(b, 'pl'))
+          .map(([jobTitle, jobEmployees]) => {
+            // Generowanie wierszy pojedynczych pracowników
+            const employeeRows: HarmonogramEmployeeRow[] = jobEmployees
+              .sort((a, b) => a.fullName.localeCompare(b.fullName, 'pl'))
+              .map(e => {
+                const hire = parseSafeDate(e.hireDate);
+                const term =
+                  parseSafeDate(e.terminationDate) || parseSafeDate(e.plannedTerminationDate);
+
+                // Obecnie: czy pracuje dzisiaj
+                const isEmployedToday =
+                  (!hire || hire <= today) && (!term || term >= today);
+                const empObecnie = isEmployedToday ? 1 : 0;
+
+                const empCells: HarmonogramCell[] = days.map(d => {
+                  const key = dayKey(d);
+
+                  if (hire && hire > d) {
+                    return {
+                      mam: 0,
+                      absentees: [],
+                      vacationers: [],
+                      statusType: 'not_hired',
+                      title: `${e.fullName}: Przed zatrudnieniem (od ${format(hire, 'dd.MM.yyyy')})`,
+                    };
+                  }
+
+                  if (term && term < d) {
+                    return {
+                      mam: 0,
+                      absentees: [],
+                      vacationers: [],
+                      statusType: 'terminated',
+                      title: `${e.fullName}: Zwolniony (od ${format(term, 'dd.MM.yyyy')})`,
+                    };
+                  }
+
+                  // Sprawdzenie nieobecności
+                  const absList =
+                    absencesByDateName.get(`${key}|${e.fullName.trim().toLowerCase()}`) ?? [];
+                  if (absList.length > 0) {
+                    return {
+                      mam: 0,
+                      absentees: absList,
+                      vacationers: [],
+                      statusType: 'absent',
+                      title: `${e.fullName}: Nieobecny (${absList.map(a => a.jobTitle || 'nieobecność').join(', ')})`,
+                    };
+                  }
+
+                  // Sprawdzenie urlopu
+                  const vStart = parseSafeDate(e.vacationStartDate);
+                  const vEnd = parseSafeDate(e.vacationEndDate);
+                  if (vStart && vStart <= d && (!vEnd || d <= vEnd)) {
+                    return {
+                      mam: 0,
+                      absentees: [],
+                      vacationers: [e],
+                      statusType: 'vacation',
+                      title: `${e.fullName}: Na urlopie (${format(vStart, 'dd.MM')} - ${vEnd ? format(vEnd, 'dd.MM') : '...'})`,
+                    };
+                  }
+
+                  return {
+                    mam: 1,
+                    absentees: [],
+                    vacationers: [],
+                    statusType: 'present',
+                    title: `${e.fullName}: Obecny (1)`,
+                  };
+                });
+
+                return {
+                  fullName: e.fullName,
+                  jobTitle,
+                  manager: mgrName,
+                  department: dept,
+                  hireDate: e.hireDate,
+                  terminationDate: e.terminationDate,
+                  plannedTerminationDate: e.plannedTerminationDate,
+                  obecnie: empObecnie,
+                  cells: empCells,
+                };
+              });
+
+            const posObecnie = employeeRows.reduce((sum, emp) => sum + emp.obecnie, 0);
+
+            // Potrzeby stanowiska
+            const toRecruit = toRecruitByDeptJob.get(`${dept}|${jobTitle}`) ?? 0;
+            const termCount = employeeRows.filter(
+              emp =>
+                (emp.terminationDate && parseSafeDate(emp.terminationDate)! >= today) ||
+                (emp.plannedTerminationDate && parseSafeDate(emp.plannedTerminationDate)! >= today)
+            ).length;
+            const posPotrzeby = Math.max(posObecnie, posObecnie + toRecruit - termCount);
+
+            // Przyjęcia dla tego stanowiska
+            const arrivals = arrivalsByDeptJob.get(`${dept}|${jobTitle}`) ?? [];
+
+            const posCells: HarmonogramCell[] = days.map((d, dayIndex) => {
+              const key = dayKey(d);
+              const empMamSum = employeeRows.reduce(
+                (sum, emp) => sum + (emp.cells[dayIndex]?.mam ?? 0),
+                0
+              );
+              const arrivalsCount = arrivals
+                .filter(a => a.date <= key)
+                .reduce((sum, a) => sum + a.count, 0);
+              const mam = empMamSum + arrivalsCount;
+
+              const absentees = employeeRows.flatMap(
+                emp => emp.cells[dayIndex]?.absentees ?? []
+              );
+              const vacationers = employeeRows.flatMap(
+                emp => emp.cells[dayIndex]?.vacationers ?? []
+              );
+              const title = buildTitle({ absentees, vacationers, mam });
+
+              return { mam, absentees, vacationers, title };
+            });
+
+            return {
+              jobTitle,
+              manager: mgrName,
+              department: dept,
+              potrzeby: posPotrzeby,
+              obecnie: posObecnie,
+              cells: posCells,
+              employees: employeeRows,
+            };
+          });
+
+        const mgrObecnie = positions.reduce((sum, pos) => sum + pos.obecnie, 0);
+        const mgrPotrzeby = positions.reduce((sum, pos) => sum + pos.potrzeby, 0);
+
+        const mgrCells: HarmonogramCell[] = days.map((_, dayIndex) => {
+          const mam = positions.reduce(
+            (sum, pos) => sum + (pos.cells[dayIndex]?.mam ?? 0),
+            0
+          );
+          const absentees = dedupeAbsences(
+            positions.flatMap(pos => pos.cells[dayIndex]?.absentees ?? [])
+          );
+          const vacationers = dedupeEmployees(
+            positions.flatMap(pos => pos.cells[dayIndex]?.vacationers ?? [])
+          );
           const title = buildTitle({ absentees, vacationers, mam });
+
           return { mam, absentees, vacationers, title };
         });
-        return { jobTitle: s.jobTitle, potrzeby: potrzebyPos, obecnie: s.count, cells: posCells };
+
+        return {
+          manager: mgrName,
+          department: dept,
+          potrzeby: mgrPotrzeby,
+          obecnie: mgrObecnie,
+          cells: mgrCells,
+          positions,
+        };
       });
 
-      return { dept, potrzeby, obecnie, cells, positions };
+    const deptObecnie = managers.reduce((sum, mgr) => sum + mgr.obecnie, 0);
+
+    // Sumaryczne potrzeby działu (stan obecny + wszystkie toRecruit dla działu)
+    const totalDeptToRecruit = data.recruitments
+      .filter(r => r.department === dept)
+      .reduce(
+        (sum, r) => sum + r.positions.reduce((s, p) => s + (Number(p.toRecruit) || 0), 0),
+        0
+      );
+    const deptPotrzeby = Math.max(
+      managers.reduce((sum, mgr) => sum + mgr.potrzeby, 0),
+      deptObecnie + totalDeptToRecruit
+    );
+
+    const deptCells: HarmonogramCell[] = days.map((_, dayIndex) => {
+      const mam = managers.reduce(
+        (sum, mgr) => sum + (mgr.cells[dayIndex]?.mam ?? 0),
+        0
+      );
+      const absentees = dedupeAbsences(
+        managers.flatMap(mgr => mgr.cells[dayIndex]?.absentees ?? [])
+      );
+      const vacationers = dedupeEmployees(
+        managers.flatMap(mgr => mgr.cells[dayIndex]?.vacationers ?? [])
+      );
+      const title = buildTitle({ absentees, vacationers, mam });
+
+      return { mam, absentees, vacationers, title };
     });
+
+    const allPositions = managers.flatMap(mgr => mgr.positions);
+
+    return {
+      dept,
+      potrzeby: deptPotrzeby,
+      obecnie: deptObecnie,
+      cells: deptCells,
+      managers,
+      positions: allPositions,
+    };
+  });
 
   return {
     monthDate,
@@ -290,10 +430,24 @@ export function buildHarmonogram(
   };
 }
 
-function arrivalsOf(dept: string, data: HarmonogramData) {
-  return data.recruitments
-    .filter(r => r.department === dept)
-    .flatMap(r => r.arrivals.filter(a => a.date));
+function dedupeAbsences(absences: HarmonogramAbsence[]): HarmonogramAbsence[] {
+  const seen = new Set<string>();
+  return absences.filter(a => {
+    const key = `${a.date}|${a.fullName.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function dedupeEmployees(employees: HarmonogramEmployee[]): HarmonogramEmployee[] {
+  const seen = new Set<string>();
+  return employees.filter(e => {
+    const key = e.fullName.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function buildTitle({
@@ -306,8 +460,8 @@ function buildTitle({
   mam: number;
 }): string | undefined {
   const changes: string[] = [];
-  if (absentees.length > 0) changes.push(`â’${absentees.length} nieobecnych`);
-  if (vacationers.length > 0) changes.push(`â’${vacationers.length} na urlopie`);
+  if (absentees.length > 0) changes.push(`−${absentees.length} nieobecnych`);
+  if (vacationers.length > 0) changes.push(`−${vacationers.length} na urlopie`);
   const details: string[] = [];
   if (absentees.length > 0)
     details.push(
@@ -325,8 +479,7 @@ function buildTitle({
   return title || `Mam: ${mam}`;
 }
 
-
-/** Eksport harmonogramu do Excel (jeden arkusz, grupy stanowisk, kolory) */
+/** Eksport harmonogramu do Excel (pełna 4-poziomowa hierarchia: Dział -> Kierownik -> Stanowisko -> Pracownik) */
 export async function exportHarmonogramToExcel(result: HarmonogramResult): Promise<void> {
   const ExcelJS = (await import('exceljs')).default;
   const { saveAs } = await import('file-saver');
@@ -334,29 +487,49 @@ export async function exportHarmonogramToExcel(result: HarmonogramResult): Promi
   const ws = wb.addWorksheet('Harmonogram obsady');
 
   const columns: { name: string; filterButton: boolean }[] = [
-    { name: 'DziaĹ‚', filterButton: false },
+    { name: 'Struktura (Dział / Kierownik / Stanowisko / Pracownik)', filterButton: false },
     { name: 'Potrzeby', filterButton: false },
     { name: 'Mam teraz', filterButton: false },
     ...result.days.map(d => ({ name: format(d, 'dd.MM'), filterButton: false })),
-    { name: 'Nieobecni / Na urlopie', filterButton: false },
+    { name: 'Nieobecni / Na urlopie / Status', filterButton: false },
   ];
 
-  const wsRows: {
+  interface ExcelRowDef {
     values: (string | number)[];
-    isSub: boolean;
+    level: number; // 0=Dział, 1=Kierownik, 2=Stanowisko, 3=Pracownik
     cells?: HarmonogramCell[];
-  }[] = [];
-  result.rows.forEach(row => {
+  }
+
+  const wsRows: ExcelRowDef[] = [];
+
+  result.rows.forEach(dept => {
     wsRows.push({
-      values: [row.dept, row.potrzeby, row.obecnie, ...row.cells.map(c => c.mam)],
-      isSub: false,
-      cells: row.cells,
+      values: [dept.dept, dept.potrzeby, dept.obecnie, ...dept.cells.map(c => c.mam)],
+      level: 0,
+      cells: dept.cells,
     });
-    row.positions.forEach(pos => {
+
+    dept.managers.forEach(mgr => {
       wsRows.push({
-        values: [`   â€˘ ${pos.jobTitle}`, pos.potrzeby, pos.obecnie, ...pos.cells.map(c => c.mam)],
-        isSub: true,
-        cells: pos.cells,
+        values: [`   Kierownik: ${mgr.manager}`, mgr.potrzeby, mgr.obecnie, ...mgr.cells.map(c => c.mam)],
+        level: 1,
+        cells: mgr.cells,
+      });
+
+      mgr.positions.forEach(pos => {
+        wsRows.push({
+          values: [`      • ${pos.jobTitle}`, pos.potrzeby, pos.obecnie, ...pos.cells.map(c => c.mam)],
+          level: 2,
+          cells: pos.cells,
+        });
+
+        pos.employees.forEach(emp => {
+          wsRows.push({
+            values: [`         - ${emp.fullName}`, '', emp.obecnie, ...emp.cells.map(c => c.mam)],
+            level: 3,
+            cells: emp.cells,
+          });
+        });
       });
     });
   });
@@ -373,36 +546,50 @@ export async function exportHarmonogramToExcel(result: HarmonogramResult): Promi
 
   wsRows.forEach((row, i) => {
     const sheetRow = ws.getRow(i + 2);
-    if (row.isSub) {
-      // row.font (styl wiersza) generuje niepoprawny XML w ExcelJS â€” stylujemy komĂłrki
-      sheetRow.outlineLevel = 1;
+    sheetRow.outlineLevel = row.level;
+
+    if (row.level > 0) {
       sheetRow.hidden = true;
       for (let c = 1; c <= row.values.length; c++) {
-        sheetRow.getCell(c).font = { italic: true, color: { argb: 'FF6B7280' } };
+        const cell = sheetRow.getCell(c);
+        if (row.level === 1) {
+          cell.font = { bold: true, color: { argb: 'FF1F2937' } };
+        } else if (row.level === 2) {
+          cell.font = { italic: true, color: { argb: 'FF4B5563' } };
+        } else {
+          cell.font = { color: { argb: 'FF6B7280' } };
+        }
       }
+    } else {
+      sheetRow.getCell(1).font = { bold: true };
     }
+
+    // Kolorowanie komórek z absencją lub urlopem
     row.cells?.forEach((cell, j) => {
+      const tableCell = sheetRow.getCell(4 + j);
       if (cell.absentees.length > 0) {
-        const tableCell = sheetRow.getCell(4 + j);
         tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
         tableCell.font = { color: { argb: 'FF9C0006' }, bold: true };
       } else if (cell.vacationers.length > 0) {
-        const tableCell = sheetRow.getCell(4 + j);
         tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8BBD9' } };
         tableCell.font = { color: { argb: 'FF880E4F' }, italic: true };
+      } else if (row.level === 3 && cell.statusType === 'terminated') {
+        tableCell.font = { color: { argb: 'FF9CA3AF' } };
       }
     });
+
     const uwagiCell = sheetRow.getCell(4 + result.days.length);
     uwagiCell.alignment = { wrapText: true, vertical: 'top' };
   });
 
-  ws.getColumn(1).width = 24;
+  ws.getColumn(1).width = 38;
   ws.getColumn(2).width = 12;
   ws.getColumn(3).width = 12;
-  ws.getColumn(4 + result.days.length).width = 60;
+  ws.getColumn(4 + result.days.length).width = 50;
 
-  // Kolumna â€žNieobecni / Na urlopie" â€” tekstowe podsumowanie per dzieĹ„
-  result.rows.forEach((row, i) => {
+  // Kolumna z podsumowaniem uwag
+  wsRows.forEach((row, i) => {
+    if (!row.cells) return;
     const uwagi = row.cells
       .map((cell, j) => {
         const parts: string[] = [];
@@ -410,11 +597,16 @@ export async function exportHarmonogramToExcel(result: HarmonogramResult): Promi
           parts.push(`Nieobecni: ${cell.absentees.map(a => a.fullName).join(', ')}`);
         if (cell.vacationers.length > 0)
           parts.push(`Na urlopie: ${cell.vacationers.map(e => e.fullName).join(', ')}`);
-        return parts.length > 0 ? `${format(result.days[j], 'dd.MM')} â€” ${parts.join('; ')}` : null;
+        return parts.length > 0
+          ? `${format(result.days[j], 'dd.MM')} — ${parts.join('; ')}`
+          : null;
       })
       .filter(Boolean)
       .join(' | ');
-    if (uwagi) ws.getRow(i + 2).getCell(4 + result.days.length).value = uwagi;
+
+    if (uwagi) {
+      ws.getRow(i + 2).getCell(4 + result.days.length).value = uwagi;
+    }
   });
 
   const buffer = await wb.xlsx.writeBuffer();
@@ -423,4 +615,3 @@ export async function exportHarmonogramToExcel(result: HarmonogramResult): Promi
   });
   saveAs(blob, `Harmonogram_obsady_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
 }
-
