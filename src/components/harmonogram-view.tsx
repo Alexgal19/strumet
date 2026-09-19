@@ -37,6 +37,7 @@ export function HarmonogramView({
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
   const [expandedManagers, setExpandedManagers] = useState<Set<string>>(new Set());
   const [expandedPositions, setExpandedPositions] = useState<Set<string>>(new Set());
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
 
   const [cellTooltip, setCellTooltip] = useState<{
     x: number;
@@ -50,10 +51,16 @@ export function HarmonogramView({
 
   const result = useMemo(() => buildHarmonogram(data, monthOffset), [data, monthOffset]);
 
+  const todayIndex = useMemo(
+    () => result.days.findIndex(d => format(d, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')),
+    [result.days]
+  );
+  const activeDayIndex = selectedDayIndex !== null ? selectedDayIndex : (todayIndex >= 0 ? todayIndex : 0);
+
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      await exportHarmonogramToExcel(result);
+      await exportHarmonogramToExcel(result, activeDayIndex);
     } finally {
       setIsExporting(false);
     }
@@ -158,6 +165,21 @@ export function HarmonogramView({
                 type="button"
                 variant="outline"
                 size="sm"
+                className="h-8 text-xs"
+                onClick={() => {
+                  setMonthOffset(0);
+                  setSelectedDayIndex(null);
+                }}
+              >
+                Dzisiaj
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-1 border-l pl-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
                 className="h-8 gap-1 text-xs"
                 onClick={expandAll}
                 title="Rozwiń wszystkie poziomy"
@@ -227,20 +249,32 @@ export function HarmonogramView({
                 <th className="sticky left-[220px] top-0 z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
                   Potrzeby
                 </th>
-                <th className="sticky left-[290px] top-0 z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
-                  Mam teraz
+                <th className="sticky left-[290px] top-0 z-30 min-w-[90px] border-b bg-background px-3 py-2 text-right font-semibold">
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[10px] uppercase text-muted-foreground">Stan na</span>
+                    <span className="text-primary font-bold leading-none">
+                      {selectedDayIndex === null && todayIndex >= 0
+                        ? `Dziś (${format(result.days[activeDayIndex], 'dd.MM')})`
+                        : format(result.days[activeDayIndex], 'dd.MM')}
+                    </span>
+                  </div>
                 </th>
-                {result.days.map((d, i) => (
-                  <th
-                    key={d.toISOString()}
-                    className={
-                      'sticky top-0 z-20 border-b bg-background px-2.5 py-2 text-center font-semibold tabular-nums' +
-                      (i === 0 ? ' text-primary' : '')
-                    }
-                  >
-                    {format(d, 'dd.MM')}
-                  </th>
-                ))}
+                {result.days.map((d, i) => {
+                  const isSelected = i === activeDayIndex;
+                  return (
+                    <th
+                      key={d.toISOString()}
+                      onClick={() => setSelectedDayIndex(i)}
+                      className={
+                        'sticky top-0 z-20 border-b bg-background px-2.5 py-2 text-center font-semibold tabular-nums cursor-pointer hover:bg-muted transition-colors' +
+                        (isSelected ? ' bg-primary/10 text-primary border-b-2 border-b-primary' : '') +
+                        (!isSelected && i === todayIndex ? ' text-primary' : '')
+                      }
+                    >
+                      {format(d, 'dd.MM')}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -267,7 +301,7 @@ export function HarmonogramView({
                         {deptRow.potrzeby}
                       </td>
                       <td className="sticky left-[290px] z-10 bg-background px-3 py-2 text-right tabular-nums">
-                        {deptRow.obecnie}
+                        {deptRow.cells[activeDayIndex]?.mam ?? 0}
                       </td>
                       {deptRow.cells.map((cell, i) => (
                         <CellWithTooltip
@@ -310,7 +344,7 @@ export function HarmonogramView({
                                 {mgrRow.potrzeby}
                               </td>
                               <td className="sticky left-[290px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs tabular-nums">
-                                {mgrRow.obecnie}
+                                {mgrRow.cells[activeDayIndex]?.mam ?? 0}
                               </td>
                               {mgrRow.cells.map((cell, i) => (
                                 <CellWithTooltip
@@ -348,7 +382,7 @@ export function HarmonogramView({
                                         {posRow.potrzeby}
                                       </td>
                                       <td className="sticky left-[290px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs tabular-nums">
-                                        {posRow.obecnie}
+                                        {posRow.cells[activeDayIndex]?.mam ?? 0}
                                       </td>
                                       {posRow.cells.map((cell, i) => (
                                         <CellWithTooltip
@@ -377,7 +411,14 @@ export function HarmonogramView({
                                             —
                                           </td>
                                           <td className="sticky left-[290px] z-10 bg-background/90 px-3 py-1 text-right text-xs tabular-nums">
-                                            {empRow.obecnie}
+                                            {(() => {
+                                              const cell = empRow.cells[activeDayIndex];
+                                              if (!cell) return <span className="text-muted-foreground/40">—</span>;
+                                              if (cell.mam > 0) return <span className="font-bold">1</span>;
+                                              if (cell.statusType === 'vacation') return <span className="text-pink-500 font-medium" title="Urlop">U</span>;
+                                              if (cell.statusType === 'absent') return <span className="text-destructive font-medium" title="Nieobecność">NB</span>;
+                                              return <span className="text-muted-foreground/40">—</span>;
+                                            })()}
                                           </td>
                                           {empRow.cells.map((cell, i) => (
                                             <EmployeeCellWithTooltip

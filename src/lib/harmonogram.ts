@@ -479,18 +479,21 @@ function buildTitle({
 }
 
 /** Eksport harmonogramu do Excel (pełna 4-poziomowa hierarchia: Dział -> Kierownik -> Stanowisko -> Pracownik) */
-export async function exportHarmonogramToExcel(result: HarmonogramResult): Promise<void> {
+export async function exportHarmonogramToExcel(
+  result: HarmonogramResult,
+  activeDayIndex: number = 0
+) {
   const ExcelJS = (await import('exceljs')).default;
   const { saveAs } = await import('file-saver');
   const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('Harmonogram obsady');
+  const ws = wb.addWorksheet('Harmonogram Obsady');
 
-  const columns: { name: string; filterButton: boolean }[] = [
-    { name: 'Struktura (Dział / Kierownik / Stanowisko / Pracownik)', filterButton: false },
-    { name: 'Potrzeby', filterButton: false },
-    { name: 'Mam teraz', filterButton: false },
+  const columns: any[] = [
+    { name: 'Dział / Kierownik / Stanowisko / Pracownik', filterButton: true },
+    { name: 'Potrzeby', filterButton: true },
+    { name: `Stan na ${format(result.days[activeDayIndex], 'dd.MM')}`, filterButton: true },
     ...result.days.map(d => ({ name: format(d, 'dd.MM'), filterButton: false })),
-    { name: 'Nieobecni / Na urlopie / Status', filterButton: false },
+    { name: 'Uwagi' },
   ];
 
   interface ExcelRowDef {
@@ -503,28 +506,28 @@ export async function exportHarmonogramToExcel(result: HarmonogramResult): Promi
 
   result.rows.forEach(dept => {
     wsRows.push({
-      values: [dept.dept, dept.potrzeby, dept.obecnie, ...dept.cells.map(c => c.mam)],
+      values: [dept.dept, dept.potrzeby, dept.cells[activeDayIndex]?.mam ?? 0, ...dept.cells.map(c => c.mam)],
       level: 0,
       cells: dept.cells,
     });
 
     dept.managers.forEach(mgr => {
       wsRows.push({
-        values: [`   Kierownik: ${mgr.manager}`, mgr.potrzeby, mgr.obecnie, ...mgr.cells.map(c => c.mam)],
+        values: [`   Kierownik: ${mgr.manager}`, mgr.potrzeby, mgr.cells[activeDayIndex]?.mam ?? 0, ...mgr.cells.map(c => c.mam)],
         level: 1,
         cells: mgr.cells,
       });
 
       mgr.positions.forEach(pos => {
         wsRows.push({
-          values: [`      • ${pos.jobTitle}`, pos.potrzeby, pos.obecnie, ...pos.cells.map(c => c.mam)],
+          values: [`      • ${pos.jobTitle}`, pos.potrzeby, pos.cells[activeDayIndex]?.mam ?? 0, ...pos.cells.map(c => c.mam)],
           level: 2,
           cells: pos.cells,
         });
 
         pos.employees.forEach(emp => {
           wsRows.push({
-            values: [`         - ${emp.fullName}`, '', emp.obecnie, ...emp.cells.map(c => c.mam)],
+            values: [`         - ${emp.fullName}`, '', emp.cells[activeDayIndex]?.mam > 0 ? 1 : 0, ...emp.cells.map(c => c.mam)],
             level: 3,
             cells: emp.cells,
           });
