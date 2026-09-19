@@ -28,7 +28,9 @@ import {
   Sparkles,
   Edit2,
   Share2,
+  Table,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { ref as dbRef, onValue } from 'firebase/database';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -206,6 +208,67 @@ export function DirectorReportCard({
     window.print();
   };
 
+  const handleExportExcel = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+
+      // 1. Obecny stan
+      const currentData = report.currentJobTitleBreakdown.map(item => ({
+        Stanowisko: item.name,
+        Liczba: item.count
+      }));
+      const wsCurrent = XLSX.utils.json_to_sheet(currentData);
+      XLSX.utils.book_append_sheet(wb, wsCurrent, 'Stan obecny');
+
+      // 2. Odeszli
+      const terminatedData = report.terminatedEmployees.map(emp => ({
+        'Imię i nazwisko': emp.fullName,
+        'Stanowisko': emp.jobTitle,
+        'Dział': emp.department,
+        'Koniec pracy': emp.formattedDate
+      }));
+      const wsTerminated = XLSX.utils.json_to_sheet(terminatedData);
+      XLSX.utils.book_append_sheet(wb, wsTerminated, 'Odeszli');
+
+      // 3. Zatrudnieni
+      const hiredData = report.hiredEmployees.map(emp => ({
+        'Imię i nazwisko': emp.fullName,
+        'Stanowisko': emp.jobTitle,
+        'Dział': emp.department,
+        'Data zatrudnienia': emp.formattedDate
+      }));
+      const wsHired = XLSX.utils.json_to_sheet(hiredData);
+      XLSX.utils.book_append_sheet(wb, wsHired, 'Zatrudnieni');
+
+      // 4. Zapotrzebowanie (Rekrutacja)
+      const recruitmentData = report.recruitmentByDept.flatMap(dept => 
+        dept.positions.map(pos => ({
+          'Dział': dept.department,
+          'Stanowisko': pos.jobTitle,
+          'Zapotrzebowanie': pos.toRecruit
+        }))
+      );
+      const wsRecruitment = XLSX.utils.json_to_sheet(recruitmentData);
+      XLSX.utils.book_append_sheet(wb, wsRecruitment, 'Zapotrzebowanie');
+
+      // Save file
+      const fileName = `Raport_${report.companyName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast({
+        title: 'Eksport zakończony',
+        description: `Pobrano plik: ${fileName}`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Błąd eksportu',
+        description: 'Nie udało się wygenerować pliku Excel.',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Pasek sterowania i szybkiego wyboru */}
@@ -259,6 +322,17 @@ export function DirectorReportCard({
               >
                 <Printer className="h-4 w-4" />
                 <span className="hidden sm:inline">Drukuj / PDF</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleExportExcel}
+                title="Pobierz jako arkusz Excel"
+              >
+                <Table className="h-4 w-4" />
+                <span className="hidden sm:inline">Excel</span>
               </Button>
             </div>
           </div>
