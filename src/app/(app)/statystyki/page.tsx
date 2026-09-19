@@ -36,6 +36,7 @@ import { archiveEmployees } from '@/ai/flows/archive-employees-flow';
 import { createStatsSnapshot } from '@/ai/flows/create-stats-snapshot';
 import { formatDate, parseMaybeDate, vacationHasStarted } from '@/lib/date';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { DirectorReportCard } from '@/components/director-report-card';
 
 const StatisticsPieChart = dynamic(() => import('@/components/statistics-pie-chart'), {
   ssr: false,
@@ -541,7 +542,7 @@ const FieldChangeList = ({ changes }: { changes: any[] }) => {
 }
 
 const HiresAndFiresTab = () => {
-    const { isAdmin, currentUser, statsHistory } = useAppContext();
+    const { isAdmin, currentUser, statsHistory, employees } = useAppContext();
     const isMobile = useIsMobile();
     const [isArchiving, setIsArchiving] = useState(false);
     const [date, setDate] = useState<DateRange | undefined>();
@@ -627,9 +628,17 @@ const HiresAndFiresTab = () => {
 
     const hasEvents = report && ((report.newHires && report.newHires.length > 0) || (report.terminated && report.terminated.length > 0) || (report.fieldChanges && report.fieldChanges.length > 0));
 
+    const coordinatorName =
+        currentUser?.email === 'sanyagal191919@gmail.com'
+            ? 'Oleksandr Holiadynets'
+            : (currentUser?.email?.split('@')[0] || 'Oleksandr Holiadynets');
+
     return (
-        <div className="space-y-6">
-            <Card className="glass-card">
+        <div className="space-y-8">
+            <DirectorReportCard employees={employees} initialCoordinatorName={coordinatorName} />
+
+            <div className="pt-6 border-t border-border/60">
+                <Card className="glass-card">
                 <CardHeader>
                     <div className="flex justify-between items-start">
                         <div>
@@ -889,6 +898,7 @@ const HiresAndFiresTab = () => {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 };

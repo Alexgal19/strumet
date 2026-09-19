@@ -228,9 +228,8 @@ export function buildHarmonogram(
                 const term =
                   parseSafeDate(e.terminationDate) || parseSafeDate(e.plannedTerminationDate);
 
-                // Obecnie: czy pracuje dzisiaj
-                const isEmployedToday =
-                  (!hire || hire <= today) && (!term || term >= today);
+                // Obecnie: synchronizacja z zakładką "Pracownicy aktywni" (tylko status 'aktywny')
+                const isEmployedToday = e.status === 'aktywny';
                 const empObecnie = isEmployedToday ? 1 : 0;
 
                 const empCells: HarmonogramCell[] = days.map(d => {
