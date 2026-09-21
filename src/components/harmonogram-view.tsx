@@ -57,6 +57,16 @@ export function HarmonogramView({
   );
   const activeDayIndex = selectedDayIndex !== null ? selectedDayIndex : (todayIndex >= 0 ? todayIndex : 0);
 
+  const totals = useMemo(() => {
+    const potrzeby = result.rows.reduce((s, r) => s + r.potrzeby, 0);
+    const perDay = result.days.map((_, i) =>
+      result.rows.reduce((s, r) => s + (r.cells[i]?.mam ?? 0), 0)
+    );
+    const stanNa = perDay[activeDayIndex] ?? 0;
+    const diff = perDay.map(v => v - stanNa);
+    return { potrzeby, stanNa, diff };
+  }, [result, activeDayIndex]);
+
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -440,6 +450,42 @@ export function HarmonogramView({
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2">
+                <td className="sticky bottom-0 left-0 z-30 min-w-[220px] border-t-2 bg-background px-3 py-2 text-left font-semibold">
+                  Suma / różnica
+                </td>
+                <td className="sticky bottom-0 left-[220px] z-30 min-w-[70px] border-t-2 bg-background px-3 py-2 text-right font-bold tabular-nums">
+                  {totals.potrzeby}
+                </td>
+                <td className="sticky bottom-0 left-[290px] z-30 min-w-[90px] border-t-2 bg-background px-3 py-2 text-right font-bold tabular-nums">
+                  {totals.stanNa}
+                </td>
+                {result.days.map((d, i) => {
+                  const diff = totals.diff[i] ?? 0;
+                  const diffClass =
+                    diff > 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : diff < 0
+                        ? 'text-destructive'
+                        : 'text-muted-foreground';
+                  const isSelected = i === activeDayIndex;
+                  return (
+                    <td
+                      key={d.toISOString()}
+                      title={`Obsada ${format(d, 'dd.MM')}: ${totals.stanNa + diff} • Stan na ${format(result.days[activeDayIndex], 'dd.MM')}: ${totals.stanNa} • Różnica: ${diff > 0 ? '+' : ''}${diff}`}
+                      className={
+                        'sticky bottom-0 z-20 border-t-2 bg-background px-2.5 py-2 text-center text-xs font-semibold tabular-nums ' +
+                        diffClass +
+                        (isSelected ? ' bg-primary/10' : '')
+                      }
+                    >
+                      {diff > 0 ? `+${diff}` : `${diff}`}
+                    </td>
+                  );
+                })}
+              </tr>
+            </tfoot>
           </table>
           {result.rows.length === 0 && (
             <p className="py-6 text-center text-sm text-muted-foreground">Brak danych.</p>
