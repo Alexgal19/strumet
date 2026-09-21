@@ -69,12 +69,15 @@ export function HarmonogramView({
       )
     );
     const perDayEmployed = perDayMam.map((m, i) => m + perDayAbsent[i]);
-    const stanNa = perDayMam[activeDayIndex] ?? 0;
+    const employedNa = perDayEmployed[activeDayIndex] ?? 0;
     const absentNa = perDayAbsent[activeDayIndex] ?? 0;
     const diff = perDayMam.map(v => v - potrzeby);
-    const employedGap = perDayEmployed.map(v => potrzeby - v);
-    return { potrzeby, stanNa, absentNa, diff, employedGap };
+    const employedGap = perDayEmployed.map(v => v - potrzeby);
+    return { potrzeby, employedNa, absentNa, diff, employedGap };
   }, [result, activeDayIndex]);
+
+  const employedOn = (cell?: HarmonogramCell) =>
+    cell ? cell.mam + cell.absentees.length + cell.vacationers.length : 0;
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -276,6 +279,9 @@ export function HarmonogramView({
                         ? `Dziś (${format(result.days[activeDayIndex], 'dd.MM')})`
                         : format(result.days[activeDayIndex], 'dd.MM')}
                     </span>
+                    <span className="text-[9px] leading-none text-muted-foreground/70">
+                      zatrudnieni (z NB/urlopem)
+                    </span>
                   </div>
                 </th>
                 {result.days.map((d, i) => {
@@ -319,8 +325,8 @@ export function HarmonogramView({
                       <td className="sticky left-[220px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
                         {deptRow.potrzeby}
                       </td>
-                      <td className="sticky left-[290px] z-10 bg-background px-3 py-2 text-right tabular-nums">
-                        {deptRow.cells[activeDayIndex]?.mam ?? 0}
+                      <td className="sticky left-[290px] z-10 bg-background px-3 py-2 text-right tabular-nums" title="Stan zatrudnienia (z nieobecnymi i na urlopie)">
+                        {employedOn(deptRow.cells[activeDayIndex])}
                       </td>
                       {deptRow.cells.map((cell, i) => (
                         <CellWithTooltip
@@ -362,8 +368,8 @@ export function HarmonogramView({
                               <td className="sticky left-[220px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
                                 {mgrRow.potrzeby}
                               </td>
-                              <td className="sticky left-[290px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs tabular-nums">
-                                {mgrRow.cells[activeDayIndex]?.mam ?? 0}
+                              <td className="sticky left-[290px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs tabular-nums" title="Stan zatrudnienia (z nieobecnymi i na urlopie)">
+                                {employedOn(mgrRow.cells[activeDayIndex])}
                               </td>
                               {mgrRow.cells.map((cell, i) => (
                                 <CellWithTooltip
@@ -400,8 +406,8 @@ export function HarmonogramView({
                                       <td className="sticky left-[220px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
                                         {posRow.potrzeby}
                                       </td>
-                                      <td className="sticky left-[290px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs tabular-nums">
-                                        {posRow.cells[activeDayIndex]?.mam ?? 0}
+                                      <td className="sticky left-[290px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs tabular-nums" title="Stan zatrudnienia (z nieobecnymi i na urlopie)">
+                                        {employedOn(posRow.cells[activeDayIndex])}
                                       </td>
                                       {posRow.cells.map((cell, i) => (
                                         <CellWithTooltip
@@ -509,21 +515,21 @@ export function HarmonogramView({
                   },
                   {
                     key: 'potrzeby-stan-zatrudnienia',
-                    label: 'Potrzeby − stan zatrudnienia (z NB/urlopem)',
+                    label: 'Stan zatrudnienia (z NB/urlopem) − potrzeby',
                     stanValue: sign(totals.employedGap[activeDayIndex] ?? 0),
-                    stanTitle: `Stan zatrudnienia dziś: ${totals.stanNa + totals.absentNa} • Potrzeby: ${totals.potrzeby}`,
+                    stanTitle: `Stan zatrudnienia dziś: ${totals.employedNa} • Potrzeby: ${totals.potrzeby}`,
                     perDay: totals.employedGap,
                     valueClass: gapColor,
                     dayTitle: i => {
                       const v = totals.employedGap[i] ?? 0;
-                      return `Stan zatrudnienia ${format(result.days[i], 'dd.MM')}: ${totals.potrzeby - v} • Potrzeby: ${totals.potrzeby} • Różnica: ${sign(v)}`;
+                      return `Stan zatrudnienia ${format(result.days[i], 'dd.MM')}: ${totals.potrzeby + v} • Potrzeby: ${totals.potrzeby} • Różnica: ${sign(v)}`;
                     },
                   },
                   {
                     key: 'obsada-potrzeby',
                     label: 'Brak obsady (obecni − potrzeby)',
                     stanValue: sign(totals.diff[activeDayIndex] ?? 0),
-                    stanTitle: `Obecni dziś: ${totals.stanNa} • Potrzeby: ${totals.potrzeby}`,
+                    stanTitle: `Obecni dziś: ${totals.employedNa - totals.absentNa} • Potrzeby: ${totals.potrzeby}`,
                     perDay: totals.diff,
                     valueClass: gapColor,
                     dayTitle: i => {
@@ -542,8 +548,8 @@ export function HarmonogramView({
                       <td className={fixed + ' border-t-2 font-bold'} style={{ bottom: '84px' }}>
                         {totals.potrzeby}
                       </td>
-                      <td className={stan + ' border-t-2 font-bold'} style={{ bottom: '84px' }}>
-                        {totals.stanNa}
+                      <td className={stan + ' border-t-2 font-bold'} style={{ bottom: '84px' }} title="Stan zatrudnienia (z nieobecnymi i na urlopie)">
+                        {totals.employedNa}
                       </td>
                       {result.days.map((d, i) => (
                         <td
