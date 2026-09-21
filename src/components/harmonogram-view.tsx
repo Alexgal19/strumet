@@ -59,12 +59,21 @@ export function HarmonogramView({
 
   const totals = useMemo(() => {
     const potrzeby = result.rows.reduce((s, r) => s + r.potrzeby, 0);
-    const perDay = result.days.map((_, i) =>
+    const perDayMam = result.days.map((_, i) =>
       result.rows.reduce((s, r) => s + (r.cells[i]?.mam ?? 0), 0)
     );
-    const stanNa = perDay[activeDayIndex] ?? 0;
-    const diff = perDay.map(v => v - potrzeby);
-    return { potrzeby, stanNa, diff };
+    const perDayAbsent = result.days.map((_, i) =>
+      result.rows.reduce(
+        (s, r) => s + (r.cells[i]?.absentees.length ?? 0) + (r.cells[i]?.vacationers.length ?? 0),
+        0
+      )
+    );
+    const perDayEmployed = perDayMam.map((m, i) => m + perDayAbsent[i]);
+    const stanNa = perDayMam[activeDayIndex] ?? 0;
+    const absentNa = perDayAbsent[activeDayIndex] ?? 0;
+    const diff = perDayMam.map(v => v - potrzeby);
+    const employedGap = perDayEmployed.map(v => potrzeby - v);
+    return { potrzeby, stanNa, absentNa, diff, employedGap };
   }, [result, activeDayIndex]);
 
   const handleExport = async () => {
@@ -451,40 +460,143 @@ export function HarmonogramView({
               })}
             </tbody>
             <tfoot>
-              <tr className="border-t-2">
-                <td className="sticky bottom-0 left-0 z-30 min-w-[220px] border-t-2 bg-background px-3 py-2 text-left font-semibold">
-                  Suma / brak do potrzeb
-                </td>
-                <td className="sticky bottom-0 left-[220px] z-30 min-w-[70px] border-t-2 bg-background px-3 py-2 text-right font-bold tabular-nums">
-                  {totals.potrzeby}
-                </td>
-                <td className="sticky bottom-0 left-[290px] z-30 min-w-[90px] border-t-2 bg-background px-3 py-2 text-right font-bold tabular-nums">
-                  {totals.stanNa}
-                </td>
-                {result.days.map((d, i) => {
-                  const diff = totals.diff[i] ?? 0;
-                  const diffClass =
-                    diff > 0
+              {(() => {
+                const sign = (v: number) => (v > 0 ? `+${v}` : `${v}`);
+                const gapColor = (v: number) =>
+                  v < 0
+                    ? 'text-destructive'
+                    : v > 0
                       ? 'text-emerald-600 dark:text-emerald-400'
-                      : diff < 0
-                        ? 'text-destructive'
-                        : 'text-muted-foreground';
-                  const isSelected = i === activeDayIndex;
-                  return (
-                    <td
-                      key={d.toISOString()}
-                      title={`Obsada ${format(d, 'dd.MM')}: ${totals.potrzeby + diff} • Potrzeby: ${totals.potrzeby} • Różnica: ${diff > 0 ? '+' : ''}${diff}`}
-                      className={
-                        'sticky bottom-0 z-20 border-t-2 bg-background px-2.5 py-2 text-center text-xs font-semibold tabular-nums ' +
-                        diffClass +
-                        (isSelected ? ' bg-primary/10' : '')
-                      }
-                    >
-                      {diff > 0 ? `+${diff}` : `${diff}`}
-                    </td>
-                  );
-                })}
-              </tr>
+                      : 'text-muted-foreground';
+                const perDayAbsent = result.days.map((_, i) =>
+                  result.rows.reduce(
+                    (s, r) =>
+                      s +
+                      (r.cells[i]?.absentees.length ?? 0) +
+                      (r.cells[i]?.vacationers.length ?? 0),
+                    0
+                  )
+                );
+                const label =
+                  'sticky left-0 z-30 h-7 min-w-[220px] border-t bg-background px-3 py-1.5 text-left text-[10px] font-semibold uppercase leading-none';
+                const fixed =
+                  'sticky left-[220px] z-30 h-7 min-w-[70px] border-t bg-background px-3 py-1.5 text-right text-[11px] tabular-nums leading-none';
+                const stan =
+                  'sticky left-[290px] z-30 h-7 min-w-[90px] border-t bg-background px-3 py-1.5 text-right text-[11px] tabular-nums leading-none';
+                const day =
+                  'sticky z-20 h-7 border-t bg-background px-2.5 py-1.5 text-center text-[11px] font-semibold tabular-nums leading-none';
+
+                const rows: {
+                  key: string;
+                  label: string;
+                  labelClass?: string;
+                  stanValue?: React.ReactNode;
+                  stanTitle?: string;
+                  fixedValue?: React.ReactNode;
+                  perDay: number[];
+                  valueClass: (v: number) => string;
+                  dayTitle: (i: number) => string;
+                }[] = [
+                  {
+                    key: 'nb-urlop',
+                    label: 'Nieobecni + urlopy',
+                    labelClass: 'text-amber-600 dark:text-amber-400',
+                    stanValue: totals.absentNa,
+                    stanTitle: `Dziś nieobecnych + na urlopie: ${totals.absentNa}`,
+                    perDay: perDayAbsent,
+                    valueClass: v => (v > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground/40'),
+                    dayTitle: i => `Nieobecni + na urlopie ${format(result.days[i], 'dd.MM')}: ${perDayAbsent[i] ?? 0}`,
+                  },
+                  {
+                    key: 'potrzeby-stan-zatrudnienia',
+                    label: 'Potrzeby − stan zatrudnienia (z NB/urlopem)',
+                    stanValue: sign(totals.employedGap[activeDayIndex] ?? 0),
+                    stanTitle: `Stan zatrudnienia dziś: ${totals.stanNa + totals.absentNa} • Potrzeby: ${totals.potrzeby}`,
+                    perDay: totals.employedGap,
+                    valueClass: gapColor,
+                    dayTitle: i => {
+                      const v = totals.employedGap[i] ?? 0;
+                      return `Stan zatrudnienia ${format(result.days[i], 'dd.MM')}: ${totals.potrzeby - v} • Potrzeby: ${totals.potrzeby} • Różnica: ${sign(v)}`;
+                    },
+                  },
+                  {
+                    key: 'obsada-potrzeby',
+                    label: 'Brak obsady (obecni − potrzeby)',
+                    stanValue: sign(totals.diff[activeDayIndex] ?? 0),
+                    stanTitle: `Obecni dziś: ${totals.stanNa} • Potrzeby: ${totals.potrzeby}`,
+                    perDay: totals.diff,
+                    valueClass: gapColor,
+                    dayTitle: i => {
+                      const v = totals.diff[i] ?? 0;
+                      return `Obsada ${format(result.days[i], 'dd.MM')}: ${totals.potrzeby + v} • Potrzeby: ${totals.potrzeby} • Różnica: ${sign(v)}`;
+                    },
+                  },
+                ];
+
+                return (
+                  <>
+                    <tr className="border-t-2">
+                      <td className={label + ' border-t-2'} style={{ bottom: '84px' }}>
+                        Suma
+                      </td>
+                      <td className={fixed + ' border-t-2 font-bold'} style={{ bottom: '84px' }}>
+                        {totals.potrzeby}
+                      </td>
+                      <td className={stan + ' border-t-2 font-bold'} style={{ bottom: '84px' }}>
+                        {totals.stanNa}
+                      </td>
+                      {result.days.map((d, i) => (
+                        <td
+                          key={d.toISOString()}
+                          className={
+                            day + ' border-t-2' +
+                            (i === activeDayIndex ? ' bg-primary/10' : '')
+                          }
+                          style={{ bottom: '84px' }}
+                        />
+                      ))}
+                    </tr>
+                    {rows.map((row, rowIdx) => (
+                      <tr key={row.key}>
+                        <td
+                          className={
+                            label + (row.labelClass ? ` ${row.labelClass}` : '')
+                          }
+                          style={{ bottom: `${(rows.length - rowIdx - 1) * 28}px` }}
+                        >
+                          {row.label}
+                        </td>
+                        <td className={fixed} style={{ bottom: `${(rows.length - rowIdx - 1) * 28}px` }}>
+                          —
+                        </td>
+                        <td
+                          className={stan}
+                          style={{ bottom: `${(rows.length - rowIdx - 1) * 28}px` }}
+                          title={row.stanTitle}
+                        >
+                          {row.stanValue}
+                        </td>
+                        {result.days.map((d, i) => {
+                          const v = row.perDay[i] ?? 0;
+                          return (
+                            <td
+                              key={d.toISOString()}
+                              title={row.dayTitle(i)}
+                              className={
+                                day + ' ' + row.valueClass(v) +
+                                (i === activeDayIndex ? ' bg-primary/10' : '')
+                              }
+                              style={{ bottom: `${(rows.length - rowIdx - 1) * 28}px` }}
+                            >
+                              {row.key === 'nb-urlop' ? (v > 0 ? v : '—') : sign(v)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </>
+                );
+              })()}
             </tfoot>
           </table>
           {result.rows.length === 0 && (
