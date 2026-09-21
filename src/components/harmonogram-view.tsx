@@ -63,7 +63,7 @@ export function HarmonogramView({
       result.rows.reduce((s, r) => s + (r.cells[i]?.mam ?? 0), 0)
     );
     const stanNa = perDay[activeDayIndex] ?? 0;
-    const diff = perDay.map(v => v - stanNa);
+    const diff = perDay.map(v => v - potrzeby);
     return { potrzeby, stanNa, diff };
   }, [result, activeDayIndex]);
 
@@ -453,7 +453,7 @@ export function HarmonogramView({
             <tfoot>
               <tr className="border-t-2">
                 <td className="sticky bottom-0 left-0 z-30 min-w-[220px] border-t-2 bg-background px-3 py-2 text-left font-semibold">
-                  Suma / różnica
+                  Suma / brak do potrzeb
                 </td>
                 <td className="sticky bottom-0 left-[220px] z-30 min-w-[70px] border-t-2 bg-background px-3 py-2 text-right font-bold tabular-nums">
                   {totals.potrzeby}
@@ -473,7 +473,7 @@ export function HarmonogramView({
                   return (
                     <td
                       key={d.toISOString()}
-                      title={`Obsada ${format(d, 'dd.MM')}: ${totals.stanNa + diff} • Stan na ${format(result.days[activeDayIndex], 'dd.MM')}: ${totals.stanNa} • Różnica: ${diff > 0 ? '+' : ''}${diff}`}
+                      title={`Obsada ${format(d, 'dd.MM')}: ${totals.potrzeby + diff} • Potrzeby: ${totals.potrzeby} • Różnica: ${diff > 0 ? '+' : ''}${diff}`}
                       className={
                         'sticky bottom-0 z-20 border-t-2 bg-background px-2.5 py-2 text-center text-xs font-semibold tabular-nums ' +
                         diffClass +
