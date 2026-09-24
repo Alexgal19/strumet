@@ -162,6 +162,8 @@ const RecruitmentCard = ({
   const [deptDraft, setDeptDraft] = useState(recruitment.department);
   const [isSavingDept, setIsSavingDept] = useState(false);
   const [isAddingArrival, setIsAddingArrival] = useState(false);
+  const [draftPositions, setDraftPositions] = useState<{ jobTitle: string; count: string }[]>([]);
+  const [isSavingPositions, setIsSavingPositions] = useState(false);
 
   const positions = recruitment.positions;
 
@@ -232,26 +234,39 @@ const RecruitmentCard = ({
     }
   };
 
-  const handleAddPosition = async () => {
+  const handleAddPositionDraft = () => {
+    setDraftPositions(prev => [...prev, { jobTitle: '', count: '' }]);
+  };
+
+  const handleRemoveDraftPosition = (index: number) => {
+    setDraftPositions(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveDraftPositions = async () => {
     const db = getDB();
     if (!db) return;
-    const taken = new Set(positions.map(p => p.jobTitle));
-    const free = jobTitles.find(jt => !taken.has(jt.name));
-    if (!free) {
-      toast({
-        variant: 'destructive',
-        title: 'Błąd',
-        description: 'Wszystkie stanowiska zostały już dodane.',
-      });
+    
+    const validDrafts = draftPositions.filter(d => d.jobTitle && parseInt(d.count, 10) > 0);
+    if (validDrafts.length === 0) {
+      setDraftPositions([]);
       return;
     }
+
+    setIsSavingPositions(true);
     try {
-      const posRef = push(dbRef(db, `recruitment/${recruitment.id}/positions`));
-      await set(posRef, { jobTitle: free.name, toRecruit: 1 });
+      for (const row of validDrafts) {
+        const posRef = push(dbRef(db, `recruitment/${recruitment.id}/positions`));
+        await set(posRef, { jobTitle: row.jobTitle, toRecruit: parseInt(row.count, 10) });
+      }
+      setDraftPositions([]);
+      toast({ title: 'Zapisano', description: 'Dodano nowe stanowiska.' });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać stanowiska.' });
+      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać stanowisk.' });
+    } finally {
+      setIsSavingPositions(false);
     }
   };
+
 
   const handleRemovePosition = async (posId: string) => {
     const db = getDB();
@@ -411,7 +426,7 @@ const RecruitmentCard = ({
               size="sm"
               variant="outline"
               className="h-8 gap-1.5 border-primary/30 px-3 text-primary hover:bg-primary/5"
-              onClick={handleAddPosition}
+              onClick={handleAddPositionDraft}
             >
               <Plus className="h-3.5 w-3.5" />
               Dodaj stanowisko
@@ -473,6 +488,56 @@ const RecruitmentCard = ({
                 </div>
               );
             })
+          )}
+          
+          {draftPositions.length > 0 && (
+            <div className="mt-3 flex flex-col gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">Nowe stanowiska (niezapisane):</p>
+              {draftPositions.map((draft, idx) => {
+                const usedInExisting = new Set(positions.map(p => p.jobTitle));
+                const usedInDrafts = new Set(draftPositions.map((d, i) => i !== idx ? d.jobTitle : null).filter(Boolean));
+                const availableTitles = jobTitles.filter(jt => !usedInExisting.has(jt.name) && !usedInDrafts.has(jt.name));
+                return (
+                  <div key={idx} className="flex flex-wrap items-center gap-2">
+                    <Select
+                      value={draft.jobTitle}
+                      onValueChange={(val) => setDraftPositions(prev => prev.map((d, i) => i === idx ? { ...d, jobTitle: val } : d))}
+                    >
+                      <SelectTrigger className="h-9 w-full sm:w-56">
+                        <SelectValue placeholder="Wybierz stanowisko..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTitles.map(jt => (
+                          <SelectItem key={jt.id} value={jt.name}>{jt.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input 
+                      type="number" 
+                      min={1} 
+                      className="h-9 w-24 tabular-nums" 
+                      value={draft.count} 
+                      onChange={e => setDraftPositions(prev => prev.map((d, i) => i === idx ? { ...d, count: e.target.value } : d))} 
+                    />
+                    <span className="text-xs text-muted-foreground">os.</span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="ml-auto h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemoveDraftPosition(idx)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+              <div className="flex justify-end mt-2">
+                <Button size="sm" onClick={handleSaveDraftPositions} disabled={isSavingPositions} className="gap-1.5">
+                  {isSavingPositions ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  Zapisz
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 
@@ -1334,3 +1399,5 @@ export default function RekrutacjaPage() {
     </div>
   );
 }
+
+
