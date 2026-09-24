@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import readXlsxFile from 'read-excel-file';
+
 import { Button } from '@/components/ui/button';
 import { FileUp, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -32,6 +32,7 @@ export function HireDateImportButton({ className, variant = "outline" }: Props) 
     setIsImporting(true);
 
     try {
+      const readXlsxFile = (await import('read-excel-file')).default;
       const rows = await readXlsxFile(file);
       const headers: string[] = rows[0] as string[];
       const jsonData = rows.slice(1).map(row => {

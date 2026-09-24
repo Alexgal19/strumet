@@ -6,7 +6,7 @@ import { FileDown } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { format } from 'date-fns';
-import writeXlsxFile from 'write-excel-file';
+
 
 interface ExcelExportButtonProps {
   employees: Employee[];
@@ -41,6 +41,7 @@ export function ExcelExportButton({ employees, fileName = 'pracownicy', columns,
     }));
 
     const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm');
+    const writeXlsxFile = (await import('write-excel-file')).default;
     await writeXlsxFile(dataToExport, {
       fileName: `${fileName}_${timestamp}.xlsx`,
       schema

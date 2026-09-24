@@ -30,7 +30,6 @@ import {
   Share2,
   Table,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { ref as dbRef, onValue } from 'firebase/database';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -208,8 +207,9 @@ export function DirectorReportCard({
     window.print();
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     try {
+      const XLSX = await import('xlsx');
       const wb = XLSX.utils.book_new();
 
       // 1. Obecny stan

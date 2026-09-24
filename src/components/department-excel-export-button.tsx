@@ -9,7 +9,7 @@ import { FileDown } from 'lucide-react';
 import type { Employee } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
 import { format } from 'date-fns';
-import writeXlsxFile from 'write-excel-file';
+
 
 interface DepartmentExcelExportButtonProps {
   employees: Employee[];
@@ -84,6 +84,7 @@ export function DepartmentExcelExportButton({ employees, departments, columns }:
 
       const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm');
 
+      const writeXlsxFile = (await import('write-excel-file')).default;
       await writeXlsxFile(
         sheets.map(s => s.data),
         {
