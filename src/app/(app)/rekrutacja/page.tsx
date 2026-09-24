@@ -99,14 +99,16 @@ const ArrivalRow = ({
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border bg-background/50 px-3 py-2">
-      <CalendarPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <Input
-        type="date"
-        value={arrival.date ?? ''}
-        onChange={e => handleDateChange(e.target.value)}
-        className="h-9 w-full sm:w-auto sm:flex-1"
-        aria-label="Data przyjęcia"
-      />
+      <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-1">
+        <CalendarPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <Input
+          type="date"
+          value={arrival.date ?? ''}
+          onChange={e => handleDateChange(e.target.value)}
+          className="h-9 flex-1"
+          aria-label="Data przyjęcia"
+        />
+      </div>
       <div className="flex items-center gap-1.5">
         <Input
           type="number"
@@ -305,83 +307,104 @@ const RecruitmentCard = ({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {isEditingDept ? (
-            <div className="flex w-full flex-wrap items-center gap-2">
-              <Select value={deptDraft} onValueChange={setDeptDraft}>
-                <SelectTrigger className="h-9 w-full sm:w-64" aria-label="Edytuj dział">
-                  <SelectValue placeholder="Dział…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map(d => (
-                    <SelectItem key={d.id} value={d.name}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-1">
+        {isEditingDept ? (
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <Select value={deptDraft} onValueChange={setDeptDraft}>
+              <SelectTrigger className="h-9 flex-1 min-w-[180px] sm:w-64 sm:flex-none" aria-label="Edytuj dział">
+                <SelectValue placeholder="Dział…" />
+              </SelectTrigger>
+              <SelectContent>
+                {departments.map(d => (
+                  <SelectItem key={d.id} value={d.name}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-9 w-9 border-emerald-500/50 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                disabled={isSavingDept || !deptDraft}
+                onClick={handleSaveDept}
+                aria-label="Zapisz zmiany"
+              >
+                {isSavingDept ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9"
+                disabled={isSavingDept}
+                onClick={() => setIsEditingDept(false)}
+                aria-label="Anuluj edycję"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <CardTitle className="text-base truncate">{recruitment.department}</CardTitle>
+                <Badge variant="secondary" className="shrink-0 text-xs">
+                  {positions.length} {positions.length === 1 ? 'stanowisko' : 'stanowiska'}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
                 <Button
                   size="icon"
-                  variant="outline"
-                  className="h-8 w-8 border-emerald-500/50 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
-                  disabled={isSavingDept || !deptDraft}
-                  onClick={handleSaveDept}
-                  aria-label="Zapisz zmiany"
+                  variant="ghost"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  onClick={startEditingDept}
+                  aria-label={`Edytuj dział ${recruitment.department}`}
                 >
-                  {isSavingDept ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  <Pencil className="h-4 w-4" />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-8 w-8"
-                  disabled={isSavingDept}
-                  onClick={() => setIsEditingDept(false)}
-                  aria-label="Anuluj edycję"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => onDelete(recruitment)}
+                  aria-label={`Usuń zapotrzebowanie ${recruitment.department}`}
                 >
-                  <X className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-          ) : (
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <CardTitle className="text-base">{recruitment.department}</CardTitle>
-              <Badge variant="secondary" className="max-w-full truncate">
-                {positions.length} {positions.length === 1 ? 'stanowisko' : 'stanowiska'}
-              </Badge>
-            </div>
-          )}
-          {!isEditingDept && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="tabular-nums">
+
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <Badge variant="outline" className="tabular-nums text-xs">
                 Na dziale: {departmentHeadcount} os.
               </Badge>
               {sumZwalnia > 0 && (
                 <Badge
                   variant="outline"
-                  className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
+                  className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400 text-xs"
                 >
                   Zwalnia się: −{sumZwalnia}
                 </Badge>
               )}
               <Badge
                 variant="outline"
-                className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
+                className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400 text-xs"
               >
                 Potrzeby: {sumPotrzeby} os.
               </Badge>
               {missing > 0 && (
-                <Badge variant="destructive" className="tabular-nums">
+                <Badge variant="destructive" className="tabular-nums text-xs">
                   Brakuje: {missing}
                 </Badge>
               )}
-              <Badge variant="outline" className="tabular-nums">
+              <Badge variant="outline" className="tabular-nums text-xs">
                 Rekrutacja: {sumToRecruit} os.
               </Badge>
               {surplus > 0 && (
                 <Badge
                   variant="outline"
-                  className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
+                  className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400 text-xs"
                 >
                   Nadwyżka: +{surplus}
                 </Badge>
@@ -389,32 +412,14 @@ const RecruitmentCard = ({
               {plannedTotal > 0 && missing === 0 && surplus === 0 && (
                 <Badge
                   variant="outline"
-                  className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
+                  className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400 text-xs"
                 >
                   Komplet: {plannedTotal}/{sumToRecruit}
                 </Badge>
               )}
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                onClick={startEditingDept}
-                aria-label={`Edytuj dział ${recruitment.department}`}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                onClick={() => onDelete(recruitment)}
-                aria-label={`Usuń zapotrzebowanie ${recruitment.department}`}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-2">
@@ -444,7 +449,7 @@ const RecruitmentCard = ({
                   key={pos.id}
                   className="flex flex-wrap items-center gap-2 rounded-md border bg-background/50 px-3 py-2"
                 >
-                  <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground hidden sm:block" />
                   <Select
                     value={pos.jobTitle}
                     onValueChange={value => handlePositionJobTitleChange(pos.id, value)}
@@ -467,24 +472,24 @@ const RecruitmentCard = ({
                     <PositionCountInput recruitmentId={recruitment.id} position={pos} />
                     <span className="text-xs text-muted-foreground">os.</span>
                   </div>
-                  {pos.jobTitle && (
-                    <span className="text-xs text-muted-foreground">
-                      Potrzeby:{' '}
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                        {getPositionStat(pos).potrzeby} os.
-                      </span>{' '}
-                      (jest {getPositionStat(pos).obecnie}, zwalnia {getPositionStat(pos).zwalnia})
-                    </span>
-                  )}
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="ml-auto h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                    className="ml-auto sm:order-last h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
                     onClick={() => handleRemovePosition(pos.id)}
                     aria-label="Usuń stanowisko"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  {pos.jobTitle && (
+                    <div className="w-full sm:w-auto text-xs text-muted-foreground">
+                      Potrzeby:{' '}
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        {getPositionStat(pos).potrzeby} os.
+                      </span>{' '}
+                      (jest {getPositionStat(pos).obecnie}, zwalnia {getPositionStat(pos).zwalnia})
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -512,14 +517,16 @@ const RecruitmentCard = ({
                         ))}
                       </SelectContent>
                     </Select>
-                    <Input 
-                      type="number" 
-                      min={1} 
-                      className="h-9 w-24 tabular-nums" 
-                      value={draft.count} 
-                      onChange={e => setDraftPositions(prev => prev.map((d, i) => i === idx ? { ...d, count: e.target.value } : d))} 
-                    />
-                    <span className="text-xs text-muted-foreground">os.</span>
+                    <div className="flex items-center gap-1.5">
+                      <Input 
+                        type="number" 
+                        min={1} 
+                        className="h-9 w-20 tabular-nums" 
+                        value={draft.count} 
+                        onChange={e => setDraftPositions(prev => prev.map((d, i) => i === idx ? { ...d, count: e.target.value } : d))} 
+                      />
+                      <span className="text-xs text-muted-foreground">os.</span>
+                    </div>
                     <Button
                       size="icon"
                       variant="ghost"

@@ -71,7 +71,7 @@ export default function EmployeePage() {
   }
 
   return (
-    <div className="px-4 py-6 md:px-8 pb-20 md:pb-8">
+    <div className="px-2 sm:px-4 py-4 sm:py-6 md:px-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
       <EmployeeForm
         employee={employee}
         onSave={handleSave}

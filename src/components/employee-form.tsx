@@ -35,7 +35,7 @@ const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onC
                     {dateValue ? formatDate(dateValue, "PPP") : <span>{placeholder}</span>}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 flex flex-col">
+            <PopoverContent className="w-auto p-0 flex flex-col" align="center" side="bottom" collisionPadding={16}>
                 <Calendar
                     mode="single"
                     selected={dateValue || undefined}
@@ -386,7 +386,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             <form onSubmit={handleSubmit} className="flex flex-col flex-grow">
               {/* Kreator mobilny — wskaźnik postępu */}
               {isMobile && (
-                <div className="px-6 pb-4">
+                <div className="px-3 sm:px-6 pb-3 sm:pb-4">
                   <p className="text-sm font-semibold text-foreground mb-2">
                     Krok {step + 1} z {STEPS.length} — {STEPS[step]}
                   </p>
@@ -400,10 +400,10 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 pb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 px-3 sm:px-6 pb-6 sm:pb-8">
 
                 {/* Panel 1: Dane osobowe */}
-                <div className={cn('flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl', isMobile && step !== 0 && 'hidden')}>
+                <div className={cn('flex flex-col gap-4 p-4 sm:p-5 border border-black/5 bg-white/60 dark:bg-card/60 rounded-2xl', isMobile && step !== 0 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-primary" />
                       <h3 className="font-semibold text-foreground">Dane osobowe</h3>
@@ -447,7 +447,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
 
                 {/* Panel 2: Zatrudnienie */}
-                <div className={cn('flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl', isMobile && step !== 1 && 'hidden')}>
+                <div className={cn('flex flex-col gap-4 p-4 sm:p-5 border border-black/5 bg-white/60 dark:bg-card/60 rounded-2xl', isMobile && step !== 1 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-blue-500" />
                       <h3 className="font-semibold text-foreground">Zatrudnienie</h3>
@@ -512,7 +512,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
 
                 {/* Panel 3: Identyfikacja */}
-                <div className={cn('flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl', isMobile && step !== 2 && 'hidden')}>
+                <div className={cn('flex flex-col gap-4 p-4 sm:p-5 border border-black/5 bg-white/60 dark:bg-card/60 rounded-2xl', isMobile && step !== 2 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-purple-500" />
                       <h3 className="font-semibold text-foreground">Identyfikacja</h3>
@@ -537,7 +537,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
 
                 {/* Panel 4: Planowanie */}
-                <div className={cn('flex flex-col gap-4 p-5 border border-black/5 bg-white/60 rounded-2xl', isMobile && step !== 3 && 'hidden')}>
+                <div className={cn('flex flex-col gap-4 p-4 sm:p-5 border border-black/5 bg-white/60 dark:bg-card/60 rounded-2xl', isMobile && step !== 3 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-orange-500" />
                       <h3 className="font-semibold text-foreground">Planowanie</h3>

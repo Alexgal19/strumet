@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
@@ -239,43 +239,43 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
             return (
               <Card key={order.department}>
                 <CardHeader className="pb-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <CardTitle className="text-base">{order.department}</CardTitle>
-                      <Badge variant="secondary" className="max-w-full truncate">
+                  <div className="space-y-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <CardTitle className="text-base truncate">{order.department}</CardTitle>
+                      <Badge variant="secondary" className="shrink-0 text-xs">
                         {positions.length} {positions.length === 1 ? 'stanowisko' : 'stanowiska'}
                       </Badge>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="tabular-nums">
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <Badge variant="outline" className="tabular-nums text-xs">
                         Na dziale: {departmentHeadcount} os.
                       </Badge>
                       {sumZwalnia > 0 && (
                         <Badge
                           variant="outline"
-                          className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
+                          className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400 text-xs"
                         >
                           Zwalnia się: −{sumZwalnia}
                         </Badge>
                       )}
                       <Badge
                         variant="outline"
-                        className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
+                        className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400 text-xs"
                       >
                         Potrzeby: {sumPotrzeby} os.
                       </Badge>
                       {missing > 0 && (
-                        <Badge variant="destructive" className="tabular-nums">
+                        <Badge variant="destructive" className="tabular-nums text-xs">
                           Brakuje: {missing}
                         </Badge>
                       )}
-                      <Badge variant="outline" className="tabular-nums">
+                      <Badge variant="outline" className="tabular-nums text-xs">
                         Rekrutacja: {sumToRecruit} os.
                       </Badge>
                       {surplus > 0 && (
                         <Badge
                           variant="outline"
-                          className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400"
+                          className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400 text-xs"
                         >
                           Nadwyżka: +{surplus}
                         </Badge>
@@ -283,7 +283,7 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                       {plannedTotal > 0 && missing === 0 && surplus === 0 && (
                         <Badge
                           variant="outline"
-                          className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400"
+                          className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400 text-xs"
                         >
                           Komplet: {plannedTotal}/{sumToRecruit}
                         </Badge>
@@ -316,18 +316,18 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                             key={`${p.jobTitle}-${i}`}
                             className="flex flex-wrap items-center gap-2 rounded-md border bg-background/50 px-3 py-2 text-sm"
                           >
-                            <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground hidden sm:block" />
                             <span>{jobTitle}</span>
                             <span className="tabular-nums font-medium">
                               {Number(p.toRecruit) || 0} os.
                             </span>
-                            <span className="ml-auto text-xs text-muted-foreground">
+                            <div className="w-full sm:w-auto sm:ml-auto text-xs text-muted-foreground">
                               Potrzeby:{' '}
                               <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                                 {potrzeby} os.
                               </span>{' '}
                               (jest {obecnie}, zwalnia {zwalnia})
-                            </span>
+                            </div>
                           </div>
                         );
                       })

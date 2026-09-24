@@ -8,6 +8,12 @@ import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Copy, Building, Briefcase, ChevronRight, PlusCircle, Trash2, FileDown, Edit, ArrowRight, GitCompareArrows, Archive, UserPlus, UserX, CalendarClock, TrendingUp, Printer } from 'lucide-react';
 import { Employee, Order, AllConfig, Stats, User, UserRole, StatsSnapshot } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -75,6 +81,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
     const [isReportReady, setIsReportReady] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     // Ensure chart rendering is client-side protected if sensitive to hydration,
     // although "use client" handles most cases.
@@ -366,26 +373,52 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             </DialogContent>
         </Dialog>
 
-        <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setIsStatDialogOpen(true); }}>
-            <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[90dvh] flex flex-col">
-                <DialogHeader className="flex-shrink-0">
-                    <DialogTitle>Edytuj pracownika</DialogTitle>
-                </DialogHeader>
-                <div className="flex-grow overflow-y-auto -mr-6 pr-6">
-                    <EmployeeForm
-                        employee={editingEmployee}
-                        onSave={onSave}
-                        onCancel={() => { setIsFormOpen(false); setIsStatDialogOpen(true); }}
-                        onTerminate={async (id, fullName) => {
-                            await handleTerminateEmployee(id, fullName);
-                            setIsFormOpen(false);
-                            setIsStatDialogOpen(true);
-                        }}
-                        config={config}
-                    />
-                </div>
-            </DialogContent>
-        </Dialog>
+        {isMobile ? (
+            <Sheet open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setIsStatDialogOpen(true); }}>
+                <SheetContent
+                    side="bottom"
+                    className="h-[92dvh] p-0 flex flex-col rounded-t-3xl bg-background [&>button]:hidden"
+                >
+                    <SheetHeader className="p-4 border-b bg-background/80 shrink-0 text-left">
+                        <SheetTitle className="text-xl font-bold tracking-tight">Edytuj pracownika</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar">
+                        <EmployeeForm
+                            employee={editingEmployee}
+                            onSave={onSave}
+                            onCancel={() => { setIsFormOpen(false); setIsStatDialogOpen(true); }}
+                            onTerminate={async (id, fullName) => {
+                                await handleTerminateEmployee(id, fullName);
+                                setIsFormOpen(false);
+                                setIsStatDialogOpen(true);
+                            }}
+                            config={config}
+                        />
+                    </div>
+                </SheetContent>
+            </Sheet>
+        ) : (
+            <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setIsStatDialogOpen(true); }}>
+                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[90dvh] flex flex-col">
+                    <DialogHeader className="flex-shrink-0">
+                        <DialogTitle>Edytuj pracownika</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-grow overflow-y-auto -mr-6 pr-6">
+                        <EmployeeForm
+                            employee={editingEmployee}
+                            onSave={onSave}
+                            onCancel={() => { setIsFormOpen(false); setIsStatDialogOpen(true); }}
+                            onTerminate={async (id, fullName) => {
+                                await handleTerminateEmployee(id, fullName);
+                                setIsFormOpen(false);
+                                setIsStatDialogOpen(true);
+                            }}
+                            config={config}
+                        />
+                    </div>
+                </DialogContent>
+            </Dialog>
+        )}
 
         <div className="print-only">
             {isReportReady && (

@@ -267,13 +267,13 @@ export function HarmonogramView({
           <table className="w-max border-collapse text-xs">
             <thead>
               <tr>
-                <th className="sticky left-0 top-0 z-30 min-w-[220px] border-b bg-background px-3 py-2 text-left font-semibold">
+                <th className="sticky left-0 top-0 z-30 min-w-[150px] md:min-w-[220px] max-w-[170px] md:max-w-none truncate border-b bg-background px-3 py-2 text-left font-semibold">
                   Dział / Kierownik / Stanowisko / Pracownik
                 </th>
-                <th className="sticky left-[220px] top-0 z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
+                <th className="md:sticky md:left-[220px] top-0 z-20 md:z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
                   Potrzeby
                 </th>
-                <th className="sticky left-[290px] top-0 z-30 min-w-[90px] border-b bg-background px-3 py-2 text-right font-semibold">
+                <th className="md:sticky md:left-[290px] top-0 z-20 md:z-30 min-w-[90px] border-b bg-background px-3 py-2 text-right font-semibold">
                   <div className="flex flex-col items-end gap-0.5">
                     <span className="text-[10px] uppercase text-muted-foreground">Stan na</span>
                     <span className="text-primary font-bold leading-none">
@@ -314,20 +314,20 @@ export function HarmonogramView({
                       className="cursor-pointer border-b border-border/40 hover:bg-muted/40 transition-colors"
                       onClick={() => toggleDept(deptRow.dept)}
                     >
-                      <td className="sticky left-0 z-10 bg-background px-3 py-2 font-semibold">
+                      <td className="sticky left-0 z-10 bg-background max-w-[170px] md:max-w-none truncate px-3 py-2 font-semibold">
                         <span className="flex items-center gap-1.5">
                           {isDeptExpanded ? (
                             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           ) : (
                             <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           )}
-                          <span>{deptRow.dept}</span>
+                          <span className="truncate">{deptRow.dept}</span>
                         </span>
                       </td>
-                      <td className="sticky left-[220px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
+                      <td className="md:sticky md:left-[220px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
                         {deptRow.potrzeby}
                       </td>
-                      <td className="sticky left-[290px] z-10 bg-background px-3 py-2 text-right tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                      <td className="md:sticky md:left-[290px] z-10 bg-background px-3 py-2 text-right tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                         {deptRow.obecnie}
                       </td>
                       {deptRow.cells.map((cell, i) => (
@@ -352,7 +352,7 @@ export function HarmonogramView({
                               className="cursor-pointer border-b border-border/30 bg-muted/50 hover:bg-muted/70 transition-colors"
                               onClick={() => toggleManager(mgrKey)}
                             >
-                              <td className="sticky left-0 z-10 bg-muted/50 py-1.5 pl-6 pr-3 text-xs font-medium">
+                              <td className="sticky left-0 z-10 bg-muted/50 max-w-[170px] md:max-w-none truncate py-1.5 pl-6 pr-3 text-xs font-medium">
                                 <span className="flex items-center gap-1.5">
                                   {isMgrExpanded ? (
                                     <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
@@ -360,17 +360,17 @@ export function HarmonogramView({
                                     <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
                                   )}
                                   <Users className="h-3.5 w-3.5 text-primary/70 shrink-0" />
-                                  <span>
+                                  <span className="truncate">
                                     {mgrRow.manager === 'Brak kierownika'
                                       ? 'Brak kierownika'
                                       : `Kierownik: ${mgrRow.manager}`}
                                   </span>
                                 </span>
                               </td>
-                              <td className="sticky left-[220px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
+                              <td className="md:sticky md:left-[220px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
                                 {mgrRow.potrzeby}
                               </td>
-                              <td className="sticky left-[290px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                              <td className="md:sticky md:left-[290px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                                 {mgrRow.obecnie}
                               </td>
                               {mgrRow.cells.map((cell, i) => (
@@ -395,20 +395,20 @@ export function HarmonogramView({
                                       className="cursor-pointer border-b border-border/20 bg-muted/25 hover:bg-muted/40 transition-colors"
                                       onClick={() => togglePosition(posKey)}
                                     >
-                                      <td className="sticky left-0 z-10 bg-muted/25 py-1.5 pl-11 pr-3 text-xs italic text-muted-foreground">
+                                      <td className="sticky left-0 z-10 bg-muted/25 max-w-[170px] md:max-w-none truncate py-1.5 pl-11 pr-3 text-xs italic text-muted-foreground">
                                         <span className="flex items-center gap-1.5">
                                           {isPosExpanded ? (
                                             <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
                                           ) : (
                                             <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
                                           )}
-                                          <span>• {posRow.jobTitle}</span>
+                                          <span className="truncate">• {posRow.jobTitle}</span>
                                         </span>
                                       </td>
-                                      <td className="sticky left-[220px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
+                                      <td className="md:sticky md:left-[220px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
                                         {posRow.potrzeby}
                                       </td>
-                                      <td className="sticky left-[290px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                                      <td className="md:sticky md:left-[290px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                                         {posRow.obecnie}
                                       </td>
                                       {posRow.cells.map((cell, i) => (
@@ -428,16 +428,16 @@ export function HarmonogramView({
                                           key={`${posKey}-${empRow.fullName}`}
                                           className="border-b border-border/10 bg-background/60 hover:bg-muted/20 transition-colors"
                                         >
-                                          <td className="sticky left-0 z-10 bg-background/90 py-1 pl-16 pr-3 text-xs text-foreground/85">
+                                          <td className="sticky left-0 z-10 bg-background/90 max-w-[170px] md:max-w-none truncate py-1 pl-16 pr-3 text-xs text-foreground/85">
                                             <span className="flex items-center gap-1.5">
                                               <User className="h-3 w-3 text-muted-foreground/60 shrink-0" />
-                                              <span>{empRow.fullName}</span>
+                                              <span className="truncate">{empRow.fullName}</span>
                                             </span>
                                           </td>
-                                          <td className="sticky left-[220px] z-10 bg-background/90 px-3 py-1 text-right text-xs text-muted-foreground/60">
+                                          <td className="md:sticky md:left-[220px] z-10 bg-background/90 px-3 py-1 text-right text-xs text-muted-foreground/60">
                                             —
                                           </td>
-                                          <td className="sticky left-[290px] z-10 bg-background/90 px-3 py-1 text-right text-xs tabular-nums" title="Zatrudnieni (status aktywny)">
+                                          <td className="md:sticky md:left-[290px] z-10 bg-background/90 px-3 py-1 text-right text-xs tabular-nums" title="Zatrudnieni (status aktywny)">
                                             {empRow.obecnie ? (
                                               <span className="font-bold">1</span>
                                             ) : (

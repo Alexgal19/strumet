@@ -18,6 +18,13 @@ import type { Employee, ClothingIssuance } from '@/lib/types';
 import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-form';
 import { PageHeader } from '@/components/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useIsMobile } from '@/hooks/use-mobile';
 import { TerminatedExcelImportButton } from '@/components/terminated-excel-import-button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/context/app-context';
@@ -41,6 +48,7 @@ const exportColumns = [
 export default function ZwolnieniPage() {
   const { config, isLoading: isContextLoading, handleRestoreEmployee, handleDeleteAllEmployees, handleRestoreAllTerminatedEmployees, handleDeleteEmployeePermanently, handleSaveEmployee } = useAppContext();
   const { employees: terminatedEmployees, isLoading: isEmployeesLoading } = useEmployees('zwolniony');
+  const isMobile = useIsMobile();
 
   const [restoringEmployee, setRestoringEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
@@ -249,29 +257,55 @@ export default function ZwolnieniPage() {
         )}
       </div>
 
-      {/* Dialog formularza edycji pracownika */}
-      <Dialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
-        <DialogContent className="w-[calc(100vw-1rem)] max-w-7xl p-0 overflow-hidden flex flex-col max-h-[90dvh] glass-morphism rounded-3xl border-black/10">
-          <DialogHeader className="p-6 border-b border-black/5 bg-white/50">
-            <DialogTitle className="text-2xl font-bold tracking-tight">
-              Edytuj pracownika
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
-            {editingEmployee && (
-              <EmployeeForm
-                employee={editingEmployee}
-                onSave={async (data) => {
-                  const success = await handleSaveEmployee(data);
-                  if (success) setEditingEmployee(null);
-                }}
-                onCancel={() => setEditingEmployee(null)}
-                config={config}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Okno formularza pracownika — bottom sheet na mobile, dialog na desktopie */}
+      {(() => {
+        if (!editingEmployee) return null;
+        const form = (
+          <EmployeeForm
+            employee={editingEmployee}
+            onSave={async (data) => {
+              const success = await handleSaveEmployee(data);
+              if (success) setEditingEmployee(null);
+            }}
+            onCancel={() => setEditingEmployee(null)}
+            onPrintClothing={handlePrintClothingIssuance}
+            config={config}
+          />
+        );
+
+        if (isMobile) {
+          return (
+            <Sheet open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
+              <SheetContent
+                side="bottom"
+                className="h-[92dvh] p-0 flex flex-col rounded-t-3xl bg-background [&>button]:hidden"
+              >
+                <SheetHeader className="p-4 border-b bg-background/80 shrink-0 text-left">
+                  <SheetTitle className="text-xl font-bold tracking-tight">Edytuj pracownika</SheetTitle>
+                </SheetHeader>
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar">
+                  {form}
+                </div>
+              </SheetContent>
+            </Sheet>
+          );
+        }
+
+        return (
+          <Dialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
+            <DialogContent className="w-[calc(100vw-1rem)] max-w-7xl p-0 overflow-hidden flex flex-col max-h-[90dvh] glass-morphism rounded-3xl border-black/10">
+              <DialogHeader className="p-6 border-b border-black/5 bg-white/50">
+                <DialogTitle className="text-2xl font-bold tracking-tight">
+                  Edytuj pracownika
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
+                {form}
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       <LegalizationEmailDialog
         isOpen={!!legalizationEmployee}

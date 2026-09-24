@@ -868,10 +868,10 @@ export default function LockersPage() {
       </div>
 
       <Tabs defaultValue="zone1" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="zone1">Strefa 1 (1-140)</TabsTrigger>
-          <TabsTrigger value="zone2-f1">Strefa 2 — Piętro 1 (K1-K120)</TabsTrigger>
-          <TabsTrigger value="zone2-f2">Strefa 2 — Piętro 2 (K121-K240)</TabsTrigger>
+        <TabsList className="mb-4 w-full flex-wrap sm:flex-nowrap justify-start h-auto gap-1">
+          <TabsTrigger value="zone1" className="flex-1 sm:flex-initial text-xs sm:text-sm">Strefa 1 (1-140)</TabsTrigger>
+          <TabsTrigger value="zone2-f1" className="flex-1 sm:flex-initial text-xs sm:text-sm">Strefa 2 — Piętro 1 (K1-K120)</TabsTrigger>
+          <TabsTrigger value="zone2-f2" className="flex-1 sm:flex-initial text-xs sm:text-sm">Strefa 2 — Piętro 2 (K121-K240)</TabsTrigger>
         </TabsList>
 
         {ALL_ZONES.map((zone) => (
@@ -888,7 +888,7 @@ export default function LockersPage() {
                   )}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-x-auto">
                 <ZoneView
                   zone={zone}
                   labels={labels}
