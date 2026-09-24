@@ -1,5 +1,6 @@
 import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
 import { pl as plLocale } from 'date-fns/locale';
+import { parseMaybeDate } from '@/lib/date';
 
 export interface HarmonogramEmployee {
   department: string;
@@ -38,8 +39,9 @@ export interface HarmonogramCell {
   mam: number;
   absentees: HarmonogramAbsence[];
   vacationers: HarmonogramEmployee[];
+  terminating?: HarmonogramEmployee[];
   title?: string;
-  statusType?: 'present' | 'absent' | 'vacation' | 'terminated' | 'not_hired';
+  statusType?: 'present' | 'absent' | 'vacation' | 'terminated' | 'terminating' | 'not_hired';
 }
 
 export interface HarmonogramEmployeeRow {
@@ -92,9 +94,8 @@ export interface HarmonogramResult {
 const dayKey = (d: Date) => format(d, 'yyyy-MM-dd');
 
 function parseSafeDate(d?: string): Date | null {
-  if (!d) return null;
-  const parsed = new Date(d);
-  return Number.isNaN(parsed.getTime()) ? null : startOfDay(parsed);
+  const parsed = parseMaybeDate(d);
+  return parsed ? startOfDay(parsed) : null;
 }
 
 export function buildHarmonogram(
@@ -155,9 +156,18 @@ export function buildHarmonogram(
   // Wszyscy unikalni pracownicy przefiltrowani pod kątem widoczności w danym miesiącu
   // Pracownik jest widoczny, jeśli nie został zwolniony przed początkiem tego miesiąca
   // i nie został zatrudniony po końcu tego miesiąca.
+  // Planowana data rozwiązania NIE zwalnia pracownika — liczy się status 'aktywny'
+  // albo faktyczna data zwolnienia (planowana tylko dla statusu 'zwolniony').
+  const effectiveTermDate = (e: HarmonogramEmployee): Date | null => {
+    const actual = parseSafeDate(e.terminationDate);
+    if (actual) return actual;
+    if (e.status === 'zwolniony') return parseSafeDate(e.plannedTerminationDate);
+    return null;
+  };
+
   const relevantEmployees = data.employees.filter(e => {
     const hire = parseSafeDate(e.hireDate);
-    const term = parseSafeDate(e.terminationDate) || parseSafeDate(e.plannedTerminationDate);
+    const term = effectiveTermDate(e);
 
     if (hire && hire > endDay) return false;
     if (term && term < startDay) return false;
@@ -225,8 +235,11 @@ export function buildHarmonogram(
               .sort((a, b) => a.fullName.localeCompare(b.fullName, 'pl'))
               .map(e => {
                 const hire = parseSafeDate(e.hireDate);
-                const term =
-                  parseSafeDate(e.terminationDate) || parseSafeDate(e.plannedTerminationDate);
+                const term = effectiveTermDate(e);
+                // Planowane zwolnienie: pracownik wciąż aktywny (liczy się jak pulpit),
+                // ale komórki od wskazanej daty są podświetlone.
+                const plannedTerm =
+                  e.status === 'aktywny' ? parseSafeDate(e.plannedTerminationDate) : null;
 
                 // Obecnie: synchronizacja z zakładką "Pracownicy aktywni" (tylko status 'aktywny')
                 const isEmployedToday = e.status === 'aktywny';
@@ -240,6 +253,7 @@ export function buildHarmonogram(
                       mam: 0,
                       absentees: [],
                       vacationers: [],
+                      terminating: [],
                       statusType: 'not_hired',
                       title: `${e.fullName}: Przed zatrudnieniem (od ${format(hire, 'dd.MM.yyyy')})`,
                     };
@@ -250,8 +264,25 @@ export function buildHarmonogram(
                       mam: 0,
                       absentees: [],
                       vacationers: [],
+                      terminating: [],
                       statusType: 'terminated',
                       title: `${e.fullName}: Zwolniony (od ${format(term, 'dd.MM.yyyy')})`,
+                    };
+                  }
+
+                  // Dzień zwolnienia (faktycznego) lub planowane zwolnienie (aktywny) —
+                  // podświetlenie od wskazanej daty; pracownik wciąż liczony (mam: 1)
+                  const isTermDay = !!term && term.getTime() === d.getTime();
+                  if (isTermDay || (plannedTerm && plannedTerm <= d)) {
+                    return {
+                      mam: 1,
+                      absentees: [],
+                      vacationers: [],
+                      terminating: [e],
+                      statusType: 'terminating',
+                      title: isTermDay
+                        ? `${e.fullName}: Zwolnienie — ostatni dzień (${format(term!, 'dd.MM.yyyy')})`
+                        : `${e.fullName}: Planowane zwolnienie (od ${format(plannedTerm!, 'dd.MM.yyyy')})`,
                     };
                   }
 
@@ -263,6 +294,7 @@ export function buildHarmonogram(
                       mam: 0,
                       absentees: absList,
                       vacationers: [],
+                      terminating: [],
                       statusType: 'absent',
                       title: `${e.fullName}: Nieobecny (${absList.map(a => a.jobTitle || 'nieobecność').join(', ')})`,
                     };
@@ -276,6 +308,7 @@ export function buildHarmonogram(
                       mam: 0,
                       absentees: [],
                       vacationers: [e],
+                      terminating: [],
                       statusType: 'vacation',
                       title: `${e.fullName}: Na urlopie (${format(vStart, 'dd.MM')} - ${vEnd ? format(vEnd, 'dd.MM') : '...'})`,
                     };
@@ -285,6 +318,7 @@ export function buildHarmonogram(
                     mam: 1,
                     absentees: [],
                     vacationers: [],
+                    terminating: [],
                     statusType: 'present',
                     title: `${e.fullName}: Obecny (1)`,
                   };
@@ -334,9 +368,12 @@ export function buildHarmonogram(
               const vacationers = employeeRows.flatMap(
                 emp => emp.cells[dayIndex]?.vacationers ?? []
               );
-              const title = buildTitle({ absentees, vacationers, mam });
+              const terminating = dedupeEmployees(
+                employeeRows.flatMap(emp => emp.cells[dayIndex]?.terminating ?? [])
+              );
+              const title = buildTitle({ absentees, vacationers, terminating, mam });
 
-              return { mam, absentees, vacationers, title };
+              return { mam, absentees, vacationers, terminating, title };
             });
 
             return {
@@ -364,9 +401,12 @@ export function buildHarmonogram(
           const vacationers = dedupeEmployees(
             positions.flatMap(pos => pos.cells[dayIndex]?.vacationers ?? [])
           );
-          const title = buildTitle({ absentees, vacationers, mam });
+          const terminating = dedupeEmployees(
+            positions.flatMap(pos => pos.cells[dayIndex]?.terminating ?? [])
+          );
+          const title = buildTitle({ absentees, vacationers, terminating, mam });
 
-          return { mam, absentees, vacationers, title };
+          return { mam, absentees, vacationers, terminating, title };
         });
 
         return {
@@ -404,9 +444,12 @@ export function buildHarmonogram(
       const vacationers = dedupeEmployees(
         managers.flatMap(mgr => mgr.cells[dayIndex]?.vacationers ?? [])
       );
-      const title = buildTitle({ absentees, vacationers, mam });
+      const terminating = dedupeEmployees(
+        managers.flatMap(mgr => mgr.cells[dayIndex]?.terminating ?? [])
+      );
+      const title = buildTitle({ absentees, vacationers, terminating, mam });
 
-      return { mam, absentees, vacationers, title };
+      return { mam, absentees, vacationers, terminating, title };
     });
 
     const allPositions = managers.flatMap(mgr => mgr.positions);
@@ -452,15 +495,18 @@ function dedupeEmployees(employees: HarmonogramEmployee[]): HarmonogramEmployee[
 function buildTitle({
   absentees,
   vacationers,
+  terminating = [],
   mam,
 }: {
   absentees: HarmonogramAbsence[];
   vacationers: HarmonogramEmployee[];
+  terminating?: HarmonogramEmployee[];
   mam: number;
 }): string | undefined {
   const changes: string[] = [];
   if (absentees.length > 0) changes.push(`−${absentees.length} nieobecnych`);
   if (vacationers.length > 0) changes.push(`−${vacationers.length} na urlopie`);
+  if (terminating.length > 0) changes.push(`${terminating.length} zwalnia się`);
   const details: string[] = [];
   if (absentees.length > 0)
     details.push(
@@ -471,6 +517,12 @@ function buildTitle({
   if (vacationers.length > 0)
     details.push(
       `Na urlopie: ${vacationers
+        .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
+        .join('; ')}`
+    );
+  if (terminating.length > 0)
+    details.push(
+      `Zwalnia się: ${terminating
         .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
         .join('; ')}`
     );
@@ -566,7 +618,7 @@ export async function exportHarmonogramToExcel(
       sheetRow.getCell(1).font = { bold: true };
     }
 
-    // Kolorowanie komórek z absencją lub urlopem
+    // Kolorowanie komórek z absencją, urlopem lub planowanym zwolnieniem
     row.cells?.forEach((cell, j) => {
       const tableCell = sheetRow.getCell(4 + j);
       if (cell.absentees.length > 0) {
@@ -575,6 +627,9 @@ export async function exportHarmonogramToExcel(
       } else if (cell.vacationers.length > 0) {
         tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8BBD9' } };
         tableCell.font = { color: { argb: 'FF880E4F' }, italic: true };
+      } else if (cell.terminating && cell.terminating.length > 0) {
+        tableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDE68A' } };
+        tableCell.font = { color: { argb: 'FF92400E' }, bold: true };
       } else if (row.level === 3 && cell.statusType === 'terminated') {
         tableCell.font = { color: { argb: 'FF9CA3AF' } };
       }
@@ -599,6 +654,8 @@ export async function exportHarmonogramToExcel(
           parts.push(`Nieobecni: ${cell.absentees.map(a => a.fullName).join(', ')}`);
         if (cell.vacationers.length > 0)
           parts.push(`Na urlopie: ${cell.vacationers.map(e => e.fullName).join(', ')}`);
+        if (cell.terminating && cell.terminating.length > 0)
+          parts.push(`Zwalnia się: ${cell.terminating.map(e => e.fullName).join(', ')}`);
         return parts.length > 0
           ? `${format(result.days[j], 'dd.MM')} — ${parts.join('; ')}`
           : null;

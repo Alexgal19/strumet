@@ -45,6 +45,7 @@ export function HarmonogramView({
     bottom: number;
     absentees: HarmonogramCell['absentees'];
     vacationers: HarmonogramCell['vacationers'];
+    terminating?: HarmonogramCell['terminating'];
     singleTitle?: string;
   } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -246,6 +247,10 @@ export function HarmonogramView({
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded bg-pink-500/60" />
             na urlopie
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rounded bg-amber-400/80" />
+            zwalnia się (data zwolnienia / plan. zwolnienie)
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded bg-emerald-500/60" />
@@ -612,6 +617,7 @@ export function HarmonogramView({
           bottom={cellTooltip.bottom}
           absentees={cellTooltip.absentees}
           vacationers={cellTooltip.vacationers}
+          terminating={cellTooltip.terminating}
           singleTitle={cellTooltip.singleTitle}
         />
       )}
@@ -631,12 +637,18 @@ function CellWithTooltip({
     bottom: number;
     absentees: HarmonogramCell['absentees'];
     vacationers: HarmonogramCell['vacationers'];
+    terminating?: HarmonogramCell['terminating'];
     singleTitle?: string;
   }) => void;
   onLeave: () => void;
 }) {
   const handleMouseEnter = (e: React.MouseEvent<HTMLTableCellElement>) => {
-    if (cell.absentees.length === 0 && cell.vacationers.length === 0) return;
+    if (
+      cell.absentees.length === 0 &&
+      cell.vacationers.length === 0 &&
+      !(cell.terminating && cell.terminating.length > 0)
+    )
+      return;
     const rect = e.currentTarget.getBoundingClientRect();
     onHover({
       x: rect.left + rect.width / 2,
@@ -644,6 +656,7 @@ function CellWithTooltip({
       bottom: rect.bottom,
       absentees: cell.absentees,
       vacationers: cell.vacationers,
+      terminating: cell.terminating,
     });
   };
 
@@ -657,9 +670,11 @@ function CellWithTooltip({
           ? ' animate-absence-blink font-semibold'
           : cell.vacationers.length > 0
             ? ' bg-pink-500/25'
-            : cell.title && cell.title.includes('przyjęć')
-              ? ' bg-emerald-500/15'
-              : '')
+            : cell.terminating && cell.terminating.length > 0
+              ? ' bg-amber-500/25 font-medium'
+              : cell.title && cell.title.includes('przyjęć')
+                ? ' bg-emerald-500/15'
+                : '')
       }
     >
       {cell.mam}
@@ -679,6 +694,7 @@ function EmployeeCellWithTooltip({
     bottom: number;
     absentees: HarmonogramCell['absentees'];
     vacationers: HarmonogramCell['vacationers'];
+    terminating?: HarmonogramCell['terminating'];
     singleTitle?: string;
   }) => void;
   onLeave: () => void;
@@ -692,6 +708,7 @@ function EmployeeCellWithTooltip({
       bottom: rect.bottom,
       absentees: cell.absentees,
       vacationers: cell.vacationers,
+      terminating: cell.terminating,
       singleTitle: cell.title,
     });
   };
@@ -705,6 +722,8 @@ function EmployeeCellWithTooltip({
   } else if (cell.statusType === 'vacation') {
     displayContent = '0';
     cellClass += ' bg-pink-500/25 font-medium text-pink-600 dark:text-pink-400';
+  } else if (cell.statusType === 'terminating') {
+    cellClass += ' bg-amber-500/25 font-medium text-amber-600 dark:text-amber-400';
   } else if (cell.statusType === 'terminated' || cell.statusType === 'not_hired') {
     displayContent = '—';
     cellClass += ' text-muted-foreground/40';
@@ -728,6 +747,7 @@ function TooltipPanel({
   bottom,
   absentees,
   vacationers,
+  terminating = [],
   singleTitle,
 }: {
   x: number;
@@ -735,6 +755,7 @@ function TooltipPanel({
   bottom: number;
   absentees: HarmonogramCell['absentees'];
   vacationers: HarmonogramCell['vacationers'];
+  terminating?: HarmonogramCell['terminating'];
   singleTitle?: string;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -758,7 +779,12 @@ function TooltipPanel({
     setStyle({ left, top: clampedTop });
   }, [x, top, bottom]);
 
-  if (singleTitle && absentees.length === 0 && vacationers.length === 0) {
+  if (
+    singleTitle &&
+    absentees.length === 0 &&
+    vacationers.length === 0 &&
+    terminating.length === 0
+  ) {
     return createPortal(
       <div
         ref={ref}
@@ -771,7 +797,8 @@ function TooltipPanel({
     );
   }
 
-  if (absentees.length === 0 && vacationers.length === 0) return null;
+  if (absentees.length === 0 && vacationers.length === 0 && terminating.length === 0)
+    return null;
 
   return createPortal(
     <div
@@ -807,6 +834,21 @@ function TooltipPanel({
           <AbsenceTooltipTable
             rows={vacationers.map(e => ({
               key: `u-${e.fullName}-${e.jobTitle}`,
+              fullName: e.fullName,
+              jobTitle: e.jobTitle,
+              manager: e.manager,
+            }))}
+          />
+        </div>
+      )}
+      {terminating.length > 0 && (
+        <div>
+          <p className="bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+            Zwalnia się ({terminating.length})
+          </p>
+          <AbsenceTooltipTable
+            rows={terminating.map(e => ({
+              key: `t-${e.fullName}-${e.jobTitle}`,
               fullName: e.fullName,
               jobTitle: e.jobTitle,
               manager: e.manager,

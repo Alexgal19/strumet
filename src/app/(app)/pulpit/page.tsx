@@ -109,6 +109,12 @@ export default function DashboardPage() {
 
     const totalActiveEmployees = activeEmployees.length;
 
+    // Osoby już zaliczone do "aktywnych", których data rozpoczęcia pracy jest jeszcze w przyszłości
+    const upcomingHires = activeEmployees.filter((employee) => {
+      const hire = parseMaybeDate(employee.hireDate);
+      return hire ? startOfDay(hire) > today : false;
+    }).length;
+
     const formatData = (counts: { [key: string]: number }) =>
       Object.entries(counts)
         .map(([name, value], index) => ({
@@ -125,6 +131,7 @@ export default function DashboardPage() {
     return {
       stats: {
         totalActiveEmployees,
+        upcomingHires,
         totalDepartments: Object.keys(deptCounts).length,
         totalJobTitles: Object.keys(
           activeEmployees.reduce((acc, e) => {
@@ -136,7 +143,24 @@ export default function DashboardPage() {
       departmentData: formatData(deptCounts),
       nationalityData: formatData(nationCounts),
     };
-  }, [activeEmployees]);
+  }, [activeEmployees, today]);
+
+  // Notatka: ile osób z "aktywnych" zaczyna dopiero od wskazanej daty rozpoczęcia pracy
+  const upcomingHiresNote = useMemo(() => {
+    const count = stats.upcomingHires;
+    if (count <= 0) return null;
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    const few = mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20);
+    const verb = count === 1 || !few ? 'zaczyna' : 'zaczynają';
+    const noun =
+      count === 1
+        ? '1 osoba'
+        : few
+          ? `${count} osoby`
+          : `${count} osób`;
+    return `W tym ${noun} ${verb} dopiero od wskazanej w firmie daty rozpoczęcia pracy`;
+  }, [stats.upcomingHires]);
 
   // --- Turnover ---
   const turnoverRate = useMemo(() => {
@@ -553,6 +577,12 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground mt-1">
               Całkowita liczba pracowników
             </p>
+            {upcomingHiresNote && (
+              <p className="text-xs mt-1.5 text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5 mt-px shrink-0" />
+                <span>{upcomingHiresNote}</span>
+              </p>
+            )}
           </CardContent>
         </Card>
 
