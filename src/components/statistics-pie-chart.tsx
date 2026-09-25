@@ -18,6 +18,7 @@ import {
   Legend,
   LabelList,
 } from 'recharts';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -65,6 +66,11 @@ export default function StatisticsPieChart({
   type,
   onChartClick,
 }: StatisticsPieChartProps) {
+  const isMobile = useIsMobile();
+
+  const outerR = isMobile ? 75 : 90;
+  const innerR = isMobile ? 42 : 55;
+
   return (
     <Card className="flex flex-col border shadow-sm">
       <CardHeader className="pb-2">
@@ -73,8 +79,8 @@ export default function StatisticsPieChart({
         </CardTitle>
         <CardDescription className="text-sm">{description}</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 flex items-center justify-center p-2 sm:p-6">
-        <ChartContainer config={{}} className="h-[260px] sm:h-[380px] w-full">
+      <CardContent className="flex-1 flex flex-col items-center p-2 sm:p-6">
+        <ChartContainer config={{}} className="h-[220px] sm:h-[380px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip content={<CustomTooltip />} />
@@ -84,8 +90,8 @@ export default function StatisticsPieChart({
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={90}
-                innerRadius={55}
+                outerRadius={outerR}
+                innerRadius={innerR}
                 paddingAngle={2}
                 cornerRadius={4}
                 isAnimationActive={false}
@@ -99,38 +105,31 @@ export default function StatisticsPieChart({
                     className="cursor-pointer hover:opacity-80 transition-opacity"
                   />
                 ))}
-                <LabelList
-                  dataKey="name"
-                  position="outside"
-                  className="hidden sm:block"
-                  formatter={(value: string, entry: any) =>
-                    `${entry?.value ?? ''}`
-                  }
-                />
               </Pie>
-              <Legend
-                iconType="circle"
-                layout="vertical"
-                verticalAlign="middle"
-                align="right"
-                iconSize={10}
-                wrapperStyle={{ lineHeight: '1.8em', fontSize: '12px' }}
-                className="hidden sm:block"
-                onClick={(d: any) => onChartClick(d.value, type)}
-                formatter={(value, entry: any) => (
-                  <span className="text-muted-foreground text-xs pl-1 cursor-pointer hover:text-primary transition-colors">
-                    {value}{' '}
-                    <span className="font-bold text-foreground ml-1">
-                      {entry.payload?.value}
+              {!isMobile && (
+                <Legend
+                  iconType="circle"
+                  layout="vertical"
+                  verticalAlign="middle"
+                  align="right"
+                  iconSize={10}
+                  wrapperStyle={{ lineHeight: '1.8em', fontSize: '12px' }}
+                  onClick={(d: any) => onChartClick(d.value, type)}
+                  formatter={(value, entry: any) => (
+                    <span className="text-muted-foreground text-xs pl-1 cursor-pointer hover:text-primary transition-colors">
+                      {value}{' '}
+                      <span className="font-bold text-foreground ml-1">
+                        {entry.payload?.value}
+                      </span>
                     </span>
-                  </span>
-                )}
-              />
+                  )}
+                />
+              )}
             </PieChart>
           </ResponsiveContainer>
         </ChartContainer>
-        {/* Legenda dotykowa — na mobile jedyna czytelna forma opisu wykresu (tap = filtr) */}
-        <div className="mt-2 flex w-full flex-wrap justify-center gap-x-4 gap-y-1.5 sm:hidden">
+        {/* Мобільна легенда — тап відкриває деталі */}
+        <div className="mt-3 flex w-full flex-wrap justify-center gap-x-4 gap-y-2 sm:hidden">
           {data.map((entry, index) => (
             <button
               key={`legend-${index}`}
