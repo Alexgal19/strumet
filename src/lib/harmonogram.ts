@@ -161,7 +161,13 @@ export function buildHarmonogram(
   const effectiveTermDate = (e: HarmonogramEmployee): Date | null => {
     const actual = parseSafeDate(e.terminationDate);
     if (actual) return actual;
-    if (e.status === 'zwolniony') return parseSafeDate(e.plannedTerminationDate);
+    
+    // Używamy plannedTerminationDate jako daty zwolnienia dla harmonogramu.
+    // Dzięki temu, na następny dzień po planowanej dacie pracownik nie wlicza się
+    // do zapotrzebowania, nawet jeśli fizycznie ma jeszcze status 'aktywny' w systemie.
+    const planned = parseSafeDate(e.plannedTerminationDate);
+    if (planned) return planned;
+    
     return null;
   };
 
@@ -236,13 +242,9 @@ export function buildHarmonogram(
               .map(e => {
                 const hire = parseSafeDate(e.hireDate);
                 const term = effectiveTermDate(e);
-                // Planowane zwolnienie: pracownik wciąż aktywny (liczy się jak pulpit),
-                // ale komórki od wskazanej daty są podświetlone.
-                const plannedTerm =
-                  e.status === 'aktywny' ? parseSafeDate(e.plannedTerminationDate) : null;
-
-                // Obecnie: synchronizacja z zakładką "Pracownicy aktywni" (tylko status 'aktywny')
-                const isEmployedToday = e.status === 'aktywny';
+                // Obecnie: synchronizacja z zakładką "Pracownicy aktywni"
+                // Jeśli data zwolnienia (rzeczywista lub planowana) już minęła, pracownik nie liczy się do "obecnie"
+                const isEmployedToday = e.status === 'aktywny' && (!term || term >= startOfDay(now));
                 const empObecnie = isEmployedToday ? 1 : 0;
 
                 const empCells: HarmonogramCell[] = days.map(d => {
@@ -266,23 +268,21 @@ export function buildHarmonogram(
                       vacationers: [],
                       terminating: [],
                       statusType: 'terminated',
-                      title: `${e.fullName}: Zwolniony (od ${format(term, 'dd.MM.yyyy')})`,
+                      title: `${e.fullName}: Zwolniony/Planowane zwolnienie (od ${format(term, 'dd.MM.yyyy')})`,
                     };
                   }
 
-                  // Dzień zwolnienia (faktycznego) lub planowane zwolnienie (aktywny) —
-                  // podświetlenie od wskazanej daty; pracownik wciąż liczony (mam: 1)
+                  // Ostatni dzień zatrudnienia (faktycznego lub planowanego)
+                  // podświetlenie komórki; pracownik wciąż liczony w ten dzień (mam: 1)
                   const isTermDay = !!term && term.getTime() === d.getTime();
-                  if (isTermDay || (plannedTerm && plannedTerm <= d)) {
+                  if (isTermDay) {
                     return {
                       mam: 1,
                       absentees: [],
                       vacationers: [],
                       terminating: [e],
                       statusType: 'terminating',
-                      title: isTermDay
-                        ? `${e.fullName}: Zwolnienie — ostatni dzień (${format(term!, 'dd.MM.yyyy')})`
-                        : `${e.fullName}: Planowane zwolnienie (od ${format(plannedTerm!, 'dd.MM.yyyy')})`,
+                      title: `${e.fullName}: Zwolnienie — ostatni dzień (${format(term!, 'dd.MM.yyyy')})`,
                     };
                   }
 

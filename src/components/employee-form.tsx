@@ -125,7 +125,17 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [step, setStep] = useState(0);
     const [isSavingAbsence, setIsSavingAbsence] = useState(false);
+    const [isReadyToSubmit, setIsReadyToSubmit] = useState(false);
     const topRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (step === STEPS.length - 1) {
+            const timer = setTimeout(() => setIsReadyToSubmit(true), 400);
+            return () => clearTimeout(timer);
+        } else {
+            setIsReadyToSubmit(false);
+        }
+    }, [step]);
 
     const employeeAbsences = React.useMemo(
         () => absences.filter(a => a.employeeId === employee?.id),
@@ -604,7 +614,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                                     <ArrowRight className="ml-1 h-4 w-4" />
                                 </Button>
                             ) : (
-                                <Button type="submit" className="h-12 flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
+                                <Button type="submit" disabled={!isReadyToSubmit} className="h-12 flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
                                     Zapisz
                                 </Button>
                             )}

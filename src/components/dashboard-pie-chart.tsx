@@ -18,6 +18,7 @@ import {
   Legend,
   LabelList,
 } from 'recharts';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -61,6 +62,7 @@ export default function DashboardPieChart({
   title,
   description,
 }: DashboardPieChartProps) {
+  const isMobile = useIsMobile();
   return (
     <Card className="flex flex-col border shadow-sm glass-card">
       <CardHeader className="pb-2">
@@ -80,8 +82,8 @@ export default function DashboardPieChart({
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={90}
-                innerRadius={55}
+                outerRadius={isMobile ? 70 : 90}
+                innerRadius={isMobile ? 40 : 55}
                 paddingAngle={2}
                 cornerRadius={4}
                 isAnimationActive={false}
@@ -94,45 +96,49 @@ export default function DashboardPieChart({
                     className="hover:opacity-80 transition-opacity"
                   />
                 ))}
-                <LabelList
-                  dataKey="name"
-                  position="outside"
-                  className="hidden sm:block"
-                  formatter={(value: string, entry: any) =>
-                    `${entry?.value ?? ''}`
-                  }
-                />
-              </Pie>
-              <Legend
-                iconType="circle"
-                layout="vertical"
-                verticalAlign="middle"
-                align="right"
-                iconSize={10}
-                wrapperStyle={{ lineHeight: '1.8em', fontSize: '12px' }}
-                className="hidden sm:block"
-                formatter={(value, entry: any) => (
-                  <span className="text-muted-foreground text-xs pl-1 hover:text-primary transition-colors">
-                    {value}{' '}
-                    <span className="font-bold text-foreground ml-1">
-                      {entry.payload?.value}
-                    </span>
-                  </span>
+                {!isMobile && (
+                  <LabelList
+                    dataKey="name"
+                    position="outside"
+                    formatter={(value: string, entry: any) =>
+                      `${entry?.value ?? ''}`
+                    }
+                  />
                 )}
-              />
+              </Pie>
+              {!isMobile && (
+                <Legend
+                  iconType="circle"
+                  layout="vertical"
+                  verticalAlign="middle"
+                  align="right"
+                  iconSize={10}
+                  wrapperStyle={{ lineHeight: '1.8em', fontSize: '12px' }}
+                  formatter={(value, entry: any) => (
+                    <span className="text-muted-foreground text-xs pl-1 hover:text-primary transition-colors">
+                      {value}{' '}
+                      <span className="font-bold text-foreground ml-1">
+                        {entry.payload?.value}
+                      </span>
+                    </span>
+                  )}
+                />
+              )}
             </PieChart>
           </ResponsiveContainer>
         </ChartContainer>
         {/* Legenda dotykowa — na mobile jedyna czytelna forma opisu wykresu */}
-        <div className="mt-2 flex w-full flex-wrap justify-center gap-x-4 gap-y-1.5 sm:hidden">
-          {data.map((entry, index) => (
-            <span key={`legend-${index}`} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
-              <span>{entry.name}</span>
-              <span className="font-bold text-foreground">{entry.value}</span>
-            </span>
-          ))}
-        </div>
+        {isMobile && (
+          <div className="mt-2 flex w-full flex-wrap justify-center gap-x-4 gap-y-1.5 sm:hidden">
+            {data.map((entry, index) => (
+              <span key={`legend-${index}`} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
+                <span>{entry.name}</span>
+                <span className="font-bold text-foreground">{entry.value}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
