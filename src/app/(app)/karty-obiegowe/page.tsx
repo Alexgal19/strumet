@@ -125,7 +125,7 @@ export default function CirculationCardsPage() {
             <div className="lg:col-span-2">
                 <Card className="h-full">
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                     <History className="h-6 w-6" />
                     <div>

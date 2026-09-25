@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
@@ -337,14 +337,14 @@ export default function NotatkiPage() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all" id="tab-all">
+        <TabsList className="grid w-full grid-cols-3 h-auto">
+          <TabsTrigger value="all" id="tab-all" className="text-xs sm:text-sm py-2">
             Wszystkie ({notes.length})
           </TabsTrigger>
-          <TabsTrigger value="unread" id="tab-unread">
+          <TabsTrigger value="unread" id="tab-unread" className="text-xs sm:text-sm py-2">
             Nieprzeczytane ({unreadCount})
           </TabsTrigger>
-          <TabsTrigger value="read" id="tab-read">
+          <TabsTrigger value="read" id="tab-read" className="text-xs sm:text-sm py-2">
             Przeczytane ({readCount})
           </TabsTrigger>
         </TabsList>

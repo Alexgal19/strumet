@@ -67,12 +67,12 @@ function PublicPlanowanieView() {
 
           <div className="flex flex-col gap-4 overflow-y-auto pb-6">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex overflow-hidden rounded-lg border border-border">
+              <div className="flex w-full sm:w-auto overflow-hidden rounded-lg border border-border">
                 <Button
                   type="button"
                   size="sm"
                   variant={view === 'harmonogram' ? 'default' : 'ghost'}
-                  className="rounded-none border-0"
+                  className="rounded-none border-0 flex-1 sm:flex-initial"
                   onClick={() => setView('harmonogram')}
                 >
                   Harmonogram obsady
@@ -81,7 +81,7 @@ function PublicPlanowanieView() {
                   type="button"
                   size="sm"
                   variant={view === 'zapotrzebowania' ? 'default' : 'ghost'}
-                  className="rounded-none border-0"
+                  className="rounded-none border-0 flex-1 sm:flex-initial"
                   onClick={() => setView('zapotrzebowania')}
                 >
                   Zapotrzebowania

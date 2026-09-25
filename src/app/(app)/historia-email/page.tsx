@@ -37,7 +37,7 @@ export default function EmailHistoryPage() {
         </p>
       </div>
 
-      <div className="flex gap-4 items-center">
+      <div className="flex flex-wrap gap-4 items-center">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filtruj status..." />

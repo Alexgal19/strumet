@@ -185,7 +185,7 @@ export default function FingerprintAppointmentsPage() {
           <div className="lg:col-span-3">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                 <CardTitle className="text-2xl">Zaplanowane terminy</CardTitle>
                 <CardDescription className="text-base">Lista nadchodzących wizyt na pobranie odcisków palców.</CardDescription>
