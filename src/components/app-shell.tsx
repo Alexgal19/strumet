@@ -73,7 +73,7 @@ export const AppShell = React.memo(function AppShell({ children }: { children: R
 
       <div className="flex flex-col flex-1 w-full h-dvh min-w-0">
         <AppTopBar pathname={pathname} onOpenMenu={() => setMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-4 z-0 relative w-full">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-4 z-0 relative w-full page-enter">
           {children}
         </main>
         <ClientBottomNav
