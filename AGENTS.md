@@ -89,7 +89,9 @@
 **Rules:**
 - `AppShell` root div must use `h-dvh`, never `h-full` (parent has no height)
 - Dark mode via `class` strategy — verify both light and dark before finishing
-- Mobile-first: test at ≤ 640 px; bottom nav = `app-bottom-nav.tsx`, top bar = desktop only
+- Mobile-first: test at ≤ 640 px; bottom nav = `app-bottom-nav.tsx`, top bar = dynamic page title
+- **Mandatory Mobile UI Check:** Run `npm run check:mobile` on every new feature or modified screen before build or push
+- **Sheet/Modal rule:** `SheetContent` with forms, date pickers, or popovers MUST use `onInteractOutside={(e) => e.preventDefault()}` to avoid accidental closing on mobile
 - Never set `WebkitTextFillColor` globally on `<Input>` — breaks all text fields; autofill CSS only via `input:-webkit-autofill`
 - Never nest Radix `Dialog` inside `Dialog` — portal conflict; lift to page level
 - Print forms: `window.print()` only (no libraries), CSS in `globals.css`, `.print-only` div at page level

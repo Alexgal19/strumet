@@ -63,6 +63,17 @@ Radix UI uses portals — nested Dialogs break. Lift print/clothing dialogs to p
 
 The only PDF mechanism is `window.print()` + `@media print` CSS. Do not introduce Puppeteer, jsPDF, or any server-side renderer.
 
+### 7. Mandatory Mobile UI Check before Build & Push
+
+Every new feature or modified UI screen MUST be verified for mobile responsiveness.
+Run `npm run check:mobile` before building or pushing.
+The validator checks for:
+- `SheetContent` without `onInteractOutside={(e) => e.preventDefault()}` when containing forms or date/time pickers.
+- Tables lacking `overflow-x-auto` or mobile card alternative.
+- Fixed pixel widths >= 360px without responsive breakpoints.
+- Action headers lacking `flex-wrap`.
+This check runs automatically on `npm run build` (prebuild) and `git push` (pre-push hook).
+
 ---
 
 ## Repository Layout

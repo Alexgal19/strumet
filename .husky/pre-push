@@ -1,0 +1,13 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "📱 [Hook] Running Mobile UI Responsiveness Check..."
+node scripts/check-mobile-ui.mjs
+
+if [ $? -ne 0 ]; then
+  echo "❌ [Hook] Mobile UI check FAILED! Commit/Push aborted. Please fix mobile responsiveness before pushing."
+  exit 1
+fi
+
+echo "📝 [Hook] Updating AI_CONTEXT.md timestamps..."
+node scripts/update-agents-md.mjs

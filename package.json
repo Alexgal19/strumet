@@ -127,21 +127,15 @@
     },
 
     "scripts": {
-
         "dev": "next dev",
-
+        "prebuild": "node scripts/check-mobile-ui.mjs",
         "build": "next build",
-
         "start": "next start",
-
         "lint": "eslint src",
-
         "test": "vitest",
-
+        "check:mobile": "node scripts/check-mobile-ui.mjs",
         "analyze": "ANALYZE=true next build",
-
-        "verify": "npm run lint && npx tsc --noEmit"
-
+        "verify": "npm run check:mobile && npm run lint && npx tsc --noEmit"
     },
 
     "devDependencies": {

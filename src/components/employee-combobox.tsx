@@ -105,6 +105,7 @@ export function EmployeeCombobox({
         <SheetContent
           side="bottom"
           className="h-[75dvh] flex flex-col p-0 rounded-t-3xl [&>button]:hidden pb-[env(safe-area-inset-bottom)]"
+          onInteractOutside={(e) => e.preventDefault()}
         >
           <SheetHeader className="p-4 pb-2 border-b shrink-0 text-left">
             <SheetTitle className="text-base">Wybierz pracownika</SheetTitle>
