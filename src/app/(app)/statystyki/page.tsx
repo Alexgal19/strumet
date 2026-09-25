@@ -378,6 +378,7 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                 <SheetContent
                     side="bottom"
                     className="h-[92dvh] p-0 flex flex-col rounded-t-3xl bg-background [&>button]:hidden"
+                    onInteractOutside={(e) => e.preventDefault()}
                 >
                     <SheetHeader className="p-4 border-b bg-background/80 shrink-0 text-left">
                         <SheetTitle className="text-xl font-bold tracking-tight">Edytuj pracownika</SheetTitle>
