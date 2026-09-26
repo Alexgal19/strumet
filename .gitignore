@@ -47,3 +47,6 @@ next-env.d.ts
 firebase-debug.log
 firestore-debug.log
 .early.coverage
+
+# Local voice runtime models and temporary assets
+.local-voice/

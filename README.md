@@ -47,6 +47,10 @@ System wykorzystuje Genkit oraz zadania cron do automatyzacji kluczowych proces�
 *   **Generowanie Treści (AI)**: Wykorzystanie Genkit i modeli AI do generowania profesjonalnych podsumowań profili pracowników na żądanie.
 *   **Archiwizacja Danych**: Możliwość ręcznego lub automatycznego archiwizowania danych o pracownikach do plików Excel i zapisywania ich w Firebase Storage.
 
+## 🎙️ Asystent głosowy na Macu
+
+Instrukcja uruchomienia lokalnego asystenta głosowego i dostępu z Androida przez prywatny Tailscale: [Asystent głosowy na Macu](docs/local-voice.md).
+
 ## 📋 Wymagania Wstępne
 
 Przed uruchomieniem projektu upewnij się, że masz zainstalowane:

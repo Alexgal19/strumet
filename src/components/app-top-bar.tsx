@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { CommandMenu } from './command-menu';
 import { ThemeToggle } from './theme-toggle';
 import { NAV_SECTIONS } from './app-sidebar';
+import { LocalVoiceDialog } from './local-voice-dialog';
 
 // Mapa href → label dla dynamicznego tytułu strony (Android pattern)
 const PAGE_TITLE_MAP: Record<string, string> = Object.fromEntries(
@@ -239,6 +240,7 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
 
           <div className="flex items-center gap-2 ml-auto shrink-0">
             {(isAdmin || isEditor) && <Notifications />}
+            {(isAdmin || isEditor) && <LocalVoiceDialog />}
             <Separator orientation="vertical" className="h-6 bg-border/50" />
             <ThemeToggle />
             <Button
@@ -284,6 +286,7 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
 
           <div className="flex items-center gap-0.5 shrink-0">
             {(isAdmin || isEditor) && <Notifications />}
+            {(isAdmin || isEditor) && <LocalVoiceDialog />}
             <ThemeToggle />
           </div>
         </header>

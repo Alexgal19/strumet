@@ -164,6 +164,7 @@ interface AppContextType {
     emailLogs: EmailLog[];
     notes: Note[];
     isLoading: boolean;
+    voiceDataReady: boolean;
     isHistoryLoading: boolean;
     handleSaveEmployee: (employeeData: Employee) => Promise<boolean>;
     handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<boolean>;
@@ -240,6 +241,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
     const [notes, setNotes] = useState<Note[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [voiceDataReady, setVoiceDataReady] = useState(false);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
     const [services, setServices] = useState<FirebaseServices | null>(null);
@@ -306,6 +308,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         if (!services || !currentUser) {
+            setVoiceDataReady(false);
             setEmployees([]);
             setCars([]);
             setUsers([]);
@@ -375,6 +378,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         dataLoadedRef.current.clear();
+        setVoiceDataReady(false);
+        const voiceLoadedPaths = new Set<string>();
         const { db } = services;
 
         const dataRefs = [
@@ -551,6 +556,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribes = dataRefs.map(({ path, setter, essential }) =>
             onValue(ref(db, path), snapshot => {
                 setter(snapshot.val());
+                if (path === 'employees' || path === 'absences' || path === 'fingerprintAppointments') {
+                    voiceLoadedPaths.add(path);
+                    if (voiceLoadedPaths.size === 3) setVoiceDataReady(true);
+                }
                 if (checkEssentialLoaded()) {
                     setIsLoading(false);
                 }
@@ -1380,6 +1389,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         emailLogs,
         notes,
         isLoading,
+        voiceDataReady,
         isHistoryLoading,
         handleSaveEmployee,
         handleTerminateEmployee,
