@@ -96,10 +96,11 @@ export default function ZwolnieniPage() {
             employees={terminatedEmployees}
             columns={exportColumns}
             fileName="zwolnieni_pracownicy"
+            className="min-h-12 md:min-h-10"
           />
           <Popover open={isMoreOpen} onOpenChange={setIsMoreOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" title="Więcej opcji">
+              <Button variant="outline" size="icon" title="Więcej opcji" className="h-12 w-12 md:h-10 md:w-10">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </PopoverTrigger>

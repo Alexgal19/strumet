@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { format } from 'date-fns';
+import { addMonths, format, getDaysInMonth } from 'date-fns';
+import { pl } from 'date-fns/locale';
 import {
   ChevronDown,
   ChevronRight,
@@ -25,6 +26,18 @@ import {
   HarmonogramPositionRow,
   HarmonogramEmployeeRow,
 } from '@/lib/harmonogram';
+
+const mobileQuery = '(max-width: 767px)';
+
+function subscribeToMobile(onChange: () => void) {
+  const media = window.matchMedia(mobileQuery);
+  media.addEventListener('change', onChange);
+  return () => media.removeEventListener('change', onChange);
+}
+
+function isMobileScreen() {
+  return window.matchMedia(mobileQuery).matches;
+}
 
 export function HarmonogramView({
   data,
@@ -49,6 +62,7 @@ export function HarmonogramView({
     singleTitle?: string;
   } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const isMobile = useSyncExternalStore(subscribeToMobile, isMobileScreen, () => false);
 
   const result = useMemo(() => buildHarmonogram(data, monthOffset), [data, monthOffset]);
 
@@ -140,8 +154,139 @@ export function HarmonogramView({
     setExpandedPositions(new Set());
   };
 
+  const moveDay = (direction: -1 | 1) => {
+    const next = activeDayIndex + direction;
+    if (next >= 0 && next < result.days.length) {
+      setSelectedDayIndex(next);
+      return;
+    }
+    setMonthOffset(value => value + direction);
+    setSelectedDayIndex(
+      direction === 1 ? 0 : getDaysInMonth(addMonths(result.monthDate, -1)) - 1
+    );
+  };
+
   return (
-    <Card className="flex min-h-0 flex-1 flex-col">
+    <Card className="min-w-0 md:flex md:min-h-0 md:flex-1 md:flex-col">
+      {isMobile ? (
+        <CardContent className="space-y-4 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold capitalize">{result.monthLabel}</h2>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-12 shrink-0 px-3"
+              onClick={() => {
+                setMonthOffset(0);
+                setSelectedDayIndex(null);
+              }}
+            >
+              Dzisiaj
+            </Button>
+          </div>
+
+          <div className="sticky top-0 z-20 -mx-4 flex items-center gap-2 border-b bg-card px-4 py-2" aria-label="Wybierz dzień harmonogramu">
+            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" onClick={() => moveDay(-1)} aria-label="Poprzedni dzień">
+              <ChevronRight className="h-5 w-5 rotate-180" />
+            </Button>
+            <label className="min-w-0 flex-1">
+              <span className="sr-only">Dzień harmonogramu</span>
+              <select
+                className="h-12 w-full rounded-md border border-input bg-background px-3 text-center text-sm font-semibold capitalize text-foreground"
+                value={activeDayIndex}
+                onChange={event => setSelectedDayIndex(Number(event.target.value))}
+              >
+                {result.days.map((day, index) => (
+                  <option key={day.toISOString()} value={index}>
+                    {format(day, 'EEEE, d MMMM', { locale: pl })}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" onClick={() => moveDay(1)} aria-label="Następny dzień">
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2" aria-label="Podsumowanie obsady">
+            <MobileMetric label="Obecni" value={totals.presentNa} />
+            <MobileMetric label="Potrzeby" value={totals.potrzeby} />
+            <MobileMetric label="Brak obsady" value={Math.max(0, totals.potrzeby - totals.presentNa)} alert={totals.presentNa < totals.potrzeby} />
+            <MobileMetric label="Nieobecni i urlopy" value={totals.absentNa} />
+          </div>
+          <p className="text-xs text-muted-foreground">Stan zatrudnienia: {totals.stanZatrudnienia} · Różnica względem potrzeb: {totals.employedGap[activeDayIndex] > 0 ? '+' : ''}{totals.employedGap[activeDayIndex]}</p>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Działy</h3>
+            {result.rows.map(dept => {
+              const open = expandedDepts.has(dept.dept);
+              const cell = dept.cells[activeDayIndex];
+              return (
+                <section key={dept.dept} className="min-w-0 overflow-hidden rounded-xl border">
+                  <button type="button" className="flex min-h-14 w-full items-center gap-2 px-3 py-2 text-left" aria-expanded={open} onClick={() => toggleDept(dept.dept)}>
+                    <span className="min-w-0 flex-1 break-words">
+                      <span className="block font-semibold">{mobileDepartmentLabel(dept.dept)}</span>
+                      <span className="block text-xs text-muted-foreground">Stan {dept.obecnie} · Obecni {cell?.mam ?? 0} · Potrzeby {dept.potrzeby}</span>
+                    </span>
+                    <span className="shrink-0 text-right text-sm tabular-nums">
+                      <span className={(cell?.mam ?? 0) < dept.potrzeby ? 'text-xs font-semibold text-destructive' : 'text-xs text-muted-foreground'}>
+                        {(cell?.mam ?? 0) < dept.potrzeby ? `Brakuje ${dept.potrzeby - (cell?.mam ?? 0)}` : 'Obsada pełna'}
+                      </span>
+                    </span>
+                    {open ? <ChevronDown className="h-5 w-5 shrink-0" /> : <ChevronRight className="h-5 w-5 shrink-0" />}
+                  </button>
+                  {open && (
+                    <div className="space-y-3 border-t p-3">
+                      <MobileStatusLists cell={cell} />
+                      {dept.managers.map(manager => {
+                        const managerKey = `${dept.dept}|${manager.manager}`;
+                        const managerOpen = expandedManagers.has(managerKey);
+                        return (
+                          <div key={managerKey} className="min-w-0 rounded-lg border bg-muted/20">
+                            <MobileHierarchyButton label={manager.manager === 'Brak kierownika' ? manager.manager : `Kierownik: ${manager.manager}`} row={manager} dayIndex={activeDayIndex} open={managerOpen} onClick={() => toggleManager(managerKey)} />
+                            {managerOpen && (
+                              <div className="space-y-2 border-t p-2">
+                                {manager.positions.map(position => {
+                                  const positionKey = `${managerKey}|${position.jobTitle}`;
+                                  const positionOpen = expandedPositions.has(positionKey);
+                                  return (
+                                    <div key={positionKey} className="min-w-0 rounded-lg border bg-background">
+                                      <MobileHierarchyButton label={position.jobTitle} row={position} dayIndex={activeDayIndex} open={positionOpen} onClick={() => togglePosition(positionKey)} />
+                                      {positionOpen && (
+                                        <div className="space-y-1 border-t p-2">
+                                          <MobileStatusLists cell={position.cells[activeDayIndex]} />
+                                          {position.employees.map((employee, employeeIndex) => {
+                                            const employeeCell = employee.cells[activeDayIndex];
+                                            return (
+                                              <div key={`${employee.fullName}-${employeeIndex}`} className="flex min-h-12 items-center justify-between gap-2 border-t py-2 text-sm first:border-t-0">
+                                                <span className="min-w-0 break-words">{employee.fullName}</span>
+                                                <span className="shrink-0 text-right text-xs font-medium">{mobileEmployeeStatus(employeeCell)}</span>
+                                              </div>
+                                            );
+                                          })}
+                                          {position.employees.length === 0 && <p className="py-2 text-xs text-muted-foreground">Brak przypisanych pracowników.</p>}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+            {result.rows.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Brak danych.</p>}
+          </div>
+        </CardContent>
+      ) : (
+      <>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base capitalize">
@@ -621,8 +766,90 @@ export function HarmonogramView({
           singleTitle={cellTooltip.singleTitle}
         />
       )}
+      </>
+      )}
     </Card>
   );
+}
+
+function MobileMetric({ label, value, alert = false }: { label: string; value: number; alert?: boolean }) {
+  return (
+    <div className="min-w-0 rounded-lg border bg-muted/20 p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-2xl font-semibold tabular-nums ${alert ? 'text-destructive' : ''}`}>{value}</p>
+    </div>
+  );
+}
+
+function MobileHierarchyButton({
+  label,
+  row,
+  dayIndex,
+  open,
+  onClick,
+}: {
+  label: string;
+  row: HarmonogramManagerRow | HarmonogramPositionRow;
+  dayIndex: number;
+  open: boolean;
+  onClick: () => void;
+}) {
+  const present = row.cells[dayIndex]?.mam ?? 0;
+  return (
+    <button type="button" className="flex min-h-12 w-full items-center gap-2 px-3 py-2 text-left" aria-expanded={open} onClick={onClick}>
+      <span className="min-w-0 flex-1 break-words text-sm font-medium">{label}</span>
+      <span className="shrink-0 text-right text-xs tabular-nums">
+        <span className="block">{present} / {row.potrzeby}</span>
+        <span className={present < row.potrzeby ? 'text-destructive' : 'text-muted-foreground'}>
+          {present < row.potrzeby ? `Brakuje ${row.potrzeby - present}` : 'Obsada pełna'}
+        </span>
+      </span>
+      {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+    </button>
+  );
+}
+
+function MobileStatusLists({ cell }: { cell?: HarmonogramCell }) {
+  if (!cell) return null;
+  const groups = [
+    { label: 'Nieobecni', entries: cell.absentees, color: 'text-destructive' },
+    { label: 'Na urlopie', entries: cell.vacationers, color: 'text-pink-600 dark:text-pink-400' },
+    { label: 'Zwalnia się', entries: cell.terminating ?? [], color: 'text-amber-600 dark:text-amber-400' },
+  ];
+  return (
+    <div className="space-y-2">
+      {groups.filter(group => group.entries.length > 0).map(group => (
+        <div key={group.label} className="rounded-md bg-muted/40 px-3 py-2 text-xs">
+          <p className={`font-semibold ${group.color}`}>{group.label} ({group.entries.length})</p>
+          <ul className="mt-1 space-y-1">
+            {group.entries.map((person, index) => (
+              <li key={`${person.fullName}-${index}`} className="break-words">
+                {person.fullName} <span className="text-muted-foreground">· {person.jobTitle}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function mobileEmployeeStatus(cell?: HarmonogramCell) {
+  switch (cell?.statusType) {
+    case 'present': return 'Obecny';
+    case 'absent': return 'Nieobecny';
+    case 'vacation': return 'Urlop';
+    case 'terminating': return 'Ostatni dzień';
+    case 'terminated': return 'Zwolniony';
+    case 'not_hired': return 'Przed zatrudnieniem';
+    default: return '—';
+  }
+}
+
+function mobileDepartmentLabel(name: string) {
+  return name.replace(/^DZIAŁ[_ ]?/i, '').replaceAll('_', ' ').split(' ').map(part =>
+    part.length <= 3 ? part.toLocaleUpperCase('pl') : part.charAt(0).toLocaleUpperCase('pl') + part.slice(1).toLocaleLowerCase('pl')
+  ).join(' ');
 }
 
 function CellWithTooltip({

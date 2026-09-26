@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import type { Employee } from '@/lib/types';
 import { useAppContext } from '@/context/app-context';
-import { vacationHasStarted, parseMaybeDate } from '@/lib/date';
+import { vacationHasStarted } from '@/lib/date';
+import { isActiveEmployee, isEffectivelyTerminated } from '@/lib/employee-status';
 import { startOfDay } from 'date-fns';
 
 export const useEmployees = (
@@ -16,15 +17,10 @@ export const useEmployees = (
     if (status) {
       const today = startOfDay(new Date());
       result = result.filter((e: Employee) => {
-        // Jeśli ma planowaną datę zwolnienia i już minęła (lub jest dzisiaj),
-        // traktujemy go jako zwolnionego, nawet jeśli w bazie figuruje jako 'aktywny'.
-        const planned = parseMaybeDate(e.plannedTerminationDate);
-        const isEffectivelyTerminated = planned && startOfDay(planned) < today;
-
         if (status === 'aktywny') {
-          return e.status === 'aktywny' && !isEffectivelyTerminated;
+          return isActiveEmployee(e, today);
         } else if (status === 'zwolniony') {
-          return e.status === 'zwolniony' || (e.status === 'aktywny' && isEffectivelyTerminated);
+          return e.status === 'zwolniony' || (e.status === 'aktywny' && isEffectivelyTerminated(e, today));
         }
         return e.status === status;
       });

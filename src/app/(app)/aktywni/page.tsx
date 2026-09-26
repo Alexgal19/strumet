@@ -141,22 +141,22 @@ export default function AktywniPage() {
               />
               <Popover open={isMoreOpen} onOpenChange={setIsMoreOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon" title="Więcej opcji">
+                  <Button variant="outline" size="icon" title="Więcej opcji" className="h-12 w-12 md:h-10 md:w-10">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-2 flex flex-col gap-1" align="end">
                   <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Import i Aktualizacja</div>
-                  <ExcelImportButton variant="ghost" className="w-full justify-start h-9" />
-                  <HireDateImportButton variant="ghost" className="w-full justify-start h-9" />
-                  <ContractEndDateImportButton variant="ghost" className="w-full justify-start h-9" />
+                  <ExcelImportButton variant="ghost" className="w-full justify-start min-h-12 md:min-h-9" />
+                  <HireDateImportButton variant="ghost" className="w-full justify-start min-h-12 md:min-h-9" />
+                  <ContractEndDateImportButton variant="ghost" className="w-full justify-start min-h-12 md:min-h-9" />
 
                   <div className="my-1 h-px bg-border" />
                   <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Zarządzanie masowe</div>
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsMoreOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start min-h-12 md:min-h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsMoreOpen(false)}>
                         <Trash2 className="mr-2 h-4 w-4" />
                         Usuń daty zatrudnienia
                       </Button>
@@ -178,7 +178,7 @@ export default function AktywniPage() {
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-start h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsMoreOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start min-h-12 md:min-h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsMoreOpen(false)}>
                         <Trash2 className="mr-2 h-4 w-4" />
                         Usuń wszystkich pracowników
                       </Button>

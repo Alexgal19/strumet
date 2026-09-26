@@ -1,18 +1,25 @@
 # Asystent głosowy na Macu
 
-Asystent działa na komputerze Mac z Apple Silicon i 16 GB pamięci. Ollama z lokalnym modelem `qwen3:4b` rozpoznaje rodzaj pytania, `whisper.cpp` zamienia polską mowę na tekst, a głos systemowy macOS `Zosia` odczytuje odpowiedź. `ffmpeg` konwertuje nagrania. Pytania i audio są przetwarzane lokalnie; nie ma opłat za tokeny ani wywołań płatnego API AI.
+Asystent działa na komputerze Mac z Apple Silicon i 16 GB pamięci. `whisper.cpp` zamienia polską mowę na tekst, `ffmpeg` konwertuje nagrania, a głos systemowy macOS `Zosia` odczytuje odpowiedź. Lokalny model `qwen3:4b` w Ollama planuje zapytania do danych aplikacji i układa odpowiedzi na podstawie uzyskanych faktów. Jasne pytania o nieobecności mają szybką ścieżkę obliczania faktów bez planowania przez model. Nie jest to asystent ogólnej wiedzy: nie odpowiada wiarygodnie na dowolne pytania ani nie gwarantuje bezbłędnego rozpoznania mowy lub odpowiedzi. Nie ma opłat za tokeny ani wywołań płatnego API AI.
 
 Aplikacja nadal korzysta z sieci do logowania Firebase i pobierania danych. Mac musi być włączony i wybudzony, gdy ktoś korzysta z asystenta. Dostęp z telefonu odbywa się przez prywatny tailnet Tailscale i HTTPS Serve; telefon musi być do niego podłączony. Dostępność cenowa Tailscale zależy od planu i sposobu użycia, szczególnie w firmie.
 
-## Co można zapytać
+## Możliwości i dane
 
-- Ilu jest aktywnych pracowników, opcjonalnie w podanym dziale?
-- Kto jest nieobecny danego dnia?
-- Komu kończy się umowa w podanym przedziale dat?
-- Kto ma planowane zwolnienie w podanym przedziale dat?
-- Jakie są terminy odcisków palców, opcjonalnie dla pracownika lub przedziału dat?
+- Możesz pytać o listy, liczby, grupowanie i sumy, a także szczegóły dostępnych rekordów. Lokalny model wybiera źródło, pola i filtry z dozwolonego zestawu; zapytanie jest wykonywane deterministycznie na danych, a model układa zwięzłą odpowiedź na podstawie uzyskanych faktów. Tekst może być niepełny lub błędny.
+- Źródła obejmują pracowników, nieobecności i zdarzenia obecności, rekrutację i zamówienia, samochody, odciski palców, karty obiegowe, wydania odzieży, historię statystyk, notatki, powiadomienia, szablony i historię e-maili oraz słowniki konfiguracyjne. Dostępne pola zależą od źródła.
+- Przykłady: liczba pracowników według działu lub stanowiska, dane wybranej osoby, nieobecności w danym dniu lub przedziale, kończące się umowy, planowane zwolnienia, terminy odcisków palców, zapotrzebowanie rekrutacyjne albo stan zamówień.
+- Można też pytać, gdzie znaleźć funkcje aplikacji. Odpowiedzi na takie pytania opierają się na opisanych ekranach aplikacji; jeśli brak potwierdzonej instrukcji, asystent powinien to powiedzieć.
 
-Asystent odpowiada na podstawie danych wczytanych do bieżącej sesji. Nie zmienia danych. Inne pytania i nieobsługiwane filtry są odrzucane. Odpowiedź może zawierać maksymalnie 12 pozycji.
+Asystent korzysta z danych wczytanych w bieżącej sesji; jeśli dana lista jest pusta, aplikacja próbuje pobrać jej dane z Firebase. Odpowiedzi nie zmieniają danych. Nieobsługiwane pytania, źródła i filtry mogą zostać odrzucone albo zakończyć się informacją o braku danych. Daty względne, takie jak „ten piątek”, są liczone względem bieżącego tygodnia od poniedziałku do niedzieli.
+
+Podczas nagrywania rozpoznany tekst pojawia się orientacyjnie co 2 sekundy. To podgląd, który może się zmieniać; po zatrzymaniu nagrania całość jest rozpoznawana ponownie i końcowy wynik zastępuje podgląd. Sprawdź tekst, bo `whisper.cpp` może pomylić słowa. Nagranie trwa maksymalnie 30 sekund. Lista może obejmować najwyżej 30 wyników, ale zwięzła odpowiedź może wymienić mniej; synteza mowy może dodatkowo skrócić długi tekst.
+
+## Prywatność
+
+Mowa, pytanie i dane używane do odpowiedzi trafiają do lokalnego serwera na Macu. Serwer wymaga zalogowania Firebase i dopuszcza tylko UID-y z `LOCAL_VOICE_ALLOWED_UIDS`; Ollama musi wskazywać pobrany model lokalny. Audio jest przetwarzane przez lokalne `ffmpeg` i `whisper.cpp`, a pliki tymczasowe są usuwane po przetworzeniu. Pytania, audio i odpowiedzi nie są wysyłane do płatnego API AI.
+
+Aplikacja nadal łączy się z Firebase w celu logowania i pobierania danych. Snapshot asystenta ogranicza pola do jawnej listy, ale może zawierać dane osobowe, treść notatek, szablony wiadomości i adresy z historii e-maili. Nie udostępniaj dostępu do Maca ani tailnetu osobom, które nie powinny widzieć tych danych. Przy dostępie z telefonu połączenie prowadzi przez HTTPS Serve w prywatnym tailnecie Tailscale.
 
 ## Pierwsze uruchomienie
 

@@ -49,7 +49,7 @@ function PublicPlanowanieView() {
   }, []);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col md:h-full">
       {error ? (
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
           Nie udało się pobrać danych harmonogramu.
@@ -62,17 +62,17 @@ function PublicPlanowanieView() {
         <>
           <PageHeader
             title="Obsada"
-            description="Zaplanuj, ile osób trzeba zrekrutować do każdego działu i kiedy mają przyjść."
+            description="Sprawdź obsadę i zapotrzebowanie według działu."
           />
 
-          <div className="flex flex-col gap-4 overflow-y-auto pb-6">
+          <div className="flex flex-col gap-4 pb-6 md:overflow-y-auto">
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex w-full sm:w-auto overflow-hidden rounded-lg border border-border">
                 <Button
                   type="button"
                   size="sm"
                   variant={view === 'harmonogram' ? 'default' : 'ghost'}
-                  className="rounded-none border-0 flex-1 sm:flex-initial"
+                  className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
                   onClick={() => setView('harmonogram')}
                 >
                   Harmonogram obsady
@@ -81,7 +81,7 @@ function PublicPlanowanieView() {
                   type="button"
                   size="sm"
                   variant={view === 'zapotrzebowania' ? 'default' : 'ghost'}
-                  className="rounded-none border-0 flex-1 sm:flex-initial"
+                  className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
                   onClick={() => setView('zapotrzebowania')}
                 >
                   Zapotrzebowania

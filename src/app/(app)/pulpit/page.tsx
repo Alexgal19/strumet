@@ -241,9 +241,9 @@ export default function DashboardPage() {
           <Skeleton className="h-8 w-72 max-w-full" />
           <Skeleton className="h-4 w-96 max-w-full" />
         </div>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[118px] rounded-3xl" />
+            <Skeleton key={i} className="h-[112px] rounded-3xl" />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -524,12 +524,12 @@ export default function DashboardPage() {
   const mobileTabs = (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid h-auto w-full grid-cols-2">
-        <TabsTrigger value="dzis" className="min-h-[44px] text-xs sm:text-sm">
+        <TabsTrigger value="dzis" className="min-h-[48px] text-xs sm:text-sm">
           Dziś
         </TabsTrigger>
         <TabsTrigger
           value="statystyki"
-          className="min-h-[44px] text-xs sm:text-sm"
+          className="min-h-[48px] text-xs sm:text-sm"
         >
           Statystyki
         </TabsTrigger>
@@ -545,7 +545,6 @@ export default function DashboardPage() {
       <TabsContent value="statystyki" className="mt-6">
         <div className="space-y-6">
           {chartsSection}
-          {quickLinksCard}
         </div>
       </TabsContent>
     </Tabs>
@@ -562,72 +561,72 @@ export default function DashboardPage() {
       />
 
       {/* KPI Row */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="glass-card border-0 p-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <Card className="glass-card border-0 min-w-0">
+          <CardHeader className="flex flex-row items-start justify-between gap-1 space-y-0 px-3 pb-1 pt-3 sm:px-6 sm:pt-6 sm:pb-2">
+            <CardTitle className="text-sm leading-tight font-medium sm:text-base">
               Aktywni pracownicy
             </CardTitle>
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gradient-primary">
+          <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+            <div className="text-2xl font-bold sm:text-3xl text-gradient-primary">
               {stats.totalActiveEmployees}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="hidden text-xs text-muted-foreground mt-1 sm:block">
               Całkowita liczba pracowników
             </p>
             {upcomingHiresNote && (
-              <p className="text-xs mt-1.5 text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
+              <p className="text-xs leading-tight mt-1.5 text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
                 <CalendarClock className="h-3.5 w-3.5 mt-px shrink-0" />
-                <span>{upcomingHiresNote}</span>
+                <span><span className="sm:hidden">{stats.upcomingHires} z późniejszą datą startu</span><span className="hidden sm:inline">{upcomingHiresNote}</span></span>
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-0 p-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">
+        <Card className="glass-card border-0 min-w-0">
+          <CardHeader className="flex flex-row items-start justify-between gap-1 space-y-0 px-3 pb-1 pt-3 sm:px-6 sm:pt-6 sm:pb-2">
+            <CardTitle className="text-sm leading-tight font-medium sm:text-base">
               Liczba działów
             </CardTitle>
             <Building className="h-4 w-4 text-accent" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.totalDepartments}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+          <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+            <div className="text-2xl font-bold sm:text-3xl">{stats.totalDepartments}</div>
+            <p className="hidden text-xs text-muted-foreground mt-1 sm:block">
               Aktywne działy w firmie
             </p>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-0 p-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">
+        <Card className="glass-card border-0 min-w-0">
+          <CardHeader className="flex flex-row items-start justify-between gap-1 space-y-0 px-3 pb-1 pt-3 sm:px-6 sm:pt-6 sm:pb-2">
+            <CardTitle className="text-sm leading-tight font-medium sm:text-base">
               Liczba stanowisk
             </CardTitle>
             <Briefcase className="h-4 w-4 text-primary" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.totalJobTitles}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+          <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+            <div className="text-2xl font-bold sm:text-3xl">{stats.totalJobTitles}</div>
+            <p className="hidden text-xs text-muted-foreground mt-1 sm:block">
               Liczba unikalnych stanowisk
             </p>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-0 p-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">
+        <Card className="glass-card border-0 min-w-0">
+          <CardHeader className="flex flex-row items-start justify-between gap-1 space-y-0 px-3 pb-1 pt-3 sm:px-6 sm:pt-6 sm:pb-2">
+            <CardTitle className="text-sm leading-tight font-medium sm:text-base">
               Rotacja miesięczna
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
+          <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+            <div className="text-2xl font-bold sm:text-3xl">
               {turnoverRate ? `${turnoverRate.rate}%` : '—'}
             </div>
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+            <p className="hidden text-xs text-muted-foreground mt-1 line-clamp-1 sm:block">
               {turnoverRate
                 ? `${turnoverRate.totalTerminations} zwolnień / średnio ${turnoverRate.avgHeadcount} prac.`
                 : 'Brak wystarczających danych'}

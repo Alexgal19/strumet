@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import {
-  Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight, Menu, Search, ArrowLeft
+  Bell, RefreshCw, Trash2, Loader2, LogOut, ChevronRight, Search, ArrowLeft
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -30,24 +30,10 @@ import { runManualChecks } from '@/ai/flows/run-manual-checks';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
 import { useHasMounted } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 import { CommandMenu } from './command-menu';
 import { ThemeToggle } from './theme-toggle';
-import { NAV_SECTIONS } from './app-sidebar';
+import { getPageTitle } from './app-navigation';
 import { LocalVoiceDialog } from './local-voice-dialog';
-
-// Mapa href → label dla dynamicznego tytułu strony (Android pattern)
-const PAGE_TITLE_MAP: Record<string, string> = Object.fromEntries(
-  NAV_SECTIONS.flatMap((s) => s.items).map((item) => [item.href, item.label])
-);
-
-function getPageTitle(pathname: string): string {
-  if (PAGE_TITLE_MAP[pathname]) return PAGE_TITLE_MAP[pathname];
-  const found = Object.keys(PAGE_TITLE_MAP)
-    .sort((a, b) => b.length - a.length)
-    .find((key) => pathname.startsWith(key));
-  return found ? PAGE_TITLE_MAP[found] : 'Baza-ST';
-}
 
 function Notifications() {
   const { notifications } = useAppContext();
@@ -90,7 +76,7 @@ function Notifications() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="relative rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center">
+        <button aria-label="Powiadomienia" className="relative rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 justify-center p-0 text-[10px] bg-emerald-500 text-white border-0">
@@ -109,7 +95,7 @@ function Notifications() {
             notifications.map(notif => (
               <div
                 key={notif.id}
-                className="p-4 border-b text-sm cursor-pointer hover:bg-muted/50 active:bg-muted"
+                className="p-4 border-b text-sm cursor-pointer hover:bg-muted/50 active:bg-muted min-h-12"
                 onClick={() => !notif.read && handleMarkAsRead(notif.id)}
               >
                 <div className="flex items-start gap-3">
@@ -130,12 +116,12 @@ function Notifications() {
         </ScrollArea>
         <Separator />
         <div className="p-2 space-y-1">
-          <Button variant="ghost" size="sm" className="w-full" onClick={handleManualCheck} disabled={isChecking}>
+          <Button variant="ghost" size="sm" className="w-full min-h-12" onClick={handleManualCheck} disabled={isChecking}>
             {isChecking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Uruchom sprawdzanie
           </Button>
           {notifications.length > 0 && (
-            <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive" onClick={() => setIsClearDialogOpen(true)}>
+            <Button variant="ghost" size="sm" className="w-full min-h-12 text-destructive hover:text-destructive" onClick={() => setIsClearDialogOpen(true)}>
               <Trash2 className="mr-2 h-4 w-4" />
               Wyczyść wszystkie
             </Button>
@@ -168,17 +154,19 @@ function Notifications() {
 
 interface AppTopBarProps {
   pathname: string;
-  onOpenMenu: () => void;
 }
 
 function getBreadcrumb(pathname: string): { parent: string; parentHref: string; current: string } | null {
   if (pathname.startsWith('/pracownicy/')) {
     return { parent: 'Pracownicy aktywni', parentHref: '/aktywni', current: 'Edytuj pracownika' };
   }
+  if (pathname.startsWith('/szablony-email/')) {
+    return { parent: 'Szablony email', parentHref: '/szablony-email', current: 'Edytuj szablon' };
+  }
   return null;
 }
 
-export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
+export function AppTopBar({ pathname }: AppTopBarProps) {
   const hasMounted = useHasMounted();
   const { isAdmin, isEditor } = useAppContext();
   const router = useRouter();
@@ -193,21 +181,17 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
 
   const [commandOpen, setCommandOpen] = useState(false);
 
-  const isEditScreen = pathname.startsWith('/pracownicy/');
+  const isEditScreen = pathname.startsWith('/pracownicy/') || pathname.startsWith('/szablony-email/');
 
   const handleBack = useCallback(() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push('/aktywni');
-    }
-  }, [router]);
+    router.push(pathname.startsWith('/szablony-email/') ? '/szablony-email' : '/aktywni');
+  }, [router, pathname]);
 
   if (!hasMounted) return null;
 
   const breadcrumb = getBreadcrumb(pathname);
   // Dynamic page title for mobile top bar — Android pattern
-  const mobilePageTitle = isEditScreen ? 'Edytuj pracownika' : getPageTitle(pathname);
+  const mobilePageTitle = breadcrumb?.current ?? getPageTitle(pathname);
 
   return (
     <>
@@ -255,7 +239,7 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
           </div>
         </header>
 
-        {/* Mobile Top Bar — Android style: hamburger/back + dynamic page title + actions */}
+        {/* Mobile top bar: contextual back or search, title and actions */}
         <header className="flex md:hidden h-14 items-center px-2 w-full gap-1">
           {isEditScreen ? (
             <Button
@@ -263,21 +247,21 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
               size="icon"
               onClick={handleBack}
               aria-label="Wróć"
-              className="h-10 w-10 rounded-full text-foreground shrink-0"
+              className="h-12 w-12 rounded-full text-foreground shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-          ) : (
+          ) : (isAdmin || isEditor) ? (
             <Button
               variant="ghost"
               size="icon"
-              onClick={onOpenMenu}
-              aria-label="Menu"
-              className="h-10 w-10 rounded-full text-foreground shrink-0"
+              onClick={() => setCommandOpen(true)}
+              aria-label="Szukaj sekcji"
+              className="h-12 w-12 rounded-full text-foreground shrink-0"
             >
-              <Menu className="h-5 w-5" />
+              <Search className="h-5 w-5" />
             </Button>
-          )}
+          ) : null}
 
           {/* Dynamic page title — Android pattern (no brand logo on inner pages) */}
           <span className="flex-1 text-[15px] font-bold tracking-tight truncate px-1">
@@ -286,8 +270,8 @@ export function AppTopBar({ pathname, onOpenMenu }: AppTopBarProps) {
 
           <div className="flex items-center gap-0.5 shrink-0">
             {(isAdmin || isEditor) && <Notifications />}
-            {(isAdmin || isEditor) && <LocalVoiceDialog />}
-            <ThemeToggle />
+            {(isAdmin || isEditor) && <span className="[&_button]:min-h-12 [&_button]:min-w-12"><LocalVoiceDialog /></span>}
+            <span className="[&_button]:min-h-12 [&_button]:min-w-12"><ThemeToggle /></span>
           </div>
         </header>
       </div>

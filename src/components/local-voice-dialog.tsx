@@ -6,12 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAppContext } from '@/context/app-context';
 import { getFirebaseServices } from '@/lib/firebase';
-import { answerVoiceIntent, type VoiceAnswer } from '@/lib/local-voice/answer';
-import { validateIntent } from '@/lib/local-voice/intent';
+import { type VoiceAnswer } from '@/lib/local-voice/answer';
+import { collectAssistantSnapshot } from '@/lib/local-voice/client-snapshot';
 
 const mimeTypes = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus'];
+const maxAudioBytes = 5_000_000;
 export function LocalVoiceDialog() {
-  const { employees, absences, fingerprintAppointments, currentUser, isLoading, voiceDataReady } = useAppContext();
+  const {
+    employees, absences, absenceRecords, cars, circulationCards, clothingIssuances,
+    fingerprintAppointments, statsHistory, notes, notifications, emailTemplates,
+    emailLogs, config, currentUser, isLoading, voiceDataReady,
+  } = useAppContext();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<VoiceAnswer | null>(null);
@@ -23,6 +28,9 @@ export function LocalVoiceDialog() {
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const previewController = useRef<AbortController | null>(null);
+  const previewPromise = useRef<Promise<void> | null>(null);
   const controller = useRef<AbortController | null>(null);
   const cancelled = useRef(false);
   const generation = useRef(0);
@@ -33,6 +41,9 @@ export function LocalVoiceDialog() {
   function cleanupRecording() {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
+    if (previewTimer.current) clearInterval(previewTimer.current);
+    previewTimer.current = null;
+    previewController.current?.abort();
     if (recorder.current?.state === 'recording') recorder.current.stop();
     stream.current?.getTracks().forEach(track => track.stop());
     stream.current = null;
@@ -61,15 +72,15 @@ export function LocalVoiceDialog() {
     if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
   }, []);
 
-  async function request(path: string, body?: BodyInit, contentType?: string): Promise<Response> {
+  async function request(path: string, body?: BodyInit, contentType?: string, requestSignal?: AbortSignal): Promise<Response> {
     const user = getFirebaseServices()?.auth.currentUser;
     if (!user) throw new Error('Zaloguj się ponownie.');
     const token = await user.getIdToken();
-    const signal = controller.current?.signal;
+    const signal = requestSignal || controller.current?.signal;
     const response = await fetch(`/api/local-voice/${path}`, { method: body ? 'POST' : 'GET', body, signal, headers: { Authorization: `Bearer ${token}`, ...(contentType ? { 'Content-Type': contentType } : {}) } });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      throw new Error(typeof payload.error === 'string' ? payload.error : 'Błąd połączenia z asystentem.');
+      throw Object.assign(new Error(typeof payload.error === 'string' ? payload.error : 'Błąd połączenia z asystentem.'), { status: response.status });
     }
     return response;
   }
@@ -96,10 +107,15 @@ export function LocalVoiceDialog() {
     if (audioUrlRef.current) { URL.revokeObjectURL(audioUrlRef.current); audioUrlRef.current = null; }
     controller.current = new AbortController();
     try {
-      const data = await (await request('intent', JSON.stringify({ question: value.trim() }), 'application/json')).json() as { intent: unknown };
-      const intent = validateIntent(data.intent);
+      const snapshot = await collectAssistantSnapshot({
+        employees, absences, absenceRecords, cars, circulationCards, clothingIssuances,
+        fingerprintAppointments, statsHistory, notes, notifications, emailTemplates,
+        emailLogs, config,
+      });
+      if (cancelled.current || generation.current !== current) return;
+      const data = await (await request('ask', JSON.stringify({ question: value.trim(), snapshot }), 'application/json')).json() as { answer: string; count?: number };
       if (!cancelled.current && generation.current === current) {
-        const nextAnswer = answerVoiceIntent(intent, { employees, absences, appointments: fingerprintAppointments });
+        const nextAnswer: VoiceAnswer = { text: data.answer, count: data.count ?? 0, records: [] };
         setAnswer(nextAnswer);
         void playText(nextAnswer, true, current);
       }
@@ -110,8 +126,8 @@ export function LocalVoiceDialog() {
     if (micPending.current) return;
     const current = generation.current;
     micPending.current = true; setRequestingMic(true);
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { setError('Nagrywanie nie jest dostępne w tej przeglądarce. Wpisz pytanie.'); return; }
     try {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { setError('Nagrywanie nie jest dostępne w tej przeglądarce. Wpisz pytanie.'); return; }
       setError('');
       const s = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (cancelled.current || generation.current !== current) { s.getTracks().forEach(track => track.stop()); return; }
@@ -119,17 +135,47 @@ export function LocalVoiceDialog() {
       const mimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
       const r = new MediaRecorder(s, mimeType ? { mimeType } : undefined);
       const chunks: Blob[] = [];
-      r.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
-      r.onerror = () => { if (generation.current === current) setError('Nie udało się nagrać dźwięku.'); cleanupRecording(); };
+      let bytes = 0;
+      let failed = false;
+      r.ondataavailable = event => {
+        if (!event.data.size) return;
+        chunks.push(event.data);
+        bytes += event.data.size;
+        if (bytes > maxAudioBytes && !failed) {
+          failed = true;
+          if (generation.current === current) setError('Nagranie jest za duże. Nagraj krótsze pytanie.');
+          stopRecording();
+        }
+      };
+      r.onerror = () => { failed = true; if (generation.current === current) setError('Nie udało się nagrać dźwięku.'); cleanupRecording(); };
       r.onstop = async () => {
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = null;
+        if (previewTimer.current) clearInterval(previewTimer.current);
+        previewTimer.current = null;
+        previewController.current?.abort();
         stream.current?.getTracks().forEach(track => track.stop());
-        stream.current = null; setRecording(false);
-        if (cancelled.current || generation.current !== current || !chunks.length) return;
+        stream.current = null;
+        if (recorder.current === r) recorder.current = null;
+        await previewPromise.current;
+        setRecording(false);
+        if (cancelled.current || generation.current !== current || failed || !chunks.length) return;
         setWorking(true);
         controller.current = new AbortController();
         try {
           const blob = new Blob(chunks, { type: r.mimeType });
-          const data = await (await request('transcribe', blob, blob.type)).json() as { question: string };
+          let data: { question: string } | null = null;
+          for (let attempt = 0; attempt < 8; attempt++) {
+            if (controller.current.signal.aborted) return;
+            try {
+              data = await (await request('transcribe', blob, blob.type)).json() as { question: string };
+              break;
+            } catch (error) {
+              if ((error as { status?: number }).status !== 429 || attempt === 7) throw error;
+              await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+            }
+          }
+          if (!data) return;
           if (!cancelled.current && generation.current === current) { setQuestion(data.question); await ask(data.question); }
         } catch (e) { if (!cancelled.current && generation.current === current && !(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : 'Nie udało się rozpoznać mowy.'); }
         finally { if (!cancelled.current && generation.current === current) setWorking(false); }
@@ -137,6 +183,23 @@ export function LocalVoiceDialog() {
       recorder.current = r;
       r.start(1000);
       setRecording(true);
+      previewTimer.current = setInterval(() => {
+        if (r.state !== 'recording' || !chunks.length || failed || previewPromise.current || bytes > maxAudioBytes) return;
+        const blob = new Blob(chunks, { type: r.mimeType });
+        const preview = new AbortController();
+        previewController.current = preview;
+        const pending = (async () => {
+          try {
+            const data = await (await request('transcribe', blob, blob.type, preview.signal)).json() as { question: string };
+            if (!preview.signal.aborted && !cancelled.current && generation.current === current && r.state === 'recording') setQuestion(data.question);
+          } catch { /* Preview is best effort; the complete recording is transcribed after stop. */ }
+        })();
+        previewPromise.current = pending;
+        void pending.finally(() => {
+          if (previewPromise.current === pending) previewPromise.current = null;
+          if (previewController.current === preview) previewController.current = null;
+        });
+      }, 2000);
       timer.current = setTimeout(() => { if (r.state === 'recording') r.stop(); }, 30_000);
     } catch {
       stream.current?.getTracks().forEach(track => track.stop()); stream.current = null;
@@ -145,6 +208,10 @@ export function LocalVoiceDialog() {
   }
   function stopRecording() {
     if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    if (previewTimer.current) clearInterval(previewTimer.current);
+    previewTimer.current = null;
+    previewController.current?.abort();
     if (recorder.current?.state === 'recording') recorder.current.stop();
   }
   function speechText(value: VoiceAnswer): string {
@@ -187,7 +254,7 @@ export function LocalVoiceDialog() {
         <Button type="button" onClick={() => void ask(question)} disabled={status !== 'ready' || working || recording || isLoading || !voiceDataReady}>Zapytaj</Button>
       </div>
       {requestingMic && <p role="status" className="text-sm">Prośba o dostęp do mikrofonu…</p>}
-      {recording && <p role="status" className="text-sm">Nagrywanie trwa, maksymalnie 30 sekund.</p>}
+      {recording && <p role="status" className="text-sm">Nagrywanie trwa, tekst pojawia się w polu pytania. Maksymalnie 30 sekund.</p>}
       {working && <p role="status" className="text-sm">Przetwarzanie pytania…</p>}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {answer && <div className="space-y-2 rounded-md border p-3"><p role="status" className="text-sm">{answer.text}</p><Button type="button" variant="secondary" size="sm" onClick={() => void playAnswer()}><Volume2 className="mr-2 h-4 w-4"/>Odtwórz odpowiedź</Button></div>}

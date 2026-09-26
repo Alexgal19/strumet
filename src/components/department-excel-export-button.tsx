@@ -105,7 +105,7 @@ export function DepartmentExcelExportButton({ employees, departments, columns }:
 
   return (
     <>
-      <Button variant="outline" onClick={handleOpen} disabled={employees.length === 0}>
+      <Button variant="outline" className="min-h-12 md:min-h-10" onClick={handleOpen} disabled={employees.length === 0}>
         <FileDown className="mr-2 h-4 w-4" />
         Eksportuj wg działów
       </Button>

@@ -1,6 +1,7 @@
 import { authorize, exclusive, localModel, readBounded, responseError, VoiceError } from '@/lib/local-voice/server';
 import { validateIntent } from '@/lib/local-voice/intent';
 import { warsawDay } from '@/lib/local-voice/date';
+import { fastAbsenceIntent } from '@/lib/local-voice/fast-intent';
 import { intentJsonSchema, intentSystemPrompt } from '@/lib/local-voice/prompt';
 export const runtime = 'nodejs';
 export async function POST(request: Request) {
@@ -12,6 +13,8 @@ export async function POST(request: Request) {
     if (!body || Array.isArray(body) || typeof body !== 'object') throw new VoiceError(400, 'Nieprawidłowe pytanie.');
     if (typeof body.question !== 'string' || !body.question.trim() || body.question.length > 1000) throw new VoiceError(400, 'Nieprawidłowe pytanie.');
     const question = body.question;
+    const fastIntent = fastAbsenceIntent(question);
+    if (fastIntent) return Response.json({ intent: fastIntent }, { headers: { 'cache-control': 'no-store' } });
     return await exclusive(async () => {
       const model = await localModel();
       const today = warsawDay(new Date());

@@ -72,8 +72,8 @@ export const AppShell = React.memo(function AppShell({ children }: { children: R
       <ClientSidebar />
 
       <div className="flex flex-col flex-1 w-full h-dvh min-w-0">
-        <AppTopBar pathname={pathname} onOpenMenu={() => setMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-4 z-0 relative w-full page-enter">
+        <AppTopBar pathname={pathname} />
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 md:pb-4 z-0 relative w-full page-enter ${pathname.startsWith('/pracownicy/') || pathname.startsWith('/szablony-email/') ? 'pb-4' : 'pb-[calc(4rem+env(safe-area-inset-bottom))]'}`}>
           {children}
         </main>
         <ClientBottomNav

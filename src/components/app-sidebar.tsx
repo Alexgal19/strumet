@@ -3,83 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronsLeft, ChevronsRight, Lock } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Users, BarChart3, CalendarClock, UserX, CalendarDays,
-  Shirt, CreditCard, Fingerprint, FileWarning, Settings,
-  LayoutDashboard,
-  Mail,
-  History,
-  LayoutGrid,
-  Car,
-  NotebookPen,
-  CalendarRange,
-  CalendarCheck,
-  UserPlus,
-} from 'lucide-react';
-
-export interface MenuItem {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-}
-
-export interface NavSection {
-  title: string;
-  items: MenuItem[];
-}
-
-export const NAV_SECTIONS: NavSection[] = [
-  {
-    title: 'Przegląd',
-    items: [
-      { href: '/pulpit', icon: LayoutDashboard, label: 'Pulpit' },
-      { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
-    ],
-  },
-  {
-    title: 'Kadry',
-    items: [
-      { href: '/aktywni', icon: Users, label: 'Pracownicy aktywni' },
-      { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni' },
-      { href: '/rekrutacja', icon: UserPlus, label: 'Harmonogram' },
-      { href: '/terminy', icon: CalendarCheck, label: 'Terminy' },
-      { href: '/kalendarz', icon: CalendarRange, label: 'Kalendarz' },
-      { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność' },
-      { href: '/notatki', icon: NotebookPen, label: 'Notatki' },
-    ],
-  },
-  {
-    title: 'Majątek i obieg',
-    items: [
-      { href: '/szafki', icon: LayoutGrid, label: 'Szafki' },
-      { href: '/wydawanie-odziezy', icon: Shirt, label: 'Wydawanie odzieży' },
-      { href: '/wydawanie-odziezy-nowi', icon: Shirt, label: 'Odzież — nowi' },
-      { href: '/karty-obiegowe', icon: CreditCard, label: 'Karty obiegowe' },
-      { href: '/odciski-palcow', icon: Fingerprint, label: 'Odciski palców' },
-      { href: '/brak-logowania', icon: FileWarning, label: 'Brak logowania' },
-      { href: '/auta', icon: Car, label: 'Auta' },
-    ],
-  },
-  {
-    title: 'System',
-    items: [
-      { href: '/konfiguracja', icon: Settings, label: 'Konfiguracja' },
-      { href: '/szablony-email', icon: Mail, label: 'Szablony email' },
-      { href: '/historia-email', icon: History, label: 'Historia email' },
-    ],
-  },
-];
-
-export const ALL_NAV_ITEMS: MenuItem[] = NAV_SECTIONS.flatMap((s) => s.items);
-
-export const GUEST_VIEWS = ['/harmonogram'];
-
-/** Widoki dodatkowe dla roli 'kolega' (editor) */
-export const EDITOR_VIEWS = ['/kalendarz', '/odwiedzalnosc', '/rekrutacja', '/terminy'];
+import { getNavRole, getVisibleSections, isNavItemActive } from './app-navigation';
 
 const SIDEBAR_COLLAPSED_KEY = 'baza-st-sidebar-collapsed';
 
@@ -110,14 +38,7 @@ export function AppSidebar() {
     });
   };
 
-  const isGuest = !isAdmin && !isEditor;
-  const sections = NAV_SECTIONS.map((section) => ({
-    ...section,
-    // Gość widzi wszystkie zakładki — zablokowane poza Harmonogramem
-    items: section.items.map((item) =>
-      isGuest && item.href === '/harmonogram' ? { ...item, label: 'Harmonogram' } : item
-    ),
-  }));
+  const sections = getVisibleSections(getNavRole(isAdmin, isEditor));
 
   return (
     <aside
@@ -129,7 +50,7 @@ export function AppSidebar() {
       {/* Brand */}
       <div
         className={cn(
-          'flex-none mb-6 flex h-10 items-center gap-3 overflow-hidden px-4',
+          'flex-none mb-6 flex min-h-12 items-center gap-3 overflow-hidden px-4',
           collapsed && 'justify-center px-0'
         )}
       >
@@ -144,7 +65,7 @@ export function AppSidebar() {
       </div>
 
       <ScrollArea className="flex-1 w-full" type="scroll">
-        <nav className="flex flex-col gap-4 px-3">
+        <nav className="flex flex-col gap-4 px-3" aria-label="Nawigacja główna">
           {sections.map((section) => (
             <div key={section.title} className="flex flex-col gap-1">
               {!collapsed && (
@@ -154,54 +75,28 @@ export function AppSidebar() {
               )}
               {section.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname.startsWith(item.href);
-                const locked = isGuest && item.href !== '/harmonogram';
+                const isActive = isNavItemActive(pathname, item.href);
                 const inner = (
                   <>
-                    {isActive && !locked && (
+                    {isActive && (
                       <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
                     )}
                     <Icon
                       className="h-5 w-5 shrink-0"
-                      strokeWidth={isActive && !locked ? 2.25 : 1.75}
+                      strokeWidth={isActive ? 2.25 : 1.75}
                     />
                     {!collapsed && (
                       <span className="whitespace-nowrap">{item.label}</span>
                     )}
-                    {locked && !collapsed && (
-                      <Lock className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                    )}
-                    {locked && collapsed && (
-                      <Lock className="absolute bottom-1 right-1.5 h-3 w-3 text-muted-foreground/70" />
-                    )}
                   </>
                 );
-                if (locked) {
-                  return (
-                    <div
-                      key={item.href}
-                      title={
-                        collapsed
-                          ? `${item.label} — dostępne po zalogowaniu`
-                          : 'Dostępne po zalogowaniu'
-                      }
-                      aria-disabled="true"
-                      className={cn(
-                        'relative flex h-10 items-center gap-3 overflow-hidden rounded-xl px-3 text-sm font-medium text-muted-foreground/50 cursor-not-allowed select-none',
-                        collapsed && 'justify-center px-0'
-                      )}
-                    >
-                      {inner}
-                    </div>
-                  );
-                }
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     title={collapsed ? item.label : undefined}
                     className={cn(
-                      'relative flex h-10 items-center gap-3 overflow-hidden rounded-xl px-3 text-sm font-medium transition-colors',
+                      'relative flex min-h-12 items-center gap-3 overflow-hidden rounded-xl px-3 text-sm font-medium transition-colors',
                       collapsed && 'justify-center px-0',
                       isActive
                         ? 'bg-primary/10 font-semibold text-primary'
@@ -222,7 +117,7 @@ export function AppSidebar() {
           onClick={toggleCollapsed}
           title={collapsed ? 'Rozwiń menu' : 'Zwiń menu'}
           className={cn(
-            'flex h-9 w-full items-center gap-3 rounded-xl px-3 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground',
+            'flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground',
             collapsed && 'justify-center px-0'
           )}
         >

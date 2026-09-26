@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { SunMoon, Lock } from 'lucide-react';
+import { SunMoon } from 'lucide-react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/command';
 import { useAppContext } from '@/context/app-context';
 import { commandExcelFilter } from '@/lib/search';
-import { ALL_NAV_ITEMS, EDITOR_VIEWS, NAV_SECTIONS } from '@/components/app-sidebar';
+import { getNavRole, getVisibleSections } from '@/components/app-navigation';
 
 interface CommandMenuProps {
   open: boolean;
@@ -38,15 +38,7 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
     return () => document.removeEventListener('keydown', down);
   }, [open, onOpenChange]);
 
-  const isGuest = !isAdmin && !isEditor;
-  const allowedViews = isAdmin ? null : isEditor ? EDITOR_VIEWS : null;
-  const visibleItems = React.useMemo(
-    () =>
-      allowedViews
-        ? ALL_NAV_ITEMS.filter((item) => allowedViews.includes(item.href))
-        : ALL_NAV_ITEMS,
-    [allowedViews]
-  );
+  const sections = getVisibleSections(getNavRole(isAdmin, isEditor));
 
   const run = useCallback(
     (action: () => void) => {
@@ -61,34 +53,22 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
       <CommandInput placeholder="Szukaj strony lub akcji..." />
       <CommandList>
         <CommandEmpty>Brak wyników.</CommandEmpty>
-        {NAV_SECTIONS.map((section) => {
-          const items = section.items.filter((item) =>
-            visibleItems.some((visible) => visible.href === item.href)
-          );
-          if (items.length === 0) return null;
-          return (
-            <CommandGroup key={section.title} heading={section.title}>
-              {items.map((item) => {
-                const Icon = item.icon;
-                const locked = isGuest && item.href !== '/harmonogram';
-                const label = isGuest && item.href === '/harmonogram' ? 'Harmonogram' : item.label;
-                return (
-                  <CommandItem
-                    key={item.href}
-                    disabled={locked}
-                    onSelect={() => run(() => router.push(item.href))}
-                  >
-                    <Icon className="mr-2 h-4 w-4" />
-                    {label}
-                    {locked && (
-                      <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          );
-        })}
+        {sections.map((section) => (
+          <CommandGroup key={section.title} heading={section.title}>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <CommandItem
+                  key={item.href}
+                  onSelect={() => run(() => router.push(item.href))}
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  {item.label}
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        ))}
         <CommandSeparator />
         <CommandGroup heading="Akcje">
           <CommandItem

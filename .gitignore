@@ -50,3 +50,6 @@ firestore-debug.log
 
 # Local voice runtime models and temporary assets
 .local-voice/
+
+# Android APK signing sidecar (the APK itself is the download artifact)
+*.apk.idsig

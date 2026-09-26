@@ -59,17 +59,30 @@ export async function readBounded(request: Request, limit: number): Promise<Buff
   } finally { reader.releaseLock(); }
   return Buffer.concat(chunks, size);
 }
-export async function run(bin: string, args: string[], timeoutMs: number): Promise<string> {
+export async function run(bin: string, args: string[], timeoutMs: number, signal?: AbortSignal): Promise<string> {
+  if (signal?.aborted) throw new VoiceError(499, 'Przetwarzanie audio zostało anulowane.');
   return new Promise((resolve, reject) => {
     const child = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434' } });
     let output = '';
     let size = 0;
     let failed = false;
+    let aborted = false;
+    let settled = false;
+    const finish = (error?: VoiceError) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      signal?.removeEventListener('abort', abort);
+      if (error) reject(error); else resolve(output);
+    };
+    const abort = () => { aborted = true; child.kill('SIGKILL'); };
     const timeout = setTimeout(() => { failed = true; child.kill('SIGKILL'); }, timeoutMs);
+    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) abort();
     child.stdout.on('data', chunk => { size += chunk.length; if (size > 1_000_000) { failed = true; child.kill('SIGKILL'); } else output += chunk.toString(); });
     child.stderr.on('data', chunk => { size += chunk.length; if (size > 1_000_000) { failed = true; child.kill('SIGKILL'); } });
-    child.on('error', () => { clearTimeout(timeout); reject(new VoiceError(503, 'Brak lokalnego programu audio.')); });
-    child.on('close', code => { clearTimeout(timeout); if (failed || code !== 0) reject(new VoiceError(503, 'Lokalne przetwarzanie audio nie powiodło się.')); else resolve(output); });
+    child.on('error', () => finish(aborted ? new VoiceError(499, 'Przetwarzanie audio zostało anulowane.') : new VoiceError(503, 'Brak lokalnego programu audio.')));
+    child.on('close', code => finish(aborted ? new VoiceError(499, 'Przetwarzanie audio zostało anulowane.') : failed || code !== 0 ? new VoiceError(503, 'Lokalne przetwarzanie audio nie powiodło się.') : undefined));
   });
 }
 export async function withTemp<T>(task: (dir: string) => Promise<T>): Promise<T> {

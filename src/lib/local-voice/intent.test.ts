@@ -13,3 +13,17 @@ describe('local voice intent validation', () => {
     expect(() => validateIntent({ ...base, kind: 'contracts', dateFrom: '2026-10-01', dateTo: '2026-09-01' })).toThrow();
   });
 });
+describe('expanded local voice intent validation', () => {
+  it('accepts employee filters and rejects dates on employee searches', () => {
+    expect(validateIntent({ ...base, kind: 'employees', department: 'Produkcja', jobTitle: 'Spawacz', status: 'aktywny', answerMode: 'list' }).jobTitle).toBe('Spawacz');
+    expect(() => validateIntent({ ...base, kind: 'employees', date: '2026-09-25' })).toThrow();
+  });
+  it('accepts absence ranges and rejects incomplete ranges', () => {
+    expect(validateIntent({ ...base, kind: 'absences', dateFrom: '2026-09-25', dateTo: '2026-09-26', answerMode: 'count' }).answerMode).toBe('count');
+    expect(() => validateIntent({ ...base, kind: 'absences', dateFrom: '2026-09-25' })).toThrow();
+  });
+  it('limits employee details to supported fields and a named person', () => {
+    expect(validateIntent({ ...base, kind: 'employee_details', employeeName: 'Anna Lis', detailField: 'department' }).detailField).toBe('department');
+    expect(() => validateIntent({ ...base, kind: 'employee_details', employeeName: 'Anna Lis', detailField: 'salary' })).toThrow();
+  });
+});
