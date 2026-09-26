@@ -119,6 +119,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     const { toast } = useToast();
     const { absences, addAbsence, deleteAbsence } = useAppContext();
     const isMobile = useIsMobile();
+    const isMobileWizard = isMobile && !employee;
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -203,8 +204,8 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
 
     useEffect(() => {
         // Po zmianie kroku przewiń na górę formularza (jeden ekran = jeden krok)
-        if (isMobile) topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, [step, isMobile]);
+        if (isMobileWizard) topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [step, isMobileWizard]);
 
     const buildErrors = (): Record<string, string> => {
         const newErrors: Record<string, string> = {};
@@ -305,9 +306,16 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     };
 
     return (
-        <div className="flex flex-col h-full relative">
+        <div className="flex min-h-full flex-col relative">
             {/* Quick Actions Header */}
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 mb-4 md:mb-6 rounded-xl bg-muted/30 border border-border/50 backdrop-blur-sm">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/30 p-3 sm:p-4 md:mb-5">
+                {employee && (
+                    <div className="w-full min-w-0 border-b border-border/60 pb-3">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Dane pracownika</p>
+                        <p className="mt-1 break-words text-lg font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">{employee.fullName}</p>
+                        <p className="mt-1 break-words text-sm text-muted-foreground">{employee.department}{employee.jobTitle ? ` · ${employee.jobTitle}` : ''}</p>
+                    </div>
+                )}
                 <div ref={topRef} className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={handleCopyFullName} className="h-9 gap-2 bg-background/50">
                         <ClipboardCopy className="h-4 w-4" />
@@ -393,9 +401,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 )}
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col flex-grow">
+            <form onSubmit={handleSubmit} className="flex min-h-0 flex-grow flex-col">
               {/* Kreator mobilny — wskaźnik postępu */}
-              {isMobile && (
+              {isMobileWizard && (
                 <div className="px-3 sm:px-6 pb-3 sm:pb-4">
                   <p className="text-sm font-semibold text-foreground mb-2">
                     Krok {step + 1} z {STEPS.length} — {STEPS[step]}
@@ -410,10 +418,10 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 px-3 sm:px-6 pb-6 sm:pb-8">
+              <div className="grid grid-cols-1 items-start gap-3 px-0 pb-6 sm:gap-4 md:grid-cols-2 md:gap-5">
 
                 {/* Panel 1: Dane osobowe */}
-                <div className={cn('flex flex-col gap-4 p-4 sm:p-5 border border-black/5 bg-white/60 dark:bg-card/60 rounded-2xl', isMobile && step !== 0 && 'hidden')}>
+                <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 0 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-primary" />
                       <h3 className="font-semibold text-foreground">Dane osobowe</h3>
@@ -457,7 +465,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
 
                 {/* Panel 2: Zatrudnienie */}
-                <div className={cn('flex flex-col gap-4 p-4 sm:p-5 border border-black/5 bg-white/60 dark:bg-card/60 rounded-2xl', isMobile && step !== 1 && 'hidden')}>
+                <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 1 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-blue-500" />
                       <h3 className="font-semibold text-foreground">Zatrudnienie</h3>
@@ -522,7 +530,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
 
                 {/* Panel 3: Identyfikacja */}
-                <div className={cn('flex flex-col gap-4 p-4 sm:p-5 border border-black/5 bg-white/60 dark:bg-card/60 rounded-2xl', isMobile && step !== 2 && 'hidden')}>
+                <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 2 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-purple-500" />
                       <h3 className="font-semibold text-foreground">Identyfikacja</h3>
@@ -547,7 +555,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 </div>
 
                 {/* Panel 4: Planowanie */}
-                <div className={cn('flex flex-col gap-4 p-4 sm:p-5 border border-black/5 bg-white/60 dark:bg-card/60 rounded-2xl', isMobile && step !== 3 && 'hidden')}>
+                <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 3 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-orange-500" />
                       <h3 className="font-semibold text-foreground">Planowanie</h3>
@@ -587,41 +595,41 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                             />
                         </div>
                     ) : null}
+                    {isMobile && employee?.status === 'aktywny' && onTerminate && (
+                        <Button type="button" variant="outline" onClick={() => onTerminate(employee.id, employee.fullName)} className="mt-2 w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                            <UserX className="mr-2 h-4 w-4" />
+                            Zwolnij pracownika
+                        </Button>
+                    )}
                 </div>
 
               </div>
 
                 {/* Footer Actions */}
                 {isMobile ? (
-                    <div className="sticky bottom-0 mt-auto p-4 bg-background/80 backdrop-blur-xl border-t border-black/5 z-10">
-                        {employee && employee.status === 'aktywny' && onTerminate && step === STEPS.length - 1 && (
-                            <Button type="button" variant="ghost" onClick={() => onTerminate(employee.id, employee.fullName)} className="w-full mb-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-                                <UserX className="mr-2 h-4 w-4" />
-                                Zwolnij pracownika
-                            </Button>
-                        )}
+                    <div className="sticky bottom-0 z-10 mt-auto -mx-4 border-t border-border bg-background/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.3)] backdrop-blur-sm">
                         <div className="flex gap-2">
                             <Button type="button" variant="outline" onClick={onCancel} className="h-12 flex-1">Anuluj</Button>
-                            {step > 0 && (
+                            {isMobileWizard && step > 0 && (
                                 <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} className="h-12 flex-1">
                                     <ArrowLeft className="mr-1 h-4 w-4" />
                                     Wstecz
                                 </Button>
                             )}
-                            {step < STEPS.length - 1 ? (
+                            {isMobileWizard && step < STEPS.length - 1 ? (
                                 <Button type="button" onClick={handleNextStep} className="h-12 flex-1">
                                     Dalej
                                     <ArrowRight className="ml-1 h-4 w-4" />
                                 </Button>
                             ) : (
-                                <Button type="submit" disabled={!isReadyToSubmit} className="h-12 flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
+                                <Button type="submit" disabled={isMobileWizard && !isReadyToSubmit} className="h-12 flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
                                     Zapisz
                                 </Button>
                             )}
                         </div>
                     </div>
                 ) : (
-                    <div className="sticky bottom-0 mt-auto p-4 md:p-6 bg-background/80 backdrop-blur-xl border-t border-black/5 flex flex-wrap gap-4 justify-between items-center z-10">
+                    <div className="sticky bottom-0 z-10 -mx-5 mt-auto flex flex-wrap items-center justify-between gap-4 border-t border-border bg-background px-5 py-4 shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.3)] md:px-6">
                         <div>
                             {employee && employee.status === 'aktywny' && onTerminate && (
                                 <Button type="button" variant="ghost" onClick={() => onTerminate(employee.id, employee.fullName)} className="text-destructive hover:text-destructive hover:bg-destructive/10">

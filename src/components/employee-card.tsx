@@ -204,7 +204,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
         className={cn(
-          'relative z-10 flex items-center gap-3 bg-white p-3 transition-shadow cursor-pointer hover:shadow-md dark:bg-secondary',
+          'relative z-10 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2.5 bg-white p-3 transition-shadow cursor-pointer hover:shadow-md dark:bg-secondary',
           onVacation && 'animate-vacation-blink'
         )}
         style={{
@@ -221,13 +221,19 @@ export const EmployeeCard = React.memo(function EmployeeCard({
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">{employee.fullName}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {employee.department}{employee.jobTitle ? ` · ${employee.jobTitle}` : ''}
-          </p>
+        <div className="min-w-0 self-center">
+          <p className="break-words text-sm font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">{employee.fullName}</p>
+        </div>
+
+        {/* Metadane i akcje pozostają pod nazwiskiem także na wąskich ekranach. */}
+        <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-border/60 pt-2 pr-10">
+          <div className="min-w-0 flex-1 basis-[140px]">
+            <p className="break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
+              {employee.department}{employee.jobTitle ? ` · ${employee.jobTitle}` : ''}
+            </p>
+          </div>
           {(onVacation || plannedTerm) && (
-            <div className="mt-0.5 flex flex-wrap items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
               {onVacation && (
                 <span
                   className="animate-pulse inline-flex rounded-full bg-pink-500 px-2 py-0.5 text-[11px] font-semibold text-white"
@@ -246,10 +252,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
               )}
             </div>
           )}
-        </div>
-
-        {/* Status badge */}
-        <LegalizationBadge status={employee.legalizationStatus} />
+          <LegalizationBadge status={employee.legalizationStatus} />
 
         {/* Quick "Nieobecny dziś" toggle */}
         {onToggleAbsenceToday && (
@@ -276,7 +279,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="absolute bottom-1.5 right-1.5 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={e => e.stopPropagation()}
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -323,6 +326,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </div>
   );

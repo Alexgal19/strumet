@@ -295,13 +295,13 @@ export default function ZwolnieniPage() {
 
         return (
           <Dialog open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
-            <DialogContent className="w-[calc(100vw-1rem)] max-w-7xl p-0 overflow-hidden flex flex-col max-h-[90dvh] glass-morphism rounded-3xl border-black/10">
-              <DialogHeader className="p-6 border-b border-black/5 bg-white/50">
-                <DialogTitle className="text-2xl font-bold tracking-tight">
+            <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-5xl flex-col overflow-hidden rounded-2xl border-border bg-background p-0 shadow-2xl">
+              <DialogHeader className="shrink-0 border-b border-border bg-card px-6 py-5">
+                <DialogTitle className="text-xl font-bold tracking-tight">
                   Edytuj pracownika
                 </DialogTitle>
               </DialogHeader>
-              <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
+              <div className="min-h-0 flex-grow overflow-y-auto p-5 custom-scrollbar">
                 {form}
               </div>
             </DialogContent>
