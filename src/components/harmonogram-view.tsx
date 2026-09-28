@@ -414,10 +414,10 @@ export function HarmonogramView({
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col">
         <div className="custom-scrollbar min-h-0 flex-1 overflow-auto pb-2">
-          <table className="w-max border-collapse text-[13px] harmonogram-table">
+          <table className="w-full min-w-max border-collapse text-[13px] harmonogram-table">
             <thead>
               <tr>
-                <th className="sticky left-0 top-0 z-30 min-w-[150px] max-w-[170px] md:min-w-[180px] md:max-w-[240px] truncate border-b bg-background px-2 py-2 text-left font-semibold">
+                <th className="sticky left-0 top-0 z-30 min-w-[150px] max-w-[170px] md:min-w-[180px] md:max-w-none truncate border-b bg-background px-2 py-2 text-left font-semibold">
                   Dział / Kierownik / Stanowisko / Pracownik
                 </th>
                 <th className="md:sticky md:left-[180px] top-0 z-20 md:z-30 min-w-[60px] border-b bg-background px-2 py-2 text-right font-semibold text-[13px]">
