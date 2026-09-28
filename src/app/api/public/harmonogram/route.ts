@@ -20,7 +20,14 @@ export async function GET() {
 
     const employeesRaw = employeesSnap.val() ?? {};
     const absencesRaw = absencesSnap.val() ?? {};
-    const recruitmentRaw = recruitmentSnap.val() ?? {}; const potrzebyObsadyRaw = potrzebyObsadySnap.val() ?? {};
+    const recruitmentRaw = recruitmentSnap.val() ?? {};
+    const potrzebyObsadyRaw = potrzebyObsadySnap.val() ?? {};
+    const potrzebyByManager: Record<string, number> = {};
+    Object.entries(potrzebyObsadyRaw).forEach(([k, v]) => {
+      if (typeof v === 'number') {
+        potrzebyByManager[k] = v;
+      }
+    });
 
     const employees = Object.entries(employeesRaw)
       .map(([, val]) => val as Record<string, string>)
@@ -97,7 +104,8 @@ export async function GET() {
     const data: HarmonogramData = {
       employees,
       absences: absences as HarmonogramData['absences'],
-      recruitments, potrzebyByManager: potrzebyObsadyRaw,
+      recruitments,
+      potrzebyByManager,
     };
 
     return NextResponse.json(data, {

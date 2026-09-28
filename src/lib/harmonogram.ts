@@ -1,4 +1,4 @@
-export function getPotrzebyKey(dept: string, mgr: string, job: string) { return `${dept}___${mgr}___${job}`.replace(/[.#$\[\]]/g, '_'); }
+export function getPotrzebyKey(dept: string, mgr: string, job: string) { return `${dept}___${mgr}___${job}`.replace(/[.#$\[\]\/]/g, '_'); }
 import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
 import { pl as plLocale } from 'date-fns/locale';
 import { parseMaybeDate } from '@/lib/date';

@@ -54,7 +54,7 @@ function PublicPlanowanieView() {
 
   const handleUpdatePotrzeby = async (dept: string, mgr: string, job: string, newAmount: number) => {
     if (!isAdmin) return;
-    const key = (dept + '___' + mgr + '___' + job).replace(/[.#$\[\]]/g, '_');
+    const key = (dept + '___' + mgr + '___' + job).replace(/[.#$\[\]\/]/g, '_');
     setData(prev => {
       if (!prev) return prev;
       return { ...prev, potrzebyByManager: { ...prev.potrzebyByManager, [key]: newAmount } };
