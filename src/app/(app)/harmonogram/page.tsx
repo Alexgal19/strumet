@@ -244,7 +244,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   };
 
   const totalToRecruit = data.recruitments.reduce(
-    (sum, r) => sum + r.positions.reduce((s, p) => { if (p.potrzeby !== undefined) { const obecnie = headcountByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0; const zwalnia = terminationsByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0; return s + Math.max(0, p.potrzeby - (obecnie - zwalnia)); } return s + (Number(p.toRecruit) || 0); }, 0),
+    (sum, r) => sum + r.positions.reduce((s, p) => { if (p.potrzeby !== undefined) { const obecnie = headcountByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0; const zwalnia = terminationsByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0; return s + Math.max(0, p.potrzeby - (obecnie - zwalnia)); } return s + (Number(p.toRecruit) || 0); }, 0),
     0
   );
   const totalPositions = data.recruitments.reduce((s, r) => s + r.positions.length, 0);
