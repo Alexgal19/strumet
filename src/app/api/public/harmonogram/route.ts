@@ -66,7 +66,7 @@ export async function GET() {
       const rec = val as Record<string, unknown>;
       const positionsRaw = (rec.positions ?? {}) as Record<
         string,
-        { jobTitle?: string; toRecruit?: number }
+        { jobTitle?: string; toRecruit?: number; potrzeby?: number }
       >;
       const arrivalsRaw = (rec.arrivals ?? {}) as Record<
         string,
@@ -79,9 +79,10 @@ export async function GET() {
             id: posId,
             jobTitle: p.jobTitle ?? '',
             toRecruit: Number(p.toRecruit) || 0,
+            potrzeby: p.potrzeby !== undefined ? Number(p.potrzeby) : undefined,
           }))
         : legacyJobTitle
-          ? [{ id: 'legacy', jobTitle: legacyJobTitle, toRecruit: Number(rec.toRecruit) || 0 }]
+          ? [{ id: 'legacy', jobTitle: legacyJobTitle, toRecruit: Number(rec.toRecruit) || 0, potrzeby: undefined }]
           : [];
       return {
         id: key,

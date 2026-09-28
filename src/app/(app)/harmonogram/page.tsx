@@ -32,6 +32,7 @@ function PublicPlanowanieView() {
   const [data, setData] = useState<HarmonogramData | null>(null);
   const [error, setError] = useState(false);
   const [view, setView] = useState<'harmonogram' | 'zapotrzebowania'>('harmonogram');
+  const { isAdmin } = useAppContext();
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +51,35 @@ function PublicPlanowanieView() {
       cancelled = true;
     };
   }, []);
+
+  const handleUpdatePotrzeby = async (recruitmentId: string, positionId: string, newAmount: number) => {
+    if (!isAdmin) return;
+    
+    // Update local data optimistically
+    setData(prev => {
+      if (!prev) return prev;
+      const newRecruitments = prev.recruitments.map(r => {
+        if (r.id !== recruitmentId) return r;
+        return {
+          ...r,
+          positions: r.positions.map(p => {
+            if (p.id !== positionId) return p;
+            return { ...p, potrzeby: newAmount };
+          })
+        };
+      });
+      return { ...prev, recruitments: newRecruitments };
+    });
+
+    try {
+      const db = getDB();
+      if (!db) return;
+      const posRef = dbRef(db, `recruitment/${recruitmentId}/positions/${positionId}`);
+      await update(posRef, { potrzeby: newAmount });
+    } catch (err) {
+      console.error('Failed to update potrzeby:', err);
+    }
+  };
 
   return (
     <div className="flex flex-col md:h-full">
@@ -93,7 +123,12 @@ function PublicPlanowanieView() {
             </div>
 
             {view === 'harmonogram' ? (
-              <HarmonogramView data={data} showExport />
+              <HarmonogramView 
+                data={data} 
+                showExport 
+                isAdmin={isAdmin} 
+                onUpdatePotrzeby={handleUpdatePotrzeby} 
+              />
             ) : (
               <PublicZapotrzebowaniaView data={data} setData={setData} />
             )}
@@ -209,7 +244,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   };
 
   const totalToRecruit = data.recruitments.reduce(
-    (sum, r) => sum + r.positions.reduce((s, p) => s + (Number(p.toRecruit) || 0), 0),
+    (sum, r) => sum + r.positions.reduce((s, p) => { if (p.potrzeby !== undefined) { const obecnie = headcountByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0; const zwalnia = terminationsByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0; return s + Math.max(0, p.potrzeby - (obecnie - zwalnia)); } return s + (Number(p.toRecruit) || 0); }, 0),
     0
   );
   const totalPositions = data.recruitments.reduce((s, r) => s + r.positions.length, 0);
@@ -245,7 +280,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
             const positions = order.positions;
             const departmentHeadcount = headcountByDept.get(order.department) ?? 0;
             const sumToRecruit = positions.reduce(
-              (s, p) => s + (Number(p.toRecruit) || 0),
+              (s, p) => { if (p.potrzeby !== undefined) { const obecnie = headcountByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0; const zwalnia = terminationsByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0; return s + Math.max(0, p.potrzeby - (obecnie - zwalnia)); } return s + (Number(p.toRecruit) || 0); },
               0
             );
             const plannedTotal = order.arrivals.reduce(
@@ -409,3 +444,4 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     </>
   );
 }
+

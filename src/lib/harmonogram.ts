@@ -26,7 +26,7 @@ export interface HarmonogramAbsence {
 export interface HarmonogramRecruitment {
   id: string;
   department: string;
-  positions: { id: string; jobTitle: string; toRecruit: number }[];
+  positions: { id: string; jobTitle: string; toRecruit: number; potrzeby?: number }[];
   arrivals: { id: string; date: string; count: number }[];
 }
 
@@ -65,6 +65,8 @@ export interface HarmonogramPositionRow {
   obecnie: number;
   cells: HarmonogramCell[];
   employees: HarmonogramEmployeeRow[];
+  recruitmentId?: string;
+  positionId?: string;
 }
 
 export interface HarmonogramManagerRow {
@@ -125,6 +127,7 @@ export function buildHarmonogram(
   // Przydział planowanych przyjęć (arrivals) per dział i stanowisko
   const arrivalsByDeptJob = new Map<string, { date: string; count: number }[]>();
   const toRecruitByDeptJob = new Map<string, number>();
+  const explicitPotrzebyByDeptJob = new Map<string, number>();
 
   data.recruitments.forEach(r => {
     const slots = r.positions.map(p => {
@@ -132,6 +135,9 @@ export function buildHarmonogram(
       const needed = Number(p.toRecruit) || 0;
       const key = `${r.department}|${job}`;
       toRecruitByDeptJob.set(key, (toRecruitByDeptJob.get(key) ?? 0) + needed);
+      if (p.potrzeby !== undefined) {
+        explicitPotrzebyByDeptJob.set(key, (explicitPotrzebyByDeptJob.get(key) ?? 0) + Number(p.potrzeby));
+      }
       return { jobTitle: job, left: needed };
     });
 
@@ -245,7 +251,7 @@ export function buildHarmonogram(
                 const term = effectiveTermDate(e);
                 // Obecnie: synchronizacja z zakładką "Pracownicy aktywni"
                 // Jeśli data zwolnienia (rzeczywista lub planowana) już minęła, pracownik nie liczy się do "obecnie"
-                const isEmployedToday = e.status === 'aktywny' && (!term || term >= startOfDay(now));
+                let isEmployedToday = false; if (e.status === 'aktywny') { const planned = e.plannedTerminationDate ? parseSafeDate(e.plannedTerminationDate) : null; isEmployedToday = !(planned && planned < startOfDay(now)); }
                 const empObecnie = isEmployedToday ? 1 : 0;
 
                 const empCells: HarmonogramCell[] = days.map(d => {
@@ -347,7 +353,10 @@ export function buildHarmonogram(
                 (emp.terminationDate && parseSafeDate(emp.terminationDate)! >= today) ||
                 (emp.plannedTerminationDate && parseSafeDate(emp.plannedTerminationDate)! >= today)
             ).length;
-            const posPotrzeby = Math.max(posObecnie, posObecnie + toRecruit - termCount);
+            const explicitPotrzeby = explicitPotrzebyByDeptJob.get(`${dept}|${jobTitle}`);
+            const posPotrzeby = explicitPotrzeby !== undefined 
+              ? explicitPotrzeby 
+              : Math.max(posObecnie, posObecnie + toRecruit - termCount);
 
             // Przyjęcia dla tego stanowiska
             const arrivals = arrivalsByDeptJob.get(`${dept}|${jobTitle}`) ?? [];
@@ -377,6 +386,9 @@ export function buildHarmonogram(
               return { mam, absentees, vacationers, terminating, title };
             });
 
+            const recruitmentMatch = data.recruitments.find(r => r.department === dept);
+            const posMatch = recruitmentMatch?.positions.find(p => (p.jobTitle?.trim() || 'Inne') === jobTitle);
+
             return {
               jobTitle,
               manager: mgrName,
@@ -385,6 +397,8 @@ export function buildHarmonogram(
               obecnie: posObecnie,
               cells: posCells,
               employees: employeeRows,
+              recruitmentId: recruitmentMatch?.id,
+              positionId: posMatch?.id,
             };
           });
 
@@ -429,10 +443,7 @@ export function buildHarmonogram(
         (sum, r) => sum + r.positions.reduce((s, p) => s + (Number(p.toRecruit) || 0), 0),
         0
       );
-    const deptPotrzeby = Math.max(
-      managers.reduce((sum, mgr) => sum + mgr.potrzeby, 0),
-      deptObecnie + totalDeptToRecruit
-    );
+    const deptPotrzeby = managers.reduce((sum, mgr) => sum + mgr.potrzeby, 0);
 
     const deptCells: HarmonogramCell[] = days.map((_, dayIndex) => {
       const mam = managers.reduce(

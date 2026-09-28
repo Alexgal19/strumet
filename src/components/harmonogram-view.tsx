@@ -15,6 +15,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   buildHarmonogram,
@@ -42,9 +43,13 @@ function isMobileScreen() {
 export function HarmonogramView({
   data,
   showExport = true,
+  isAdmin,
+  onUpdatePotrzeby,
 }: {
   data: HarmonogramData;
   showExport?: boolean;
+  isAdmin?: boolean;
+  onUpdatePotrzeby?: (recruitmentId: string, positionId: string, newAmount: number) => void;
 }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
@@ -554,7 +559,7 @@ export function HarmonogramView({
                                         </span>
                                       </td>
                                       <td className="md:sticky md:left-[180px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] font-semibold tabular-nums">
-                                        {posRow.potrzeby}
+                                        {isAdmin && posRow.recruitmentId && posRow.positionId ? (<div onClick={(e) => e.stopPropagation()}><Input type="number" min={0} value={posRow.potrzeby} onChange={(e) => onUpdatePotrzeby?.(posRow.recruitmentId!, posRow.positionId!, parseInt(e.target.value) || 0)} className="h-6 w-14 px-1 py-0 text-right text-[13px] inline-block font-semibold bg-transparent" /></div>) : (posRow.potrzeby)}
                                       </td>
                                       <td className="md:sticky md:left-[240px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                                         {posRow.obecnie}
@@ -1117,3 +1122,4 @@ function AbsenceTooltipTable({
     </table>
   );
 }
+
