@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HarmonogramView } from '@/components/harmonogram-view';
 import type { HarmonogramData } from '@/lib/harmonogram';
+import { getDB } from '@/lib/firebase';
+import { ref as dbRef, update } from 'firebase/database';
+import { Input } from '@/components/ui/input';
 
 export default function PlanowaniePage() {
   const { isLoading: isAuthLoading } = useAppContext();
@@ -92,7 +95,7 @@ function PublicPlanowanieView() {
             {view === 'harmonogram' ? (
               <HarmonogramView data={data} showExport />
             ) : (
-              <PublicZapotrzebowaniaView data={data} />
+              <PublicZapotrzebowaniaView data={data} setData={setData} />
             )}
           </div>
         </>
@@ -168,9 +171,42 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
   }, [data]);
 }
 
-function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
+function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>> }) {
   const { headcountByDept, headcountByDeptJob, terminationsByDeptJob, jobTitlesByDept } =
     usePublicZapotrzebowaniaStats(data);
+  const { isAdmin } = useAppContext();
+
+  const handleUpdateToRecruit = async (recruitmentId: string, positionId: string, newAmount: number) => {
+    if (!isAdmin) return;
+    
+    // Update local data optimistically
+    setData(prev => {
+      if (!prev) return prev;
+      const newRecruitments = prev.recruitments.map(r => {
+        if (r.id !== recruitmentId) return r;
+        return {
+          ...r,
+          positions: r.positions.map(p => {
+            if (p.id !== positionId) return p;
+            return { ...p, toRecruit: newAmount };
+          })
+        };
+      });
+      return { ...prev, recruitments: newRecruitments };
+    });
+
+    // Update global database
+    const db = getDB();
+    if (db) {
+      try {
+        await update(dbRef(db, `recruitment/${recruitmentId}/positions/${positionId}`), {
+          toRecruit: newAmount,
+        });
+      } catch (err) {
+        console.error('Failed to update recruitment:', err);
+      }
+    }
+  };
 
   const totalToRecruit = data.recruitments.reduce(
     (sum, r) => sum + r.positions.reduce((s, p) => s + (Number(p.toRecruit) || 0), 0),
@@ -189,13 +225,9 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
           <Users className="h-4 w-4" />
           Zapotrzebowania: {data.recruitments.length}
         </Badge>
-        <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm">
-          <Briefcase className="h-4 w-4" />
-          Stanowiska: {totalPositions}
-        </Badge>
         <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
           <UserPlus className="h-4 w-4" />
-          Do rekrutacji łącznie: {totalToRecruit}
+          Łącznie brakuje: {totalToRecruit - totalPlanned > 0 ? totalToRecruit - totalPlanned : 0}
         </Badge>
         <Badge
           variant="outline"
@@ -227,13 +259,6 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                 s + (terminationsByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0),
               0
             );
-            const sumPotrzeby = positions.reduce((s, p) => {
-              const obecnie =
-                headcountByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0;
-              const zwalnia =
-                terminationsByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0;
-              return s + Math.max(0, obecnie + (Number(p.toRecruit) || 0) - zwalnia);
-            }, 0);
             const jobTitleStats = jobTitlesByDept.get(order.department) ?? [];
 
             return (
@@ -242,50 +267,18 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                   <div className="space-y-2">
                     <div className="flex min-w-0 items-center gap-2">
                       <CardTitle className="text-base truncate">{order.department}</CardTitle>
-                      <Badge variant="secondary" className="shrink-0 text-xs">
-                        {positions.length} {positions.length === 1 ? 'stanowisko' : 'stanowiska'}
-                      </Badge>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      <Badge variant="outline" className="tabular-nums text-xs">
-                        Na dziale: {departmentHeadcount} os.
-                      </Badge>
-                      {sumZwalnia > 0 && (
-                        <Badge
-                          variant="outline"
-                          className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400 text-xs"
-                        >
-                          Zwalnia się: −{sumZwalnia}
-                        </Badge>
-                      )}
-                      <Badge
-                        variant="outline"
-                        className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400 text-xs"
-                      >
-                        Potrzeby: {sumPotrzeby} os.
-                      </Badge>
-                      {missing > 0 && (
-                        <Badge variant="destructive" className="tabular-nums text-xs">
+                      {missing > 0 ? (
+                        <Badge variant="destructive" className="tabular-nums text-xs font-semibold px-2 py-0.5">
                           Brakuje: {missing}
                         </Badge>
-                      )}
-                      <Badge variant="outline" className="tabular-nums text-xs">
-                        Rekrutacja: {sumToRecruit} os.
-                      </Badge>
-                      {surplus > 0 && (
-                        <Badge
-                          variant="outline"
-                          className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400 text-xs"
-                        >
-                          Nadwyżka: +{surplus}
-                        </Badge>
-                      )}
-                      {plannedTotal > 0 && missing === 0 && surplus === 0 && (
+                      ) : (
                         <Badge
                           variant="outline"
                           className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400 text-xs"
                         >
-                          Komplet: {plannedTotal}/{sumToRecruit}
+                          Komplet
                         </Badge>
                       )}
                     </div>
@@ -318,9 +311,21 @@ function PublicZapotrzebowaniaView({ data }: { data: HarmonogramData }) {
                           >
                             <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground hidden sm:block" />
                             <span>{jobTitle}</span>
-                            <span className="tabular-nums font-medium">
-                              {Number(p.toRecruit) || 0} os.
-                            </span>
+                            
+                            {isAdmin ? (
+                              <Input
+                                type="number"
+                                min={0}
+                                value={p.toRecruit}
+                                onChange={(e) => handleUpdateToRecruit(order.id, p.id, parseInt(e.target.value) || 0)}
+                                className="w-20 h-7 text-right tabular-nums text-sm font-medium"
+                              />
+                            ) : (
+                              <span className="tabular-nums font-medium">
+                                {Number(p.toRecruit) || 0} os.
+                              </span>
+                            )}
+
                             <div className="w-full sm:w-auto sm:ml-auto text-xs text-muted-foreground">
                               Potrzeby:{' '}
                               <span className="font-semibold text-emerald-600 dark:text-emerald-400">

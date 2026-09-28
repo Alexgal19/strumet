@@ -850,12 +850,15 @@ export default function RekrutacjaPage() {
         };
       }),
       recruitments: recruitments.map(r => ({
+        id: r.id,
         department: r.department,
         positions: r.positions.map(p => ({
+          id: p.id,
           jobTitle: p.jobTitle,
           toRecruit: Number(p.toRecruit) || 0,
         })),
         arrivals: r.arrivals.map(a => ({
+          id: a.id,
           date: a.date,
           count: Number(a.count) || 0,
         })),

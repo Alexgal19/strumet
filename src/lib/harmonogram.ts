@@ -24,9 +24,10 @@ export interface HarmonogramAbsence {
 }
 
 export interface HarmonogramRecruitment {
+  id: string;
   department: string;
-  positions: { jobTitle: string; toRecruit: number }[];
-  arrivals: { date: string; count: number }[];
+  positions: { id: string; jobTitle: string; toRecruit: number }[];
+  arrivals: { id: string; date: string; count: number }[];
 }
 
 export interface HarmonogramData {

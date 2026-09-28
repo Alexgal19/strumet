@@ -62,7 +62,7 @@ export async function GET() {
       })
       .filter(Boolean);
 
-    const recruitments = Object.entries(recruitmentRaw).map(([, val]) => {
+    const recruitments = Object.entries(recruitmentRaw).map(([key, val]) => {
       const rec = val as Record<string, unknown>;
       const positionsRaw = (rec.positions ?? {}) as Record<
         string,
@@ -75,19 +75,21 @@ export async function GET() {
       // Nowy model: positions[] — stare wpisy (jobTitle/toRecruit) mapujemy do jednej pozycji
       const legacyJobTitle = typeof rec.jobTitle === 'string' ? rec.jobTitle : undefined;
       const positions = Object.keys(positionsRaw).length
-        ? Object.values(positionsRaw).map((p) => ({
+        ? Object.entries(positionsRaw).map(([posId, p]) => ({
+            id: posId,
             jobTitle: p.jobTitle ?? '',
             toRecruit: Number(p.toRecruit) || 0,
           }))
         : legacyJobTitle
-          ? [{ jobTitle: legacyJobTitle, toRecruit: Number(rec.toRecruit) || 0 }]
+          ? [{ id: 'legacy', jobTitle: legacyJobTitle, toRecruit: Number(rec.toRecruit) || 0 }]
           : [];
       return {
+        id: key,
         department: (rec.department as string) ?? '',
         positions,
-        arrivals: Object.values(arrivalsRaw)
-          .filter((a) => !!a.date)
-          .map((a) => ({ date: a.date as string, count: Number(a.count) || 0 })),
+        arrivals: Object.entries(arrivalsRaw)
+          .filter(([, a]) => !!a.date)
+          .map(([arrId, a]) => ({ id: arrId, date: a.date as string, count: Number(a.count) || 0 })),
       };
     });
 
