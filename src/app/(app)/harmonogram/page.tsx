@@ -52,30 +52,18 @@ function PublicPlanowanieView() {
     };
   }, []);
 
-  const handleUpdatePotrzeby = async (recruitmentId: string, positionId: string, newAmount: number) => {
+  const handleUpdatePotrzeby = async (dept: string, mgr: string, job: string, newAmount: number) => {
     if (!isAdmin) return;
-    
-    // Update local data optimistically
+    const key = (dept + '___' + mgr + '___' + job).replace(/[.#$\[\]]/g, '_');
     setData(prev => {
       if (!prev) return prev;
-      const newRecruitments = prev.recruitments.map(r => {
-        if (r.id !== recruitmentId) return r;
-        return {
-          ...r,
-          positions: r.positions.map(p => {
-            if (p.id !== positionId) return p;
-            return { ...p, potrzeby: newAmount };
-          })
-        };
-      });
-      return { ...prev, recruitments: newRecruitments };
+      return { ...prev, potrzebyByManager: { ...prev.potrzebyByManager, [key]: newAmount } };
     });
-
     try {
       const db = getDB();
       if (!db) return;
-      const posRef = dbRef(db, `recruitment/${recruitmentId}/positions/${positionId}`);
-      await update(posRef, { potrzeby: newAmount });
+      const posRef = dbRef(db, 'potrzebyObsady');
+      await update(posRef, { [key]: newAmount });
     } catch (err) {
       console.error('Failed to update potrzeby:', err);
     }
@@ -147,6 +135,16 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
     const headcountByDept = new Map<string, number>();
     const headcountByDeptJob = new Map<string, number>();
     const terminationsByDeptJob = new Map<string, number>();
+      const potrzebyByDeptJob = new Map<string, number>();
+      if (data.potrzebyByManager) {
+        Object.entries(data.potrzebyByManager).forEach(([key, val]) => {
+          const parts = key.split('___');
+          if (parts.length === 3) {
+            const deptJobKey = parts[0] + '|' + parts[2];
+            potrzebyByDeptJob.set(deptJobKey, (potrzebyByDeptJob.get(deptJobKey) ?? 0) + val);
+          }
+        });
+      }
     const jobTitlesByDept = new Map<string, JobTitleStat[]>();
     const ensure = (dept: string) => {
       let entries = jobTitlesByDept.get(dept);
@@ -202,12 +200,12 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
     jobTitlesByDept.forEach(entries =>
       entries.sort((a, b) => b.count - a.count || a.jobTitle.localeCompare(b.jobTitle, 'pl'))
     );
-    return { headcountByDept, headcountByDeptJob, terminationsByDeptJob, jobTitlesByDept };
+    return { headcountByDept, headcountByDeptJob, terminationsByDeptJob, jobTitlesByDept, potrzebyByDeptJob };
   }, [data]);
 }
 
 function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>> }) {
-  const { headcountByDept, headcountByDeptJob, terminationsByDeptJob, jobTitlesByDept } =
+  const { headcountByDept, headcountByDeptJob, terminationsByDeptJob, jobTitlesByDept, potrzebyByDeptJob } =
     usePublicZapotrzebowaniaStats(data);
   const { isAdmin } = useAppContext();
 
@@ -244,7 +242,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   };
 
   const totalToRecruit = data.recruitments.reduce(
-    (sum, r) => sum + r.positions.reduce((s, p) => { if (p.potrzeby !== undefined) { const obecnie = headcountByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0; const zwalnia = terminationsByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0; return s + Math.max(0, p.potrzeby - (obecnie - zwalnia)); } return s + (Number(p.toRecruit) || 0); }, 0),
+    (sum, r) => sum + r.positions.reduce((s, p) => { if (potrzebyByDeptJob.has(r.department + '|' + p.jobTitle)) { const obecnie = headcountByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0; const zwalnia = terminationsByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0; return s + Math.max(0, (potrzebyByDeptJob.get(r.department + '|' + p.jobTitle) || 0) - (obecnie - zwalnia)); } return s + (Number(p.toRecruit) || 0); }, 0),
     0
   );
   const totalPositions = data.recruitments.reduce((s, r) => s + r.positions.length, 0);
@@ -276,14 +274,14 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {[...data.recruitments]
           .sort((a, b) => a.department.localeCompare(b.department, 'pl'))
-          .map(order => {
-            const positions = order.positions;
-            const departmentHeadcount = headcountByDept.get(order.department) ?? 0;
+          .map(r => {
+            const positions = r.positions;
+            const departmentHeadcount = headcountByDept.get(r.department) ?? 0;
             const sumToRecruit = positions.reduce(
-              (s, p) => { if (p.potrzeby !== undefined) { const obecnie = headcountByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0; const zwalnia = terminationsByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0; return s + Math.max(0, p.potrzeby - (obecnie - zwalnia)); } return s + (Number(p.toRecruit) || 0); },
+              (s, p) => { if (potrzebyByDeptJob.has(r.department + '|' + p.jobTitle)) { const obecnie = headcountByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0; const zwalnia = terminationsByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0; return s + Math.max(0, (potrzebyByDeptJob.get(r.department + '|' + p.jobTitle) || 0) - (obecnie - zwalnia)); } return s + (Number(p.toRecruit) || 0); },
               0
             );
-            const plannedTotal = order.arrivals.reduce(
+            const plannedTotal = r.arrivals.reduce(
               (s, a) => s + (Number(a.count) || 0),
               0
             );
@@ -291,17 +289,17 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
             const surplus = Math.max(0, plannedTotal - sumToRecruit);
             const sumZwalnia = positions.reduce(
               (s, p) =>
-                s + (terminationsByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0),
+                s + (terminationsByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0),
               0
             );
-            const jobTitleStats = jobTitlesByDept.get(order.department) ?? [];
+            const jobTitleStats = jobTitlesByDept.get(r.department) ?? [];
 
             return (
-              <Card key={order.department}>
+              <Card key={r.department}>
                 <CardHeader className="pb-3">
                   <div className="space-y-2">
                     <div className="flex min-w-0 items-center gap-2">
-                      <CardTitle className="text-base truncate">{order.department}</CardTitle>
+                      <CardTitle className="text-base truncate">{r.department}</CardTitle>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                       {missing > 0 ? (
@@ -332,9 +330,9 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                       positions.map((p, i) => {
                         const jobTitle = p.jobTitle?.trim() || '—';
                         const obecnie =
-                          headcountByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0;
+                          headcountByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0;
                         const zwalnia =
-                          terminationsByDeptJob.get(`${order.department}|${p.jobTitle}`) ?? 0;
+                          terminationsByDeptJob.get(`${r.department}|${p.jobTitle}`) ?? 0;
                         const potrzeby = Math.max(
                           0,
                           obecnie + (Number(p.toRecruit) || 0) - zwalnia
@@ -352,7 +350,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                 type="number"
                                 min={0}
                                 value={p.toRecruit}
-                                onChange={(e) => handleUpdateToRecruit(order.id, p.id, parseInt(e.target.value) || 0)}
+                                onChange={(e) => handleUpdateToRecruit(r.id, p.id, parseInt(e.target.value) || 0)}
                                 className="w-20 h-7 text-right tabular-nums text-sm font-medium"
                               />
                             ) : (
@@ -416,12 +414,12 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                     <p className="text-xs font-medium text-muted-foreground">
                       Planowane przyjęcia ({plannedTotal} os.):
                     </p>
-                    {order.arrivals.length === 0 ? (
+                    {r.arrivals.length === 0 ? (
                       <p className="rounded-md border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">
                         Brak zaplanowanych dat przyjęć.
                       </p>
                     ) : (
-                      [...order.arrivals]
+                      [...r.arrivals]
                         .sort((a, b) => a.date.localeCompare(b.date))
                         .map((a, i) => (
                           <div
@@ -444,4 +442,5 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     </>
   );
 }
+
 

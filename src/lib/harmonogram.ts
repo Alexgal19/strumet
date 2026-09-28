@@ -1,3 +1,4 @@
+export function getPotrzebyKey(dept: string, mgr: string, job: string) { return `${dept}___${mgr}___${job}`.replace(/[.#$\[\]]/g, '_'); }
 import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
 import { pl as plLocale } from 'date-fns/locale';
 import { parseMaybeDate } from '@/lib/date';
@@ -33,7 +34,7 @@ export interface HarmonogramRecruitment {
 export interface HarmonogramData {
   employees: HarmonogramEmployee[];
   absences: HarmonogramAbsence[];
-  recruitments: HarmonogramRecruitment[];
+  recruitments: HarmonogramRecruitment[]; potrzebyByManager?: Record<string, number>;
 }
 
 export interface HarmonogramCell {
@@ -353,7 +354,7 @@ export function buildHarmonogram(
                 (emp.terminationDate && parseSafeDate(emp.terminationDate)! >= today) ||
                 (emp.plannedTerminationDate && parseSafeDate(emp.plannedTerminationDate)! >= today)
             ).length;
-            const explicitPotrzeby = explicitPotrzebyByDeptJob.get(`${dept}|${jobTitle}`);
+            const explicitPotrzeby = data.potrzebyByManager?.[getPotrzebyKey(dept, mgrName, jobTitle)];
             const posPotrzeby = explicitPotrzeby !== undefined 
               ? explicitPotrzeby 
               : Math.max(posObecnie, posObecnie + toRecruit - termCount);
@@ -686,3 +687,4 @@ export async function exportHarmonogramToExcel(
   });
   saveAs(blob, `Harmonogram_obsady_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
 }
+

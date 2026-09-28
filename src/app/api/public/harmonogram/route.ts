@@ -12,15 +12,15 @@ export async function GET() {
   try {
     const db = getAdminApp().database();
 
-    const [employeesSnap, absencesSnap, recruitmentSnap] = await Promise.all([
+    const [employeesSnap, absencesSnap, recruitmentSnap, potrzebyObsadySnap] = await Promise.all([
       db.ref('employees').once('value'),
       db.ref('absences').once('value'),
-      db.ref('recruitment').once('value'),
+      db.ref('recruitment').once('value'), db.ref('potrzebyObsady').once('value'),
     ]);
 
     const employeesRaw = employeesSnap.val() ?? {};
     const absencesRaw = absencesSnap.val() ?? {};
-    const recruitmentRaw = recruitmentSnap.val() ?? {};
+    const recruitmentRaw = recruitmentSnap.val() ?? {}; const potrzebyObsadyRaw = potrzebyObsadySnap.val() ?? {};
 
     const employees = Object.entries(employeesRaw)
       .map(([, val]) => val as Record<string, string>)
@@ -97,7 +97,7 @@ export async function GET() {
     const data: HarmonogramData = {
       employees,
       absences: absences as HarmonogramData['absences'],
-      recruitments,
+      recruitments, potrzebyByManager: potrzebyObsadyRaw,
     };
 
     return NextResponse.json(data, {
