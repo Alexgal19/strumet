@@ -480,7 +480,7 @@ export function HarmonogramView({
                       <td className="md:sticky md:left-[180px] z-10 bg-background px-2 py-2 text-right font-semibold tabular-nums text-[13px]">
                         {deptRow.potrzeby}
                       </td>
-                      <td className="md:sticky md:left-[240px] z-10 bg-background px-2 py-2 text-right tabular-nums text-[13px]" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                      <td className={`md:sticky md:left-[240px] z-10 bg-background px-2 py-2 text-right tabular-nums text-[13px] ${deptRow.obecnie < deptRow.potrzeby ? 'text-red-600 font-bold' : ''}`} title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                         {deptRow.obecnie}
                       </td>
                       {deptRow.cells.map((cell, i) => (
@@ -523,7 +523,7 @@ export function HarmonogramView({
                               <td className="md:sticky md:left-[180px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[13px] font-semibold tabular-nums">
                                 {mgrRow.potrzeby}
                               </td>
-                              <td className="md:sticky md:left-[240px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[13px] tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                              <td className={`md:sticky md:left-[240px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[13px] tabular-nums ${mgrRow.obecnie < mgrRow.potrzeby ? 'text-red-600 font-bold' : ''}`} title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                                 {mgrRow.obecnie}
                               </td>
                               {mgrRow.cells.map((cell, i) => (
@@ -561,7 +561,7 @@ export function HarmonogramView({
                                       <td className="md:sticky md:left-[180px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] font-semibold tabular-nums">
                                         {isAdmin ? (<div onClick={(e) => e.stopPropagation()}><Input type="number" min={0} value={posRow.potrzeby} onChange={(e) => onUpdatePotrzeby?.(posRow.department, posRow.manager, posRow.jobTitle, parseInt(e.target.value) || 0)} className="h-6 w-14 px-1 py-0 text-right text-[13px] inline-block font-semibold bg-transparent" /></div>) : (posRow.potrzeby)}
                                       </td>
-                                      <td className="md:sticky md:left-[240px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                                      <td className={`md:sticky md:left-[240px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] tabular-nums ${posRow.obecnie < posRow.potrzeby ? 'text-red-600 font-bold' : ''}`} title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                                         {posRow.obecnie}
                                       </td>
                                       {posRow.cells.map((cell, i) => (
@@ -700,7 +700,7 @@ export function HarmonogramView({
                       <td className={fixed + ' border-t-2 font-bold'} style={{ bottom: '84px' }}>
                         {totals.potrzeby}
                       </td>
-                      <td className={stan + ' border-t-2 font-bold'} style={{ bottom: '84px' }} title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                      <td className={stan + ' border-t-2 font-bold' + (totals.stanZatrudnienia < totals.potrzeby ? ' text-red-600' : '')} style={{ bottom: '84px' }} title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                         {totals.stanZatrudnienia}
                       </td>
                       {result.days.map((d, i) => (
