@@ -412,38 +412,41 @@ export function HarmonogramView({
           <table className="w-max border-collapse text-xs">
             <thead>
               <tr>
-                <th className="sticky left-0 top-0 z-30 min-w-[150px] md:min-w-[220px] max-w-[170px] md:max-w-none truncate border-b bg-background px-3 py-2 text-left font-semibold">
+                <th className="sticky left-0 top-0 z-30 min-w-[150px] max-w-[170px] md:min-w-[180px] md:max-w-[240px] truncate border-b bg-background px-2 py-2 text-left font-semibold">
                   Dział / Kierownik / Stanowisko / Pracownik
                 </th>
-                <th className="md:sticky md:left-[220px] top-0 z-20 md:z-30 min-w-[70px] border-b bg-background px-3 py-2 text-right font-semibold">
+                <th className="md:sticky md:left-[180px] top-0 z-20 md:z-30 min-w-[60px] border-b bg-background px-2 py-2 text-right font-semibold text-[11px]">
                   Potrzeby
                 </th>
-                <th className="md:sticky md:left-[290px] top-0 z-20 md:z-30 min-w-[90px] border-b bg-background px-3 py-2 text-right font-semibold">
+                <th className="md:sticky md:left-[240px] top-0 z-20 md:z-30 min-w-[70px] border-b bg-background px-2 py-2 text-right font-semibold">
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[10px] uppercase text-muted-foreground">Stan na</span>
-                    <span className="text-primary font-bold leading-none">
+                    <span className="text-[9px] uppercase text-muted-foreground">Stan na</span>
+                    <span className="text-primary font-bold leading-none text-[11px]">
                       {selectedDayIndex === null && todayIndex >= 0
-                        ? `Dziś (${format(result.days[activeDayIndex], 'dd.MM')})`
-                        : format(result.days[activeDayIndex], 'dd.MM')}
+                        ? `Dziś (${format(result.days[activeDayIndex], 'd.MM')})`
+                        : format(result.days[activeDayIndex], 'd.MM')}
                     </span>
-                    <span className="text-[9px] leading-none text-muted-foreground/70">
-                      zatrudnieni (status aktywny)
+                    <span className="text-[8px] leading-none text-muted-foreground/70">
+                      aktywni
                     </span>
                   </div>
                 </th>
                 {result.days.map((d, i) => {
                   const isSelected = i === activeDayIndex;
+                  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                   return (
                     <th
                       key={d.toISOString()}
                       onClick={() => setSelectedDayIndex(i)}
                       className={
-                        'sticky top-0 z-20 border-b bg-background px-2.5 py-2 text-center font-semibold tabular-nums cursor-pointer hover:bg-muted transition-colors' +
+                        'sticky top-0 z-20 border-b bg-background px-1 py-2 text-center font-semibold tabular-nums cursor-pointer hover:bg-muted transition-colors text-[11px]' +
                         (isSelected ? ' bg-primary/10 text-primary border-b-2 border-b-primary' : '') +
-                        (!isSelected && i === todayIndex ? ' text-primary' : '')
+                        (!isSelected && i === todayIndex ? ' text-primary' : '') +
+                        (!isSelected && isWeekend ? ' text-muted-foreground/70' : '')
                       }
+                      title={format(d, 'dd.MM.yyyy, EEEE', { locale: pl })}
                     >
-                      {format(d, 'dd.MM')}
+                      {format(d, 'd')}
                     </th>
                   );
                 })}
@@ -469,10 +472,10 @@ export function HarmonogramView({
                           <span className="truncate">{deptRow.dept}</span>
                         </span>
                       </td>
-                      <td className="md:sticky md:left-[220px] z-10 bg-background px-3 py-2 text-right font-semibold tabular-nums">
+                      <td className="md:sticky md:left-[180px] z-10 bg-background px-2 py-2 text-right font-semibold tabular-nums text-[11px]">
                         {deptRow.potrzeby}
                       </td>
-                      <td className="md:sticky md:left-[290px] z-10 bg-background px-3 py-2 text-right tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                      <td className="md:sticky md:left-[240px] z-10 bg-background px-2 py-2 text-right tabular-nums text-[11px]" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                         {deptRow.obecnie}
                       </td>
                       {deptRow.cells.map((cell, i) => (
@@ -512,10 +515,10 @@ export function HarmonogramView({
                                   </span>
                                 </span>
                               </td>
-                              <td className="md:sticky md:left-[220px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
+                              <td className="md:sticky md:left-[180px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[11px] font-semibold tabular-nums">
                                 {mgrRow.potrzeby}
                               </td>
-                              <td className="md:sticky md:left-[290px] z-10 bg-muted/50 px-3 py-1.5 text-right text-xs tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                              <td className="md:sticky md:left-[240px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[11px] tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                                 {mgrRow.obecnie}
                               </td>
                               {mgrRow.cells.map((cell, i) => (
@@ -550,10 +553,10 @@ export function HarmonogramView({
                                           <span className="truncate">• {posRow.jobTitle}</span>
                                         </span>
                                       </td>
-                                      <td className="md:sticky md:left-[220px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs font-semibold tabular-nums">
+                                      <td className="md:sticky md:left-[180px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[11px] font-semibold tabular-nums">
                                         {posRow.potrzeby}
                                       </td>
-                                      <td className="md:sticky md:left-[290px] z-10 bg-muted/25 px-3 py-1.5 text-right text-xs tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                                      <td className="md:sticky md:left-[240px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[11px] tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                                         {posRow.obecnie}
                                       </td>
                                       {posRow.cells.map((cell, i) => (
@@ -579,10 +582,10 @@ export function HarmonogramView({
                                               <span className="truncate">{empRow.fullName}</span>
                                             </span>
                                           </td>
-                                          <td className="md:sticky md:left-[220px] z-10 bg-background/90 px-3 py-1 text-right text-xs text-muted-foreground/60">
+                                          <td className="md:sticky md:left-[180px] z-10 bg-background/90 px-2 py-1 text-right text-[11px] text-muted-foreground/60">
                                             —
                                           </td>
-                                          <td className="md:sticky md:left-[290px] z-10 bg-background/90 px-3 py-1 text-right text-xs tabular-nums" title="Zatrudnieni (status aktywny)">
+                                          <td className="md:sticky md:left-[240px] z-10 bg-background/90 px-2 py-1 text-right text-[11px] tabular-nums" title="Zatrudnieni (status aktywny)">
                                             {empRow.obecnie ? (
                                               <span className="font-bold">1</span>
                                             ) : (
@@ -628,13 +631,13 @@ export function HarmonogramView({
                   )
                 );
                 const label =
-                  'sticky left-0 z-30 h-7 min-w-[220px] border-t bg-background px-3 py-1.5 text-left text-[10px] font-semibold uppercase leading-none';
+                  'sticky left-0 z-30 h-7 min-w-[150px] md:min-w-[180px] border-t bg-background px-2 py-1.5 text-left text-[10px] font-semibold uppercase leading-none';
                 const fixed =
-                  'sticky left-[220px] z-30 h-7 min-w-[70px] border-t bg-background px-3 py-1.5 text-right text-[11px] tabular-nums leading-none';
+                  'sticky md:left-[180px] z-30 h-7 min-w-[60px] border-t bg-background px-2 py-1.5 text-right text-[11px] tabular-nums leading-none';
                 const stan =
-                  'sticky left-[290px] z-30 h-7 min-w-[90px] border-t bg-background px-3 py-1.5 text-right text-[11px] tabular-nums leading-none';
+                  'sticky md:left-[240px] z-30 h-7 min-w-[70px] border-t bg-background px-2 py-1.5 text-right text-[11px] tabular-nums leading-none';
                 const day =
-                  'sticky z-20 h-7 border-t bg-background px-2.5 py-1.5 text-center text-[11px] font-semibold tabular-nums leading-none';
+                  'sticky z-20 h-7 border-t bg-background px-1 py-1.5 text-center text-[11px] font-semibold tabular-nums leading-none';
 
                 const rows: {
                   key: string;
@@ -892,7 +895,7 @@ function CellWithTooltip({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={onLeave}
       className={
-        'px-2.5 py-1.5 text-center tabular-nums text-xs' +
+        'px-1 py-1.5 text-center tabular-nums text-xs' +
         (cell.absentees.length > 0
           ? ' animate-absence-blink font-semibold'
           : cell.vacationers.length > 0
@@ -941,7 +944,7 @@ function EmployeeCellWithTooltip({
   };
 
   let displayContent: React.ReactNode = cell.mam;
-  let cellClass = 'px-2.5 py-1 text-center tabular-nums text-xs ';
+  let cellClass = 'px-1 py-1 text-center tabular-nums text-xs ';
 
   if (cell.statusType === 'absent') {
     displayContent = '0';
