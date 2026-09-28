@@ -216,7 +216,7 @@ export function HarmonogramView({
             <MobileMetric label="Brak obsady" value={Math.max(0, totals.potrzeby - totals.presentNa)} alert={totals.presentNa < totals.potrzeby} />
             <MobileMetric label="Nieobecni i urlopy" value={totals.absentNa} />
           </div>
-          <p className="text-xs text-muted-foreground">Stan zatrudnienia: {totals.stanZatrudnienia} · Różnica względem potrzeb: {totals.employedGap[activeDayIndex] > 0 ? '+' : ''}{totals.employedGap[activeDayIndex]}</p>
+          <p className="text-[13px] text-muted-foreground">Stan zatrudnienia: {totals.stanZatrudnienia} · Różnica względem potrzeb: {totals.employedGap[activeDayIndex] > 0 ? '+' : ''}{totals.employedGap[activeDayIndex]}</p>
 
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">Działy</h3>
@@ -228,10 +228,10 @@ export function HarmonogramView({
                   <button type="button" className="flex min-h-14 w-full items-center gap-2 px-3 py-2 text-left" aria-expanded={open} onClick={() => toggleDept(dept.dept)}>
                     <span className="min-w-0 flex-1 break-words">
                       <span className="block font-semibold">{mobileDepartmentLabel(dept.dept)}</span>
-                      <span className="block text-xs text-muted-foreground">Stan {dept.obecnie} · Obecni {cell?.mam ?? 0} · Potrzeby {dept.potrzeby}</span>
+                      <span className="block text-[13px] text-muted-foreground">Stan {dept.obecnie} · Obecni {cell?.mam ?? 0} · Potrzeby {dept.potrzeby}</span>
                     </span>
                     <span className="shrink-0 text-right text-sm tabular-nums">
-                      <span className={(cell?.mam ?? 0) < dept.potrzeby ? 'text-xs font-semibold text-destructive' : 'text-xs text-muted-foreground'}>
+                      <span className={(cell?.mam ?? 0) < dept.potrzeby ? 'text-[13px] font-semibold text-destructive' : 'text-[13px] text-muted-foreground'}>
                         {(cell?.mam ?? 0) < dept.potrzeby ? `Brakuje ${dept.potrzeby - (cell?.mam ?? 0)}` : 'Obsada pełna'}
                       </span>
                     </span>
@@ -262,11 +262,11 @@ export function HarmonogramView({
                                             return (
                                               <div key={`${employee.fullName}-${employeeIndex}`} className="flex min-h-12 items-center justify-between gap-2 border-t py-2 text-sm first:border-t-0">
                                                 <span className="min-w-0 break-words">{employee.fullName}</span>
-                                                <span className="shrink-0 text-right text-xs font-medium">{mobileEmployeeStatus(employeeCell)}</span>
+                                                <span className="shrink-0 text-right text-[13px] font-medium">{mobileEmployeeStatus(employeeCell)}</span>
                                               </div>
                                             );
                                           })}
-                                          {position.employees.length === 0 && <p className="py-2 text-xs text-muted-foreground">Brak przypisanych pracowników.</p>}
+                                          {position.employees.length === 0 && <p className="py-2 text-[13px] text-muted-foreground">Brak przypisanych pracowników.</p>}
                                         </div>
                                       )}
                                     </div>
@@ -330,7 +330,7 @@ export function HarmonogramView({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs"
+                className="h-8 text-[13px]"
                 onClick={() => {
                   setMonthOffset(0);
                   setSelectedDayIndex(null);
@@ -345,7 +345,7 @@ export function HarmonogramView({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1 text-xs"
+                className="h-8 gap-1 text-[13px]"
                 onClick={expandAll}
                 title="Rozwiń wszystkie poziomy"
               >
@@ -356,7 +356,7 @@ export function HarmonogramView({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1 text-xs"
+                className="h-8 gap-1 text-[13px]"
                 onClick={collapseAll}
                 title="Zwiń wszystkie poziomy"
               >
@@ -384,7 +384,7 @@ export function HarmonogramView({
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-4 text-[13px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="animate-absence-blink inline-block h-3 w-3 rounded" />
             nieobecni (najedź, aby zobaczyć kto)
@@ -409,24 +409,24 @@ export function HarmonogramView({
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col">
         <div className="custom-scrollbar min-h-0 flex-1 overflow-auto pb-2">
-          <table className="w-max border-collapse text-xs">
+          <table className="w-max border-collapse text-[13px] harmonogram-table">
             <thead>
               <tr>
                 <th className="sticky left-0 top-0 z-30 min-w-[150px] max-w-[170px] md:min-w-[180px] md:max-w-[240px] truncate border-b bg-background px-2 py-2 text-left font-semibold">
                   Dział / Kierownik / Stanowisko / Pracownik
                 </th>
-                <th className="md:sticky md:left-[180px] top-0 z-20 md:z-30 min-w-[60px] border-b bg-background px-2 py-2 text-right font-semibold text-[11px]">
+                <th className="md:sticky md:left-[180px] top-0 z-20 md:z-30 min-w-[60px] border-b bg-background px-2 py-2 text-right font-semibold text-[13px]">
                   Potrzeby
                 </th>
                 <th className="md:sticky md:left-[240px] top-0 z-20 md:z-30 min-w-[70px] border-b bg-background px-2 py-2 text-right font-semibold">
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[9px] uppercase text-muted-foreground">Stan na</span>
-                    <span className="text-primary font-bold leading-none text-[11px]">
+                    <span className="text-[10px] uppercase text-muted-foreground">Stan na</span>
+                    <span className="text-primary font-bold leading-none text-[13px]">
                       {selectedDayIndex === null && todayIndex >= 0
                         ? `Dziś (${format(result.days[activeDayIndex], 'd.MM')})`
                         : format(result.days[activeDayIndex], 'd.MM')}
                     </span>
-                    <span className="text-[8px] leading-none text-muted-foreground/70">
+                    <span className="text-[9px] leading-none text-muted-foreground/70">
                       aktywni
                     </span>
                   </div>
@@ -439,7 +439,7 @@ export function HarmonogramView({
                       key={d.toISOString()}
                       onClick={() => setSelectedDayIndex(i)}
                       className={
-                        'sticky top-0 z-20 border-b bg-background px-1 py-2 text-center font-semibold tabular-nums cursor-pointer hover:bg-muted transition-colors text-[11px]' +
+                        'sticky top-0 z-20 border-b bg-background px-1 py-2 text-center font-semibold tabular-nums cursor-pointer hover:bg-muted transition-colors text-[13px]' +
                         (isSelected ? ' bg-primary/10 text-primary border-b-2 border-b-primary' : '') +
                         (!isSelected && i === todayIndex ? ' text-primary' : '') +
                         (!isSelected && isWeekend ? ' text-muted-foreground/70' : '')
@@ -459,7 +459,7 @@ export function HarmonogramView({
                   <React.Fragment key={deptRow.dept}>
                     {/* Poziom 0: Dział */}
                     <tr
-                      className="cursor-pointer border-b border-border/40 hover:bg-muted/40 transition-colors"
+                      className="group cursor-pointer border-b border-border/40 hover:bg-muted/40 transition-colors"
                       onClick={() => toggleDept(deptRow.dept)}
                     >
                       <td className="sticky left-0 z-10 bg-background max-w-[170px] md:max-w-none truncate px-3 py-2 font-semibold">
@@ -472,10 +472,10 @@ export function HarmonogramView({
                           <span className="truncate">{deptRow.dept}</span>
                         </span>
                       </td>
-                      <td className="md:sticky md:left-[180px] z-10 bg-background px-2 py-2 text-right font-semibold tabular-nums text-[11px]">
+                      <td className="md:sticky md:left-[180px] z-10 bg-background px-2 py-2 text-right font-semibold tabular-nums text-[13px]">
                         {deptRow.potrzeby}
                       </td>
-                      <td className="md:sticky md:left-[240px] z-10 bg-background px-2 py-2 text-right tabular-nums text-[11px]" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                      <td className="md:sticky md:left-[240px] z-10 bg-background px-2 py-2 text-right tabular-nums text-[13px]" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                         {deptRow.obecnie}
                       </td>
                       {deptRow.cells.map((cell, i) => (
@@ -497,10 +497,10 @@ export function HarmonogramView({
                         return (
                           <React.Fragment key={mgrKey}>
                             <tr
-                              className="cursor-pointer border-b border-border/30 bg-muted/50 hover:bg-muted/70 transition-colors"
+                              className="group cursor-pointer border-b border-border/30 bg-muted/50 hover:bg-muted/70 transition-colors"
                               onClick={() => toggleManager(mgrKey)}
                             >
-                              <td className="sticky left-0 z-10 bg-muted/50 max-w-[170px] md:max-w-none truncate py-1.5 pl-6 pr-3 text-xs font-medium">
+                              <td className="sticky left-0 z-10 bg-muted/50 max-w-[170px] md:max-w-none truncate py-1.5 pl-6 pr-3 text-[13px] font-medium">
                                 <span className="flex items-center gap-1.5">
                                   {isMgrExpanded ? (
                                     <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
@@ -515,10 +515,10 @@ export function HarmonogramView({
                                   </span>
                                 </span>
                               </td>
-                              <td className="md:sticky md:left-[180px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[11px] font-semibold tabular-nums">
+                              <td className="md:sticky md:left-[180px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[13px] font-semibold tabular-nums">
                                 {mgrRow.potrzeby}
                               </td>
-                              <td className="md:sticky md:left-[240px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[11px] tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                              <td className="md:sticky md:left-[240px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[13px] tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                                 {mgrRow.obecnie}
                               </td>
                               {mgrRow.cells.map((cell, i) => (
@@ -540,10 +540,10 @@ export function HarmonogramView({
                                 return (
                                   <React.Fragment key={posKey}>
                                     <tr
-                                      className="cursor-pointer border-b border-border/20 bg-muted/25 hover:bg-muted/40 transition-colors"
+                                      className="group cursor-pointer border-b border-border/20 bg-muted/25 hover:bg-muted/40 transition-colors"
                                       onClick={() => togglePosition(posKey)}
                                     >
-                                      <td className="sticky left-0 z-10 bg-muted/25 max-w-[170px] md:max-w-none truncate py-1.5 pl-11 pr-3 text-xs italic text-muted-foreground">
+                                      <td className="sticky left-0 z-10 bg-muted/25 max-w-[170px] md:max-w-none truncate py-1.5 pl-11 pr-3 text-[13px] italic text-muted-foreground">
                                         <span className="flex items-center gap-1.5">
                                           {isPosExpanded ? (
                                             <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
@@ -553,10 +553,10 @@ export function HarmonogramView({
                                           <span className="truncate">• {posRow.jobTitle}</span>
                                         </span>
                                       </td>
-                                      <td className="md:sticky md:left-[180px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[11px] font-semibold tabular-nums">
+                                      <td className="md:sticky md:left-[180px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] font-semibold tabular-nums">
                                         {posRow.potrzeby}
                                       </td>
-                                      <td className="md:sticky md:left-[240px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[11px] tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                                      <td className="md:sticky md:left-[240px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] tabular-nums" title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
                                         {posRow.obecnie}
                                       </td>
                                       {posRow.cells.map((cell, i) => (
@@ -574,18 +574,18 @@ export function HarmonogramView({
                                       posRow.employees.map(empRow => (
                                         <tr
                                           key={`${posKey}-${empRow.fullName}`}
-                                          className="border-b border-border/10 bg-background/60 hover:bg-muted/20 transition-colors"
+                                          className="group border-b border-border/10 bg-background/60 hover:bg-muted/20 transition-colors"
                                         >
-                                          <td className="sticky left-0 z-10 bg-background/90 max-w-[170px] md:max-w-none truncate py-1 pl-16 pr-3 text-xs text-foreground/85">
+                                          <td className="sticky left-0 z-10 bg-background/90 max-w-[170px] md:max-w-none truncate py-1 pl-16 pr-3 text-[13px] text-foreground/85">
                                             <span className="flex items-center gap-1.5">
                                               <User className="h-3 w-3 text-muted-foreground/60 shrink-0" />
                                               <span className="truncate">{empRow.fullName}</span>
                                             </span>
                                           </td>
-                                          <td className="md:sticky md:left-[180px] z-10 bg-background/90 px-2 py-1 text-right text-[11px] text-muted-foreground/60">
+                                          <td className="md:sticky md:left-[180px] z-10 bg-background/90 px-2 py-1 text-right text-[13px] text-muted-foreground/60">
                                             —
                                           </td>
-                                          <td className="md:sticky md:left-[240px] z-10 bg-background/90 px-2 py-1 text-right text-[11px] tabular-nums" title="Zatrudnieni (status aktywny)">
+                                          <td className="md:sticky md:left-[240px] z-10 bg-background/90 px-2 py-1 text-right text-[13px] tabular-nums" title="Zatrudnieni (status aktywny)">
                                             {empRow.obecnie ? (
                                               <span className="font-bold">1</span>
                                             ) : (
@@ -631,13 +631,13 @@ export function HarmonogramView({
                   )
                 );
                 const label =
-                  'sticky left-0 z-30 h-7 min-w-[150px] md:min-w-[180px] border-t bg-background px-2 py-1.5 text-left text-[10px] font-semibold uppercase leading-none';
+                  'sticky left-0 z-30 h-7 min-w-[150px] md:min-w-[180px] border-t bg-background px-2 py-1.5 text-left text-[11px] font-semibold uppercase leading-none';
                 const fixed =
-                  'sticky md:left-[180px] z-30 h-7 min-w-[60px] border-t bg-background px-2 py-1.5 text-right text-[11px] tabular-nums leading-none';
+                  'sticky md:left-[180px] z-30 h-7 min-w-[60px] border-t bg-background px-2 py-1.5 text-right text-[13px] tabular-nums leading-none';
                 const stan =
-                  'sticky md:left-[240px] z-30 h-7 min-w-[70px] border-t bg-background px-2 py-1.5 text-right text-[11px] tabular-nums leading-none';
+                  'sticky md:left-[240px] z-30 h-7 min-w-[70px] border-t bg-background px-2 py-1.5 text-right text-[13px] tabular-nums leading-none';
                 const day =
-                  'sticky z-20 h-7 border-t bg-background px-1 py-1.5 text-center text-[11px] font-semibold tabular-nums leading-none';
+                  'sticky z-20 h-7 border-t bg-background px-1 py-1.5 text-center text-[13px] font-semibold tabular-nums leading-none';
 
                 const rows: {
                   key: string;
@@ -688,7 +688,7 @@ export function HarmonogramView({
 
                 return (
                   <>
-                    <tr className="border-t-2">
+                    <tr className="group border-t-2">
                       <td className={label + ' border-t-2'} style={{ bottom: '84px' }}>
                         Suma
                       </td>
@@ -710,7 +710,7 @@ export function HarmonogramView({
                       ))}
                     </tr>
                     {rows.map((row, rowIdx) => (
-                      <tr key={row.key}>
+                      <tr key={row.key} className="group">
                         <td
                           className={
                             label + (row.labelClass ? ` ${row.labelClass}` : '')
@@ -778,7 +778,7 @@ export function HarmonogramView({
 function MobileMetric({ label, value, alert = false }: { label: string; value: number; alert?: boolean }) {
   return (
     <div className="min-w-0 rounded-lg border bg-muted/20 p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-[13px] text-muted-foreground">{label}</p>
       <p className={`text-2xl font-semibold tabular-nums ${alert ? 'text-destructive' : ''}`}>{value}</p>
     </div>
   );
@@ -801,7 +801,7 @@ function MobileHierarchyButton({
   return (
     <button type="button" className="flex min-h-12 w-full items-center gap-2 px-3 py-2 text-left" aria-expanded={open} onClick={onClick}>
       <span className="min-w-0 flex-1 break-words text-sm font-medium">{label}</span>
-      <span className="shrink-0 text-right text-xs tabular-nums">
+      <span className="shrink-0 text-right text-[13px] tabular-nums">
         <span className="block">{present} / {row.potrzeby}</span>
         <span className={present < row.potrzeby ? 'text-destructive' : 'text-muted-foreground'}>
           {present < row.potrzeby ? `Brakuje ${row.potrzeby - present}` : 'Obsada pełna'}
@@ -822,7 +822,7 @@ function MobileStatusLists({ cell }: { cell?: HarmonogramCell }) {
   return (
     <div className="space-y-2">
       {groups.filter(group => group.entries.length > 0).map(group => (
-        <div key={group.label} className="rounded-md bg-muted/40 px-3 py-2 text-xs">
+        <div key={group.label} className="rounded-md bg-muted/40 px-3 py-2 text-[13px]">
           <p className={`font-semibold ${group.color}`}>{group.label} ({group.entries.length})</p>
           <ul className="mt-1 space-y-1">
             {group.entries.map((person, index) => (
@@ -895,7 +895,7 @@ function CellWithTooltip({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={onLeave}
       className={
-        'px-1 py-1.5 text-center tabular-nums text-xs' +
+        'px-1 py-1.5 text-center tabular-nums text-[13px]' +
         (cell.absentees.length > 0
           ? ' animate-absence-blink font-semibold'
           : cell.vacationers.length > 0
@@ -944,7 +944,7 @@ function EmployeeCellWithTooltip({
   };
 
   let displayContent: React.ReactNode = cell.mam;
-  let cellClass = 'px-1 py-1 text-center tabular-nums text-xs ';
+  let cellClass = 'px-1 py-1 text-center tabular-nums text-[13px] ';
 
   if (cell.statusType === 'absent') {
     displayContent = '0';
@@ -1018,7 +1018,7 @@ function TooltipPanel({
     return createPortal(
       <div
         ref={ref}
-        className="pointer-events-none fixed z-50 max-w-[340px] rounded-md border bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-lg"
+        className="pointer-events-none fixed z-50 max-w-[340px] rounded-md border bg-popover px-3 py-1.5 text-[13px] text-popover-foreground shadow-lg"
         style={style}
       >
         {singleTitle}
@@ -1037,13 +1037,13 @@ function TooltipPanel({
       style={style}
     >
       {singleTitle && (
-        <div className="border-b bg-muted/40 px-3 py-1 text-xs font-semibold">
+        <div className="border-b bg-muted/40 px-3 py-1 text-[13px] font-semibold">
           {singleTitle}
         </div>
       )}
       {absentees.length > 0 && (
         <div>
-          <p className="animate-absence-blink px-3 py-1.5 text-xs font-semibold text-destructive">
+          <p className="animate-absence-blink px-3 py-1.5 text-[13px] font-semibold text-destructive">
             Nieobecni ({absentees.length})
           </p>
           <AbsenceTooltipTable
@@ -1058,7 +1058,7 @@ function TooltipPanel({
       )}
       {vacationers.length > 0 && (
         <div>
-          <p className="bg-pink-500/15 px-3 py-1.5 text-xs font-semibold text-pink-600 dark:text-pink-400">
+          <p className="bg-pink-500/15 px-3 py-1.5 text-[13px] font-semibold text-pink-600 dark:text-pink-400">
             Na urlopie ({vacationers.length})
           </p>
           <AbsenceTooltipTable
@@ -1073,7 +1073,7 @@ function TooltipPanel({
       )}
       {terminating.length > 0 && (
         <div>
-          <p className="bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+          <p className="bg-amber-500/15 px-3 py-1.5 text-[13px] font-semibold text-amber-600 dark:text-amber-400">
             Zwalnia się ({terminating.length})
           </p>
           <AbsenceTooltipTable
@@ -1097,9 +1097,9 @@ function AbsenceTooltipTable({
   rows: { key: string; fullName: string; jobTitle: string; manager?: string }[];
 }) {
   return (
-    <table className="w-full text-xs">
+    <table className="w-full text-[13px]">
       <thead>
-        <tr className="border-b text-left text-muted-foreground">
+        <tr className="group border-b text-left text-muted-foreground">
           <th className="px-3 py-1 font-medium">Pracownik</th>
           <th className="px-2 py-1 font-medium">Stanowisko</th>
           <th className="px-3 py-1 font-medium">Kierownik</th>
@@ -1107,7 +1107,7 @@ function AbsenceTooltipTable({
       </thead>
       <tbody>
         {rows.map(row => (
-          <tr key={row.key} className="border-b border-border/40">
+          <tr key={row.key} className="group border-b border-border/40">
             <td className="px-3 py-1 font-medium">{row.fullName}</td>
             <td className="px-2 py-1">{row.jobTitle}</td>
             <td className="px-3 py-1 text-muted-foreground">{row.manager || '—'}</td>

@@ -297,3 +297,12 @@
   }
 }
 
+
+@layer components {
+  .harmonogram-table tbody tr:hover > td {
+    filter: brightness(0.93);
+  }
+  .dark .harmonogram-table tbody tr:hover > td {
+    filter: brightness(1.2);
+  }
+}
