@@ -299,6 +299,15 @@
     animation: absence-blink 1.4s ease-in-out infinite;
   }
 
+  /* Żółta pulsacja karty po zmianie zapotrzebowania (3 × 0.9s) */
+  @keyframes demand-flash {
+    0%, 100% { border-color: hsl(var(--border)); box-shadow: 0 0 0 0 hsl(var(--chart-4) / 0); }
+    50% { border-color: hsl(var(--chart-4) / 0.8); box-shadow: 0 0 0 3px hsl(var(--chart-4) / 0.35); }
+  }
+  .demand-flash {
+    animation: demand-flash 0.9s ease-in-out 3;
+  }
+
   @media print {
     .animate-vacation-blink { animation: none !important; background-color: hsl(var(--accent) / 0.15) !important; }
     .animate-absence-blink { animation: none !important; background-color: hsl(var(--destructive) / 0.15) !important; }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2, Pencil, Check, X, ChevronDown } from 'lucide-react';
 import { startOfDay, format } from 'date-fns';
@@ -205,6 +205,46 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   const toggleTerminations = (key: string) =>
     setExpandedTerminations(prev => ({ ...prev, [key]: !prev[key] }));
 
+  // Podświetlenie karty działu, gdy zmieni się zapotrzebowanie (potrzeby/obsada/zwolnienia/przyjęcia)
+  const [flashDepts, setFlashDepts] = useState<Record<string, boolean>>({});
+  const prevDeptSigs = useRef<Map<string, string>>(new Map());
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const changed: string[] = [];
+    const next = new Map<string, string>();
+    jobTitlesByDept.forEach((jobs, dept) => {
+      const sig = JSON.stringify({
+        jobs: jobs.map(j => [j.jobTitle, j.potrzeby, j.obecnie, j.zwalnia]),
+        planned: jobs.map(j => getPlannedTotalForJob(dept, j.jobTitle)),
+      });
+      next.set(dept, sig);
+      if (prevDeptSigs.current.has(dept) && prevDeptSigs.current.get(dept) !== sig) {
+        changed.push(dept);
+      }
+    });
+    prevDeptSigs.current = next;
+    if (changed.length === 0) return;
+    setFlashDepts(prev => {
+      const n = { ...prev };
+      changed.forEach(d => { n[d] = true; });
+      return n;
+    });
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => {
+      setFlashDepts(prev => {
+        const n = { ...prev };
+        changed.forEach(d => { delete n[d]; });
+        return n;
+      });
+      flashTimer.current = null;
+    }, 2800);
+  });
+
+  useEffect(() => () => {
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+  }, []);
+
   const getMissing = (dept: string, jobTitle: string) => {
     const jobs = jobTitlesByDept.get(dept);
     const job = jobs?.find(j => j.jobTitle === jobTitle);
@@ -341,7 +381,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
             if (visibleJobs.length === 0) return null;
 
             return (
-              <Card key={dept}>
+              <Card key={dept} className={flashDepts[dept] ? 'demand-flash' : undefined}>
                 <CardHeader className="pb-3">
                   <div className="space-y-2">
                     <div className="flex min-w-0 items-center gap-2">
