@@ -312,7 +312,8 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
             const deptMissing = jobs.reduce((sum, job) => sum + getMissing(dept, job.jobTitle), 0);
             const deptPlanned = jobs.reduce((sum, job) => sum + getPlannedTotalForJob(dept, job.jobTitle), 0);
             const netMissing = Math.max(0, deptMissing - deptPlanned);
-            if (deptMissing === 0 && jobs.length === 0) return null;
+            const visibleJobs = jobs.filter(job => getMissing(dept, job.jobTitle) > 0 || getPlannedForJob(dept, job.jobTitle).length > 0);
+  if (visibleJobs.length === 0) return null;
 
             return (
               <Card key={dept}>
@@ -337,12 +338,12 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                 <CardContent className="space-y-4">
                   <div className="space-y-1.5">
                     <p className="text-xs font-medium text-muted-foreground">Stanowiska i braki:</p>
-                    {jobs.length === 0 ? (
+                    {visibleJobs.length === 0 ? (
                       <p className="rounded-md border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">
                         Brak stanowisk.
                       </p>
                     ) : (
-                      jobs.map((job, i) => {
+                      visibleJobs.map((job, i) => {
                         const jobMissing = getMissing(dept, job.jobTitle);
                         const jobPlanned = getPlannedForJob(dept, job.jobTitle);
                         const jobPlannedTotal = getPlannedTotalForJob(dept, job.jobTitle);
