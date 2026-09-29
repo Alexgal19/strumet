@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getStorage_ } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, UserX, ClipboardCopy, Shirt, ArrowLeft, ArrowRight, CalendarOff, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, UserX, ClipboardCopy, Shirt, ArrowLeft, ArrowRight, CalendarOff, X, Upload, ImageIcon, Loader2 } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -92,6 +94,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             legalizationStatus: employee.legalizationStatus || 'Brak',
             terminationDate: employee.terminationDate,
             welderLicense: employee.welderLicense || 'Nie',
+            certificateUrl: employee.certificateUrl,
         };
     }
     return {
@@ -111,6 +114,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
         contractEndDate: undefined,
         legalizationStatus: 'Brak',
         welderLicense: 'Nie',
+        certificateUrl: undefined,
     };
 };
 
@@ -127,7 +131,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     const [step, setStep] = useState(0);
     const [isSavingAbsence, setIsSavingAbsence] = useState(false);
     const [isReadyToSubmit, setIsReadyToSubmit] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const topRef = React.useRef<HTMLDivElement>(null);
+    const certInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (step === STEPS.length - 1) {
@@ -253,6 +259,43 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 description: "Nazwisko i imię skopiowane do schowka.",
             });
         }
+    };
+
+    const handleCertUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const storage = getStorage_();
+        if (!storage) { toast({ variant: 'destructive', title: 'Błąd', description: 'Storage nie jest dostępny.' }); return; }
+        const maxSize = 5 * 1024 * 1024; // 5 MB
+        if (file.size > maxSize) { toast({ variant: 'destructive', title: 'Błąd', description: 'Plik jest za duży (max 5 MB).' }); return; }
+        setIsUploading(true);
+        try {
+            const empId = employee?.id || `temp_${Date.now()}`;
+            const ext = file.name.split('.').pop() || 'jpg';
+            const fileRef = storageRef(storage, `certificates/${empId}.${ext}`);
+            await uploadBytes(fileRef, file);
+            const url = await getDownloadURL(fileRef);
+            handleChange('certificateUrl', url);
+            toast({ title: 'Gotowe!', description: 'Certyfikat został dodany.' });
+        } catch (err) {
+            console.error('Upload error:', err);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przesłać pliku.' });
+        } finally {
+            setIsUploading(false);
+            if (certInputRef.current) certInputRef.current.value = '';
+        }
+    };
+
+    const handleCertDelete = async () => {
+        if (!formData.certificateUrl) return;
+        const storage = getStorage_();
+        if (!storage) return;
+        try {
+            const fileRef = storageRef(storage, formData.certificateUrl);
+            await deleteObject(fileRef).catch(() => { /* ignore if already deleted */ });
+        } catch { /* ignore */ }
+        handleChange('certificateUrl', undefined);
+        toast({ title: 'Usunięto', description: 'Certyfikat został usunięty.' });
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -526,6 +569,51 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                                 <SelectItem value="Nie">Nie posiada</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Skan certyfikatu spawacza</Label>
+                        <input
+                            ref={certInputRef}
+                            type="file"
+                            accept="image/*,.pdf"
+                            className="hidden"
+                            onChange={handleCertUpload}
+                        />
+                        {formData.certificateUrl ? (
+                            <div className="flex flex-col gap-2">
+                                <a
+                                    href={formData.certificateUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
+                                >
+                                    <ImageIcon className="h-5 w-5 text-blue-500 shrink-0" />
+                                    <span className="text-sm text-blue-600 underline truncate">Otwórz certyfikat</span>
+                                </a>
+                                <div className="flex gap-2">
+                                    <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => certInputRef.current?.click()} disabled={isUploading}>
+                                        <Upload className="mr-2 h-4 w-4" />Zmień
+                                    </Button>
+                                    <Button type="button" variant="destructive" size="sm" onClick={handleCertDelete} disabled={isUploading}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full h-20 border-dashed flex flex-col gap-1"
+                                onClick={() => certInputRef.current?.click()}
+                                disabled={isUploading}
+                            >
+                                {isUploading ? (
+                                    <><Loader2 className="h-5 w-5 animate-spin" /><span className="text-xs">Przesyłanie...</span></>
+                                ) : (
+                                    <><Upload className="h-5 w-5" /><span className="text-xs">Dodaj skan certyfikatu</span></>
+                                )}
+                            </Button>
+                        )}
                     </div>
                 </div>
 

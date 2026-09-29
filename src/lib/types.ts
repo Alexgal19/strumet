@@ -34,6 +34,7 @@ export interface Employee {
   contractEndDate?: string; // ISO string format
   legalizationStatus?: string;
   welderLicense?: string;
+  certificateUrl?: string; // URL do skanu certyfikatu spawacza w Firebase Storage
 }
 
 export interface ConfigItem {
