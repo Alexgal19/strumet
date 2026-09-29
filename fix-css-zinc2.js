@@ -1,4 +1,6 @@
-@tailwind base;
+const fs = require('fs');
+
+const css = `@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -277,3 +279,7 @@
     filter: brightness(1.2);
   }
 }
+`;
+
+fs.writeFileSync('src/app/globals.css', css);
+console.log('CSS updated successfully!');
