@@ -677,18 +677,6 @@ export function HarmonogramView({
                       return `Zatrudnieni (status aktywny): ${totals.stanZatrudnienia} • Potrzeby: ${totals.potrzeby} • Różnica: ${sign(v)}`;
                     },
                   },
-                  {
-                    key: 'obsada-potrzeby',
-                    label: 'Brak obsady (obecni − potrzeby)',
-                    stanValue: sign(totals.diff[activeDayIndex] ?? 0),
-                    stanTitle: `Obecni dziś: ${totals.presentNa} • Potrzeby: ${totals.potrzeby}`,
-                    perDay: totals.diff,
-                    valueClass: gapColor,
-                    dayTitle: i => {
-                      const v = totals.diff[i] ?? 0;
-                      return `Obsada ${format(result.days[i], 'dd.MM')}: ${totals.potrzeby + v} • Potrzeby: ${totals.potrzeby} • Różnica: ${sign(v)}`;
-                    },
-                  },
                 ];
 
                 return (
