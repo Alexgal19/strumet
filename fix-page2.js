@@ -1,135 +1,11 @@
-'use client';
+const fs = require('fs');
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2 } from 'lucide-react';
-import { startOfDay, format } from 'date-fns';
-import { useAppContext } from '@/context/app-context';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { HarmonogramView } from '@/components/harmonogram-view';
-import { type HarmonogramData, buildHarmonogram } from '@/lib/harmonogram';
-import { getDB } from '@/lib/firebase';
-import { ref as dbRef, update, push, set, remove } from 'firebase/database';
-import { Input } from '@/components/ui/input';
+let content = fs.readFileSync('src/app/(app)/harmonogram/page.tsx', 'utf8');
 
-export default function PlanowaniePage() {
-  const { isLoading: isAuthLoading } = useAppContext();
-  if (isAuthLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-  // /harmonogram zawsze otwiera harmonogram obsady — dla gości i zalogowanych
-  return <PublicPlanowanieView />;
-}
+const startIdx = content.indexOf('function usePublicZapotrzebowaniaStats(data: HarmonogramData) {');
 
-/** Widok publiczny (bez logowania): tylko do odczytu — zapotrzebowania + harmonogram */
-function PublicPlanowanieView() {
-  const [data, setData] = useState<HarmonogramData | null>(null);
-  const [error, setError] = useState(false);
-  const [view, setView] = useState<'harmonogram' | 'zapotrzebowania'>('harmonogram');
-  const { isAdmin } = useAppContext();
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/public/harmonogram', { cache: 'no-store' })
-      .then(res => {
-        if (!res.ok) throw new Error(String(res.status));
-        return res.json();
-      })
-      .then(json => {
-        if (!cancelled) setData(json as HarmonogramData);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const handleUpdatePotrzeby = async (dept: string, mgr: string, job: string, newAmount: number) => {
-    if (!isAdmin) return;
-    const key = (dept + '___' + mgr + '___' + job).replace(/[.#$\[\]\/]/g, '_');
-    setData(prev => {
-      if (!prev) return prev;
-      return { ...prev, potrzebyByManager: { ...prev.potrzebyByManager, [key]: newAmount } };
-    });
-    try {
-      const db = getDB();
-      if (!db) return;
-      const posRef = dbRef(db, 'potrzebyObsady');
-      await update(posRef, { [key]: newAmount });
-    } catch (err) {
-      console.error('Failed to update potrzeby:', err);
-    }
-  };
-
-  return (
-    <div className="flex flex-col md:h-full">
-      {error ? (
-        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          Nie udało się pobrać danych harmonogramu.
-        </div>
-      ) : !data ? (
-        <div className="flex h-full items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      ) : (
-        <>
-          <PageHeader
-            title="Obsada"
-            description="Sprawdź obsadę i zapotrzebowanie według działu."
-          />
-
-          <div className="flex flex-col gap-4 pb-6 md:overflow-y-auto">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex w-full sm:w-auto overflow-hidden rounded-lg border border-border">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={view === 'harmonogram' ? 'default' : 'ghost'}
-                  className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
-                  onClick={() => setView('harmonogram')}
-                >
-                  Harmonogram obsady
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={view === 'zapotrzebowania' ? 'default' : 'ghost'}
-                  className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
-                  onClick={() => setView('zapotrzebowania')}
-                >
-                  Zapotrzebowania
-                </Button>
-              </div>
-            </div>
-
-            {view === 'harmonogram' ? (
-              <HarmonogramView 
-                data={data} 
-                showExport 
-                isAdmin={isAdmin} 
-                onUpdatePotrzeby={handleUpdatePotrzeby} 
-              />
-            ) : (
-              <PublicZapotrzebowaniaView data={data} setData={setData} />
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-type JobTitleStat = { jobTitle: string; count: number; toRecruit: number; terminations: number };
-
-function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
+if (startIdx !== -1) {
+    const newCode = `function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
   return useMemo(() => {
     const result = buildHarmonogram(data, 0);
     const jobTitlesByDept = new Map<string, { jobTitle: string; obecnie: number; potrzeby: number; zwalnia: number }[]>();
@@ -209,7 +85,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   const totalPlanned = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).reduce((sum, p) => sum + p.count, 0) : 0;
 
   const handleAddArrival = async (dept: string, jobTitle: string) => {
-    const key = `${dept}|${jobTitle}`;
+    const key = \`\${dept}|\${jobTitle}\`;
     const date = newArrivalDate[key];
     const count = parseInt(newArrivalCount[key] || '0', 10);
     if (!date || count <= 0) return;
@@ -250,7 +126,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     const db = getDB();
     if (!db) return;
     try {
-      await remove(dbRef(db, `planowanePrzyjecia/${id}`));
+      await remove(dbRef(db, \`planowanePrzyjecia/\${id}\`));
       setData(prev => {
         if (!prev) return prev;
         const current = { ...(prev.planowanePrzyjecia || {}) };
@@ -322,7 +198,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                         const jobPlanned = getPlannedForJob(dept, job.jobTitle);
                         const jobPlannedTotal = getPlannedTotalForJob(dept, job.jobTitle);
                         const jobNetMissing = Math.max(0, jobMissing - jobPlannedTotal);
-                        const key = `${dept}|${job.jobTitle}`;
+                        const key = \`\${dept}|\${job.jobTitle}\`;
                         
                         const potrzeby = job.potrzeby;
                         const obecnie = job.obecnie;
@@ -400,4 +276,10 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
       </div>
     </>
   );
+}
+`;
+
+    content = content.substring(0, startIdx) + newCode;
+    fs.writeFileSync('src/app/(app)/harmonogram/page.tsx', content);
+    console.log('Replaced successfully!');
 }
