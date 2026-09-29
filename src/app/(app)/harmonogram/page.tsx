@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2, Pencil, Check, X } from 'lucide-react';
+import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2, Pencil, Check, X, ChevronDown } from 'lucide-react';
 import { startOfDay, format } from 'date-fns';
 import { useAppContext } from '@/context/app-context';
 import { Badge } from '@/components/ui/badge';
@@ -132,11 +132,11 @@ type JobTitleStat = { jobTitle: string; count: number; toRecruit: number; termin
 function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
   return useMemo(() => {
     const result = buildHarmonogram(data, 0);
-    const jobTitlesByDept = new Map<string, { jobTitle: string; obecnie: number; potrzeby: number; zwalnia: number; zwalniani: { date: string; count: number }[] }[]>();
+    const jobTitlesByDept = new Map<string, { jobTitle: string; obecnie: number; potrzeby: number; zwalnia: number; zwalniani: { date: string; count: number; names: string[] }[] }[]>();
     const today = startOfDay(new Date()).getTime();
 
     result.rows.forEach(deptRow => {
-      const jobsMap = new Map<string, { obecnie: number; potrzeby: number; zwalnia: number; zwalnianiMap: Map<string, number> }>();
+      const jobsMap = new Map<string, { obecnie: number; potrzeby: number; zwalnia: number; zwalnianiMap: Map<string, { count: number; names: string[] }> }>();
       
       deptRow.managers.forEach(mgrRow => {
          mgrRow.positions.forEach(posRow => {
@@ -162,10 +162,14 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
                  }
                }
 
-               if (termDateStr) {
-                 current.zwalnia += 1;
-                 current.zwalnianiMap.set(termDateStr, (current.zwalnianiMap.get(termDateStr) || 0) + 1);
-               }
+                if (termDateStr) {
+                  current.zwalnia += 1;
+                  const entry = current.zwalnianiMap.get(termDateStr) || { count: 0, names: [] as string[] };
+                  entry.count += 1;
+                  const empName = (emp.fullName || '').trim();
+                  if (empName && !entry.names.includes(empName)) entry.names.push(empName);
+                  current.zwalnianiMap.set(termDateStr, entry);
+                }
             });
             
             jobsMap.set(jobTitle, current);
@@ -173,7 +177,7 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
       });
       
       const arr = Array.from(jobsMap.entries()).map(([jobTitle, stats]) => {
-         const zwalniani = Array.from(stats.zwalnianiMap.entries()).map(([date, count]) => ({ date, count })).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+         const zwalniani = Array.from(stats.zwalnianiMap.entries()).map(([date, entry]) => ({ date, count: entry.count, names: [...entry.names].sort((a, b) => a.localeCompare(b, 'pl')) })).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
          return {
            jobTitle, 
            obecnie: stats.obecnie, 
@@ -196,6 +200,10 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   
   const [newArrivalDate, setNewArrivalDate] = useState<Record<string, string>>({});
   const [newArrivalCount, setNewArrivalCount] = useState<Record<string, string>>({});
+  const [expandedTerminations, setExpandedTerminations] = useState<Record<string, boolean>>({});
+
+  const toggleTerminations = (key: string) =>
+    setExpandedTerminations(prev => ({ ...prev, [key]: !prev[key] }));
 
   const getMissing = (dept: string, jobTitle: string) => {
     const jobs = jobTitlesByDept.get(dept);
@@ -394,11 +402,34 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                   {job.zwalniani.length > 0 && (
                                     <div className="flex flex-col gap-1 mb-1">
                                       <span className="text-xs font-medium text-muted-foreground">Planowane zwolnienia:</span>
-                                      {job.zwalniani.map((z, idx) => (
-                                        <div key={idx} className="flex items-center justify-between bg-red-500/10 text-red-700 dark:text-red-400 rounded px-2 py-1 text-xs">
-                                          <span>📅 {format(new Date(z.date), 'dd.MM.yyyy')} — <strong>{z.count} os.</strong></span>
-                                        </div>
-                                      ))}
+                                      {job.zwalniani.map((z, idx) => {
+                                        const expKey = `${dept}|${job.jobTitle}|${z.date}`;
+                                        const expanded = !!expandedTerminations[expKey];
+                                        return (
+                                          <div key={idx} className="bg-red-500/10 rounded text-xs">
+                                            <button
+                                              type="button"
+                                              onClick={() => toggleTerminations(expKey)}
+                                              aria-expanded={expanded}
+                                              title="Pokaż pracowników"
+                                              className="flex w-full cursor-pointer items-center justify-between px-2 py-1 text-left text-red-700 dark:text-red-400"
+                                            >
+                                              <span>📅 {format(new Date(z.date), 'dd.MM.yyyy')} — <strong>{z.count} os.</strong></span>
+                                              <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            {expanded && (
+                                              <ul className="space-y-0.5 border-t border-red-500/20 px-2 py-1.5 text-red-700 dark:text-red-400">
+                                                {z.names.map(name => (
+                                                  <li key={name} className="flex items-center gap-1.5">
+                                                    <span aria-hidden="true">•</span>
+                                                    <span className="font-medium">{name}</span>
+                                                  </li>
+                                                ))}
+                                              </ul>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   )}
 
