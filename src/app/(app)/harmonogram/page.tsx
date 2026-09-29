@@ -146,7 +146,7 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
             current.potrzeby += posRow.potrzeby;
             
             const termCount = posRow.employees.filter(empRow => {
-               const emp = empRow.employee;
+               const emp = empRow;
                if (emp.terminationDate) {
                  const t = new Date(emp.terminationDate).getTime();
                  if (!isNaN(t) && t >= today) return true;
