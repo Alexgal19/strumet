@@ -34,7 +34,9 @@ export interface HarmonogramRecruitment {
 export interface HarmonogramData {
   employees: HarmonogramEmployee[];
   absences: HarmonogramAbsence[];
-  recruitments: HarmonogramRecruitment[]; potrzebyByManager?: Record<string, number>;
+  recruitments: HarmonogramRecruitment[];
+  potrzebyByManager?: Record<string, number>;
+  planowanePrzyjecia?: Record<string, { id: string; department: string; jobTitle: string; date: string; count: number }>;
 }
 
 export interface HarmonogramCell {

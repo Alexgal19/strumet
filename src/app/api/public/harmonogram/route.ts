@@ -12,10 +12,12 @@ export async function GET() {
   try {
     const db = getAdminApp().database();
 
-    const [employeesSnap, absencesSnap, recruitmentSnap, potrzebyObsadySnap] = await Promise.all([
+    const [employeesSnap, absencesSnap, recruitmentSnap, potrzebyObsadySnap, planowanePrzyjeciaSnap] = await Promise.all([
       db.ref('employees').once('value'),
       db.ref('absences').once('value'),
-      db.ref('recruitment').once('value'), db.ref('potrzebyObsady').once('value'),
+      db.ref('recruitment').once('value'), 
+      db.ref('potrzebyObsady').once('value'),
+      db.ref('planowanePrzyjecia').once('value'),
     ]);
 
     const employeesRaw = employeesSnap.val() ?? {};
@@ -101,11 +103,27 @@ export async function GET() {
       };
     });
 
+    const planowanePrzyjeciaRaw = planowanePrzyjeciaSnap.val() ?? {};
+    const planowanePrzyjecia: Record<string, { id: string; department: string; jobTitle: string; date: string; count: number }> = {};
+    Object.entries(planowanePrzyjeciaRaw).forEach(([id, val]) => {
+      const p = val as any;
+      if (p.date && p.department && p.jobTitle) {
+        planowanePrzyjecia[id] = {
+          id,
+          department: p.department,
+          jobTitle: p.jobTitle,
+          date: p.date,
+          count: Number(p.count) || 0
+        };
+      }
+    });
+
     const data: HarmonogramData = {
       employees,
       absences: absences as HarmonogramData['absences'],
       recruitments,
       potrzebyByManager,
+      planowanePrzyjecia,
     };
 
     return NextResponse.json(data, {

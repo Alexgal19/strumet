@@ -1,142 +1,20 @@
-'use client';
+const fs = require('fs');
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2 } from 'lucide-react';
-import { startOfDay, format } from 'date-fns';
-import { useAppContext } from '@/context/app-context';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { HarmonogramView } from '@/components/harmonogram-view';
-import type { HarmonogramData } from '@/lib/harmonogram';
-import { getDB } from '@/lib/firebase';
-import { ref as dbRef, update, push, set, remove } from 'firebase/database';
-import { Input } from '@/components/ui/input';
+let content = fs.readFileSync('src/app/(app)/harmonogram/page.tsx', 'utf8');
 
-export default function PlanowaniePage() {
-  const { isLoading: isAuthLoading } = useAppContext();
-  if (isAuthLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-  // /harmonogram zawsze otwiera harmonogram obsady — dla gości i zalogowanych
-  return <PublicPlanowanieView />;
-}
+// We will replace usePublicZapotrzebowaniaStats and PublicZapotrzebowaniaView entirely
+const startIdx = content.indexOf('function usePublicZapotrzebowaniaStats(data: HarmonogramData) {');
+const endIdx = content.indexOf('export default function PlanowaniePage() {');
 
-/** Widok publiczny (bez logowania): tylko do odczytu — zapotrzebowania + harmonogram */
-function PublicPlanowanieView() {
-  const [data, setData] = useState<HarmonogramData | null>(null);
-  const [error, setError] = useState(false);
-  const [view, setView] = useState<'harmonogram' | 'zapotrzebowania'>('harmonogram');
-  const { isAdmin } = useAppContext();
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/public/harmonogram', { cache: 'no-store' })
-      .then(res => {
-        if (!res.ok) throw new Error(String(res.status));
-        return res.json();
-      })
-      .then(json => {
-        if (!cancelled) setData(json as HarmonogramData);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const handleUpdatePotrzeby = async (dept: string, mgr: string, job: string, newAmount: number) => {
-    if (!isAdmin) return;
-    const key = (dept + '___' + mgr + '___' + job).replace(/[.#$\[\]\/]/g, '_');
-    setData(prev => {
-      if (!prev) return prev;
-      return { ...prev, potrzebyByManager: { ...prev.potrzebyByManager, [key]: newAmount } };
-    });
-    try {
-      const db = getDB();
-      if (!db) return;
-      const posRef = dbRef(db, 'potrzebyObsady');
-      await update(posRef, { [key]: newAmount });
-    } catch (err) {
-      console.error('Failed to update potrzeby:', err);
-    }
-  };
-
-  return (
-    <div className="flex flex-col md:h-full">
-      {error ? (
-        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          Nie udało się pobrać danych harmonogramu.
-        </div>
-      ) : !data ? (
-        <div className="flex h-full items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      ) : (
-        <>
-          <PageHeader
-            title="Obsada"
-            description="Sprawdź obsadę i zapotrzebowanie według działu."
-          />
-
-          <div className="flex flex-col gap-4 pb-6 md:overflow-y-auto">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex w-full sm:w-auto overflow-hidden rounded-lg border border-border">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={view === 'harmonogram' ? 'default' : 'ghost'}
-                  className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
-                  onClick={() => setView('harmonogram')}
-                >
-                  Harmonogram obsady
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={view === 'zapotrzebowania' ? 'default' : 'ghost'}
-                  className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
-                  onClick={() => setView('zapotrzebowania')}
-                >
-                  Zapotrzebowania
-                </Button>
-              </div>
-            </div>
-
-            {view === 'harmonogram' ? (
-              <HarmonogramView 
-                data={data} 
-                showExport 
-                isAdmin={isAdmin} 
-                onUpdatePotrzeby={handleUpdatePotrzeby} 
-              />
-            ) : (
-              <PublicZapotrzebowaniaView data={data} setData={setData} />
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-type JobTitleStat = { jobTitle: string; count: number; toRecruit: number; terminations: number };
-
-function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
+if (startIdx !== -1 && endIdx !== -1) {
+    const newCode = `function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
   return useMemo(() => {
     const today = startOfDay(new Date());
     const headcountByDept = new Map<string, number>();
     const headcountByDeptJob = new Map<string, number>();
     const terminationsByDeptJob = new Map<string, number>();
     const potrzebyByDeptJob = new Map<string, number>();
-    const jobTitlesByDept = new Map<string, { jobTitle: string; count: number; terminations: number }[]>();
+    const jobTitlesByDept = new Map<string, { jobTitle: string; count: number; terminations: number }>();
 
     if (data.potrzebyByManager) {
       Object.entries(data.potrzebyByManager).forEach(([key, val]) => {
@@ -166,7 +44,7 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
 
     data.employees.forEach(e => {
       headcountByDept.set(e.department, (headcountByDept.get(e.department) ?? 0) + 1);
-      const key = `${e.department}|${e.jobTitle}`;
+      const key = \`\${e.department}|\${e.jobTitle}\`;
       headcountByDeptJob.set(key, (headcountByDeptJob.get(key) ?? 0) + 1);
       const terminating = isPlannedTerm(e.plannedTerminationDate);
       if (terminating) terminationsByDeptJob.set(key, (terminationsByDeptJob.get(key) ?? 0) + 1);
@@ -186,6 +64,7 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
       }
     });
 
+    // Ensure all jobs that have potrzeby are also in jobTitlesByDept
     potrzebyByDeptJob.forEach((val, key) => {
       const [dept, job] = key.split('|');
       const entries = ensure(dept);
@@ -210,7 +89,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   const [newArrivalCount, setNewArrivalCount] = useState<Record<string, string>>({});
 
   const getMissing = (dept: string, jobTitle: string) => {
-    const key = `${dept}|${jobTitle}`;
+    const key = \`\${dept}|\${jobTitle}\`;
     const potrzeby = potrzebyByDeptJob.get(key) || 0;
     const obecnie = headcountByDeptJob.get(key) || 0;
     const zwalnia = terminationsByDeptJob.get(key) || 0;
@@ -236,7 +115,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   const totalPlanned = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).reduce((sum, p) => sum + p.count, 0) : 0;
 
   const handleAddArrival = async (dept: string, jobTitle: string) => {
-    const key = `${dept}|${jobTitle}`;
+    const key = \`\${dept}|\${jobTitle}\`;
     const date = newArrivalDate[key];
     const count = parseInt(newArrivalCount[key] || '0', 10);
     if (!date || count <= 0) return;
@@ -254,6 +133,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
       };
       await set(newRef, arrivalData);
       
+      // Update local state
       setData(prev => {
         if (!prev) return prev;
         const current = prev.planowanePrzyjecia || {};
@@ -277,7 +157,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     const db = getDB();
     if (!db) return;
     try {
-      await remove(dbRef(db, `planowanePrzyjecia/${id}`));
+      await remove(dbRef(db, \`planowanePrzyjecia/\${id}\`));
       setData(prev => {
         if (!prev) return prev;
         const current = { ...(prev.planowanePrzyjecia || {}) };
@@ -312,7 +192,6 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
             const deptMissing = jobs.reduce((sum, job) => sum + getMissing(dept, job.jobTitle), 0);
             const deptPlanned = jobs.reduce((sum, job) => sum + getPlannedTotalForJob(dept, job.jobTitle), 0);
             const netMissing = Math.max(0, deptMissing - deptPlanned);
-            if (deptMissing === 0 && jobs.length === 0) return null;
 
             return (
               <Card key={dept}>
@@ -347,7 +226,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                         const jobPlanned = getPlannedForJob(dept, job.jobTitle);
                         const jobPlannedTotal = getPlannedTotalForJob(dept, job.jobTitle);
                         const jobNetMissing = Math.max(0, jobMissing - jobPlannedTotal);
-                        const key = `${dept}|${job.jobTitle}`;
+                        const key = \`\${dept}|\${job.jobTitle}\`;
                         const potrzeby = potrzebyByDeptJob.get(key) || 0;
                         const obecnie = headcountByDeptJob.get(key) || 0;
                         const zwalnia = terminationsByDeptJob.get(key) || 0;
@@ -372,11 +251,11 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                             </div>
 
                             {/* Planowane przyjęcia dla tego stanowiska */}
-                            {(jobMissing > 0 || jobPlanned.length > 0) && isAdmin && (
+                            {jobMissing > 0 && isAdmin && (
                                 <div className="mt-2 flex flex-col gap-2 border-t pt-2">
                                   {jobPlanned.length > 0 && (
                                     <div className="flex flex-col gap-1">
-                                      <span className="text-xs font-medium text-muted-foreground">Zaplanowane przyjęcia:</span>
+                                      <span className="text-xs font-medium text-muted-foreground">Zaplanowane przyjazdy:</span>
                                       {jobPlanned.map(p => (
                                         <div key={p.id} className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs">
                                           <span>📅 {format(new Date(p.date), 'dd.MM.yyyy')} — <strong>{p.count} os.</strong></span>
@@ -426,4 +305,12 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
       </div>
     </>
   );
+}
+`;
+
+    content = content.substring(0, startIdx) + newCode + content.substring(endIdx);
+    fs.writeFileSync('src/app/(app)/harmonogram/page.tsx', content);
+    console.log('Replaced successfully');
+} else {
+    console.log('Could not find boundaries');
 }
