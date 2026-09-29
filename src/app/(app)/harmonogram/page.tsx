@@ -214,9 +214,11 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   };
 
   let totalMissing = 0;
+  let totalTerminations = 0;
   jobTitlesByDept.forEach((jobs, dept) => {
     jobs.forEach(job => {
       totalMissing += getMissing(dept, job.jobTitle);
+      totalTerminations += job.zwalnia;
     });
   });
 
@@ -283,6 +285,15 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
           <UserPlus className="h-4 w-4" />
           Łącznie brakuje: {Math.max(0, totalMissing - totalPlanned)}
         </Badge>
+        {totalTerminations > 0 && (
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-red-500/60 px-3 py-1.5 text-sm text-red-700 tabular-nums dark:text-red-400"
+          >
+            <Users className="h-4 w-4" />
+            Planowane zwolnienia: {totalTerminations}
+          </Badge>
+        )}
         <Badge
           variant="outline"
           className="gap-1.5 border-blue-500/60 px-3 py-1.5 text-sm text-blue-700 tabular-nums dark:text-blue-400"
