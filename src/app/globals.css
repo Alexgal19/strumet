@@ -3,96 +3,132 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 98%; /* soft gray so white cards pop */
-    --foreground: 240 10% 3.9%;
+  /* ===== CATPPUCCIN LATTE (LIGHT) ===== */
+  :root, [data-theme="latte"] {
+    --background: 220 18% 89%;         /* #dee1e8 — темніший фон, білі картки виділяються */
+    --foreground: 240 10% 26%;         /* #4c4f69 */
     
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 240 100% 100%;             /* #ffffff */
+    --card-foreground: 240 10% 26%;    /* #4c4f69 */
     
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover: 240 100% 100%;          /* #ffffff */
+    --popover-foreground: 240 10% 26%; /* #4c4f69 */
     
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 262 60% 44%;            /* #8839ef — mauve */
+    --primary-foreground: 240 100% 98%;/* #eff1f5 */
     
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 240 7% 90%;           /* #ccd0da */
+    --secondary-foreground: 240 10% 26%;/* #4c4f69 */
     
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 240 7% 90%;               /* #ccd0da */
+    --muted-foreground: 240 5% 44%;    /* #7287fd */
     
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 32 94% 44%;              /* #fe640b — peach */
+    --accent-foreground: 240 100% 98%; /* #eff1f5 */
     
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 355 78% 54%;        /* #d20f39 — red */
+    --destructive-foreground: 240 100% 98%;/* #eff1f5 */
     
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    --border: 240 7% 85%;              /* #bcc0cc */
+    --input: 240 7% 85%;               /* #bcc0cc */
+    --ring: 262 60% 44%;               /* #8839ef */
     
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 240 100% 96%;   /* #e6e9ef */
+    --sidebar-foreground: 240 10% 26%;    /* #4c4f69 */
+    --sidebar-primary: 262 60% 44%;       /* #8839ef */
+    --sidebar-primary-foreground: 240 100% 98%;/* #eff1f5 */
+    --sidebar-accent: 32 94% 44%;         /* #fe640b */
+    --sidebar-accent-foreground: 240 100% 98%;/* #eff1f5 */
+    --sidebar-border: 240 7% 85%;         /* #bcc0cc */
+    --sidebar-ring: 262 60% 44%;          /* #8839ef */
 
-    --chart-1: 240 5.9% 10%;
-    --chart-2: 240 4.8% 95.9%;
-    --chart-3: 240 3.8% 46.1%;
-    --chart-4: 240 5.9% 90%;
-    --chart-5: 240 10% 3.9%;
+    --chart-1: 262 60% 44%;   /* mauve */
+    --chart-2: 32 94% 44%;    /* peach */
+    --chart-3: 159 58% 36%;   /* teal */
+    --chart-4: 45 93% 50%;    /* yellow */
+    --chart-5: 355 78% 54%;   /* red */
   }
 
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+  /* ===== CATPPUCCIN MOCHA (DARK) ===== */
+  [data-theme="mocha"], .dark {
+    --background: 24 24% 6%;           /* #1e1e2e */
+    --foreground: 240 7% 94%;          /* #cdd6f4 */
     
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 98%;
+    --card: 24 24% 8%;                 /* #181825 */
+    --card-foreground: 240 7% 94%;     /* #cdd6f4 */
     
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 24 24% 8%;              /* #181825 */
+    --popover-foreground: 240 7% 94%;  /* #cdd6f4 */
     
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
+    --primary: 262 83% 58%;            /* #cba6f7 — mauve */
+    --primary-foreground: 24 24% 6%;   /* #1e1e2e */
     
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 24 12% 17%;           /* #313244 */
+    --secondary-foreground: 240 7% 94%;/* #cdd6f4 */
     
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 24 12% 17%;               /* #313244 */
+    --muted-foreground: 240 5% 62%;    /* #9399b2 */
     
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 35 100% 54%;             /* #fab387 — peach */
+    --accent-foreground: 24 24% 6%;    /* #1e1e2e */
     
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 10 85% 56%;         /* #f38ba8 — red */
+    --destructive-foreground: 24 24% 6%;/* #1e1e2e */
     
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --border: 24 12% 17%;              /* #313244 */
+    --input: 24 12% 17%;               /* #313244 */
+    --ring: 262 83% 58%;               /* #cba6f7 */
+    
+    --sidebar-background: 24 24% 5%;      /* #181825 */
+    --sidebar-foreground: 240 7% 94%;     /* #cdd6f4 */
+    --sidebar-primary: 262 83% 58%;       /* #cba6f7 */
+    --sidebar-primary-foreground: 24 24% 6%;/* #1e1e2e */
+    --sidebar-accent: 35 100% 54%;        /* #fab387 */
+    --sidebar-accent-foreground: 24 24% 6%;/* #1e1e2e */
+    --sidebar-border: 24 12% 17%;         /* #313244 */
+    --sidebar-ring: 262 83% 58%;          /* #cba6f7 */
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --chart-1: 262 83% 58%;   /* mauve */
+    --chart-2: 35 100% 54%;   /* peach */
+    --chart-3: 159 58% 46%;   /* teal */
+    --chart-4: 45 93% 58%;    /* yellow */
+    --chart-5: 10 85% 56%;    /* red */
+  }
 
-    --chart-1: 0 0% 98%;
-    --chart-2: 240 3.7% 15.9%;
-    --chart-3: 240 5% 64.9%;
-    --chart-4: 240 3.7% 15.9%;
-    --chart-5: 240 10% 3.9%;
+  /* ===== OPTIONAL: CATPPUCCIN FRAPPE (MEDIUM DARK) ===== */
+  [data-theme="frappe"] {
+    --background: 223 27% 18%;         /* #292c3c */
+    --foreground: 223 18% 89%;         /* #c6d0f5 */
+    --card: 223 27% 15%;               /* #232634 */
+    --card-foreground: 223 18% 89%;
+    --primary: 220 83% 63%;            /* #8caaee — blue */
+    --primary-foreground: 223 27% 18%;
+    --accent: 159 58% 46%;             /* #81c8be — teal */
+    --accent-foreground: 223 27% 18%;
+    --destructive: 355 73% 55%;        /* #e78284 — red */
+    --border: 223 18% 25%;             /* #414559 */
+    --input: 223 18% 25%;
+    --ring: 220 83% 63%;
+    --radius: 0.5rem;
+  }
+
+  /* ===== OPTIONAL: CATPPUCCIN MACCHIATO (WARM DARK) ===== */
+  [data-theme="macchiato"] {
+    --background: 24 18% 13%;          /* #24273a */
+    --foreground: 24 13% 93%;          /* #cad3f5 */
+    --card: 24 18% 11%;                /* #1e2030 */
+    --card-foreground: 24 13% 93%;
+    --primary: 300 83% 60%;            /* #f5bde6 — pink */
+    --primary-foreground: 24 18% 13%;
+    --accent: 35 100% 54%;             /* #f5a97f — peach */
+    --accent-foreground: 24 18% 13%;
+    --destructive: 10 85% 56%;         /* #ed8796 — red */
+    --border: 24 12% 22%;              /* #363a4f */
+    --input: 24 12% 22%;
+    --ring: 300 83% 60%;
+    --radius: 0.5rem;
   }
 
   /* ===== BASE STYLES ===== */
@@ -163,7 +199,7 @@
 
 @layer utilities {
   .glass-morphism {
-    @apply bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 shadow-sm;
+    @apply bg-white/80 dark:bg-zinc-900/80 border border-black/5 dark:border-white/10 shadow-sm backdrop-blur-sm;
   }
   
   .glass-card {
@@ -237,7 +273,7 @@
   }
 
   .text-gradient-primary {
-    @apply text-foreground;
+    @apply bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent;
   }
 
   .print-only { display: none; }
@@ -248,24 +284,24 @@
   }
 
   @keyframes vacation-blink {
-    0%, 100% { background-color: rgb(236 72 153 / 0.08); }
-    50% { background-color: rgb(236 72 153 / 0.35); }
+    0%, 100% { background-color: hsl(var(--accent) / 0.08); }
+    50% { background-color: hsl(var(--accent) / 0.35); }
   }
   .animate-vacation-blink {
     animation: vacation-blink 1.6s ease-in-out infinite;
   }
 
   @keyframes absence-blink {
-    0%, 100% { background-color: rgb(239 68 68 / 0.08); }
-    50% { background-color: rgb(239 68 68 / 0.40); }
+    0%, 100% { background-color: hsl(var(--destructive) / 0.08); }
+    50% { background-color: hsl(var(--destructive) / 0.40); }
   }
   .animate-absence-blink {
     animation: absence-blink 1.4s ease-in-out infinite;
   }
 
   @media print {
-    .animate-vacation-blink { animation: none !important; background-color: rgb(236 72 153 / 0.15) !important; }
-    .animate-absence-blink { animation: none !important; background-color: rgb(239 68 68 / 0.15) !important; }
+    .animate-vacation-blink { animation: none !important; background-color: hsl(var(--accent) / 0.15) !important; }
+    .animate-absence-blink { animation: none !important; background-color: hsl(var(--destructive) / 0.15) !important; }
   }
 }
 
@@ -273,7 +309,10 @@
   .harmonogram-table tbody tr:hover > td {
     filter: brightness(0.93);
   }
-  .dark .harmonogram-table tbody tr:hover > td {
-    filter: brightness(1.2);
+  .dark .harmonogram-table tbody tr:hover > td,
+  [data-theme="mocha"] .harmonogram-table tbody tr:hover > td,
+  [data-theme="frappe"] .harmonogram-table tbody tr:hover > td,
+  [data-theme="macchiato"] .harmonogram-table tbody tr:hover > td {
+    filter: brightness(1.15);
   }
 }
