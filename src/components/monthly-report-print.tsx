@@ -78,7 +78,7 @@ export function MonthlyReportPrint({ employees, absences, month }: MonthlyReport
               </tr>
             ))}
             {deptCounts.size === 0 && (
-              <tr><td colSpan={2} className="py-1 text-gray-500">Brak nieobecności w tym miesiącu.</td></tr>
+              <tr><td colSpan={2} className="py-1 text-muted-foreground">Brak nieobecności w tym miesiącu.</td></tr>
             )}
           </tbody>
         </table>
@@ -101,7 +101,7 @@ export function MonthlyReportPrint({ employees, absences, month }: MonthlyReport
               </tr>
             ))}
             {personCounts.size === 0 && (
-              <tr><td colSpan={2} className="py-1 text-gray-500">Brak danych.</td></tr>
+              <tr><td colSpan={2} className="py-1 text-muted-foreground">Brak danych.</td></tr>
             )}
           </tbody>
         </table>
@@ -126,7 +126,7 @@ export function MonthlyReportPrint({ employees, absences, month }: MonthlyReport
               </tr>
             ))}
             {expiringContracts.length === 0 && (
-              <tr><td colSpan={3} className="py-1 text-gray-500">Brak umów wygasających w ciągu 30 dni.</td></tr>
+              <tr><td colSpan={3} className="py-1 text-muted-foreground">Brak umów wygasających w ciągu 30 dni.</td></tr>
             )}
           </tbody>
         </table>
@@ -151,7 +151,7 @@ export function MonthlyReportPrint({ employees, absences, month }: MonthlyReport
               </tr>
             ))}
             {plannedTerminations.length === 0 && (
-              <tr><td colSpan={3} className="py-1 text-gray-500">Brak zaplanowanych zwolnień.</td></tr>
+              <tr><td colSpan={3} className="py-1 text-muted-foreground">Brak zaplanowanych zwolnień.</td></tr>
             )}
           </tbody>
         </table>

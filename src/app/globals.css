@@ -6,25 +6,25 @@
   /* ===== CATPPUCCIN LATTE (LIGHT) ===== */
   :root, [data-theme="latte"] {
     --background: 220 18% 89%;         /* #dee1e8 — темніший фон, білі картки виділяються */
-    --foreground: 240 10% 26%;         /* #4c4f69 */
+    --foreground: 240 12% 4%;         /* #4c4f69 */
     
     --card: 240 100% 100%;             /* #ffffff */
-    --card-foreground: 240 10% 26%;    /* #4c4f69 */
+    --card-foreground: 240 12% 4%;    /* #4c4f69 */
     
     --popover: 240 100% 100%;          /* #ffffff */
-    --popover-foreground: 240 10% 26%; /* #4c4f69 */
+    --popover-foreground: 240 12% 4%; /* #4c4f69 */
     
     --primary: 262 60% 44%;            /* #8839ef — mauve */
     --primary-foreground: 240 100% 98%;/* #eff1f5 */
     
     --secondary: 240 7% 90%;           /* #ccd0da */
-    --secondary-foreground: 240 10% 26%;/* #4c4f69 */
+    --secondary-foreground: 240 12% 4%;/* #4c4f69 */
     
     --muted: 240 7% 90%;               /* #ccd0da */
-    --muted-foreground: 240 5% 44%;    /* #7287fd */
+    --muted-foreground: 240 8% 18%;    /* #7287fd */
     
     --accent: 32 94% 44%;              /* #fe640b — peach */
-    --accent-foreground: 240 100% 98%; /* #eff1f5 */
+    --accent-foreground: 240 12% 4%; /* #eff1f5 */
     
     --destructive: 355 78% 54%;        /* #d20f39 — red */
     --destructive-foreground: 240 100% 98%;/* #eff1f5 */
@@ -36,11 +36,11 @@
     --radius: 0.5rem;
 
     --sidebar-background: 240 100% 96%;   /* #e6e9ef */
-    --sidebar-foreground: 240 10% 26%;    /* #4c4f69 */
+    --sidebar-foreground: 240 12% 4%;    /* #4c4f69 */
     --sidebar-primary: 262 60% 44%;       /* #8839ef */
     --sidebar-primary-foreground: 240 100% 98%;/* #eff1f5 */
     --sidebar-accent: 32 94% 44%;         /* #fe640b */
-    --sidebar-accent-foreground: 240 100% 98%;/* #eff1f5 */
+    --sidebar-accent-foreground: 240 12% 4%;/* #eff1f5 */
     --sidebar-border: 240 7% 85%;         /* #bcc0cc */
     --sidebar-ring: 262 60% 44%;          /* #8839ef */
 

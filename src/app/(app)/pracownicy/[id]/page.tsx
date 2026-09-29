@@ -64,7 +64,7 @@ export default function EmployeePage() {
   // Allow 'new' as a special id for creating a new employee
   if (!employee && id !== 'new') {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">
+      <div className="flex h-full items-center justify-center text-muted-foreground">
         Pracownik nie został znaleziony.
       </div>
     );
