@@ -167,7 +167,7 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
          jobTitle, ...stats
       })).sort((a, b) => a.jobTitle.localeCompare(b.jobTitle, 'pl'));
       
-      jobTitlesByDept.set(deptRow.department, arr);
+      jobTitlesByDept.set(deptRow.dept, arr);
     });
 
     return { jobTitlesByDept };
