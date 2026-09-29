@@ -103,7 +103,12 @@ export function HarmonogramView({
       const d = new Date(p.date);
       return d.getMonth() === result.monthDate.getMonth() && d.getFullYear() === result.monthDate.getFullYear();
     }).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()) : [];
-    return { potrzeby, stanZatrudnienia, presentNa, absentNa, diff, employedGap, currentMonthArrivals };
+    const monthEnd = new Date(result.monthDate.getFullYear(), result.monthDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    const upcomingArrivals = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).filter(p => {
+      const d = new Date(p.date);
+      return !isNaN(d.getTime()) && d > monthEnd;
+    }).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()) : [];
+    return { potrzeby, stanZatrudnienia, presentNa, absentNa, diff, employedGap, currentMonthArrivals, upcomingArrivals };
   }, [result, activeDayIndex]);
 
   const handleExport = async () => {
@@ -326,6 +331,32 @@ export function HarmonogramView({
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-emerald-600">{format(new Date(arr.date), 'dd.MM')}</span>
                           <span className="font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded text-xs">{arr.count} os.</span>
+                        </div>
+                        <span className="text-muted-foreground text-xs">{arr.jobTitle} <span className="opacity-50">({arr.department})</span></span>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+            {totals.upcomingArrivals && totals.upcomingArrivals.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-2 border-violet-500/30 bg-violet-50/50 hover:bg-violet-100/50 text-violet-700 dark:bg-violet-950/20 dark:text-violet-400 dark:hover:bg-violet-900/30">
+                    <CalendarDays className="h-4 w-4" />
+                    Kolejne miesiące: {totals.upcomingArrivals.reduce((sum, a) => sum + a.count, 0)} os.
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <div className="border-b bg-muted/50 px-4 py-2.5">
+                    <h4 className="font-medium flex items-center gap-2 text-sm"><CalendarDays className="h-4 w-4" /> Oczekiwani w kolejnych miesiącach</h4>
+                  </div>
+                  <div className="p-2 max-h-[300px] overflow-auto">
+                    {totals.upcomingArrivals.map(arr => (
+                      <div key={arr.id} className="flex flex-col gap-0.5 rounded-md p-2 hover:bg-muted/50 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-violet-600 dark:text-violet-400">{format(new Date(arr.date), 'dd.MM.yyyy')}</span>
+                          <span className="font-medium bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 px-2 py-0.5 rounded text-xs">{arr.count} os.</span>
                         </div>
                         <span className="text-muted-foreground text-xs">{arr.jobTitle} <span className="opacity-50">({arr.department})</span></span>
                       </div>
