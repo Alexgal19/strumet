@@ -44,6 +44,7 @@ import { EmployeeForm } from '@/components/employee-form';
 import { LegalizationEmailDialog } from '@/components/legalization-email-dialog';
 import { AbsenceEmailDialog } from '@/components/absence-email-dialog';
 import { EmployeeTimeline } from '@/components/employee-timeline';
+import { BulkCertDownloadButton } from '@/components/bulk-cert-download-button';
 
 const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
@@ -199,6 +200,8 @@ export default function AktywniPage() {
                   </AlertDialog>
                 </PopoverContent>
               </Popover>
+
+              <BulkCertDownloadButton employees={activeEmployees} className="hidden md:inline-flex" />
 
               <Button onClick={handleAddNew} className="hidden md:inline-flex">
                 <PlusCircle className="mr-2 h-4 w-4" />

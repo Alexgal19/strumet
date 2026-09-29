@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Trash2, UserX, ClipboardCopy, Shirt, ArrowLeft, ArrowRight, CalendarOff, X, Upload, ImageIcon, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Trash2, UserX, ClipboardCopy, Shirt, ArrowLeft, ArrowRight, CalendarOff, X, Upload, ImageIcon, Loader2, Download } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -276,6 +276,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             await uploadBytes(fileRef, file);
             const url = await getDownloadURL(fileRef);
             handleChange('certificateUrl', url);
+            handleChange('welderLicense', 'Tak');
             toast({ title: 'Gotowe!', description: 'Certyfikat został dodany.' });
         } catch (err) {
             console.error('Upload error:', err);
@@ -296,6 +297,28 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
         } catch { /* ignore */ }
         handleChange('certificateUrl', undefined);
         toast({ title: 'Usunięto', description: 'Certyfikat został usunięty.' });
+    };
+
+    const handleCertDownload = async () => {
+        if (!formData.certificateUrl) return;
+        try {
+            const res = await fetch(formData.certificateUrl);
+            const blob = await res.blob();
+            const localUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = localUrl;
+            // Spawacz_Imie_Nazwisko
+            const name = `${firstName.trim()}_${lastName.trim()}`.replace(/\s+/g, '_');
+            const ext = formData.certificateUrl.split('?')[0].split('.').pop() || 'jpg';
+            a.download = `Certyfikat_${name}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(localUrl);
+        } catch (err) {
+            console.error('Download error:', err);
+            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać pliku.' });
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -581,15 +604,20 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         />
                         {formData.certificateUrl ? (
                             <div className="flex flex-col gap-2">
-                                <a
-                                    href={formData.certificateUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
-                                >
-                                    <ImageIcon className="h-5 w-5 text-blue-500 shrink-0" />
-                                    <span className="text-sm text-blue-600 underline truncate">Otwórz certyfikat</span>
-                                </a>
+                                <div className="flex gap-2">
+                                    <a
+                                        href={formData.certificateUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex flex-1 items-center gap-2 rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
+                                    >
+                                        <ImageIcon className="h-5 w-5 text-blue-500 shrink-0" />
+                                        <span className="text-sm text-blue-600 underline truncate">Otwórz</span>
+                                    </a>
+                                    <Button type="button" variant="outline" className="h-auto px-3 shrink-0" onClick={handleCertDownload} title="Pobierz">
+                                        <Download className="h-5 w-5 text-green-600" />
+                                    </Button>
+                                </div>
                                 <div className="flex gap-2">
                                     <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => certInputRef.current?.click()} disabled={isUploading}>
                                         <Upload className="mr-2 h-4 w-4" />Zmień
