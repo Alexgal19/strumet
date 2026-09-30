@@ -308,6 +308,44 @@
     animation: demand-flash 0.9s ease-in-out 3;
   }
 
+  /* ===== MAKSYMALNY KONTRAST TEKSTU — tylko jasny motyw (Latte) =====
+     Jasne odcienie *-300/400/500/600 są projektowane na ciemne tła i na białym
+     są nieczytelne. W jasnym motywie podbijamy je do 700/800 (kontrast ~5:1+).
+     Hue zostaje — semantyka (czerwień=zło, zieleń=ok) jest zachowana. */
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-emerald-300, .text-emerald-400, .text-emerald-500, .text-emerald-600) {
+    color: #047857;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-green-300, .text-green-400, .text-green-500, .text-green-600) {
+    color: #15803d;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-red-300, .text-red-400, .text-red-500, .text-red-600) {
+    color: #b91c1c;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-amber-400, .text-amber-500, .text-amber-600) {
+    color: #92400e;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-yellow-400, .text-yellow-500) {
+    color: #854d0e;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-orange-400, .text-orange-500, .text-orange-600) {
+    color: #9a3412;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-blue-400, .text-blue-500, .text-blue-600) {
+    color: #1d4ed8;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-sky-500) {
+    color: #0369a1;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-teal-500) {
+    color: #0f766e;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-pink-400, .text-pink-600) {
+    color: #be185d;
+  }
+  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-violet-400, .text-violet-600) {
+    color: #6d28d9;
+  }
+
   @media print {
     .animate-vacation-blink { animation: none !important; background-color: hsl(var(--accent) / 0.15) !important; }
     .animate-absence-blink { animation: none !important; background-color: hsl(var(--destructive) / 0.15) !important; }

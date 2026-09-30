@@ -329,10 +329,10 @@ export function HarmonogramView({
                     {totals.currentMonthArrivals.map(arr => (
                       <div key={arr.id} className="flex flex-col gap-0.5 rounded-md p-2 hover:bg-muted/50 text-sm">
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold text-emerald-600">{format(new Date(arr.date), 'dd.MM')}</span>
-                          <span className="font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded text-xs">{arr.count} os.</span>
+                          <span className="font-bold text-foreground">{format(new Date(arr.date), 'dd.MM')}</span>
+                          <span className="font-bold bg-foreground text-background px-2 py-0.5 rounded text-xs">{arr.count} os.</span>
                         </div>
-                        <span className="text-muted-foreground text-xs">{arr.jobTitle} <span className="opacity-50">({arr.department})</span></span>
+                        <span className="text-foreground text-xs">{arr.jobTitle} <span className="opacity-70">({arr.department})</span></span>
                       </div>
                     ))}
                   </div>
@@ -355,10 +355,10 @@ export function HarmonogramView({
                     {totals.upcomingArrivals.map(arr => (
                       <div key={arr.id} className="flex flex-col gap-0.5 rounded-md p-2 hover:bg-muted/50 text-sm">
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold text-violet-600 dark:text-violet-400">{format(new Date(arr.date), 'dd.MM.yyyy')}</span>
-                          <span className="font-medium bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 px-2 py-0.5 rounded text-xs">{arr.count} os.</span>
+                          <span className="font-bold text-foreground">{format(new Date(arr.date), 'dd.MM.yyyy')}</span>
+                          <span className="font-bold bg-foreground text-background px-2 py-0.5 rounded text-xs">{arr.count} os.</span>
                         </div>
-                        <span className="text-muted-foreground text-xs">{arr.jobTitle} <span className="opacity-50">({arr.department})</span></span>
+                        <span className="text-foreground text-xs">{arr.jobTitle} <span className="opacity-70">({arr.department})</span></span>
                       </div>
                     ))}
                   </div>
