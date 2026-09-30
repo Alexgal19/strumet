@@ -590,6 +590,22 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                     >
                                       Dodaj
                                     </Button>
+                                    {(newArrivalDate[key] || newArrivalCount[key]) && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        title="Anuluj wpisywanie"
+                                        aria-label="Anuluj wpisywanie"
+                                        className="h-8 w-8 shrink-0 text-muted-foreground"
+                                        onClick={() => {
+                                          setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
+                                          setNewArrivalCount(prev => ({ ...prev, [key]: '' }));
+                                        }}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    )}
                                   </div>
                                   {!isAdmin && (
                                     <p className="text-[11px] text-muted-foreground">
