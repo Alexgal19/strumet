@@ -91,3 +91,41 @@ export function arrivalStatus(arrival: HistoriaArrival, matchedCount: number): A
   if (matchedCount > 0) return 'partial';
   return 'missing';
 }
+
+export interface TransferRecord {
+  employeeId: string;
+  fullName: string;
+  fromDepartment: string;
+  fromJobTitle: string;
+  toDepartment: string;
+  toJobTitle: string;
+  date: string; // yyyy-mm-dd
+  at?: string;
+  by?: string;
+}
+
+export interface TransferMatch {
+  fullName: string;
+  date: string;
+  fromDepartment: string;
+}
+
+/** Przeniesienia NA dane stanowisko w oknie wokół daty przyjęcia. */
+export function matchTransfers(
+  arrival: HistoriaArrival,
+  transfers: TransferRecord[],
+  windowBeforeDays: number = HIRE_WINDOW_BEFORE_DAYS,
+  windowAfterDays: number = HIRE_WINDOW_AFTER_DAYS
+): TransferMatch[] {
+  const from = addDaysYmd(arrival.date, -windowBeforeDays);
+  const to = addDaysYmd(arrival.date, windowAfterDays);
+  if (!from || !to) return [];
+  return transfers
+    .filter(t =>
+      t.toDepartment === arrival.department &&
+      t.toJobTitle === arrival.jobTitle &&
+      typeof t.date === 'string' && t.date >= from && t.date <= to
+    )
+    .map(t => ({ fullName: t.fullName, date: t.date, fromDepartment: t.fromDepartment }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.fullName.localeCompare(b.fullName, 'pl'));
+}

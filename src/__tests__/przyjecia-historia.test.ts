@@ -1,9 +1,11 @@
 import {
   arrivalStatus,
   matchHires,
+  matchTransfers,
   splitArrivals,
   type HistoriaArrival,
   type HistoriaEmployee,
+  type TransferRecord,
 } from '@/lib/przyjecia-historia';
 
 const arr = (id: string, date: string, count = 2): HistoriaArrival => ({
@@ -80,6 +82,38 @@ describe('przyjecia-historia', () => {
       expect(arrivalStatus(arr('1', '2026-09-10', 3), 5)).toBe('done');
       expect(arrivalStatus(arr('1', '2026-09-10', 2), 1)).toBe('partial');
       expect(arrivalStatus(arr('1', '2026-09-10', 2), 0)).toBe('missing');
+    });
+  });
+
+  describe('matchTransfers', () => {
+    const arrival = arr('1', '2026-09-10', 2);
+    const tr = (name: string, date: string, toDept = 'DZIAŁ_A', toJob = 'Szlifierz'): TransferRecord => ({
+      employeeId: 'e1',
+      fullName: name,
+      fromDepartment: 'DZIAŁ_B',
+      fromJobTitle: 'Inne',
+      toDepartment: toDept,
+      toJobTitle: toJob,
+      date,
+    });
+
+    it('dopasowuje transfery w oknie dat', () => {
+      const matched = matchTransfers(arrival, [
+        tr('Jan Kowalski', '2026-09-11'),
+        tr('Ewa Nowak', '2026-09-03'),
+        tr('Inny Dział', '2026-09-12', 'DZIAŁ_C'),
+      ]);
+      expect(matched.map(m => m.fullName)).toEqual(['Ewa Nowak', 'Jan Kowalski']);
+      expect(matched[1].fromDepartment).toBe('DZIAŁ_B');
+    });
+
+    it('poza oknem i uszkodzona data odpadają', () => {
+      const matched = matchTransfers(arrival, [
+        tr('Za Wcześnie', '2026-09-02'),
+        tr('Za Późno', '2026-09-25'),
+        tr('Zła Data', 'nie-data'),
+      ]);
+      expect(matched).toEqual([]);
     });
   });
 });

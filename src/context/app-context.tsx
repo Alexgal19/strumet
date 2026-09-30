@@ -683,6 +683,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
             if (id) {
                 await set(ref(db, `employees/${id}`), finalData);
+                // Dziennik transferów: zmiana działu lub stanowiska (best effort — nigdy nie blokuje zapisu).
+                const prev = employees.find(e => e.id === id);
+                const fromDept = prev?.department || '';
+                const fromJob = prev?.jobTitle || '';
+                const toDept = (dataToSave as { department?: string }).department || '';
+                const toJob = (dataToSave as { jobTitle?: string }).jobTitle || '';
+                if ((fromDept && fromDept !== toDept) || (fromJob && fromJob !== toJob)) {
+                    try {
+                        await push(ref(db, 'transfery'), {
+                            employeeId: id,
+                            fullName: finalData.fullName || '',
+                            fromDepartment: fromDept,
+                            fromJobTitle: fromJob,
+                            toDepartment: toDept,
+                            toJobTitle: toJob,
+                            date: format(new Date(), 'yyyy-MM-dd'),
+                            at: new Date().toISOString(),
+                            by: currentUser?.email || 'nieznany',
+                        });
+                    } catch (transferError) {
+                        console.error('[transfery] Error:', transferError);
+                    }
+                }
                 toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
                 void logAudit('Aktualizacja pracownika', finalData.fullName || id);
             } else {
@@ -697,7 +720,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
             return false;
         }
-    }, [services, toast, logAudit]);
+    }, [services, toast, logAudit, employees, currentUser]);
 
     const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
         if (!services) return false;

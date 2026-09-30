@@ -12,13 +12,14 @@ export async function GET() {
   try {
     const db = getAdminApp().database();
 
-    const [employeesSnap, absencesSnap, recruitmentSnap, potrzebyObsadySnap, planowanePrzyjeciaSnap, komentarzeSnap] = await Promise.all([
+    const [employeesSnap, absencesSnap, recruitmentSnap, potrzebyObsadySnap, planowanePrzyjeciaSnap, komentarzeSnap, transferySnap] = await Promise.all([
       db.ref('employees').once('value'),
       db.ref('absences').once('value'),
       db.ref('recruitment').once('value'), 
       db.ref('potrzebyObsady').once('value'),
       db.ref('planowanePrzyjecia').once('value'),
       db.ref('komentarzeZapotrzebowania').once('value'),
+      db.ref('transfery').once('value'),
     ]);
 
     const employeesRaw = employeesSnap.val() ?? {};
@@ -126,6 +127,7 @@ export async function GET() {
       potrzebyByManager,
       planowanePrzyjecia,
       komentarzeZapotrzebowania: (komentarzeSnap.val() ?? {}) as HarmonogramData['komentarzeZapotrzebowania'],
+      transfery: (transferySnap.val() ?? {}) as HarmonogramData['transfery'],
     };
 
     return NextResponse.json(data, {

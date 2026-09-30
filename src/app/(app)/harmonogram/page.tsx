@@ -16,7 +16,7 @@ import { ref as dbRef, update, push, set, remove } from 'firebase/database';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { commentKey, MAX_COMMENT_LEN } from '@/lib/komentarze-validation';
-import { arrivalStatus, matchHires, splitArrivals, type HistoriaEmployee } from '@/lib/przyjecia-historia';
+import { arrivalStatus, matchHires, matchTransfers, splitArrivals, type HistoriaEmployee, type TransferRecord } from '@/lib/przyjecia-historia';
 
 export default function PlanowaniePage() {
   const { isLoading: isAuthLoading } = useAppContext();
@@ -831,9 +831,12 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
     jobTitle: e.jobTitle,
     hireDate: e.hireDate,
   }));
+  const transfers: TransferRecord[] = Object.values(data.transfery || {});
   const rows = past.map(a => {
-    const matched = matchHires(a, employees);
-    return { arrival: a, matched, status: arrivalStatus(a, matched.length) };
+    const hired = matchHires(a, employees);
+    const moved = matchTransfers(a, transfers);
+    const names = new Set([...hired.map(h => h.fullName), ...moved.map(m => m.fullName)]);
+    return { arrival: a, hired, moved, status: arrivalStatus(a, names.size) };
   });
 
   const doneCount = rows.filter(r => r.status === 'done').length;
@@ -888,7 +891,7 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
         )}
       </div>
       <p className="text-xs text-muted-foreground">
-        Weryfikacja po dacie zatrudnienia (okno −7 / +14 dni od planowanej daty).
+        Weryfikacja po dacie zatrudnienia i transferach (okno −7 / +14 dni od planowanej daty).
       </p>
 
       {rows.length === 0 ? (
@@ -906,9 +909,10 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
                 <CardTitle className="text-base truncate">{dept}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5">
-                {deptRows.map(({ arrival: a, matched, status }) => {
+                {deptRows.map(({ arrival: a, hired, moved, status }) => {
                   const expKey = `hist|${a.id}`;
                   const isOpen = !!expanded[expKey];
+                  const totalMatched = new Set([...hired.map(h => h.fullName), ...moved.map(m => m.fullName)]).size;
                   return (
                     <div key={a.id} className="rounded-md border bg-background/50 px-3 py-2 text-sm">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -916,7 +920,7 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
                           type="button"
                           onClick={() => setExpanded(prev => ({ ...prev, [expKey]: !prev[expKey] }))}
                           aria-expanded={isOpen}
-                          title={matched.length > 0 ? 'Pokaż zatrudnionych' : undefined}
+                          title={totalMatched > 0 ? 'Pokaż zatrudnionych i transfery' : undefined}
                           className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
                         >
                           <span className="text-xs">
@@ -929,7 +933,7 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
                             <Badge variant="outline" className="border-emerald-500/60 text-emerald-700 dark:text-emerald-400 text-xs">Zrealizowane</Badge>
                           )}
                           {status === 'partial' && (
-                            <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-xs">Częściowo {matched.length}/{a.count}</Badge>
+                            <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-xs">Częściowo {totalMatched}/{a.count}</Badge>
                           )}
                           {status === 'missing' && (
                             <Badge variant="destructive" className="text-xs">Niezrealizowane</Badge>
@@ -943,15 +947,23 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
                       </div>
                       {isOpen && (
                         <ul className="mt-1.5 space-y-0.5 border-t pt-1.5 text-xs">
-                          {matched.length === 0 ? (
-                            <li className="text-muted-foreground">Brak dopasowanych zatrudnień w oknie dat.</li>
+                          {hired.length === 0 && moved.length === 0 ? (
+                            <li className="text-muted-foreground">Brak dopasowanych zatrudnień ani transferów w oknie dat.</li>
                           ) : (
-                            matched.map(m => (
-                              <li key={m.fullName} className="flex items-center justify-between gap-2">
-                                <span className="font-medium">{m.fullName}</span>
-                                <span className="text-muted-foreground">zatr. {format(new Date(m.hireDate), 'dd.MM.yyyy')}</span>
-                              </li>
-                            ))
+                            <>
+                              {hired.map(m => (
+                                <li key={`h-${m.fullName}`} className="flex items-center justify-between gap-2">
+                                  <span className="font-medium">{m.fullName}</span>
+                                  <span className="text-muted-foreground">zatr. {format(new Date(m.hireDate), 'dd.MM.yyyy')}</span>
+                                </li>
+                              ))}
+                              {moved.map(m => (
+                                <li key={`t-${m.fullName}-${m.date}`} className="flex items-center justify-between gap-2">
+                                  <span className="font-medium">🔀 {m.fullName}</span>
+                                  <span className="text-muted-foreground">transfer z {m.fromDepartment} • {format(new Date(m.date), 'dd.MM.yyyy')}</span>
+                                </li>
+                              ))}
+                            </>
                           )}
                         </ul>
                       )}
