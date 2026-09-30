@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2, Pencil, Check, X, ChevronDown, Plus } from 'lucide-react';
+import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2, Pencil, Check, X, ChevronDown, Plus, History } from 'lucide-react';
 import { startOfDay, format } from 'date-fns';
 import { useAppContext } from '@/context/app-context';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { ref as dbRef, update, push, set, remove } from 'firebase/database';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { commentKey, MAX_COMMENT_LEN } from '@/lib/komentarze-validation';
+import { arrivalStatus, matchHires, splitArrivals, type HistoriaEmployee } from '@/lib/przyjecia-historia';
 
 export default function PlanowaniePage() {
   const { isLoading: isAuthLoading } = useAppContext();
@@ -34,7 +35,7 @@ export default function PlanowaniePage() {
 function PublicPlanowanieView() {
   const [data, setData] = useState<HarmonogramData | null>(null);
   const [error, setError] = useState(false);
-  const [view, setView] = useState<'harmonogram' | 'zapotrzebowania'>('harmonogram');
+  const [view, setView] = useState<'harmonogram' | 'zapotrzebowania' | 'historia'>('harmonogram');
   const { isAdmin } = useAppContext();
 
   useEffect(() => {
@@ -110,6 +111,19 @@ function PublicPlanowanieView() {
                 >
                   Zapotrzebowania
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={view === 'historia' ? 'default' : 'ghost'}
+                  className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
+                  onClick={() => setView('historia')}
+                >
+                  Historia{(() => {
+                    const t = format(new Date(), 'yyyy-MM-dd');
+                    const n = data ? Object.values(data.planowanePrzyjecia || {}).filter(p => p.date && p.date < t).length : 0;
+                    return n > 0 ? ` (${n})` : '';
+                  })()}
+                </Button>
               </div>
             </div>
 
@@ -120,8 +134,10 @@ function PublicPlanowanieView() {
                 isAdmin={isAdmin} 
                 onUpdatePotrzeby={handleUpdatePotrzeby} 
               />
-            ) : (
+            ) : view === 'zapotrzebowania' ? (
               <PublicZapotrzebowaniaView data={data} setData={setData} />
+            ) : (
+              <HistoriaPrzyjec data={data} setData={setData} />
             )}
           </div>
         </>
@@ -315,6 +331,8 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     if (flashTimer.current) clearTimeout(flashTimer.current);
   }, []);
 
+  const todayYmd = format(new Date(), 'yyyy-MM-dd');
+
   const getMissing = (dept: string, jobTitle: string) => {
     const jobs = jobTitlesByDept.get(dept);
     const job = jobs?.find(j => j.jobTitle === jobTitle);
@@ -324,7 +342,8 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
 
   const getPlannedForJob = (dept: string, jobTitle: string) => {
     if (!data.planowanePrzyjecia) return [];
-    return Object.values(data.planowanePrzyjecia).filter(p => p.department === dept && p.jobTitle === jobTitle);
+    // W Zapotrzebowania tylko nadchodzące (data >= dziś); minione trafiają do Historii.
+    return Object.values(data.planowanePrzyjecia).filter(p => p.department === dept && p.jobTitle === jobTitle && (!p.date || p.date >= todayYmd));
   };
 
   const getPlannedTotalForJob = (dept: string, jobTitle: string) => {
@@ -340,7 +359,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     });
   });
 
-  const totalPlanned = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).reduce((sum, p) => sum + p.count, 0) : 0;
+  const totalPlanned = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).filter(p => !p.date || p.date >= todayYmd).reduce((sum, p) => sum + p.count, 0) : 0;
 
   const handleAddArrival = async (dept: string, jobTitle: string) => {
     const key = `${dept}|${jobTitle}`;
@@ -795,5 +814,155 @@ function PositionComment({ saved, draft, isEditing, onStartEdit, onDraftChange, 
     <Button type="button" variant="ghost" size="sm" className="mt-1 h-7 gap-1 text-xs text-muted-foreground" onClick={onStartEdit}>
       <Plus className="h-3 w-3" /> Dodaj komentarz
     </Button>
+  );
+}
+
+/** Historia minionych przyjęć (data < dziś) z weryfikacją, czy osoby faktycznie doszły. */
+function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>> }) {
+  const { isAdmin } = useAppContext();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const todayYmd = format(new Date(), 'yyyy-MM-dd');
+
+  const arrivals = Object.values(data.planowanePrzyjecia || {});
+  const { past } = splitArrivals(arrivals, todayYmd);
+  const employees: HistoriaEmployee[] = (data.employees || []).map(e => ({
+    fullName: e.fullName,
+    department: e.department,
+    jobTitle: e.jobTitle,
+    hireDate: e.hireDate,
+  }));
+  const rows = past.map(a => {
+    const matched = matchHires(a, employees);
+    return { arrival: a, matched, status: arrivalStatus(a, matched.length) };
+  });
+
+  const doneCount = rows.filter(r => r.status === 'done').length;
+  const partialCount = rows.filter(r => r.status === 'partial').length;
+  const missingCount = rows.filter(r => r.status === 'missing').length;
+
+  const byDept = new Map<string, typeof rows>();
+  rows.forEach(r => {
+    const list = byDept.get(r.arrival.department) ?? [];
+    list.push(r);
+    byDept.set(r.arrival.department, list);
+  });
+
+  const handleRemove = async (id: string) => {
+    if (!isAdmin) return;
+    const db = getDB();
+    if (!db) return;
+    try {
+      await remove(dbRef(db, `planowanePrzyjecia/${id}`));
+      setData(prev => {
+        if (!prev) return prev;
+        const current = { ...(prev.planowanePrzyjecia || {}) };
+        delete current[id];
+        return { ...prev, planowanePrzyjecia: current };
+      });
+    } catch (err) {
+      console.error('Failed to remove arrival:', err);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 pb-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
+          <History className="h-4 w-4" />
+          Minione przyjęcia: {rows.length}
+        </Badge>
+        {doneCount > 0 && (
+          <Badge variant="outline" className="gap-1.5 border-emerald-500/60 px-3 py-1.5 text-sm text-emerald-700 tabular-nums dark:text-emerald-400">
+            Zrealizowane: {doneCount}
+          </Badge>
+        )}
+        {partialCount > 0 && (
+          <Badge variant="outline" className="gap-1.5 border-amber-500/60 px-3 py-1.5 text-sm text-amber-700 tabular-nums dark:text-amber-400">
+            Częściowo: {partialCount}
+          </Badge>
+        )}
+        {missingCount > 0 && (
+          <Badge variant="destructive" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
+            Niezrealizowane: {missingCount}
+          </Badge>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Weryfikacja po dacie zatrudnienia (okno −7 / +14 dni od planowanej daty).
+      </p>
+
+      {rows.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            <History className="mx-auto mb-3 h-8 w-8 opacity-40" />
+            Brak historii — minione przyjęcia pojawią się tutaj automatycznie.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {Array.from(byDept.entries()).sort(([a], [b]) => a.localeCompare(b, 'pl')).map(([dept, deptRows]) => (
+            <Card key={dept}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base truncate">{dept}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                {deptRows.map(({ arrival: a, matched, status }) => {
+                  const expKey = `hist|${a.id}`;
+                  const isOpen = !!expanded[expKey];
+                  return (
+                    <div key={a.id} className="rounded-md border bg-background/50 px-3 py-2 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(prev => ({ ...prev, [expKey]: !prev[expKey] }))}
+                          aria-expanded={isOpen}
+                          title={matched.length > 0 ? 'Pokaż zatrudnionych' : undefined}
+                          className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
+                        >
+                          <span className="text-xs">
+                            📅 {format(new Date(a.date), 'dd.MM.yyyy')} — <strong>{a.jobTitle}</strong> — plan: <strong>{a.count} os.</strong>
+                          </span>
+                          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {status === 'done' && (
+                            <Badge variant="outline" className="border-emerald-500/60 text-emerald-700 dark:text-emerald-400 text-xs">Zrealizowane</Badge>
+                          )}
+                          {status === 'partial' && (
+                            <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-xs">Częściowo {matched.length}/{a.count}</Badge>
+                          )}
+                          {status === 'missing' && (
+                            <Badge variant="destructive" className="text-xs">Niezrealizowane</Badge>
+                          )}
+                          {isAdmin && (
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemove(a.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      {isOpen && (
+                        <ul className="mt-1.5 space-y-0.5 border-t pt-1.5 text-xs">
+                          {matched.length === 0 ? (
+                            <li className="text-muted-foreground">Brak dopasowanych zatrudnień w oknie dat.</li>
+                          ) : (
+                            matched.map(m => (
+                              <li key={m.fullName} className="flex items-center justify-between gap-2">
+                                <span className="font-medium">{m.fullName}</span>
+                                <span className="text-muted-foreground">zatr. {format(new Date(m.hireDate), 'dd.MM.yyyy')}</span>
+                              </li>
+                            ))
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
