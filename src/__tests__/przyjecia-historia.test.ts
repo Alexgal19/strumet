@@ -1,5 +1,6 @@
 import {
   arrivalStatus,
+  isPendingTermination,
   matchHires,
   matchTransfers,
   splitArrivals,
@@ -82,6 +83,25 @@ describe('przyjecia-historia', () => {
       expect(arrivalStatus(arr('1', '2026-09-10', 3), 5)).toBe('done');
       expect(arrivalStatus(arr('1', '2026-09-10', 2), 1)).toBe('partial');
       expect(arrivalStatus(arr('1', '2026-09-10', 2), 0)).toBe('missing');
+    });
+  });
+
+  describe('isPendingTermination', () => {
+    const TODAY = new Date(2026, 8, 30).getTime(); // 30.09.2026 00:00
+    it('zwolniony z dzisiejszą datą już NIE zwalnia', () => {
+      expect(isPendingTermination('zwolniony', '2026-09-30', '2026-09-30', TODAY)).toBe(false);
+    });
+    it('zwolniony z przyszłą datą już NIE zwalnia', () => {
+      expect(isPendingTermination('zwolniony', '2026-10-05', undefined, TODAY)).toBe(false);
+    });
+    it('aktywny z dzisiejszą/przyszłą datą zwalnia', () => {
+      expect(isPendingTermination('aktywny', '2026-09-30', undefined, TODAY)).toBe(true);
+      expect(isPendingTermination('aktywny', undefined, '2026-10-05', TODAY)).toBe(true);
+    });
+    it('aktywny z przeszłą datą / bez daty nie zwalnia', () => {
+      expect(isPendingTermination('aktywny', '2026-09-29', undefined, TODAY)).toBe(false);
+      expect(isPendingTermination('aktywny', undefined, undefined, TODAY)).toBe(false);
+      expect(isPendingTermination('aktywny', 'nie-data', undefined, TODAY)).toBe(false);
     });
   });
 

@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { parseMaybeDate } from '@/lib/date';
 
 /**
@@ -90,6 +90,26 @@ export function arrivalStatus(arrival: HistoriaArrival, matchedCount: number): A
   if (matchedCount >= arrival.count) return 'done';
   if (matchedCount > 0) return 'partial';
   return 'missing';
+}
+
+/**
+ * Czy osoba faktycznie DOPINGO odejdzie (liczy się do "zwalnia")?
+ * Już zwolniony = już odszedł — nie liczy się, nawet gdy terminationDate == dziś.
+ */
+export function isPendingTermination(
+  status: string | undefined,
+  terminationDate: string | undefined,
+  plannedTerminationDate: string | undefined,
+  todayMs: number
+): boolean {
+  if (status === 'zwolniony') return false;
+  const day = (s?: string) => {
+    const d = s ? parseMaybeDate(s) : null;
+    return d ? startOfDay(d).getTime() : NaN;
+  };
+  const t = day(terminationDate);
+  const p = day(plannedTerminationDate);
+  return (!Number.isNaN(t) && t >= todayMs) || (!Number.isNaN(p) && p >= todayMs);
 }
 
 export interface TransferRecord {

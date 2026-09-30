@@ -2,6 +2,7 @@ export function getPotrzebyKey(dept: string, mgr: string, job: string) { return 
 import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
 import { pl as plLocale } from 'date-fns/locale';
 import { parseMaybeDate } from '@/lib/date';
+import { isPendingTermination } from '@/lib/przyjecia-historia';
 
 export interface HarmonogramEmployee {
   department: string;
@@ -55,6 +56,7 @@ export interface HarmonogramEmployeeRow {
   jobTitle: string;
   manager: string;
   department: string;
+  status: string;
   hireDate?: string;
   terminationDate?: string;
   plannedTerminationDate?: string;
@@ -341,6 +343,7 @@ export function buildHarmonogram(
                   jobTitle,
                   manager: mgrName,
                   department: dept,
+                  status: e.status ?? '',
                   hireDate: e.hireDate,
                   terminationDate: e.terminationDate,
                   plannedTerminationDate: e.plannedTerminationDate,
@@ -355,8 +358,7 @@ export function buildHarmonogram(
             const toRecruit = toRecruitByDeptJob.get(`${dept}|${jobTitle}`) ?? 0;
             const termCount = employeeRows.filter(
               emp =>
-                (emp.terminationDate && parseSafeDate(emp.terminationDate)! >= today) ||
-                (emp.plannedTerminationDate && parseSafeDate(emp.plannedTerminationDate)! >= today)
+                isPendingTermination(emp.status, emp.terminationDate, emp.plannedTerminationDate, today.getTime())
             ).length;
             const explicitPotrzeby = data.potrzebyByManager?.[getPotrzebyKey(dept, mgrName, jobTitle)];
             const posPotrzeby = explicitPotrzeby !== undefined 

@@ -165,9 +165,12 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
             current.obecnie += posRow.obecnie;
             current.potrzeby += posRow.potrzeby;
             
-            posRow.employees.forEach(empRow => {
+             posRow.employees.forEach(empRow => {
                const emp = empRow;
                let termDateStr = '';
+
+               // Zwolnieni już odeszli — nie liczą się jako planowane zwolnienia.
+               if (emp.status === 'zwolniony') return;
 
                if (emp.terminationDate) {
                  const t = new Date(emp.terminationDate).getTime();
