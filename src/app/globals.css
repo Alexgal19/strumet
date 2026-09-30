@@ -317,6 +317,15 @@
     animation: guide-pulse 1.2s ease-in-out infinite;
   }
 
+  /* Czerwone pulsowanie ramki bloku z brakami (nieskończone, łagodne) */
+  @keyframes missing-flash {
+    0%, 100% { border-color: hsl(var(--border)); box-shadow: 0 0 0 0 hsl(var(--destructive) / 0); }
+    50% { border-color: hsl(var(--destructive) / 0.65); box-shadow: 0 0 0 3px hsl(var(--destructive) / 0.22); }
+  }
+  .missing-flash {
+    animation: missing-flash 1.6s ease-in-out infinite;
+  }
+
   /* ===== MAKSYMALNY KONTRAST TEKSTU — tylko jasny motyw (Latte) =====
      Jasne odcienie *-300/400/500/600 są projektowane na ciemne tła i na białym
      są nieczytelne. W jasnym motywie podbijamy je do 700/800 (kontrast ~5:1+).

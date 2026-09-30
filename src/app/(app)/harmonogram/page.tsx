@@ -16,6 +16,7 @@ import { ref as dbRef, update, push, set, remove } from 'firebase/database';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { commentKey, MAX_COMMENT_LEN } from '@/lib/komentarze-validation';
+import { forecastShortage } from '@/lib/braki-prognoza';
 import { arrivalStatus, matchHires, matchTransfers, splitArrivals, type HistoriaEmployee, type TransferRecord } from '@/lib/przyjecia-historia';
 
 export default function PlanowaniePage() {
@@ -540,12 +541,10 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
             const deptMissing = jobs.reduce((sum, job) => sum + getMissing(dept, job.jobTitle), 0);
             const deptPlanned = jobs.reduce((sum, job) => sum + getPlannedTotalForJob(dept, job.jobTitle), 0);
             const netMissing = Math.max(0, deptMissing - deptPlanned);
-            
-            const visibleJobs = jobs.filter(job => getMissing(dept, job.jobTitle) > 0 || getPlannedForJob(dept, job.jobTitle).length > 0 || job.zwalniani.length > 0);
-            if (visibleJobs.length === 0) return null;
+            const deptNow = jobs.reduce((sum, job) => sum + Math.max(0, job.potrzeby - job.obecnie), 0);
 
             return (
-              <Card key={dept} className={flashDepts[dept] ? 'demand-flash' : undefined}>
+              <Card key={dept} className={flashDepts[dept] ? 'demand-flash' : netMissing > 0 ? 'missing-flash' : 'border-emerald-500/60'}>
                 <CardHeader className="pb-3">
                   <div className="space-y-2">
                     <div className="flex min-w-0 items-center gap-2">
@@ -554,10 +553,10 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                       {netMissing > 0 ? (
                         <Badge variant="destructive" className="tabular-nums text-xs font-semibold px-2 py-0.5">
-                          Brakuje: {netMissing}
+                          Brakuje: {netMissing} <span className="opacity-80 font-normal">(teraz: {deptNow})</span>
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400 text-xs">
+                        <Badge variant="outline" className="border-emerald-500/60 text-emerald-700 tabular-nums font-semibold dark:text-emerald-400 text-xs">
                           Komplet
                         </Badge>
                       )}
@@ -567,12 +566,12 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                 <CardContent className="space-y-4">
                   <div className="space-y-1.5">
                     <p className="text-xs font-medium text-muted-foreground">Stanowiska i braki:</p>
-                    {visibleJobs.length === 0 ? (
+                    {jobs.length === 0 ? (
                       <p className="rounded-md border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">
                         Brak stanowisk.
                       </p>
                     ) : (
-                      visibleJobs.map((job, i) => {
+                      jobs.map((job, i) => {
                         const jobMissing = getMissing(dept, job.jobTitle);
                         const jobPlanned = getPlannedForJob(dept, job.jobTitle);
                         const jobPlannedTotal = getPlannedTotalForJob(dept, job.jobTitle);
@@ -583,9 +582,10 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                         const potrzeby = job.potrzeby;
                         const obecnie = job.obecnie;
                         const zwalnia = job.zwalnia;
+                        const forecast = forecastShortage(potrzeby, obecnie, job.zwalniani, jobPlanned);
 
                         return (
-                          <div key={key} className="flex flex-col gap-2 rounded-md border bg-background/50 px-3 py-3 text-sm">
+                          <div key={key} className={`flex flex-col gap-2 rounded-md border bg-background/50 px-3 py-3 text-sm ${jobNetMissing > 0 ? 'border-red-500/40' : 'border-emerald-500/40'}`}>
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
                                 <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground hidden sm:block" />
@@ -600,6 +600,22 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                 )}
                               </div>
                             </div>
+
+                            {/* Prognoza braków w czasie — dla wszystkich (rekrutacja widzi KIEDY) */}
+                            {forecast.length > 1 && (
+                              <div className="flex flex-col gap-0.5 text-xs">
+                                {forecast.map((r, ri) => (
+                                  <div key={ri} className="flex items-center gap-1.5 text-muted-foreground">
+                                    <span aria-hidden="true">•</span>
+                                    {r.kind === 'now' ? (
+                                      <span>teraz brakuje: <strong className="text-foreground">{r.shortage}</strong></span>
+                                    ) : (
+                                      <span>od {format(new Date(r.date), 'dd.MM.yyyy')}: brakuje <strong className="text-foreground">{r.shortage}</strong></span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
 
                             {/* Planowane przyjęcia i zwolnienia — podgląd dla wszystkich, edycja tylko dla admina */}
                             {(jobMissing > 0 || jobPlanned.length > 0 || job.zwalniani.length > 0) && (
