@@ -544,7 +544,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
             const deptNow = jobs.reduce((sum, job) => sum + Math.max(0, job.potrzeby - job.obecnie), 0);
 
             return (
-              <Card key={dept} className={flashDepts[dept] ? 'demand-flash' : netMissing > 0 ? 'missing-flash' : 'border-emerald-500/60'}>
+              <Card key={dept} className={flashDepts[dept] ? 'demand-flash' : netMissing === 0 ? 'border-emerald-500/60' : deptNow > 0 ? 'missing-flash' : 'border-red-500/40'}>
                 <CardHeader className="pb-3">
                   <div className="space-y-2">
                     <div className="flex min-w-0 items-center gap-2">
