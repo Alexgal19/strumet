@@ -308,6 +308,15 @@
     animation: demand-flash 0.9s ease-in-out 3;
   }
 
+  /* Podpowiedź kolejnego kroku: pulsowanie pola Ilość, gdy data już wpisana */
+  @keyframes guide-pulse {
+    0%, 100% { border-color: hsl(var(--input)); box-shadow: 0 0 0 0 hsl(var(--ring) / 0); }
+    50% { border-color: hsl(var(--ring)); box-shadow: 0 0 0 3px hsl(var(--ring) / 0.35); }
+  }
+  .guide-pulse {
+    animation: guide-pulse 1.2s ease-in-out infinite;
+  }
+
   /* ===== MAKSYMALNY KONTRAST TEKSTU — tylko jasny motyw (Latte) =====
      Jasne odcienie *-300/400/500/600 są projektowane na ciemne tła i na białym
      są nieczytelne. W jasnym motywie podbijamy je do 700/800 (kontrast ~5:1+).

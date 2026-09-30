@@ -665,7 +665,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                       min="1"
                                       max="50"
                                       placeholder="Ilość"
-                                      className="h-8 w-20 text-xs"
+                                      className={`h-8 w-20 text-xs ${newArrivalDate[key] && !newArrivalCount[key] ? 'guide-pulse' : ''}`}
                                       value={newArrivalCount[key] || ''}
                                       onChange={e => setNewArrivalCount(prev => ({ ...prev, [key]: e.target.value }))}
                                     />
