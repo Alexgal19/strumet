@@ -82,18 +82,25 @@
     },
     "configPrivate": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
     "auditLog": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
       ".write": "auth != null",
       ".indexOn": ["at"]
+    },
+    "planowanePrzyjecia": {
+      ".read": "auth != null",
+      ".indexOn": ["department", "jobTitle", "date"]
+    },
+    "potrzebyObsady": {
+      ".read": "auth != null"
     },
     "fcmTokens": {
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
         ".write": "auth != null && auth.uid == $uid"
       }
-    },
-    ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
     },
     "notes": {
       ".read": "auth != null",

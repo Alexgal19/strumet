@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HarmonogramView } from '@/components/harmonogram-view';
 import { type HarmonogramData, buildHarmonogram } from '@/lib/harmonogram';
 import { getDB } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 import { ref as dbRef, update, push, set, remove } from 'firebase/database';
 import { Input } from '@/components/ui/input';
 
@@ -197,6 +198,7 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
 function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>> }) {
   const { jobTitlesByDept } = usePublicZapotrzebowaniaStats(data);
   const { isAdmin } = useAppContext();
+  const { toast } = useToast();
   
   const [newArrivalDate, setNewArrivalDate] = useState<Record<string, string>>({});
   const [newArrivalCount, setNewArrivalCount] = useState<Record<string, string>>({});
@@ -278,19 +280,13 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     const count = parseInt(newArrivalCount[key] || '0', 10);
     if (!date || count <= 0) return;
 
-    const db = getDB();
-    if (!db) return;
-
-    try {
-      const newRef = push(dbRef(db, 'planowanePrzyjecia'));
-      const arrivalData = {
-        department: dept,
-        jobTitle,
-        date,
-        count
-      };
-      await set(newRef, arrivalData);
-      
+    const arrivalData = {
+      department: dept,
+      jobTitle,
+      date,
+      count
+    };
+    const applyLocal = (id: string) => {
       setData(prev => {
         if (!prev) return prev;
         const current = prev.planowanePrzyjecia || {};
@@ -298,13 +294,55 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
           ...prev,
           planowanePrzyjecia: {
             ...current,
-            [newRef.key as string]: { id: newRef.key as string, ...arrivalData }
+            [id]: { id, ...arrivalData }
           }
         };
       });
-
       setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
       setNewArrivalCount(prev => ({ ...prev, [key]: '' }));
+    };
+
+    // Gość (także bez logowania) zapisuje przez publiczny API-rote — zapis/client-SDK jest dla niego zablokowany regułami.
+    if (!isAdmin) {
+      try {
+        const res = await fetch('/api/public/przyjecia', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(arrivalData),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          toast({
+            variant: 'destructive',
+            title: 'Nie zapisano',
+            description: json.error || 'Błąd zapisywania. Spróbuj ponownie.',
+          });
+          return;
+        }
+        applyLocal(json.id as string);
+        toast({
+          title: 'Zapisano',
+          description: `Przyjęcie: ${format(new Date(date), 'dd.MM.yyyy')} — ${count} os.`,
+        });
+      } catch (err) {
+        console.error('Failed to add arrival (guest):', err);
+        toast({
+          variant: 'destructive',
+          title: 'Nie zapisano',
+          description: 'Brak połączenia. Spróbuj ponownie.',
+        });
+      }
+      return;
+    }
+
+    // Admin — dotychczasowa ścieżka przez Client SDK (bez zmian).
+    const db = getDB();
+    if (!db) return;
+
+    try {
+      const newRef = push(dbRef(db, 'planowanePrzyjecia'));
+      await set(newRef, arrivalData);
+      applyLocal(newRef.key as string);
     } catch (err) {
       console.error('Failed to add arrival:', err);
     }
@@ -436,8 +474,8 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                               </div>
                             </div>
 
-                            {/* Planowane przyjęcia i zwolnienia */}
-                            {(jobMissing > 0 || jobPlanned.length > 0 || job.zwalniani.length > 0) && isAdmin && (
+                            {/* Planowane przyjęcia i zwolnienia — podgląd dla wszystkich, edycja tylko dla admina */}
+                            {(jobMissing > 0 || jobPlanned.length > 0 || job.zwalniani.length > 0) && (
                                 <div className="mt-2 flex flex-col gap-2 border-t pt-2">
                                   {job.zwalniani.length > 0 && (
                                     <div className="flex flex-col gap-1 mb-1">
@@ -479,9 +517,11 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                       {jobPlanned.map(p => (
                                         <div key={p.id} className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs">
                                           <span>📅 {format(new Date(p.date), 'dd.MM.yyyy')} — <strong>{p.count} os.</strong></span>
-                                          <Button type="button" variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleRemoveArrival(p.id)}>
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
+                                          {isAdmin && (
+                                            <Button type="button" variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleRemoveArrival(p.id)}>
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          )}
                                         </div>
                                       ))}
                                     </div>
@@ -489,6 +529,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                   <div className="flex items-center gap-2 mt-1">
                                     <Input
                                       type="date"
+                                      min={format(new Date(), 'yyyy-MM-dd')}
                                       className="h-8 text-xs flex-1"
                                       value={newArrivalDate[key] || ''}
                                       onChange={e => setNewArrivalDate(prev => ({ ...prev, [key]: e.target.value }))}
@@ -496,6 +537,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                     <Input
                                       type="number"
                                       min="1"
+                                      max="50"
                                       placeholder="Ilość"
                                       className="h-8 w-20 text-xs"
                                       value={newArrivalCount[key] || ''}
@@ -511,6 +553,11 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                       Dodaj
                                     </Button>
                                   </div>
+                                  {!isAdmin && (
+                                    <p className="text-[11px] text-muted-foreground">
+                                      Jako Gość możesz tylko dodawać przyjęcia. Usuwanie i edycja — dla administratora.
+                                    </p>
+                                  )}
                                 </div>
                             )}
                           </div>
