@@ -319,11 +319,22 @@
 
   /* Czerwone pulsowanie ramki bloku z brakami (nieskończone, łagodne) */
   @keyframes missing-flash {
-    0%, 100% { border-color: hsl(var(--border)); box-shadow: 0 0 0 0 hsl(var(--destructive) / 0); }
+    0%, 100% { border-color: hsl(var(--destructive) / 0.40); box-shadow: 0 0 0 0 hsl(var(--destructive) / 0); }
     50% { border-color: hsl(var(--destructive) / 0.65); box-shadow: 0 0 0 3px hsl(var(--destructive) / 0.22); }
   }
   .missing-flash {
     animation: missing-flash 1.6s ease-in-out infinite;
+  }
+
+  /* Dostępność: wyłącz nieskończone pulsacje dla prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    .guide-pulse,
+    .missing-flash,
+    .demand-flash,
+    .animate-vacation-blink,
+    .animate-absence-blink {
+      animation: none !important;
+    }
   }
 
   /* ===== MAKSYMALNY KONTRAST TEKSTU — tylko jasny motyw (Latte) =====
@@ -367,6 +378,7 @@
   @media print {
     .animate-vacation-blink { animation: none !important; background-color: hsl(var(--accent) / 0.15) !important; }
     .animate-absence-blink { animation: none !important; background-color: hsl(var(--destructive) / 0.15) !important; }
+    .guide-pulse, .missing-flash, .demand-flash { animation: none !important; }
   }
 }
 

@@ -17,7 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { commentKey, MAX_COMMENT_LEN } from '@/lib/komentarze-validation';
 import { forecastShortage } from '@/lib/braki-prognoza';
-import { arrivalStatus, matchHires, matchTransfers, splitArrivals, type HistoriaEmployee, type TransferRecord } from '@/lib/przyjecia-historia';
+import { arrivalStatus, isPendingTermination, matchHires, matchTransfers, splitArrivals, type HistoriaEmployee, type TransferRecord } from '@/lib/przyjecia-historia';
+import { formatYmdPl, toYmd } from '@/lib/date';
 
 export default function PlanowaniePage() {
   const { isLoading: isAuthLoading } = useAppContext();
@@ -166,24 +167,19 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
             current.potrzeby += posRow.potrzeby;
             
              posRow.employees.forEach(empRow => {
-               const emp = empRow;
-               let termDateStr = '';
+                const emp = empRow;
 
-               // Zwolnieni już odeszli — nie liczą się jako planowane zwolnienia.
-               if (emp.status === 'zwolniony') return;
+                // Єдина логіка з harmonogram.ts — через isPendingTermination + нормалізацію дат.
+                if (!isPendingTermination(emp.status, emp.terminationDate, emp.plannedTerminationDate, today)) return;
 
-               if (emp.terminationDate) {
-                 const t = new Date(emp.terminationDate).getTime();
-                 if (!isNaN(t) && t >= today) {
-                   termDateStr = emp.terminationDate;
-                 }
-               }
-               if (!termDateStr && emp.plannedTerminationDate) {
-                 const t = new Date(emp.plannedTerminationDate).getTime();
-                 if (!isNaN(t) && t >= today) {
-                   termDateStr = emp.plannedTerminationDate;
-                 }
-               }
+                // Вибираємо дату для групування (пріоритет: terminationDate, потім planned), нормалізовану до YMD.
+                const todayYmdStr = format(new Date(today), 'yyyy-MM-dd');
+                const tYmd = emp.terminationDate ? toYmd(emp.terminationDate) : null;
+                const pYmd = emp.plannedTerminationDate ? toYmd(emp.plannedTerminationDate) : null;
+                let termDateStr = '';
+                if (tYmd && tYmd >= todayYmdStr) termDateStr = tYmd;
+                else if (pYmd && pYmd >= todayYmdStr) termDateStr = pYmd;
+                else return;
 
                 if (termDateStr) {
                   current.zwalnia += 1;
@@ -200,7 +196,7 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
       });
       
       const arr = Array.from(jobsMap.entries()).map(([jobTitle, stats]) => {
-         const zwalniani = Array.from(stats.zwalnianiMap.entries()).map(([date, entry]) => ({ date, count: entry.count, names: [...entry.names].sort((a, b) => a.localeCompare(b, 'pl')) })).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          const zwalniani = Array.from(stats.zwalnianiMap.entries()).map(([date, entry]) => ({ date, count: entry.count, names: [...entry.names].sort((a, b) => a.localeCompare(b, 'pl')) })).sort((a,b) => a.date.localeCompare(b.date));
          return {
            jobTitle, 
            obecnie: stats.obecnie, 
@@ -344,10 +340,18 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     return Math.max(0, job.potrzeby - (job.obecnie - job.zwalnia));
   };
 
+  const isUpcomingArrival = (date?: string) => {
+    if (!date) return true;
+    const ymd = toYmd(date);
+    // Пошкоджену дату не губимо — як у splitArrivals.
+    if (!ymd) return true;
+    return ymd >= todayYmd;
+  };
+
   const getPlannedForJob = (dept: string, jobTitle: string) => {
     if (!data.planowanePrzyjecia) return [];
     // W Zapotrzebowania tylko nadchodzące (data >= dziś); minione trafiają do Historii.
-    return Object.values(data.planowanePrzyjecia).filter(p => p.department === dept && p.jobTitle === jobTitle && (!p.date || p.date >= todayYmd));
+    return Object.values(data.planowanePrzyjecia).filter(p => p.department === dept && p.jobTitle === jobTitle && isUpcomingArrival(p.date));
   };
 
   const getPlannedTotalForJob = (dept: string, jobTitle: string) => {
@@ -363,7 +367,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     });
   });
 
-  const totalPlanned = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).filter(p => !p.date || p.date >= todayYmd).reduce((sum, p) => sum + p.count, 0) : 0;
+  const totalPlanned = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).filter(p => isUpcomingArrival(p.date)).reduce((sum, p) => sum + p.count, 0) : 0;
 
   const handleAddArrival = async (dept: string, jobTitle: string) => {
     const key = `${dept}|${jobTitle}`;
@@ -413,7 +417,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
         applyLocal(json.id as string);
         toast({
           title: 'Zapisano',
-          description: `Przyjęcie: ${format(new Date(date), 'dd.MM.yyyy')} — ${count} os.`,
+          description: `Przyjęcie: ${formatYmdPl(date)} — ${count} os.`,
         });
       } catch (err) {
         console.error('Failed to add arrival (guest):', err);
@@ -470,7 +474,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
           }
           return { ...prev, planowanePrzyjecia: current };
         });
-        toast({ title: 'Zapisano', description: `Przyjęcie: ${format(new Date(json.date), 'dd.MM.yyyy')} — ${json.count} os.` });
+        toast({ title: 'Zapisano', description: `Przyjęcie: ${formatYmdPl(json.date)} — ${json.count} os.` });
       } catch (err) {
         console.error('Failed to update arrival (guest):', err);
         toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Brak połączenia. Spróbuj ponownie.' });
@@ -585,7 +589,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                         const potrzeby = job.potrzeby;
                         const obecnie = job.obecnie;
                         const zwalnia = job.zwalnia;
-                        const forecast = forecastShortage(potrzeby, obecnie, job.zwalniani, jobPlanned);
+                        const forecast = forecastShortage(potrzeby, obecnie, job.zwalniani, jobPlanned, todayYmd);
 
                         return (
                           <div key={key} className={`flex flex-col gap-2 rounded-md border bg-background/50 px-3 py-3 text-sm ${jobNetMissing > 0 ? 'border-red-500/40' : 'border-emerald-500/40'}`}>
@@ -613,7 +617,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                     {r.kind === 'now' ? (
                                       <span>teraz brakuje: <strong className="text-foreground">{r.shortage}</strong></span>
                                     ) : (
-                                      <span>od {format(new Date(r.date), 'dd.MM.yyyy')}: brakuje <strong className="text-foreground">{r.shortage}</strong></span>
+                                      <span>od {formatYmdPl(r.date)}: brakuje <strong className="text-foreground">{r.shortage}</strong></span>
                                     )}
                                   </div>
                                 ))}
@@ -638,7 +642,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                               title="Pokaż pracowników"
                                               className="flex w-full cursor-pointer items-center justify-between px-2 py-1 text-left text-red-700 dark:text-red-400"
                                             >
-                                              <span>📅 {format(new Date(z.date), 'dd.MM.yyyy')} — <strong>{z.count} os.</strong></span>
+                                              <span>📅 {formatYmdPl(z.date)} — <strong>{z.count} os.</strong></span>
                                               <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                                             </button>
                                             {expanded && (
@@ -770,7 +774,7 @@ function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpd
 
   return (
     <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs group">
-      <span>📅 {format(new Date(p.date), 'dd.MM.yyyy')} — <strong>{p.count} os.</strong></span>
+      <span>📅 {formatYmdPl(p.date)} — <strong>{p.count} os.</strong></span>
       <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
          <Button type="button" variant="ghost" size="icon" title="Edytuj" className="h-5 w-5 text-blue-600 hover:text-blue-700" onClick={() => setIsEditing(true)}>
            <Pencil className="h-3 w-3" />
@@ -943,7 +947,7 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
                           className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
                         >
                           <span className="text-xs">
-                            📅 {format(new Date(a.date), 'dd.MM.yyyy')} — <strong>{a.jobTitle}</strong> — plan: <strong>{a.count} os.</strong>
+                            📅 {formatYmdPl(a.date)} — <strong>{a.jobTitle}</strong> — plan: <strong>{a.count} os.</strong>
                           </span>
                           <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                         </button>
@@ -973,13 +977,13 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
                               {hired.map(m => (
                                 <li key={`h-${m.fullName}`} className="flex items-center justify-between gap-2">
                                   <span className="font-medium">{m.fullName}</span>
-                                  <span className="text-muted-foreground">zatr. {format(new Date(m.hireDate), 'dd.MM.yyyy')}</span>
+                                  <span className="text-muted-foreground">zatr. {formatYmdPl(m.hireDate)}</span>
                                 </li>
                               ))}
                               {moved.map(m => (
                                 <li key={`t-${m.fullName}-${m.date}`} className="flex items-center justify-between gap-2">
                                   <span className="font-medium">🔀 {m.fullName}</span>
-                                  <span className="text-muted-foreground">transfer z {m.fromDepartment} • {format(new Date(m.date), 'dd.MM.yyyy')}</span>
+                                  <span className="text-muted-foreground">transfer z {m.fromDepartment} • {formatYmdPl(m.date)}</span>
                                 </li>
                               ))}
                             </>

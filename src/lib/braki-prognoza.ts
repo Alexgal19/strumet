@@ -17,6 +17,8 @@ export interface ForecastRow {
   shortage: number;
 }
 
+import { toYmd } from '@/lib/date';
+
 function isValidYmd(s: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
   const [y, m, d] = s.split('-').map(Number);
@@ -24,11 +26,18 @@ function isValidYmd(s: string): boolean {
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
 }
 
+/** Нормалізує дату зміни до 'yyyy-MM-dd' (ISO, dd.MM.yyyy, Excel-серіал). Null = пропустити. */
+function normalizeChangeDate(s: string): string | null {
+  const ymd = toYmd(s);
+  return ymd && isValidYmd(ymd) ? ymd : null;
+}
+
 export function forecastShortage(
   potrzeby: number,
   obecnie: number,
   leaves: StaffChange[],
-  arrivals: StaffChange[]
+  arrivals: StaffChange[],
+  fromYmd?: string
 ): ForecastRow[] {
   const p = Number(potrzeby) || 0;
   let staff = Number(obecnie) || 0;
@@ -36,10 +45,16 @@ export function forecastShortage(
 
   const deltas = new Map<string, number>();
   leaves.forEach(l => {
-    if (isValidYmd(l.date)) deltas.set(l.date, (deltas.get(l.date) || 0) - (Number(l.count) || 0));
+    const ymd = normalizeChangeDate(l.date);
+    if (!ymd) return;
+    if (fromYmd && ymd < fromYmd) return;
+    deltas.set(ymd, (deltas.get(ymd) || 0) - (Number(l.count) || 0));
   });
   arrivals.forEach(a => {
-    if (isValidYmd(a.date)) deltas.set(a.date, (deltas.get(a.date) || 0) + (Number(a.count) || 0));
+    const ymd = normalizeChangeDate(a.date);
+    if (!ymd) return;
+    if (fromYmd && ymd < fromYmd) return;
+    deltas.set(ymd, (deltas.get(ymd) || 0) + (Number(a.count) || 0));
   });
 
   Array.from(deltas.entries())

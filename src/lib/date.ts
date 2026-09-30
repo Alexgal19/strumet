@@ -122,6 +122,101 @@ export function formatDateTime(
 }
 
 /**
+ * Normalizes various date inputs to 'yyyy-MM-dd' without timezone shift.
+ * - 'yyyy-MM-dd' or ISO datetime starting with it → first 10 chars (validated).
+ * - 'dd.MM.yyyy' → converted directly via string ops (no Date → no TZ shift).
+ * - Excel serial (number or numeric string) → UTC parts.
+ * - Date instance / other → local YMD via parseMaybeDate.
+ * Returns null when the value cannot be interpreted as a calendar date.
+ */
+export function toYmd(input: Date | string | number | null | undefined): string | null {
+  if (input === null || input === undefined) return null;
+  if (typeof input === 'string' && input.trim() === '') return null;
+
+  if (input instanceof Date) {
+    if (!isValid(input)) return null;
+    const y = input.getFullYear();
+    const m = String(input.getMonth() + 1).padStart(2, '0');
+    const d = String(input.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  if (typeof input === 'number') {
+    try {
+      const date = excelSerialToDate(input);
+      if (!isValid(date)) return null;
+      const y = date.getUTCFullYear();
+      const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(date.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    } catch {
+      return null;
+    }
+  }
+
+  const t = (input as string).trim();
+
+  // ISO / yyyy-MM-dd prefix — беремо перші 10 символів без конверсії через Date.
+  const isoMatch = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const ymd = t.slice(0, 10);
+    const [y, m, d] = ymd.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    if (dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d) {
+      return ymd;
+    }
+    return null;
+  }
+
+  // dd.MM.yyyy — пряма конверсія рядком, без Date.
+  const plMatch = t.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (plMatch) {
+    const [, dd, mm, yyyy] = plMatch;
+    const y = Number(yyyy);
+    const m = Number(mm);
+    const d = Number(dd);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    if (dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d) {
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    return null;
+  }
+
+  // Excel serial як рядок.
+  if (/^\d+(\.\d+)?$/.test(t)) {
+    try {
+      const date = excelSerialToDate(Number(t));
+      if (!isValid(date)) return null;
+      const y = date.getUTCFullYear();
+      const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(date.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    } catch {
+      return null;
+    }
+  }
+
+  // Fallback для інших рядків (напр. ISO з пробілом) — через parseMaybeDate, локальний YMD.
+  const parsed = parseMaybeDate(t);
+  if (!parsed) return null;
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, '0');
+  const d = String(parsed.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Formats a date-only value as 'dd.MM.yyyy' without timezone shift.
+ * For 'yyyy-MM-dd' / ISO / 'dd.MM.yyyy' works purely on strings.
+ */
+export function formatYmdPl(input: Date | string | number | null | undefined): string {
+  const ymd = toYmd(input);
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+/**
  * Checks if a value is a valid Date object.
  * @param input - The value to check.
  * @returns True if the input is a valid Date.

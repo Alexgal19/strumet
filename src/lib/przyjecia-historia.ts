@@ -1,5 +1,5 @@
 import { format, startOfDay } from 'date-fns';
-import { parseMaybeDate } from '@/lib/date';
+import { parseMaybeDate, toYmd as normalizeToYmd } from '@/lib/date';
 
 /**
  * Historia minionych przyjęć + heurystyka weryfikacji,
@@ -55,7 +55,13 @@ export function splitArrivals(
   const past: HistoriaArrival[] = [];
   arrivals.forEach(a => {
     // Uszkodzona data = nie gubimy wpisu, traktujemy jako nadchodzące.
-    if (!a.date || a.date >= todayYmd) upcoming.push(a);
+    // Порівнюємо нормалізований YMD, щоб dd.MM.yyyy та ISO-дати працювали однаково.
+    if (!a.date) {
+      upcoming.push(a);
+      return;
+    }
+    const ymd = normalizeToYmd(a.date);
+    if (!ymd || ymd >= todayYmd) upcoming.push(a);
     else past.push(a);
   });
   upcoming.sort((a, b) => a.date.localeCompare(b.date));
@@ -103,13 +109,15 @@ export function isPendingTermination(
   todayMs: number
 ): boolean {
   if (status === 'zwolniony') return false;
+  // Нормалізуємо todayMs до початку дня — функція коректна і для Date.now(), і для startOfDay.
+  const todayStart = startOfDay(new Date(todayMs)).getTime();
   const day = (s?: string) => {
     const d = s ? parseMaybeDate(s) : null;
     return d ? startOfDay(d).getTime() : NaN;
   };
   const t = day(terminationDate);
   const p = day(plannedTerminationDate);
-  return (!Number.isNaN(t) && t >= todayMs) || (!Number.isNaN(p) && p >= todayMs);
+  return (!Number.isNaN(t) && t >= todayStart) || (!Number.isNaN(p) && p >= todayStart);
 }
 
 export interface TransferRecord {
