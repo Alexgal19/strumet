@@ -349,6 +349,45 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   };
 
   const handleUpdateArrival = async (id: string, newDate: string, newCount: number) => {
+    if (!newDate || !Number.isInteger(newCount) || newCount <= 0) {
+      toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Podaj poprawną datę i liczbę osób.' });
+      return;
+    }
+
+    // Gość — przez publiczny API-rote (ta sama walidacja co przy dodawaniu).
+    if (!isAdmin) {
+      try {
+        const res = await fetch('/api/public/przyjecia', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, date: newDate, count: newCount }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          toast({
+            variant: 'destructive',
+            title: 'Nie zapisano',
+            description: json.error || 'Błąd zapisywania. Spróbuj ponownie.',
+          });
+          return;
+        }
+        setData(prev => {
+          if (!prev) return prev;
+          const current = { ...(prev.planowanePrzyjecia || {}) };
+          if (current[id]) {
+            current[id] = { ...current[id], date: json.date, count: json.count };
+          }
+          return { ...prev, planowanePrzyjecia: current };
+        });
+        toast({ title: 'Zapisano', description: `Przyjęcie: ${format(new Date(json.date), 'dd.MM.yyyy')} — ${json.count} os.` });
+      } catch (err) {
+        console.error('Failed to update arrival (guest):', err);
+        toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Brak połączenia. Spróbuj ponownie.' });
+      }
+      return;
+    }
+
+    // Admin — dotychczasowa ścieżka przez Client SDK (bez zmian).
     const db = getDB();
     if (!db) return;
     try {
@@ -515,14 +554,13 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                     <div className="flex flex-col gap-1">
                                       <span className="text-xs font-medium text-muted-foreground">Zaplanowane przyjęcia:</span>
                                       {jobPlanned.map(p => (
-                                        <div key={p.id} className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs">
-                                          <span>📅 {format(new Date(p.date), 'dd.MM.yyyy')} — <strong>{p.count} os.</strong></span>
-                                          {isAdmin && (
-                                            <Button type="button" variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleRemoveArrival(p.id)}>
-                                              <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                          )}
-                                        </div>
+                                        <ArrivalRow
+                                          key={p.id}
+                                          p={p}
+                                          onUpdate={handleUpdateArrival}
+                                          onRemove={handleRemoveArrival}
+                                          canDelete={isAdmin}
+                                        />
                                       ))}
                                     </div>
                                   )}
@@ -574,7 +612,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   );
 }
 
-function ArrivalRow({ p, onUpdate, onRemove }: { p: any, onUpdate: any, onRemove: any }) {
+function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpdate: any, onRemove: any, canDelete?: boolean }) {
   const [isEditing, setIsEditing] = useState(false);
   const [date, setDate] = useState(p.date);
   const [count, setCount] = useState(p.count);
@@ -587,8 +625,8 @@ function ArrivalRow({ p, onUpdate, onRemove }: { p: any, onUpdate: any, onRemove
   if (isEditing) {
     return (
       <div className="flex items-center gap-1 bg-muted/30 p-1 rounded">
-        <Input type="date" className="h-7 text-xs px-2 flex-1" value={date} onChange={e => setDate(e.target.value)} />
-        <Input type="number" className="h-7 w-16 text-xs px-2" value={count} onChange={e => setCount(e.target.value)} />
+        <Input type="date" min={format(new Date(), 'yyyy-MM-dd')} className="h-7 text-xs px-2 flex-1" value={date} onChange={e => setDate(e.target.value)} />
+        <Input type="number" min="1" max="50" className="h-7 w-16 text-xs px-2" value={count} onChange={e => setCount(e.target.value)} />
         <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600 shrink-0" onClick={handleSave}><Check className="h-3 w-3" /></Button>
         <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground shrink-0" onClick={() => { setDate(p.date); setCount(p.count); setIsEditing(false); }}><X className="h-3 w-3" /></Button>
       </div>
@@ -599,12 +637,14 @@ function ArrivalRow({ p, onUpdate, onRemove }: { p: any, onUpdate: any, onRemove
     <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs group">
       <span>📅 {format(new Date(p.date), 'dd.MM.yyyy')} — <strong>{p.count} os.</strong></span>
       <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-         <Button type="button" variant="ghost" size="icon" className="h-5 w-5 text-blue-600 hover:text-blue-700" onClick={() => setIsEditing(true)}>
+         <Button type="button" variant="ghost" size="icon" title="Edytuj" className="h-5 w-5 text-blue-600 hover:text-blue-700" onClick={() => setIsEditing(true)}>
            <Pencil className="h-3 w-3" />
          </Button>
-         <Button type="button" variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => onRemove(p.id)}>
-           <Trash2 className="h-3 w-3" />
-         </Button>
+         {canDelete && (
+           <Button type="button" variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => onRemove(p.id)}>
+             <Trash2 className="h-3 w-3" />
+           </Button>
+         )}
       </div>
     </div>
   );
