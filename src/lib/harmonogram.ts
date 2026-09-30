@@ -37,6 +37,7 @@ export interface HarmonogramData {
   recruitments: HarmonogramRecruitment[];
   potrzebyByManager?: Record<string, number>;
   planowanePrzyjecia?: Record<string, { id: string; department: string; jobTitle: string; date: string; count: number }>;
+  komentarzeZapotrzebowania?: Record<string, { text: string; author?: string; updatedAt?: string }>;
 }
 
 export interface HarmonogramCell {

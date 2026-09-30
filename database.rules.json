@@ -96,6 +96,10 @@
     "potrzebyObsady": {
       ".read": "auth != null"
     },
+    "komentarzeZapotrzebowania": {
+      ".read": "auth != null",
+      ".indexOn": ["updatedAt"]
+    },
     "fcmTokens": {
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",

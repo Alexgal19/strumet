@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2, Pencil, Check, X, ChevronDown } from 'lucide-react';
+import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2, Pencil, Check, X, ChevronDown, Plus } from 'lucide-react';
 import { startOfDay, format } from 'date-fns';
 import { useAppContext } from '@/context/app-context';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ import { getDB } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { ref as dbRef, update, push, set, remove } from 'firebase/database';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { commentKey, MAX_COMMENT_LEN } from '@/lib/komentarze-validation';
 
 export default function PlanowaniePage() {
   const { isLoading: isAuthLoading } = useAppContext();
@@ -197,12 +199,78 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
 
 function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>> }) {
   const { jobTitlesByDept } = usePublicZapotrzebowaniaStats(data);
-  const { isAdmin } = useAppContext();
+  const { isAdmin, currentUser } = useAppContext();
   const { toast } = useToast();
   
   const [newArrivalDate, setNewArrivalDate] = useState<Record<string, string>>({});
   const [newArrivalCount, setNewArrivalCount] = useState<Record<string, string>>({});
   const [expandedTerminations, setExpandedTerminations] = useState<Record<string, boolean>>({});
+
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [editingComment, setEditingComment] = useState<Record<string, boolean>>({});
+
+  const handleSaveComment = async (dept: string, jobTitle: string) => {
+    const cKey = commentKey(dept, jobTitle);
+    const text = (commentDrafts[cKey] ?? '').trim();
+    if (text.length > MAX_COMMENT_LEN) {
+      toast({ variant: 'destructive', title: 'Nie zapisano', description: `Komentarz może mieć maks. ${MAX_COMMENT_LEN} znaków.` });
+      return;
+    }
+    const applyLocal = (saved: { text: string; author: string; updatedAt: string } | null) => {
+      setData(prev => {
+        if (!prev) return prev;
+        const current = { ...(prev.komentarzeZapotrzebowania || {}) };
+        if (saved) current[cKey] = saved;
+        else delete current[cKey];
+        return { ...prev, komentarzeZapotrzebowania: current };
+      });
+      setEditingComment(prev => ({ ...prev, [cKey]: false }));
+    };
+
+    // Gość — przez publiczny API-rote (walidacja + audit po stronie serwera).
+    if (!isAdmin) {
+      try {
+        const res = await fetch('/api/public/komentarze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ department: dept, jobTitle, text }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          toast({ variant: 'destructive', title: 'Nie zapisano', description: json.error || 'Błąd zapisywania. Spróbuj ponownie.' });
+          return;
+        }
+        if (json.removed) {
+          applyLocal(null);
+          toast({ title: 'Usunięto komentarz' });
+        } else {
+          applyLocal({ text, author: 'Gość', updatedAt: new Date().toISOString() });
+          toast({ title: 'Zapisano komentarz' });
+        }
+      } catch (err) {
+        console.error('Failed to save comment (guest):', err);
+        toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Brak połączenia. Spróbuj ponownie.' });
+      }
+      return;
+    }
+
+    // Admin — przez Client SDK (bez zmian w uprawnieniach).
+    const db = getDB();
+    if (!db) return;
+    try {
+      const nodeRef = dbRef(db, `komentarzeZapotrzebowania/${cKey}`);
+      if (!text) {
+        await remove(nodeRef);
+        applyLocal(null);
+      } else {
+        const saved = { text, author: currentUser?.email || 'admin', updatedAt: new Date().toISOString() };
+        await set(nodeRef, saved);
+        applyLocal(saved);
+      }
+    } catch (err) {
+      console.error('Failed to save comment:', err);
+    }
+  };
 
   const toggleTerminations = (key: string) =>
     setExpandedTerminations(prev => ({ ...prev, [key]: !prev[key] }));
@@ -491,6 +559,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                         const jobPlannedTotal = getPlannedTotalForJob(dept, job.jobTitle);
                         const jobNetMissing = Math.max(0, jobMissing - jobPlannedTotal);
                         const key = `${dept}|${job.jobTitle}`;
+                        const cKey = commentKey(dept, job.jobTitle);
                         
                         const potrzeby = job.potrzeby;
                         const obecnie = job.obecnie;
@@ -609,9 +678,21 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
                                   </div>
                                   {!isAdmin && (
                                     <p className="text-[11px] text-muted-foreground">
-                                      Jako Gość możesz tylko dodawać przyjęcia. Usuwanie i edycja — dla administratora.
+                                      Jako Gość możesz dodawać i edytować przyjęcia oraz komentarze. Usuwanie — dla administratora.
                                     </p>
                                   )}
+                                  <PositionComment
+                                    saved={data.komentarzeZapotrzebowania?.[cKey]}
+                                    draft={commentDrafts[cKey] ?? ''}
+                                    isEditing={!!editingComment[cKey]}
+                                    onStartEdit={() => {
+                                      setCommentDrafts(prev => ({ ...prev, [cKey]: data.komentarzeZapotrzebowania?.[cKey]?.text ?? '' }));
+                                      setEditingComment(prev => ({ ...prev, [cKey]: true }));
+                                    }}
+                                    onDraftChange={v => setCommentDrafts(prev => ({ ...prev, [cKey]: v }))}
+                                    onCancel={() => setEditingComment(prev => ({ ...prev, [cKey]: false }))}
+                                    onSave={() => handleSaveComment(dept, job.jobTitle)}
+                                  />
                                 </div>
                             )}
                           </div>
@@ -663,5 +744,56 @@ function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpd
          )}
       </div>
     </div>
+  );
+}
+
+function PositionComment({ saved, draft, isEditing, onStartEdit, onDraftChange, onCancel, onSave }: {
+  saved?: { text: string; author?: string; updatedAt?: string };
+  draft: string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onDraftChange: (v: string) => void;
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  if (isEditing) {
+    return (
+      <div className="flex flex-col gap-1.5 mt-1">
+        <Textarea
+          className="min-h-[60px] text-xs"
+          maxLength={MAX_COMMENT_LEN + 1}
+          placeholder="Komentarz… (puste + Zapisz = usuń)"
+          value={draft}
+          onChange={e => onDraftChange(e.target.value)}
+        />
+        <div className="flex items-center gap-1.5">
+          <Button type="button" size="sm" className="h-7 text-xs" onClick={onSave}>Zapisz</Button>
+          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel}>Anuluj</Button>
+        </div>
+      </div>
+    );
+  }
+  if (saved?.text) {
+    return (
+      <div className="rounded-md bg-muted/50 px-2 py-1.5 text-xs mt-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="whitespace-pre-wrap text-foreground">💬 {saved.text}</p>
+          <Button type="button" variant="ghost" size="icon" title="Edytuj komentarz" className="h-5 w-5 shrink-0 text-blue-600 hover:text-blue-700" onClick={onStartEdit}>
+            <Pencil className="h-3 w-3" />
+          </Button>
+        </div>
+        {(saved.author || saved.updatedAt) && (
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
+            {saved.author}
+            {saved.updatedAt ? ` • ${format(new Date(saved.updatedAt), 'dd.MM.yyyy')}` : ''}
+          </p>
+        )}
+      </div>
+    );
+  }
+  return (
+    <Button type="button" variant="ghost" size="sm" className="mt-1 h-7 gap-1 text-xs text-muted-foreground" onClick={onStartEdit}>
+      <Plus className="h-3 w-3" /> Dodaj komentarz
+    </Button>
   );
 }
