@@ -154,7 +154,9 @@ export function toYmd(input: Date | string | number | null | undefined): string 
     }
   }
 
-  const t = (input as string).trim();
+  if (typeof input !== 'string') return null;
+
+  const t = input.trim();
 
   // ISO / yyyy-MM-dd prefix — беремо перші 10 символів без конверсії через Date.
   const isoMatch = t.match(/^(\d{4})-(\d{2})-(\d{2})/);

@@ -64,8 +64,9 @@ export function splitArrivals(
     if (!ymd || ymd >= todayYmd) upcoming.push(a);
     else past.push(a);
   });
-  upcoming.sort((a, b) => a.date.localeCompare(b.date));
-  past.sort((a, b) => b.date.localeCompare(a.date));
+  const sortKey = (a: HistoriaArrival) => normalizeToYmd(a.date) ?? a.date;
+  upcoming.sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+  past.sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
   return { upcoming, past };
 }
 

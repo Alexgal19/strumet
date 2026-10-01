@@ -348,6 +348,15 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     return ymd >= todayYmd;
   };
 
+  // Tylko wpisy z poprawną datą liczą się do pokrycia — tak samo jak forecastShortage
+  // (pomija nieprawidłowe daty). Wpis bez daty nadal jest widoczny na liście do poprawy.
+  const isCountableArrival = (date?: string) => {
+    if (!date) return false;
+    const ymd = toYmd(date);
+    if (!ymd) return false;
+    return ymd >= todayYmd;
+  };
+
   const getPlannedForJob = (dept: string, jobTitle: string) => {
     if (!data.planowanePrzyjecia) return [];
     // W Zapotrzebowania tylko nadchodzące (data >= dziś); minione trafiają do Historii.
@@ -355,7 +364,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
   };
 
   const getPlannedTotalForJob = (dept: string, jobTitle: string) => {
-    return getPlannedForJob(dept, jobTitle).reduce((sum, p) => sum + p.count, 0);
+    return getPlannedForJob(dept, jobTitle).filter(p => isCountableArrival(p.date)).reduce((sum, p) => sum + p.count, 0);
   };
 
   let totalMissing = 0;
@@ -367,7 +376,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     });
   });
 
-  const totalPlanned = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).filter(p => isUpcomingArrival(p.date)).reduce((sum, p) => sum + p.count, 0) : 0;
+  const totalPlanned = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).filter(p => isCountableArrival(p.date)).reduce((sum, p) => sum + p.count, 0) : 0;
 
   const handleAddArrival = async (dept: string, jobTitle: string) => {
     const key = `${dept}|${jobTitle}`;
@@ -774,7 +783,7 @@ function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpd
 
   return (
     <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs group">
-      <span>📅 {formatYmdPl(p.date)} — <strong>{p.count} os.</strong></span>
+      <span>📅 {formatYmdPl(p.date) || 'bez daty'} — <strong>{p.count} os.</strong></span>
       <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
          <Button type="button" variant="ghost" size="icon" title="Edytuj" className="h-5 w-5 text-blue-600 hover:text-blue-700" onClick={() => setIsEditing(true)}>
            <Pencil className="h-3 w-3" />
