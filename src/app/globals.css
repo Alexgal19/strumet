@@ -308,6 +308,15 @@
     animation: demand-flash 0.9s ease-in-out 3;
   }
 
+  /* To samo dla wiersza tabeli (tło komórek, bo ramka wiersza się nie animuje) */
+  @keyframes demand-flash-row {
+    0%, 100% { background-color: transparent; }
+    50% { background-color: hsl(var(--chart-4) / 0.3); }
+  }
+  .demand-flash-row > td {
+    animation: demand-flash-row 0.9s ease-in-out 3;
+  }
+
   /* Podpowiedź kolejnego kroku: pulsowanie pola Ilość, gdy data już wpisana */
   @keyframes guide-pulse {
     0%, 100% { border-color: hsl(var(--input)); box-shadow: 0 0 0 0 hsl(var(--ring) / 0); }
@@ -331,6 +340,7 @@
     .guide-pulse,
     .missing-flash,
     .demand-flash,
+    .demand-flash-row > td,
     .animate-vacation-blink,
     .animate-absence-blink {
       animation: none !important;
@@ -378,7 +388,7 @@
   @media print {
     .animate-vacation-blink { animation: none !important; background-color: hsl(var(--accent) / 0.15) !important; }
     .animate-absence-blink { animation: none !important; background-color: hsl(var(--destructive) / 0.15) !important; }
-    .guide-pulse, .missing-flash, .demand-flash { animation: none !important; }
+    .guide-pulse, .missing-flash, .demand-flash, .demand-flash-row > td { animation: none !important; }
   }
 }
 

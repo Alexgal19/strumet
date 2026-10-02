@@ -2,22 +2,23 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2, Pencil, Check, X, ChevronDown, Plus, History } from 'lucide-react';
+import { Loader2, Users, Briefcase, UserPlus, CalendarPlus, Trash2, Pencil, Check, X, ChevronDown, ChevronRight, Plus, History, Search } from 'lucide-react';
 import { startOfDay, format } from 'date-fns';
 import { useAppContext } from '@/context/app-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HarmonogramView } from '@/components/harmonogram-view';
-import { type HarmonogramData, buildHarmonogram } from '@/lib/harmonogram';
+import { type HarmonogramData, buildHarmonogram, getPotrzebyKey } from '@/lib/harmonogram';
 import { getDB } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { ref as dbRef, update, push, set, remove } from 'firebase/database';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { commentKey, MAX_COMMENT_LEN } from '@/lib/komentarze-validation';
-import { forecastShortage } from '@/lib/braki-prognoza';
-import { arrivalStatus, isPendingTermination, matchHires, matchTransfers, splitArrivals, type HistoriaEmployee, type TransferRecord } from '@/lib/przyjecia-historia';
+import { addDaysToYmd, forecastShortage, shortageAt } from '@/lib/braki-prognoza';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { allocateArrivals, arrivalStatus, arrivalWindowEnd, isPendingTermination, splitArrivals, type HistoriaEmployee, type TransferRecord } from '@/lib/przyjecia-historia';
 import { formatYmdPl, toYmd } from '@/lib/date';
 
 export default function PlanowaniePage() {
@@ -39,6 +40,7 @@ function PublicPlanowanieView() {
   const [error, setError] = useState(false);
   const [view, setView] = useState<'harmonogram' | 'zapotrzebowania' | 'historia'>('harmonogram');
   const { isAdmin } = useAppContext();
+  const { toast } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -58,20 +60,30 @@ function PublicPlanowanieView() {
     };
   }, []);
 
-  const handleUpdatePotrzeby = async (dept: string, mgr: string, job: string, newAmount: number) => {
-    if (!isAdmin) return;
-    const key = (dept + '___' + mgr + '___' + job).replace(/[.#$\[\]\/]/g, '_');
-    setData(prev => {
-      if (!prev) return prev;
-      return { ...prev, potrzebyByManager: { ...prev.potrzebyByManager, [key]: newAmount } };
-    });
+  /** Zwraca true tylko po udanym zapisie; przy błędzie cofa wartość w widoku i pokazuje komunikat. */
+  const handleUpdatePotrzeby = async (dept: string, mgr: string, job: string, newAmount: number): Promise<boolean> => {
+    if (!isAdmin) return false;
+    const key = getPotrzebyKey(dept, mgr, job);
+    const previous = data?.potrzebyByManager?.[key];
+    const setLocal = (value: number | undefined) =>
+      setData(prev => {
+        if (!prev) return prev;
+        const next = { ...prev.potrzebyByManager };
+        if (value === undefined) delete next[key];
+        else next[key] = value;
+        return { ...prev, potrzebyByManager: next };
+      });
+    setLocal(newAmount);
     try {
       const db = getDB();
-      if (!db) return;
-      const posRef = dbRef(db, 'potrzebyObsady');
-      await update(posRef, { [key]: newAmount });
+      if (!db) throw new Error('Brak połączenia z bazą.');
+      await update(dbRef(db, 'potrzebyObsady'), { [key]: newAmount });
+      return true;
     } catch (err) {
       console.error('Failed to update potrzeby:', err);
+      setLocal(previous);
+      toast({ variant: 'destructive', title: 'Nie zapisano potrzeb', description: 'Spróbuj ponownie.' });
+      return false;
     }
   };
 
@@ -121,8 +133,7 @@ function PublicPlanowanieView() {
                   onClick={() => setView('historia')}
                 >
                   Historia{(() => {
-                    const t = format(new Date(), 'yyyy-MM-dd');
-                    const n = data ? Object.values(data.planowanePrzyjecia || {}).filter(p => p.date && p.date < t).length : 0;
+                    const n = splitArrivals(Object.values(data.planowanePrzyjecia || {}), format(new Date(), 'yyyy-MM-dd')).past.length;
                     return n > 0 ? ` (${n})` : '';
                   })()}
                 </Button>
@@ -137,7 +148,7 @@ function PublicPlanowanieView() {
                 onUpdatePotrzeby={handleUpdatePotrzeby} 
               />
             ) : view === 'zapotrzebowania' ? (
-              <PublicZapotrzebowaniaView data={data} setData={setData} />
+              <PublicZapotrzebowaniaView data={data} setData={setData} onUpdatePotrzeby={handleUpdatePotrzeby} />
             ) : (
               <HistoriaPrzyjec data={data} setData={setData} />
             )}
@@ -153,18 +164,19 @@ type JobTitleStat = { jobTitle: string; count: number; toRecruit: number; termin
 function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
   return useMemo(() => {
     const result = buildHarmonogram(data, 0);
-    const jobTitlesByDept = new Map<string, { jobTitle: string; obecnie: number; potrzeby: number; zwalnia: number; zwalniani: { date: string; count: number; names: string[] }[] }[]>();
+    const jobTitlesByDept = new Map<string, { jobTitle: string; obecnie: number; potrzeby: number; zwalnia: number; zwalniani: { date: string; count: number; names: string[] }[]; managers: { manager: string; potrzeby: number }[] }[]>();
     const today = startOfDay(new Date()).getTime();
 
     result.rows.forEach(deptRow => {
-      const jobsMap = new Map<string, { obecnie: number; potrzeby: number; zwalnia: number; zwalnianiMap: Map<string, { count: number; names: string[] }> }>();
+      const jobsMap = new Map<string, { obecnie: number; potrzeby: number; zwalnia: number; zwalnianiMap: Map<string, { count: number; names: string[] }>; managers: { manager: string; potrzeby: number }[] }>();
       
       deptRow.managers.forEach(mgrRow => {
          mgrRow.positions.forEach(posRow => {
             const jobTitle = posRow.jobTitle;
-            const current = jobsMap.get(jobTitle) || { obecnie: 0, potrzeby: 0, zwalnia: 0, zwalnianiMap: new Map() };
+            const current = jobsMap.get(jobTitle) || { obecnie: 0, potrzeby: 0, zwalnia: 0, zwalnianiMap: new Map(), managers: [] as { manager: string; potrzeby: number }[] };
             current.obecnie += posRow.obecnie;
             current.potrzeby += posRow.potrzeby;
+            current.managers.push({ manager: posRow.manager, potrzeby: posRow.potrzeby });
             
              posRow.employees.forEach(empRow => {
                 const emp = empRow;
@@ -202,7 +214,8 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
            obecnie: stats.obecnie, 
            potrzeby: stats.potrzeby, 
            zwalnia: stats.zwalnia, 
-           zwalniani 
+           zwalniani,
+           managers: stats.managers
          };
       }).sort((a, b) => a.jobTitle.localeCompare(b.jobTitle, 'pl'));
       
@@ -213,14 +226,20 @@ function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
   }, [data]);
 }
 
-function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>> }) {
+function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>>, onUpdatePotrzeby?: (dept: string, mgr: string, job: string, newAmount: number) => void | boolean | Promise<boolean | void> }) {
   const { jobTitlesByDept } = usePublicZapotrzebowaniaStats(data);
-  const { isAdmin, currentUser } = useAppContext();
+  const { isAdmin, currentUser, logAudit } = useAppContext();
   const { toast } = useToast();
   
   const [newArrivalDate, setNewArrivalDate] = useState<Record<string, string>>({});
   const [newArrivalCount, setNewArrivalCount] = useState<Record<string, string>>({});
   const [expandedTerminations, setExpandedTerminations] = useState<Record<string, boolean>>({});
+  const [expandedJobs, setExpandedJobs] = useState<Record<string, boolean>>({});
+  const [collapsedDepts, setCollapsedDepts] = useState<Record<string, boolean>>({});
+  const [query, setQuery] = useState('');
+  const [onlyProblems, setOnlyProblems] = useState(false);
+  const [sortMode, setSortMode] = useState<'deficit' | 'name'>('deficit');
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [editingComment, setEditingComment] = useState<Record<string, boolean>>({});
@@ -277,10 +296,12 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
       const nodeRef = dbRef(db, `komentarzeZapotrzebowania/${cKey}`);
       if (!text) {
         await remove(nodeRef);
+        void logAudit('Usunięto komentarz zapotrzebowania', `${dept} / ${jobTitle}`);
         applyLocal(null);
       } else {
         const saved = { text, author: currentUser?.email || 'admin', updatedAt: new Date().toISOString() };
         await set(nodeRef, saved);
+        void logAudit('Zapisano komentarz zapotrzebowania', `${dept} / ${jobTitle}`);
         applyLocal(saved);
       }
     } catch (err) {
@@ -357,53 +378,56 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     return ymd >= todayYmd;
   };
 
-  const getPlannedForJob = (dept: string, jobTitle: string) => {
-    if (!data.planowanePrzyjecia) return [];
-    // W Zapotrzebowania tylko nadchodzące (data >= dziś); minione trafiają do Historii.
-    return Object.values(data.planowanePrzyjecia).filter(p => p.department === dept && p.jobTitle === jobTitle && isUpcomingArrival(p.date));
-  };
+  // Indeks przyjęć (dział|stanowisko → lista i suma), liczony raz na zmianę danych/daty.
+  // W Zapotrzebowania tylko nadchodzące (data >= dziś); minione trafiają do Historii.
+  const plannedIndex = useMemo(() => {
+    const list = new Map<string, NonNullable<HarmonogramData['planowanePrzyjecia']>[string][]>();
+    const total = new Map<string, number>();
+    Object.values(data.planowanePrzyjecia || {}).forEach(p => {
+      if (!isUpcomingArrival(p.date)) return;
+      const k = `${p.department}|${p.jobTitle}`;
+      const arr = list.get(k) ?? [];
+      arr.push(p);
+      list.set(k, arr);
+      if (isCountableArrival(p.date)) total.set(k, (total.get(k) ?? 0) + p.count);
+    });
+    return { list, total };
+  }, [data.planowanePrzyjecia, todayYmd]);
 
-  const getPlannedTotalForJob = (dept: string, jobTitle: string) => {
-    return getPlannedForJob(dept, jobTitle).filter(p => isCountableArrival(p.date)).reduce((sum, p) => sum + p.count, 0);
-  };
+  const getPlannedForJob = (dept: string, jobTitle: string) => plannedIndex.list.get(`${dept}|${jobTitle}`) ?? [];
+  const getPlannedTotalForJob = (dept: string, jobTitle: string) => plannedIndex.total.get(`${dept}|${jobTitle}`) ?? 0;
 
-  let totalMissing = 0;
+  // Braki netto liczymy per stanowisko (nadmiar przyjęć na jednym stanowisku nie pokrywa braków
+  // na innym), a sumy działu i ogółu są sumą tych wartości — dzięki temu zgadzają się z kartami.
+  const getNetMissing = (dept: string, jobTitle: string) =>
+    Math.max(0, getMissing(dept, jobTitle) - getPlannedTotalForJob(dept, jobTitle));
+
+  let totalNetMissing = 0;
   let totalTerminations = 0;
+  let totalPlanned = 0;
   jobTitlesByDept.forEach((jobs, dept) => {
     jobs.forEach(job => {
-      totalMissing += getMissing(dept, job.jobTitle);
+      totalNetMissing += getNetMissing(dept, job.jobTitle);
       totalTerminations += job.zwalnia;
+      totalPlanned += getPlannedTotalForJob(dept, job.jobTitle);
     });
   });
 
-  const totalPlanned = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).filter(p => isCountableArrival(p.date)).reduce((sum, p) => sum + p.count, 0) : 0;
-
-  const handleAddArrival = async (dept: string, jobTitle: string) => {
-    const key = `${dept}|${jobTitle}`;
-    const date = newArrivalDate[key];
-    const count = parseInt(newArrivalCount[key] || '0', 10);
-    if (!date || count <= 0) return;
-
-    const arrivalData = {
-      department: dept,
-      jobTitle,
-      date,
-      count
-    };
+  /** Zapis jednego przyjęcia. Zwraca null (sukces) albo komunikat błędu. */
+  const addArrival = async (dept: string, jobTitle: string, date: string, count: number, silent = false): Promise<string | null> => {
+    const arrivalData = { department: dept, jobTitle, date, count };
     const applyLocal = (id: string) => {
       setData(prev => {
         if (!prev) return prev;
-        const current = prev.planowanePrzyjecia || {};
         return {
           ...prev,
-          planowanePrzyjecia: {
-            ...current,
-            [id]: { id, ...arrivalData }
-          }
+          planowanePrzyjecia: { ...(prev.planowanePrzyjecia || {}), [id]: { id, ...arrivalData } },
         };
       });
-      setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
-      setNewArrivalCount(prev => ({ ...prev, [key]: '' }));
+    };
+    const fail = (message: string) => {
+      if (!silent) toast({ variant: 'destructive', title: 'Nie zapisano', description: message });
+      return message;
     };
 
     // Gość (także bez logowania) zapisuje przez publiczny API-rote — zapis/client-SDK jest dla niego zablokowany regułami.
@@ -415,47 +439,53 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
           body: JSON.stringify(arrivalData),
         });
         const json = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          toast({
-            variant: 'destructive',
-            title: 'Nie zapisano',
-            description: json.error || 'Błąd zapisywania. Spróbuj ponownie.',
-          });
-          return;
-        }
+        if (!res.ok) return fail(json.error || 'Błąd zapisywania. Spróbuj ponownie.');
         applyLocal(json.id as string);
-        toast({
-          title: 'Zapisano',
-          description: `Przyjęcie: ${formatYmdPl(date)} — ${count} os.`,
-        });
+        if (!silent) toast({ title: 'Zapisano', description: `Przyjęcie: ${formatYmdPl(date)} — ${count} os.` });
+        return null;
       } catch (err) {
         console.error('Failed to add arrival (guest):', err);
-        toast({
-          variant: 'destructive',
-          title: 'Nie zapisano',
-          description: 'Brak połączenia. Spróbuj ponownie.',
-        });
+        return fail('Brak połączenia. Spróbuj ponownie.');
       }
-      return;
     }
 
-    // Admin — dotychczasowa ścieżka przez Client SDK (bez zmian).
+    // Admin — przez Client SDK.
     const db = getDB();
-    if (!db) return;
-
+    if (!db) return fail('Brak połączenia z bazą.');
     try {
       const newRef = push(dbRef(db, 'planowanePrzyjecia'));
       await set(newRef, arrivalData);
+      void logAudit('Dodano planowane przyjęcie', `${dept} / ${jobTitle} — ${date} — ${count} os.`);
       applyLocal(newRef.key as string);
+      return null;
     } catch (err) {
       console.error('Failed to add arrival:', err);
+      return fail('Błąd zapisywania. Spróbuj ponownie.');
     }
   };
 
-  const handleUpdateArrival = async (id: string, newDate: string, newCount: number) => {
+  const handleAddArrival = async (dept: string, jobTitle: string) => {
+    const key = `${dept}|${jobTitle}`;
+    const date = newArrivalDate[key];
+    const count = parseInt(newArrivalCount[key] || '0', 10);
+    if (!date || count <= 0) return;
+    const error = await addArrival(dept, jobTitle, date, count);
+    if (error === null) {
+      setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
+      setNewArrivalCount(prev => ({ ...prev, [key]: '' }));
+    }
+  };
+
+  const commitPotrzeby = async (dept: string, mgr: string, job: string, amount: number) => {
+    if (!isAdmin || !onUpdatePotrzeby) return;
+    const saved = await onUpdatePotrzeby(dept, mgr, job, amount);
+    if (saved !== false) void logAudit('Zmieniono potrzeby obsady', `${dept} / ${mgr} / ${job} → ${amount}`);
+  };
+
+  const handleUpdateArrival = async (id: string, newDate: string, newCount: number): Promise<boolean> => {
     if (!newDate || !Number.isInteger(newCount) || newCount <= 0) {
       toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Podaj poprawną datę i liczbę osób.' });
-      return;
+      return false;
     }
 
     // Gość — przez publiczny API-rote (ta sama walidacja co przy dodawaniu).
@@ -473,7 +503,7 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
             title: 'Nie zapisano',
             description: json.error || 'Błąd zapisywania. Spróbuj ponownie.',
           });
-          return;
+          return false;
         }
         setData(prev => {
           if (!prev) return prev;
@@ -484,18 +514,21 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
           return { ...prev, planowanePrzyjecia: current };
         });
         toast({ title: 'Zapisano', description: `Przyjęcie: ${formatYmdPl(json.date)} — ${json.count} os.` });
+        return true;
       } catch (err) {
         console.error('Failed to update arrival (guest):', err);
         toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Brak połączenia. Spróbuj ponownie.' });
+        return false;
       }
-      return;
     }
 
     // Admin — dotychczasowa ścieżka przez Client SDK (bez zmian).
     const db = getDB();
-    if (!db) return;
+    if (!db) return false;
     try {
       await update(dbRef(db, `planowanePrzyjecia/${id}`), { date: newDate, count: newCount });
+      const target = data.planowanePrzyjecia?.[id];
+      void logAudit('Edytowano planowane przyjęcie', `${target?.department ?? ''} / ${target?.jobTitle ?? ''} — ${newDate} — ${newCount} os.`);
       setData(prev => {
         if (!prev) return prev;
         const current = { ...(prev.planowanePrzyjecia || {}) };
@@ -504,8 +537,10 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
         }
         return { ...prev, planowanePrzyjecia: current };
       });
+      return true;
     } catch (err) {
       console.error('Failed to update arrival:', err);
+      return false;
     }
   };
 
@@ -513,7 +548,9 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     const db = getDB();
     if (!db) return;
     try {
+      const target = data.planowanePrzyjecia?.[id];
       await remove(dbRef(db, `planowanePrzyjecia/${id}`));
+      void logAudit('Usunięto planowane przyjęcie', `${target?.department ?? ''} / ${target?.jobTitle ?? ''} — ${target?.date ?? ''} — ${target?.count ?? ''} os.`);
       setData(prev => {
         if (!prev) return prev;
         const current = { ...(prev.planowanePrzyjecia || {}) };
@@ -525,12 +562,73 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
     }
   };
 
+  // ---- Model tabeli: dział → stanowiska, z prognozą "teraz / za 7 / za 30 dni" ----
+  const plus7 = addDaysToYmd(todayYmd, 7);
+  const plus30 = addDaysToYmd(todayYmd, 30);
+  const q = query.trim().toLowerCase();
+
+  const deptModels = Array.from(jobTitlesByDept.entries()).map(([dept, jobs]) => {
+    const all = jobs.map(job => {
+      const planned = getPlannedForJob(dept, job.jobTitle);
+      const forecast = forecastShortage(job.potrzeby, job.obecnie, job.zwalniani, planned, todayYmd);
+      return {
+        job,
+        planned,
+        forecast,
+        now: forecast[0].shortage,
+        in7: shortageAt(forecast, plus7),
+        in30: shortageAt(forecast, plus30),
+        plannedTotal: getPlannedTotalForJob(dept, job.jobTitle),
+        net: getNetMissing(dept, job.jobTitle),
+      };
+    });
+    const agg = all.reduce(
+      (s, j) => ({
+        potrzeby: s.potrzeby + j.job.potrzeby,
+        obecnie: s.obecnie + j.job.obecnie,
+        zwalnia: s.zwalnia + j.job.zwalnia,
+        now: s.now + j.now,
+        in7: s.in7 + j.in7,
+        in30: s.in30 + j.in30,
+        planned: s.planned + j.plannedTotal,
+        net: s.net + j.net,
+      }),
+      { potrzeby: 0, obecnie: 0, zwalnia: 0, now: 0, in7: 0, in30: 0, planned: 0, net: 0 }
+    );
+    const deptMatches = !q || dept.toLowerCase().includes(q);
+    const isProblem = (j: (typeof all)[number]) => j.net > 0 || j.now > 0 || j.in30 > 0;
+    const visible = all
+      .filter(j => (deptMatches || j.job.jobTitle.toLowerCase().includes(q)) && (!onlyProblems || isProblem(j)))
+      .sort((x, y) =>
+        sortMode === 'deficit'
+          ? y.net - x.net || y.in30 - x.in30 || y.now - x.now || x.job.jobTitle.localeCompare(y.job.jobTitle, 'pl')
+          : x.job.jobTitle.localeCompare(y.job.jobTitle, 'pl')
+      );
+    return { dept, agg, jobs: visible };
+  })
+    .filter(d => d.jobs.length > 0)
+    .sort((x, y) =>
+      sortMode === 'deficit'
+        ? y.agg.net - x.agg.net || y.agg.in30 - x.agg.in30 || y.agg.now - x.agg.now || x.dept.localeCompare(y.dept, 'pl')
+        : x.dept.localeCompare(y.dept, 'pl')
+    );
+
+  const bulkOptions = new Map<string, { jobTitle: string; net: number }[]>();
+  jobTitlesByDept.forEach((jobs, dept) => {
+    bulkOptions.set(dept, jobs.map(j => ({ jobTitle: j.jobTitle, net: getNetMissing(dept, j.jobTitle) })));
+  });
+
+  const numCell = (v: number, danger = true) => (
+    <span className={v > 0 && danger ? 'font-semibold text-red-600 dark:text-red-400' : v === 0 ? 'text-muted-foreground' : ''}>{v}</span>
+  );
+  const COLS = 9;
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
           <UserPlus className="h-4 w-4" />
-          Łącznie brakuje: {Math.max(0, totalMissing - totalPlanned)}
+          Łącznie brakuje: {totalNetMissing}
         </Badge>
         {totalTerminations > 0 && (
           <Badge
@@ -550,213 +648,478 @@ function PublicZapotrzebowaniaView({ data, setData }: { data: HarmonogramData, s
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {Array.from(jobTitlesByDept.entries())
-          .sort(([deptA], [deptB]) => deptA.localeCompare(deptB, 'pl'))
-          .map(([dept, jobs]) => {
-            const deptMissing = jobs.reduce((sum, job) => sum + getMissing(dept, job.jobTitle), 0);
-            const deptPlanned = jobs.reduce((sum, job) => sum + getPlannedTotalForJob(dept, job.jobTitle), 0);
-            const netMissing = Math.max(0, deptMissing - deptPlanned);
-            const deptNow = jobs.reduce((sum, job) => sum + Math.max(0, job.potrzeby - job.obecnie), 0);
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full min-w-[200px] sm:w-64">
+          <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Szukaj działu lub stanowiska…"
+            className="h-8 pl-8 text-sm"
+          />
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant={onlyProblems ? 'default' : 'outline'}
+          className="h-8"
+          aria-pressed={onlyProblems}
+          onClick={() => setOnlyProblems(v => !v)}
+        >
+          Tylko z brakami
+        </Button>
+        <select
+          aria-label="Sortowanie"
+          value={sortMode}
+          onChange={e => setSortMode(e.target.value as 'deficit' | 'name')}
+          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+        >
+          <option value="deficit">Sortuj: największe braki</option>
+          <option value="name">Sortuj: nazwa A–Z</option>
+        </select>
+        <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 sm:ml-auto" onClick={() => setBulkOpen(true)}>
+          <CalendarPlus className="h-4 w-4" />
+          Dodaj przyjęcia hurtem
+        </Button>
+      </div>
 
-            return (
-              <Card key={dept} className={flashDepts[dept] ? 'demand-flash' : netMissing === 0 ? 'border-emerald-500/60' : deptNow > 0 ? 'missing-flash' : 'border-red-500/40'}>
-                <CardHeader className="pb-3">
-                  <div className="space-y-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <CardTitle className="text-base truncate">{dept}</CardTitle>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      {netMissing > 0 ? (
-                        <Badge variant="destructive" className="tabular-nums text-xs font-semibold px-2 py-0.5">
-                          Brakuje: {netMissing} <span className="opacity-80 font-normal">(teraz: {deptNow})</span>
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-emerald-500/60 text-emerald-700 tabular-nums font-semibold dark:text-emerald-400 text-xs">
-                          Komplet
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-muted-foreground">Stanowiska i braki:</p>
-                    {jobs.length === 0 ? (
-                      <p className="rounded-md border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">
-                        Brak stanowisk.
-                      </p>
-                    ) : (
-                      jobs.map((job, i) => {
-                        const jobMissing = getMissing(dept, job.jobTitle);
-                        const jobPlanned = getPlannedForJob(dept, job.jobTitle);
-                        const jobPlannedTotal = getPlannedTotalForJob(dept, job.jobTitle);
-                        const jobNetMissing = Math.max(0, jobMissing - jobPlannedTotal);
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm md:min-w-[820px]">
+              <thead className="bg-muted/50 text-xs text-muted-foreground">
+                <tr className="border-b">
+                  <th className="px-3 py-2 text-left font-medium">Dział / Stanowisko</th>
+                  <th className="px-1 md:px-2 py-2 text-right font-medium" title="Obsada docelowa">Potrzeby</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-medium" title="Aktywni pracownicy dziś">Jest</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-medium" title="Osoby z datą zwolnienia dziś lub później">Zwalnia</th>
+                  <th className="px-1 md:px-2 py-2 text-right font-medium" title="Potrzeby − Jest, dziś">Teraz</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-medium" title={`Prognoza na ${formatYmdPl(plus7)} (po zwolnieniach i przyjęciach)`}>Za 7 dni</th>
+                  <th className="px-1 md:px-2 py-2 text-right font-medium" title={`Prognoza na ${formatYmdPl(plus30)} (po zwolnieniach i przyjęciach)`}>Za 30 dni</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-medium" title="Zaplanowane przyjęcia (data od dziś)">Przyjęcia</th>
+                  <th className="px-2 md:px-3 py-2 text-right font-medium" title="Stan docelowy po wszystkich zwolnieniach i zaplanowanych przyjęciach"><span className="md:hidden">Netto</span><span className="hidden md:inline">Brakuje netto</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {deptModels.length === 0 && (
+                  <tr>
+                    <td colSpan={COLS} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                      {onlyProblems || q ? 'Brak wyników dla wybranych filtrów.' : 'Brak stanowisk.'}
+                    </td>
+                  </tr>
+                )}
+                {deptModels.map(({ dept, agg, jobs }) => {
+                  const collapsed = !!collapsedDepts[dept];
+                  return (
+                    <React.Fragment key={dept}>
+                      <tr
+                        className={`cursor-pointer border-b bg-muted/40 font-semibold hover:bg-muted/60 ${flashDepts[dept] ? 'demand-flash-row' : ''}`}
+                        onClick={() => setCollapsedDepts(prev => ({ ...prev, [dept]: !prev[dept] }))}
+                      >
+                        <td className="px-3 py-2">
+                          {/* Przycisk bez własnego onClick: klik/Enter/Spacja bąbelkuje do <tr> (jedno przełączenie). */}
+                          <button type="button" aria-expanded={!collapsed} className="flex items-start gap-1.5 text-left font-semibold">
+                            {collapsed ? <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                            <span className="[overflow-wrap:anywhere]">{dept}</span>
+                          </button>
+                        </td>
+                        <td className="px-1 md:px-2 py-2 text-right tabular-nums">{agg.potrzeby}</td>
+                        <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{agg.obecnie}</td>
+                        <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{numCell(agg.zwalnia, false)}</td>
+                        <td className="px-1 md:px-2 py-2 text-right tabular-nums">{numCell(agg.now)}</td>
+                        <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{numCell(agg.in7)}</td>
+                        <td className="px-1 md:px-2 py-2 text-right tabular-nums">{numCell(agg.in30)}</td>
+                        <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{agg.planned}</td>
+                        <td className="px-2 md:px-3 py-2 text-right tabular-nums">
+                          {agg.net > 0 ? (
+                            <Badge variant="destructive" className="text-xs font-semibold">{agg.net}</Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-emerald-500/60 text-xs text-emerald-700 dark:text-emerald-400">Komplet</Badge>
+                          )}
+                        </td>
+                      </tr>
+
+                      {!collapsed && jobs.map(({ job, planned, forecast, now, in7, in30, plannedTotal, net }) => {
                         const key = `${dept}|${job.jobTitle}`;
                         const cKey = commentKey(dept, job.jobTitle);
-                        
-                        const potrzeby = job.potrzeby;
-                        const obecnie = job.obecnie;
-                        const zwalnia = job.zwalnia;
-                        const forecast = forecastShortage(potrzeby, obecnie, job.zwalniani, jobPlanned, todayYmd);
-
+                        const open = !!expandedJobs[key];
+                        const singleManager = job.managers.length === 1 ? job.managers[0] : null;
+                        const hasComment = !!data.komentarzeZapotrzebowania?.[cKey]?.text;
                         return (
-                          <div key={key} className={`flex flex-col gap-2 rounded-md border bg-background/50 px-3 py-3 text-sm ${jobNetMissing > 0 ? 'border-red-500/40' : 'border-emerald-500/40'}`}>
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground hidden sm:block" />
-                                <span className="font-medium">{job.jobTitle}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">
-                                  Potrzeby: <strong className="text-emerald-600">{potrzeby} os.</strong> (jest {obecnie}, zwalnia {zwalnia})
-                                </span>
-                                {jobNetMissing > 0 && (
-                                  <Badge variant="destructive" className="text-xs px-1.5 py-0">Brakuje {jobNetMissing}</Badge>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Prognoza braków w czasie — dla wszystkich (rekrutacja widzi KIEDY) */}
-                            {forecast.length > 1 && (
-                              <div className="flex flex-col gap-0.5 text-xs">
-                                {forecast.map((r, ri) => (
-                                  <div key={ri} className="flex items-center gap-1.5 text-muted-foreground">
-                                    <span aria-hidden="true">•</span>
-                                    {r.kind === 'now' ? (
-                                      <span>teraz brakuje: <strong className="text-foreground">{r.shortage}</strong></span>
-                                    ) : (
-                                      <span>od {formatYmdPl(r.date)}: brakuje <strong className="text-foreground">{r.shortage}</strong></span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Planowane przyjęcia i zwolnienia — podgląd dla wszystkich, edycja tylko dla admina */}
-                            {(jobMissing > 0 || jobPlanned.length > 0 || job.zwalniani.length > 0) && (
-                                <div className="mt-2 flex flex-col gap-2 border-t pt-2">
-                                  {job.zwalniani.length > 0 && (
-                                    <div className="flex flex-col gap-1 mb-1">
-                                      <span className="text-xs font-medium text-muted-foreground">Planowane zwolnienia:</span>
-                                      {job.zwalniani.map((z, idx) => {
-                                        const expKey = `${dept}|${job.jobTitle}|${z.date}`;
-                                        const expanded = !!expandedTerminations[expKey];
-                                        return (
-                                          <div key={idx} className="bg-red-500/10 rounded text-xs">
-                                            <button
-                                              type="button"
-                                              onClick={() => toggleTerminations(expKey)}
-                                              aria-expanded={expanded}
-                                              title="Pokaż pracowników"
-                                              className="flex w-full cursor-pointer items-center justify-between px-2 py-1 text-left text-red-700 dark:text-red-400"
-                                            >
-                                              <span>📅 {formatYmdPl(z.date)} — <strong>{z.count} os.</strong></span>
-                                              <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-                                            </button>
-                                            {expanded && (
-                                              <ul className="space-y-0.5 border-t border-red-500/20 px-2 py-1.5 text-red-700 dark:text-red-400">
-                                                {z.names.map(name => (
-                                                  <li key={name} className="flex items-center gap-1.5">
-                                                    <span aria-hidden="true">•</span>
-                                                    <span className="font-medium">{name}</span>
-                                                  </li>
-                                                ))}
-                                              </ul>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-
-                                  {jobPlanned.length > 0 && (
-                                    <div className="flex flex-col gap-1">
-                                      <span className="text-xs font-medium text-muted-foreground">Zaplanowane przyjęcia:</span>
-                                      {jobPlanned.map(p => (
-                                        <ArrivalRow
-                                          key={p.id}
-                                          p={p}
-                                          onUpdate={handleUpdateArrival}
-                                          onRemove={handleRemoveArrival}
-                                          canDelete={isAdmin}
-                                        />
-                                      ))}
-                                    </div>
-                                  )}
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Input
-                                      type="date"
-                                      min={format(new Date(), 'yyyy-MM-dd')}
-                                      className="h-8 text-xs flex-1"
-                                      value={newArrivalDate[key] || ''}
-                                      onChange={e => setNewArrivalDate(prev => ({ ...prev, [key]: e.target.value }))}
-                                    />
-                                    <Input
-                                      type="number"
-                                      min="1"
-                                      max="50"
-                                      placeholder="Ilość"
-                                      className={`h-8 w-20 text-xs ${newArrivalDate[key] && !newArrivalCount[key] ? 'guide-pulse' : ''}`}
-                                      value={newArrivalCount[key] || ''}
-                                      onChange={e => setNewArrivalCount(prev => ({ ...prev, [key]: e.target.value }))}
-                                    />
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      className="h-8 text-xs"
-                                      onClick={() => handleAddArrival(dept, job.jobTitle)}
-                                      disabled={!newArrivalDate[key] || !newArrivalCount[key]}
-                                    >
-                                      Dodaj
-                                    </Button>
-                                    {(newArrivalDate[key] || newArrivalCount[key]) && (
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        title="Anuluj wpisywanie"
-                                        aria-label="Anuluj wpisywanie"
-                                        className="h-8 w-8 shrink-0 text-muted-foreground"
-                                        onClick={() => {
-                                          setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
-                                          setNewArrivalCount(prev => ({ ...prev, [key]: '' }));
-                                        }}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                  {!isAdmin && (
-                                    <p className="text-[11px] text-muted-foreground">
-                                      Jako Gość możesz dodawać i edytować przyjęcia oraz komentarze. Usuwanie — dla administratora.
-                                    </p>
-                                  )}
-                                  <PositionComment
-                                    saved={data.komentarzeZapotrzebowania?.[cKey]}
-                                    draft={commentDrafts[cKey] ?? ''}
-                                    isEditing={!!editingComment[cKey]}
-                                    onStartEdit={() => {
-                                      setCommentDrafts(prev => ({ ...prev, [cKey]: data.komentarzeZapotrzebowania?.[cKey]?.text ?? '' }));
-                                      setEditingComment(prev => ({ ...prev, [cKey]: true }));
-                                    }}
-                                    onDraftChange={v => setCommentDrafts(prev => ({ ...prev, [cKey]: v }))}
-                                    onCancel={() => setEditingComment(prev => ({ ...prev, [cKey]: false }))}
-                                    onSave={() => handleSaveComment(dept, job.jobTitle)}
+                          <React.Fragment key={key}>
+                            <tr
+                              className={`cursor-pointer border-b hover:bg-muted/30 ${net > 0 ? '' : 'text-foreground/90'}`}
+                              onClick={() => setExpandedJobs(prev => ({ ...prev, [key]: !prev[key] }))}
+                            >
+                              <td className="py-2 pl-4 pr-2 md:pl-8 md:pr-3">
+                                <button type="button" aria-expanded={open} className="flex items-start gap-1.5 text-left">
+                                  {open ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                                  <Briefcase className="hidden h-3.5 w-3.5 shrink-0 text-muted-foreground sm:block" />
+                                  <span className="font-medium">{job.jobTitle}</span>
+                                  {hasComment && <span title="Jest komentarz" aria-label="Jest komentarz">💬</span>}
+                                </button>
+                              </td>
+                              <td className="px-1 md:px-2 py-1 text-right tabular-nums">
+                                {isAdmin && singleManager ? (
+                                  <PotrzebyInput
+                                    value={job.potrzeby}
+                                    onCommit={n => commitPotrzeby(dept, singleManager.manager, job.jobTitle, n)}
                                   />
-                                </div>
+                                ) : (
+                                  job.potrzeby
+                                )}
+                              </td>
+                              <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{job.obecnie}</td>
+                              <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{numCell(job.zwalnia, false)}</td>
+                              <td className="px-1 md:px-2 py-2 text-right tabular-nums">{numCell(now)}</td>
+                              <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{numCell(in7)}</td>
+                              <td className="px-1 md:px-2 py-2 text-right tabular-nums">{numCell(in30)}</td>
+                              <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{plannedTotal}</td>
+                              <td className="px-2 md:px-3 py-2 text-right tabular-nums">
+                                {net > 0 ? (
+                                  <Badge variant="destructive" className="px-1.5 py-0 text-xs">{net}</Badge>
+                                ) : (
+                                  <span className="text-xs text-emerald-700 dark:text-emerald-400">Komplet</span>
+                                )}
+                              </td>
+                            </tr>
+
+                            {open && (
+                              <tr className="border-b bg-muted/20">
+                                <td colSpan={COLS} className="px-4 py-3">
+                                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div className="flex flex-col gap-3">
+                                      {job.managers.length > 1 && (
+                                        <div className="flex flex-col gap-1">
+                                          <span className="text-xs font-medium text-muted-foreground">Potrzeby wg kierowników:</span>
+                                          {job.managers.map(m => (
+                                            <div key={m.manager} className="flex items-center justify-between gap-2 rounded bg-muted/50 px-2 py-1 text-xs">
+                                              <span>{m.manager === 'Brak kierownika' ? m.manager : `Kierownik: ${m.manager}`}</span>
+                                              {isAdmin ? (
+                                                <PotrzebyInput value={m.potrzeby} onCommit={n => commitPotrzeby(dept, m.manager, job.jobTitle, n)} />
+                                              ) : (
+                                                <strong>{m.potrzeby}</strong>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {forecast.length > 1 && (
+                                        <div className="flex flex-col gap-0.5 text-xs">
+                                          <span className="font-medium text-muted-foreground">Prognoza braków:</span>
+                                          {forecast.map((r, ri) => (
+                                            <div key={ri} className="flex items-center gap-1.5 text-muted-foreground">
+                                              <span aria-hidden="true">•</span>
+                                              {r.kind === 'now' ? (
+                                                <span>teraz brakuje: <strong className="text-foreground">{r.shortage}</strong></span>
+                                              ) : (
+                                                <span>od {formatYmdPl(r.date)}: brakuje <strong className="text-foreground">{r.shortage}</strong></span>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {job.zwalniani.length > 0 && (
+                                        <div className="flex flex-col gap-1">
+                                          <span className="text-xs font-medium text-muted-foreground">Planowane zwolnienia (ostatni dzień pracy):</span>
+                                          {job.zwalniani.map((z, idx) => {
+                                            const expKey = `${dept}|${job.jobTitle}|${z.date}`;
+                                            const expanded = !!expandedTerminations[expKey];
+                                            return (
+                                              <div key={idx} className="rounded bg-red-500/10 text-xs">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => toggleTerminations(expKey)}
+                                                  aria-expanded={expanded}
+                                                  title="Pokaż pracowników"
+                                                  className="flex w-full cursor-pointer items-center justify-between px-2 py-1 text-left text-red-700 dark:text-red-400"
+                                                >
+                                                  <span>📅 {formatYmdPl(z.date)} — <strong>{z.count} os.</strong></span>
+                                                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                                                </button>
+                                                {expanded && (
+                                                  <ul className="space-y-0.5 border-t border-red-500/20 px-2 py-1.5 text-red-700 dark:text-red-400">
+                                                    {z.names.map(name => (
+                                                      <li key={name} className="flex items-center gap-1.5">
+                                                        <span aria-hidden="true">•</span>
+                                                        <span className="font-medium">{name}</span>
+                                                      </li>
+                                                    ))}
+                                                  </ul>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+
+                                      {forecast.length <= 1 && job.zwalniani.length === 0 && job.managers.length <= 1 && (
+                                        <p className="text-xs text-muted-foreground">Brak zmian w prognozie — nie ma zaplanowanych zwolnień ani przyjęć.</p>
+                                      )}
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                      {planned.length > 0 && (
+                                        <div className="flex flex-col gap-1">
+                                          <span className="text-xs font-medium text-muted-foreground">Zaplanowane przyjęcia:</span>
+                                          {planned.map(p => (
+                                            <ArrivalRow
+                                              key={p.id}
+                                              p={p}
+                                              onUpdate={handleUpdateArrival}
+                                              onRemove={handleRemoveArrival}
+                                              canDelete={isAdmin}
+                                            />
+                                          ))}
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          type="date"
+                                          min={todayYmd}
+                                          className="h-8 flex-1 text-xs"
+                                          value={newArrivalDate[key] || ''}
+                                          onChange={e => setNewArrivalDate(prev => ({ ...prev, [key]: e.target.value }))}
+                                        />
+                                        <Input
+                                          type="number"
+                                          min="1"
+                                          max="50"
+                                          placeholder="Ilość"
+                                          className={`h-8 w-20 text-xs ${newArrivalDate[key] && !newArrivalCount[key] ? 'guide-pulse' : ''}`}
+                                          value={newArrivalCount[key] || ''}
+                                          onChange={e => setNewArrivalCount(prev => ({ ...prev, [key]: e.target.value }))}
+                                        />
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          className="h-8 text-xs"
+                                          onClick={() => handleAddArrival(dept, job.jobTitle)}
+                                          disabled={!newArrivalDate[key] || !newArrivalCount[key]}
+                                        >
+                                          Dodaj
+                                        </Button>
+                                        {(newArrivalDate[key] || newArrivalCount[key]) && (
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            title="Anuluj wpisywanie"
+                                            aria-label="Anuluj wpisywanie"
+                                            className="h-8 w-8 shrink-0 text-muted-foreground"
+                                            onClick={() => {
+                                              setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
+                                              setNewArrivalCount(prev => ({ ...prev, [key]: '' }));
+                                            }}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                      {!isAdmin && (
+                                        <p className="text-[11px] text-muted-foreground">
+                                          Jako Gość możesz dodawać i edytować przyjęcia oraz komentarze. Usuwanie i zmiana potrzeb — dla administratora.
+                                        </p>
+                                      )}
+                                      <PositionComment
+                                        saved={data.komentarzeZapotrzebowania?.[cKey]}
+                                        draft={commentDrafts[cKey] ?? ''}
+                                        isEditing={!!editingComment[cKey]}
+                                        onStartEdit={() => {
+                                          setCommentDrafts(prev => ({ ...prev, [cKey]: data.komentarzeZapotrzebowania?.[cKey]?.text ?? '' }));
+                                          setEditingComment(prev => ({ ...prev, [cKey]: true }));
+                                        }}
+                                        onDraftChange={v => setCommentDrafts(prev => ({ ...prev, [cKey]: v }))}
+                                        onCancel={() => setEditingComment(prev => ({ ...prev, [cKey]: false }))}
+                                        onSave={() => handleSaveComment(dept, job.jobTitle)}
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
                             )}
-                          </div>
+                          </React.Fragment>
                         );
-                      })
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-      </div>
+                      })}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+      <p className="text-xs text-muted-foreground">
+        Teraz = Potrzeby − Jest. Za 7 / 30 dni = prognoza po zwolnieniach (brak liczony od dnia po ostatnim dniu pracy) i zaplanowanych przyjęciach.
+        Brakuje netto = stan docelowy po wszystkich zwolnieniach i przyjęciach. Kliknij stanowisko, aby dodać przyjęcie lub komentarz.
+      </p>
+
+      <BulkArrivalsDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        options={bulkOptions}
+        todayYmd={todayYmd}
+        onAdd={(dept, job, date, count) => addArrival(dept, job, date, count, true)}
+      />
     </>
+  );
+}
+
+/** Pole potrzeb: zapis dopiero po opuszczeniu pola / Enter (bez zapisu przy każdym znaku). */
+function PotrzebyInput({ value, onCommit }: { value: number; onCommit: (n: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => { setDraft(String(value)); }, [value]);
+
+  const commit = () => {
+    const n = parseInt(draft, 10);
+    if (!Number.isInteger(n) || n < 0) {
+      setDraft(String(value));
+      return;
+    }
+    if (n !== value) onCommit(n);
+  };
+
+  return (
+    <Input
+      type="number"
+      min={0}
+      aria-label="Potrzeby"
+      value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      onClick={e => e.stopPropagation()}
+      className="inline-block h-7 w-16 px-1 py-0 text-right text-sm font-semibold"
+    />
+  );
+}
+
+type BulkLine = { id: number; dept: string; job: string; count: string };
+
+/** Dodawanie wielu przyjęć naraz (jedna data, wiele stanowisk). */
+function BulkArrivalsDialog({ open, onOpenChange, options, todayYmd, onAdd }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  options: Map<string, { jobTitle: string; net: number }[]>;
+  todayYmd: string;
+  onAdd: (dept: string, job: string, date: string, count: number) => Promise<string | null>;
+}) {
+  const { toast } = useToast();
+  const [date, setDate] = useState('');
+  const [lines, setLines] = useState<BulkLine[]>([]);
+  const [busy, setBusy] = useState(false);
+  const nextId = useRef(1);
+  const depts = Array.from(options.keys()).sort((a, b) => a.localeCompare(b, 'pl'));
+
+  const newLine = (dept?: string, job?: string, count = ''): BulkLine => {
+    const d = dept ?? depts[0] ?? '';
+    return { id: nextId.current++, dept: d, job: job ?? options.get(d)?.[0]?.jobTitle ?? '', count };
+  };
+  const patch = (id: number, p: Partial<BulkLine>) =>
+    setLines(prev => prev.map(l => (l.id === id ? { ...l, ...p } : l)));
+
+  const fillShortages = () => {
+    const next: BulkLine[] = [];
+    depts.forEach(d => (options.get(d) ?? []).forEach(j => {
+      if (j.net > 0) next.push(newLine(d, j.jobTitle, String(Math.min(50, j.net))));
+    }));
+    if (next.length === 0) {
+      toast({ title: 'Brak braków do uzupełnienia' });
+      return;
+    }
+    setLines(next);
+  };
+
+  const submit = async () => {
+    if (!date || date < todayYmd) {
+      toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Wybierz datę od dziś.' });
+      return;
+    }
+    const valid = lines.filter(l => l.dept && l.job);
+    if (valid.length === 0) {
+      toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Dodaj co najmniej jeden wiersz.' });
+      return;
+    }
+    const parsed = valid.map(l => ({ ...l, n: Number(l.count) }));
+    if (parsed.some(l => !Number.isInteger(l.n) || l.n < 1 || l.n > 50)) {
+      toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Liczba osób w każdym wierszu: 1–50.' });
+      return;
+    }
+    setBusy(true);
+    const failed: (BulkLine & { error: string })[] = [];
+    let saved = 0;
+    for (const l of parsed) {
+      const error = await onAdd(l.dept, l.job, date, l.n);
+      if (error === null) saved += 1;
+      else failed.push({ id: l.id, dept: l.dept, job: l.job, count: l.count, error });
+    }
+    setBusy(false);
+    if (failed.length === 0) {
+      toast({ title: 'Zapisano', description: `Dodano przyjęć: ${saved} (${formatYmdPl(date)}).` });
+      setLines([]);
+      setDate('');
+      onOpenChange(false);
+    } else {
+      setLines(failed.map(({ error: _e, ...line }) => line));
+      toast({
+        variant: 'destructive',
+        title: `Zapisano ${saved}, nie zapisano ${failed.length}`,
+        description: failed[0].error,
+      });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={o => { if (!busy) onOpenChange(o); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Dodaj przyjęcia hurtem</DialogTitle>
+          <DialogDescription>Jedna data, wiele stanowisk. Każdy wiersz zapisuje się jako osobne przyjęcie.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-wrap items-center gap-2">
+          <Input type="date" min={todayYmd} value={date} onChange={e => setDate(e.target.value)} className="h-8 w-44 text-sm" aria-label="Data przyjęcia" />
+          <Button type="button" size="sm" variant="outline" className="h-8" onClick={fillShortages} disabled={busy}>Wypełnij brakami</Button>
+          <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => setLines(prev => [...prev, newLine()])} disabled={busy || depts.length === 0}>
+            <Plus className="h-3.5 w-3.5" /> Dodaj wiersz
+          </Button>
+        </div>
+        <div className="flex max-h-[45vh] flex-col gap-2 overflow-y-auto">
+          {lines.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">Brak wierszy — użyj „Wypełnij brakami” albo „Dodaj wiersz”.</p>}
+          {lines.map(l => (
+            <div key={l.id} className="flex items-center gap-2">
+              <select
+                aria-label="Dział"
+                value={l.dept}
+                onChange={e => patch(l.id, { dept: e.target.value, job: options.get(e.target.value)?.[0]?.jobTitle ?? '' })}
+                className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs"
+              >
+                {depts.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+              <select
+                aria-label="Stanowisko"
+                value={l.job}
+                onChange={e => patch(l.id, { job: e.target.value })}
+                className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs"
+              >
+                {(options.get(l.dept) ?? []).map(j => <option key={j.jobTitle} value={j.jobTitle}>{j.jobTitle}</option>)}
+              </select>
+              <Input type="number" min="1" max="50" placeholder="Ilość" value={l.count} onChange={e => patch(l.id, { count: e.target.value })} className="h-8 w-20 text-xs" aria-label="Ilość" />
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground" aria-label="Usuń wiersz" onClick={() => setLines(prev => prev.filter(x => x.id !== l.id))} disabled={busy}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>Anuluj</Button>
+          <Button type="button" onClick={submit} disabled={busy || lines.length === 0}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `Zapisz (${lines.length})`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -765,9 +1128,16 @@ function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpd
   const [date, setDate] = useState(p.date);
   const [count, setCount] = useState(p.count);
 
-  const handleSave = () => {
-    onUpdate(p.id, date, parseInt(count, 10));
-    setIsEditing(false);
+  const startEditing = () => {
+    setDate(p.date);
+    setCount(p.count);
+    setIsEditing(true);
+  };
+
+  // Tryb edycji zamykamy dopiero po udanym zapisie — przy błędzie walidacji dane zostają w polach.
+  const handleSave = async () => {
+    const ok = await onUpdate(p.id, date, parseInt(count, 10));
+    if (ok) setIsEditing(false);
   };
 
   if (isEditing) {
@@ -785,7 +1155,7 @@ function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpd
     <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs group">
       <span>📅 {formatYmdPl(p.date) || 'bez daty'} — <strong>{p.count} os.</strong></span>
       <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-         <Button type="button" variant="ghost" size="icon" title="Edytuj" className="h-5 w-5 text-blue-600 hover:text-blue-700" onClick={() => setIsEditing(true)}>
+         <Button type="button" variant="ghost" size="icon" title="Edytuj" className="h-5 w-5 text-blue-600 hover:text-blue-700" onClick={startEditing}>
            <Pencil className="h-3 w-3" />
          </Button>
          {canDelete && (
@@ -851,28 +1221,32 @@ function PositionComment({ saved, draft, isEditing, onStartEdit, onDraftChange, 
 
 /** Historia minionych przyjęć (data < dziś) z weryfikacją, czy osoby faktycznie doszły. */
 function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>> }) {
-  const { isAdmin } = useAppContext();
+  const { isAdmin, logAudit } = useAppContext();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const todayYmd = format(new Date(), 'yyyy-MM-dd');
 
-  const arrivals = Object.values(data.planowanePrzyjecia || {});
-  const { past } = splitArrivals(arrivals, todayYmd);
-  const employees: HistoriaEmployee[] = (data.employees || []).map(e => ({
-    fullName: e.fullName,
-    department: e.department,
-    jobTitle: e.jobTitle,
-    hireDate: e.hireDate,
-  }));
-  const transfers: TransferRecord[] = Object.values(data.transfery || {});
-  const rows = past.map(a => {
-    const hired = matchHires(a, employees);
-    const moved = matchTransfers(a, transfers);
-    const names = new Set([...hired.map(h => h.fullName), ...moved.map(m => m.fullName)]);
-    return { arrival: a, hired, moved, status: arrivalStatus(a, names.size) };
-  });
+  // Dopasowanie przyjęć do zatrudnień jest kosztowne (przyjęcia × pracownicy) — liczymy tylko
+  // przy zmianie danych, a nie przy każdym rozwinięciu wiersza.
+  const rows = useMemo(() => {
+    const { past } = splitArrivals(Object.values(data.planowanePrzyjecia || {}), todayYmd);
+    // `hires` = wszyscy zatrudnieni (także zwolnieni bez daty) z ostatniego roku; fallback na employees.
+    const employees: HistoriaEmployee[] = (data.hires ?? data.employees ?? []).map(e => ({
+      fullName: e.fullName,
+      department: e.department,
+      jobTitle: e.jobTitle,
+      hireDate: e.hireDate,
+    }));
+    const transfers: TransferRecord[] = Object.values(data.transfery || {});
+    const allocation = allocateArrivals(past, employees, transfers);
+    return past.map(a => {
+      const { hired, moved } = allocation.get(a.id) ?? { hired: [], moved: [] };
+      return { arrival: a, hired, moved, status: arrivalStatus(a, hired.length + moved.length, todayYmd) };
+    });
+  }, [data.planowanePrzyjecia, data.hires, data.employees, data.transfery, todayYmd]);
 
   const doneCount = rows.filter(r => r.status === 'done').length;
   const partialCount = rows.filter(r => r.status === 'partial').length;
+  const pendingCount = rows.filter(r => r.status === 'pending').length;
   const missingCount = rows.filter(r => r.status === 'missing').length;
 
   const byDept = new Map<string, typeof rows>();
@@ -887,7 +1261,9 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
     const db = getDB();
     if (!db) return;
     try {
+      const target = data.planowanePrzyjecia?.[id];
       await remove(dbRef(db, `planowanePrzyjecia/${id}`));
+      void logAudit('Usunięto planowane przyjęcie (Historia)', `${target?.department ?? ''} / ${target?.jobTitle ?? ''} — ${target?.date ?? ''} — ${target?.count ?? ''} os.`);
       setData(prev => {
         if (!prev) return prev;
         const current = { ...(prev.planowanePrzyjecia || {}) };
@@ -916,6 +1292,11 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
             Częściowo: {partialCount}
           </Badge>
         )}
+        {pendingCount > 0 && (
+          <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-sm text-muted-foreground tabular-nums">
+            Oczekuje: {pendingCount}
+          </Badge>
+        )}
         {missingCount > 0 && (
           <Badge variant="destructive" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
             Niezrealizowane: {missingCount}
@@ -923,7 +1304,7 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
         )}
       </div>
       <p className="text-xs text-muted-foreground">
-        Weryfikacja po dacie zatrudnienia i transferach (okno −7 / +14 dni od planowanej daty).
+        Weryfikacja po dacie zatrudnienia i transferach (okno −7 / +14 dni od planowanej daty); każda osoba liczy się tylko do jednego przyjęcia. W trakcie okna brak dopasowań = „Oczekuje”.
       </p>
 
       {rows.length === 0 ? (
@@ -944,7 +1325,7 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
                 {deptRows.map(({ arrival: a, hired, moved, status }) => {
                   const expKey = `hist|${a.id}`;
                   const isOpen = !!expanded[expKey];
-                  const totalMatched = new Set([...hired.map(h => h.fullName), ...moved.map(m => m.fullName)]).size;
+                  const totalMatched = hired.length + moved.length;
                   return (
                     <div key={a.id} className="rounded-md border bg-background/50 px-3 py-2 text-sm">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -966,6 +1347,9 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
                           )}
                           {status === 'partial' && (
                             <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-xs">Częściowo {totalMatched}/{a.count}</Badge>
+                          )}
+                          {status === 'pending' && (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">Oczekuje do {formatYmdPl(arrivalWindowEnd(a) ?? '')}</Badge>
                           )}
                           {status === 'missing' && (
                             <Badge variant="destructive" className="text-xs">Niezrealizowane</Badge>
