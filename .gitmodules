@@ -1,0 +1,3 @@
+[submodule "strumet"]
+	path = strumet
+	url = https://github.com/Alexgal19/strumet.git
