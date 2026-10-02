@@ -393,6 +393,17 @@
 }
 
 @layer components {
+  /* Zapotrzebowania: najechany wiersz podświetlony na całej szerokości, wyraźną zielenią */
+  .zap-row:hover > td {
+    background-color: #4ade80;
+  }
+  .dark .zap-row:hover > td,
+  [data-theme="mocha"] .zap-row:hover > td,
+  [data-theme="frappe"] .zap-row:hover > td,
+  [data-theme="macchiato"] .zap-row:hover > td {
+    background-color: #166534;
+  }
+
   .harmonogram-table tbody tr:hover > td {
     filter: brightness(0.93);
   }

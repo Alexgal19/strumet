@@ -619,7 +619,7 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
   });
 
   const numCell = (v: number, danger = true) => (
-    <span className={v > 0 && danger ? 'font-semibold text-red-600 dark:text-red-400' : v === 0 ? 'text-muted-foreground' : ''}>{v}</span>
+    <span className={v > 0 && danger ? 'font-semibold text-red-600 dark:text-red-400' : v === 0 ? 'text-foreground' : ''}>{v}</span>
   );
   const COLS = 9;
 
@@ -650,7 +650,7 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full min-w-[200px] sm:w-64">
-          <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-foreground" />
           <Input
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -686,24 +686,24 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm md:min-w-[820px]">
-              <thead className="bg-muted/50 text-xs text-muted-foreground">
+            <table className="w-full border-collapse text-base md:min-w-[820px]">
+              <thead className="bg-muted/60 text-sm font-semibold text-foreground">
                 <tr className="border-b">
-                  <th className="px-3 py-2 text-left font-medium">Dział / Stanowisko</th>
-                  <th className="px-1 md:px-2 py-2 text-right font-medium" title="Obsada docelowa">Potrzeby</th>
-                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-medium" title="Aktywni pracownicy dziś">Jest</th>
-                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-medium" title="Osoby z datą zwolnienia dziś lub później">Zwalnia</th>
-                  <th className="px-1 md:px-2 py-2 text-right font-medium" title="Potrzeby − Jest, dziś">Teraz</th>
-                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-medium" title={`Prognoza na ${formatYmdPl(plus7)} (po zwolnieniach i przyjęciach)`}>Za 7 dni</th>
-                  <th className="px-1 md:px-2 py-2 text-right font-medium" title={`Prognoza na ${formatYmdPl(plus30)} (po zwolnieniach i przyjęciach)`}>Za 30 dni</th>
-                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-medium" title="Zaplanowane przyjęcia (data od dziś)">Przyjęcia</th>
-                  <th className="px-2 md:px-3 py-2 text-right font-medium" title="Stan docelowy po wszystkich zwolnieniach i zaplanowanych przyjęciach"><span className="md:hidden">Netto</span><span className="hidden md:inline">Brakuje netto</span></th>
+                  <th className="px-3 py-2 text-left font-semibold">Dział / Stanowisko</th>
+                  <th className="px-1 md:px-2 py-2 text-right font-semibold" title="Obsada docelowa">Potrzeby</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Aktywni pracownicy dziś">Jest</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Osoby z datą zwolnienia dziś lub później">Zwalnia</th>
+                  <th className="px-1 md:px-2 py-2 text-right font-semibold" title="Potrzeby − Jest, dziś">Teraz</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title={`Prognoza na ${formatYmdPl(plus7)} (po zwolnieniach i przyjęciach)`}>Za 7 dni</th>
+                  <th className="px-1 md:px-2 py-2 text-right font-semibold" title={`Prognoza na ${formatYmdPl(plus30)} (po zwolnieniach i przyjęciach)`}>Za 30 dni</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Zaplanowane przyjęcia (data od dziś)">Przyjęcia</th>
+                  <th className="px-2 md:px-3 py-2 text-right font-semibold" title="Stan docelowy po wszystkich zwolnieniach i zaplanowanych przyjęciach"><span className="md:hidden">Netto</span><span className="hidden md:inline">Brakuje netto</span></th>
                 </tr>
               </thead>
               <tbody>
                 {deptModels.length === 0 && (
                   <tr>
-                    <td colSpan={COLS} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={COLS} className="px-3 py-8 text-center text-sm text-foreground">
                       {onlyProblems || q ? 'Brak wyników dla wybranych filtrów.' : 'Brak stanowisk.'}
                     </td>
                   </tr>
@@ -713,13 +713,13 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                   return (
                     <React.Fragment key={dept}>
                       <tr
-                        className={`cursor-pointer border-b bg-muted/40 font-semibold hover:bg-muted/60 ${flashDepts[dept] ? 'demand-flash-row' : ''}`}
+                        className={`zap-row cursor-pointer border-b bg-muted/40 font-semibold ${flashDepts[dept] ? 'demand-flash-row' : ''}`}
                         onClick={() => setCollapsedDepts(prev => ({ ...prev, [dept]: !prev[dept] }))}
                       >
                         <td className="px-3 py-2">
                           {/* Przycisk bez własnego onClick: klik/Enter/Spacja bąbelkuje do <tr> (jedno przełączenie). */}
                           <button type="button" aria-expanded={!collapsed} className="flex items-start gap-1.5 text-left font-semibold">
-                            {collapsed ? <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                            {collapsed ? <ChevronRight className="h-4 w-4 shrink-0 text-foreground" /> : <ChevronDown className="h-4 w-4 shrink-0 text-foreground" />}
                             <span className="[overflow-wrap:anywhere]">{dept}</span>
                           </button>
                         </td>
@@ -732,9 +732,9 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                         <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{agg.planned}</td>
                         <td className="px-2 md:px-3 py-2 text-right tabular-nums">
                           {agg.net > 0 ? (
-                            <Badge variant="destructive" className="text-xs font-semibold">{agg.net}</Badge>
+                            <Badge variant="destructive" className="text-sm font-semibold">{agg.net}</Badge>
                           ) : (
-                            <Badge variant="outline" className="border-emerald-500/60 text-xs text-emerald-700 dark:text-emerald-400">Komplet</Badge>
+                            <Badge variant="outline" className="border-emerald-500/60 text-sm text-emerald-700 dark:text-emerald-400">Komplet</Badge>
                           )}
                         </td>
                       </tr>
@@ -748,14 +748,14 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                         return (
                           <React.Fragment key={key}>
                             <tr
-                              className={`cursor-pointer border-b hover:bg-muted/30 ${net > 0 ? '' : 'text-foreground/90'}`}
+                              className="zap-row cursor-pointer border-b"
                               onClick={() => setExpandedJobs(prev => ({ ...prev, [key]: !prev[key] }))}
                             >
                               <td className="py-2 pl-4 pr-2 md:pl-8 md:pr-3">
                                 <button type="button" aria-expanded={open} className="flex items-start gap-1.5 text-left">
-                                  {open ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
-                                  <Briefcase className="hidden h-3.5 w-3.5 shrink-0 text-muted-foreground sm:block" />
-                                  <span className="font-medium">{job.jobTitle}</span>
+                                  {open ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-foreground" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-foreground" />}
+                                  <Briefcase className="hidden h-3.5 w-3.5 shrink-0 text-foreground sm:block" />
+                                  <span className="font-semibold">{job.jobTitle}</span>
                                   {hasComment && <span title="Jest komentarz" aria-label="Jest komentarz">💬</span>}
                                 </button>
                               </td>
@@ -777,9 +777,9 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                               <td className="hidden md:table-cell px-1 md:px-2 py-2 text-right tabular-nums">{plannedTotal}</td>
                               <td className="px-2 md:px-3 py-2 text-right tabular-nums">
                                 {net > 0 ? (
-                                  <Badge variant="destructive" className="px-1.5 py-0 text-xs">{net}</Badge>
+                                  <Badge variant="destructive" className="px-1.5 py-0 text-sm">{net}</Badge>
                                 ) : (
-                                  <span className="text-xs text-emerald-700 dark:text-emerald-400">Komplet</span>
+                                  <span className="text-sm text-emerald-700 dark:text-emerald-400">Komplet</span>
                                 )}
                               </td>
                             </tr>
@@ -791,9 +791,9 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                     <div className="flex flex-col gap-3">
                                       {job.managers.length > 1 && (
                                         <div className="flex flex-col gap-1">
-                                          <span className="text-xs font-medium text-muted-foreground">Potrzeby wg kierowników:</span>
+                                          <span className="text-sm font-medium text-foreground">Potrzeby wg kierowników:</span>
                                           {job.managers.map(m => (
-                                            <div key={m.manager} className="flex items-center justify-between gap-2 rounded bg-muted/50 px-2 py-1 text-xs">
+                                            <div key={m.manager} className="flex items-center justify-between gap-2 rounded bg-muted/50 px-2 py-1 text-sm">
                                               <span>{m.manager === 'Brak kierownika' ? m.manager : `Kierownik: ${m.manager}`}</span>
                                               {isAdmin ? (
                                                 <PotrzebyInput value={m.potrzeby} onCommit={n => commitPotrzeby(dept, m.manager, job.jobTitle, n)} />
@@ -806,10 +806,10 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                       )}
 
                                       {forecast.length > 1 && (
-                                        <div className="flex flex-col gap-0.5 text-xs">
-                                          <span className="font-medium text-muted-foreground">Prognoza braków:</span>
+                                        <div className="flex flex-col gap-0.5 text-sm">
+                                          <span className="font-medium text-foreground">Prognoza braków:</span>
                                           {forecast.map((r, ri) => (
-                                            <div key={ri} className="flex items-center gap-1.5 text-muted-foreground">
+                                            <div key={ri} className="flex items-center gap-1.5 text-foreground">
                                               <span aria-hidden="true">•</span>
                                               {r.kind === 'now' ? (
                                                 <span>teraz brakuje: <strong className="text-foreground">{r.shortage}</strong></span>
@@ -823,12 +823,12 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
 
                                       {job.zwalniani.length > 0 && (
                                         <div className="flex flex-col gap-1">
-                                          <span className="text-xs font-medium text-muted-foreground">Planowane zwolnienia (ostatni dzień pracy):</span>
+                                          <span className="text-sm font-medium text-foreground">Planowane zwolnienia (ostatni dzień pracy):</span>
                                           {job.zwalniani.map((z, idx) => {
                                             const expKey = `${dept}|${job.jobTitle}|${z.date}`;
                                             const expanded = !!expandedTerminations[expKey];
                                             return (
-                                              <div key={idx} className="rounded bg-red-500/10 text-xs">
+                                              <div key={idx} className="rounded bg-red-500/10 text-sm">
                                                 <button
                                                   type="button"
                                                   onClick={() => toggleTerminations(expKey)}
@@ -856,14 +856,14 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                       )}
 
                                       {forecast.length <= 1 && job.zwalniani.length === 0 && job.managers.length <= 1 && (
-                                        <p className="text-xs text-muted-foreground">Brak zmian w prognozie — nie ma zaplanowanych zwolnień ani przyjęć.</p>
+                                        <p className="text-sm text-foreground">Brak zmian w prognozie — nie ma zaplanowanych zwolnień ani przyjęć.</p>
                                       )}
                                     </div>
 
                                     <div className="flex flex-col gap-2">
                                       {planned.length > 0 && (
                                         <div className="flex flex-col gap-1">
-                                          <span className="text-xs font-medium text-muted-foreground">Zaplanowane przyjęcia:</span>
+                                          <span className="text-sm font-medium text-foreground">Zaplanowane przyjęcia:</span>
                                           {planned.map(p => (
                                             <ArrivalRow
                                               key={p.id}
@@ -879,7 +879,7 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                         <Input
                                           type="date"
                                           min={todayYmd}
-                                          className="h-8 flex-1 text-xs"
+                                          className="h-8 flex-1 text-sm"
                                           value={newArrivalDate[key] || ''}
                                           onChange={e => setNewArrivalDate(prev => ({ ...prev, [key]: e.target.value }))}
                                         />
@@ -888,14 +888,14 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                           min="1"
                                           max="50"
                                           placeholder="Ilość"
-                                          className={`h-8 w-20 text-xs ${newArrivalDate[key] && !newArrivalCount[key] ? 'guide-pulse' : ''}`}
+                                          className={`h-8 w-20 text-sm ${newArrivalDate[key] && !newArrivalCount[key] ? 'guide-pulse' : ''}`}
                                           value={newArrivalCount[key] || ''}
                                           onChange={e => setNewArrivalCount(prev => ({ ...prev, [key]: e.target.value }))}
                                         />
                                         <Button
                                           type="button"
                                           size="sm"
-                                          className="h-8 text-xs"
+                                          className="h-8 text-sm"
                                           onClick={() => handleAddArrival(dept, job.jobTitle)}
                                           disabled={!newArrivalDate[key] || !newArrivalCount[key]}
                                         >
@@ -908,7 +908,7 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                             size="icon"
                                             title="Anuluj wpisywanie"
                                             aria-label="Anuluj wpisywanie"
-                                            className="h-8 w-8 shrink-0 text-muted-foreground"
+                                            className="h-8 w-8 shrink-0 text-foreground"
                                             onClick={() => {
                                               setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
                                               setNewArrivalCount(prev => ({ ...prev, [key]: '' }));
@@ -919,7 +919,7 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                         )}
                                       </div>
                                       {!isAdmin && (
-                                        <p className="text-[11px] text-muted-foreground">
+                                        <p className="text-sm text-foreground">
                                           Jako Gość możesz dodawać i edytować przyjęcia oraz komentarze. Usuwanie i zmiana potrzeb — dla administratora.
                                         </p>
                                       )}
@@ -951,7 +951,7 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
           </div>
         </CardContent>
       </Card>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-foreground">
         Teraz = Potrzeby − Jest. Za 7 / 30 dni = prognoza po zwolnieniach (brak liczony od dnia po ostatnim dniu pracy) i zaplanowanych przyjęciach.
         Brakuje netto = stan docelowy po wszystkich zwolnieniach i przyjęciach. Kliknij stanowisko, aby dodać przyjęcie lub komentarz.
       </p>
@@ -991,7 +991,7 @@ function PotrzebyInput({ value, onCommit }: { value: number; onCommit: (n: numbe
       onBlur={commit}
       onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
       onClick={e => e.stopPropagation()}
-      className="inline-block h-7 w-16 px-1 py-0 text-right text-sm font-semibold"
+      className="inline-block h-8 w-20 px-1 py-0 text-right text-base font-semibold"
     />
   );
 }
@@ -1086,14 +1086,14 @@ function BulkArrivalsDialog({ open, onOpenChange, options, todayYmd, onAdd }: {
           </Button>
         </div>
         <div className="flex max-h-[45vh] flex-col gap-2 overflow-y-auto">
-          {lines.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">Brak wierszy — użyj „Wypełnij brakami” albo „Dodaj wiersz”.</p>}
+          {lines.length === 0 && <p className="py-4 text-center text-sm text-foreground">Brak wierszy — użyj „Wypełnij brakami” albo „Dodaj wiersz”.</p>}
           {lines.map(l => (
             <div key={l.id} className="flex items-center gap-2">
               <select
                 aria-label="Dział"
                 value={l.dept}
                 onChange={e => patch(l.id, { dept: e.target.value, job: options.get(e.target.value)?.[0]?.jobTitle ?? '' })}
-                className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs"
+                className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
               >
                 {depts.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
@@ -1101,12 +1101,12 @@ function BulkArrivalsDialog({ open, onOpenChange, options, todayYmd, onAdd }: {
                 aria-label="Stanowisko"
                 value={l.job}
                 onChange={e => patch(l.id, { job: e.target.value })}
-                className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs"
+                className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
               >
                 {(options.get(l.dept) ?? []).map(j => <option key={j.jobTitle} value={j.jobTitle}>{j.jobTitle}</option>)}
               </select>
-              <Input type="number" min="1" max="50" placeholder="Ilość" value={l.count} onChange={e => patch(l.id, { count: e.target.value })} className="h-8 w-20 text-xs" aria-label="Ilość" />
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground" aria-label="Usuń wiersz" onClick={() => setLines(prev => prev.filter(x => x.id !== l.id))} disabled={busy}>
+              <Input type="number" min="1" max="50" placeholder="Ilość" value={l.count} onChange={e => patch(l.id, { count: e.target.value })} className="h-8 w-20 text-sm" aria-label="Ilość" />
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-foreground" aria-label="Usuń wiersz" onClick={() => setLines(prev => prev.filter(x => x.id !== l.id))} disabled={busy}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -1143,16 +1143,16 @@ function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpd
   if (isEditing) {
     return (
       <div className="flex items-center gap-1 bg-muted/30 p-1 rounded">
-        <Input type="date" min={format(new Date(), 'yyyy-MM-dd')} className="h-7 text-xs px-2 flex-1" value={date} onChange={e => setDate(e.target.value)} />
-        <Input type="number" min="1" max="50" className="h-7 w-16 text-xs px-2" value={count} onChange={e => setCount(e.target.value)} />
+        <Input type="date" min={format(new Date(), 'yyyy-MM-dd')} className="h-7 text-sm px-2 flex-1" value={date} onChange={e => setDate(e.target.value)} />
+        <Input type="number" min="1" max="50" className="h-7 w-16 text-sm px-2" value={count} onChange={e => setCount(e.target.value)} />
         <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600 shrink-0" onClick={handleSave}><Check className="h-3 w-3" /></Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground shrink-0" onClick={() => { setDate(p.date); setCount(p.count); setIsEditing(false); }}><X className="h-3 w-3" /></Button>
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-foreground shrink-0" onClick={() => { setDate(p.date); setCount(p.count); setIsEditing(false); }}><X className="h-3 w-3" /></Button>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs group">
+    <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-sm group">
       <span>📅 {formatYmdPl(p.date) || 'bez daty'} — <strong>{p.count} os.</strong></span>
       <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
          <Button type="button" variant="ghost" size="icon" title="Edytuj" className="h-5 w-5 text-blue-600 hover:text-blue-700" onClick={startEditing}>
@@ -1181,22 +1181,22 @@ function PositionComment({ saved, draft, isEditing, onStartEdit, onDraftChange, 
     return (
       <div className="flex flex-col gap-1.5 mt-1">
         <Textarea
-          className="min-h-[60px] text-xs"
+          className="min-h-[60px] text-sm"
           maxLength={MAX_COMMENT_LEN + 1}
           placeholder="Komentarz… (puste + Zapisz = usuń)"
           value={draft}
           onChange={e => onDraftChange(e.target.value)}
         />
         <div className="flex items-center gap-1.5">
-          <Button type="button" size="sm" className="h-7 text-xs" onClick={onSave}>Zapisz</Button>
-          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel}>Anuluj</Button>
+          <Button type="button" size="sm" className="h-7 text-sm" onClick={onSave}>Zapisz</Button>
+          <Button type="button" variant="ghost" size="sm" className="h-7 text-sm" onClick={onCancel}>Anuluj</Button>
         </div>
       </div>
     );
   }
   if (saved?.text) {
     return (
-      <div className="rounded-md bg-muted/50 px-2 py-1.5 text-xs mt-1">
+      <div className="rounded-md bg-muted/50 px-2 py-1.5 text-sm mt-1">
         <div className="flex items-start justify-between gap-2">
           <p className="whitespace-pre-wrap text-foreground">💬 {saved.text}</p>
           <Button type="button" variant="ghost" size="icon" title="Edytuj komentarz" className="h-5 w-5 shrink-0 text-blue-600 hover:text-blue-700" onClick={onStartEdit}>
@@ -1204,7 +1204,7 @@ function PositionComment({ saved, draft, isEditing, onStartEdit, onDraftChange, 
           </Button>
         </div>
         {(saved.author || saved.updatedAt) && (
-          <p className="mt-0.5 text-[10px] text-muted-foreground">
+          <p className="mt-0.5 text-sm text-foreground">
             {saved.author}
             {saved.updatedAt ? ` • ${format(new Date(saved.updatedAt), 'dd.MM.yyyy')}` : ''}
           </p>
@@ -1213,7 +1213,7 @@ function PositionComment({ saved, draft, isEditing, onStartEdit, onDraftChange, 
     );
   }
   return (
-    <Button type="button" variant="ghost" size="sm" className="mt-1 h-7 gap-1 text-xs text-muted-foreground" onClick={onStartEdit}>
+    <Button type="button" variant="ghost" size="sm" className="mt-1 h-7 gap-1 text-sm text-foreground" onClick={onStartEdit}>
       <Plus className="h-3 w-3" /> Dodaj komentarz
     </Button>
   );
