@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminApp } from '@/lib/firebase-admin';
 import type { HarmonogramData } from '@/lib/harmonogram';
+import { parseMaybeDate, toYmd } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export async function GET() {
   try {
     const db = getAdminApp().database();
 
-    const [employeesSnap, absencesSnap, recruitmentSnap, potrzebyObsadySnap, planowanePrzyjeciaSnap, komentarzeSnap, transferySnap] = await Promise.all([
+    const [employeesSnap, absencesSnap, recruitmentSnap, potrzebyObsadySnap, planowanePrzyjeciaSnap, komentarzeSnap, transferySnap, jobTitlesSnap] = await Promise.all([
       db.ref('employees').once('value'),
       db.ref('absences').once('value'),
       db.ref('recruitment').once('value'), 
@@ -20,6 +21,7 @@ export async function GET() {
       db.ref('planowanePrzyjecia').once('value'),
       db.ref('komentarzeZapotrzebowania').once('value'),
       db.ref('transfery').once('value'),
+      db.ref('config/jobTitles').once('value'),
     ]);
 
     const employeesRaw = employeesSnap.val() ?? {};
@@ -52,6 +54,18 @@ export async function GET() {
         terminationDate: e.terminationDate || undefined,
         status: e.status ?? 'aktywny',
       }));
+
+    // Do weryfikacji Historii: także zwolnieni bez daty zwolnienia (nie trafiają do `employees`).
+    const hiresCutoff = new Date();
+    hiresCutoff.setDate(hiresCutoff.getDate() - 400);
+    const hires: NonNullable<HarmonogramData['hires']> = [];
+    Object.values(employeesRaw).forEach(val => {
+      const e = val as Record<string, string>;
+      const hired = e.hireDate ? parseMaybeDate(e.hireDate) : null;
+      const ymd = hired ? toYmd(hired) : null;
+      if (!hired || !ymd || hired < hiresCutoff || !e.fullName) return;
+      hires.push({ fullName: e.fullName, department: e.department ?? '', jobTitle: e.jobTitle ?? '', hireDate: ymd });
+    });
 
     const absenceEntries = Object.entries(absencesRaw)
       .map(([, val]) => val as Record<string, string>)
@@ -127,6 +141,10 @@ export async function GET() {
       potrzebyByManager,
       planowanePrzyjecia,
       komentarzeZapotrzebowania: (komentarzeSnap.val() ?? {}) as HarmonogramData['komentarzeZapotrzebowania'],
+      hires,
+      jobTitles: Object.values((jobTitlesSnap.val() ?? {}) as Record<string, { name?: unknown }>)
+        .map(j => j?.name)
+        .filter((n): n is string => typeof n === 'string' && n.trim().length > 0),
       transfery: (transferySnap.val() ?? {}) as HarmonogramData['transfery'],
     };
 

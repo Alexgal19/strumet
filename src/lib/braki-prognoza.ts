@@ -1,7 +1,9 @@
 /**
  * Prognoza braków kadrowych w czasie (per stanowisko).
  * Start: teraz = max(0, potrzeby - obecnie). Dalej krocząco po datach:
- * zwolnienia odejmują obsadę, przyjęcia dodają. Daty grupowane
+ * zwolnienia odejmują obsadę, przyjęcia dodają. Data zwolnienia = OSTATNI dzień
+ * pracy (tak jak w Harmonogramie obsady), więc brak liczymy od dnia następnego.
+ * Przyjęcie liczy się od swojej daty. Daty grupowane
  * (ten sam dzień = jedna suma), nieprawidłowe daty pomijane.
  * Wiersz daty emitowany tylko, gdy zmienia braki (bez szumu).
  */
@@ -32,6 +34,12 @@ function normalizeChangeDate(s: string): string | null {
   return ymd && isValidYmd(ymd) ? ymd : null;
 }
 
+/** Następny dzień kalendarzowy (yyyy-MM-dd), bez zależności od strefy czasowej. */
+function nextDayYmd(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}
+
 export function forecastShortage(
   potrzeby: number,
   obecnie: number,
@@ -48,7 +56,9 @@ export function forecastShortage(
     const ymd = normalizeChangeDate(l.date);
     if (!ymd) return;
     if (fromYmd && ymd < fromYmd) return;
-    deltas.set(ymd, (deltas.get(ymd) || 0) - (Number(l.count) || 0));
+    // Ostatni dzień pracy = l.date → brak widoczny dopiero od następnego dnia.
+    const effective = nextDayYmd(ymd);
+    deltas.set(effective, (deltas.get(effective) || 0) - (Number(l.count) || 0));
   });
   arrivals.forEach(a => {
     const ymd = normalizeChangeDate(a.date);
@@ -68,4 +78,19 @@ export function forecastShortage(
     });
 
   return rows;
+}
+
+/** Dodaje n dni do daty yyyy-MM-dd (bez zależności od strefy czasowej). */
+export function addDaysToYmd(ymd: string, n: number): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** Braki na dany dzień wg prognozy: ostatni wiersz o dacie <= ymd (inaczej wartość "teraz"). */
+export function shortageAt(rows: ForecastRow[], ymd: string): number {
+  let value = rows[0]?.shortage ?? 0;
+  for (const r of rows) {
+    if (r.kind === 'date' && r.date <= ymd) value = r.shortage;
+  }
+  return value;
 }

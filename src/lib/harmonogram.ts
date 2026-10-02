@@ -1,8 +1,12 @@
-export function getPotrzebyKey(dept: string, mgr: string, job: string) { return `${dept}___${mgr}___${job}`.replace(/[.#$\[\]\/]/g, '_'); }
+/** Firebase RTDB nie dopuszcza . # $ [ ] / w kluczach — zamieniamy je na '_'. */
+export const sanitizeKeyPart = (v: string) => v.replace(/[.#$\[\]\/]/g, '_');
+export function getPotrzebyKey(dept: string, mgr: string, job: string) {
+  return [dept, mgr, job].map(sanitizeKeyPart).join('___');
+}
 import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
 import { pl as plLocale } from 'date-fns/locale';
-import { parseMaybeDate } from '@/lib/date';
-import { isPendingTermination } from '@/lib/przyjecia-historia';
+import { parseMaybeDate, toYmd } from '@/lib/date';
+import { allocateArrivals, isPendingTermination } from '@/lib/przyjecia-historia';
 
 export interface HarmonogramEmployee {
   department: string;
@@ -39,6 +43,10 @@ export interface HarmonogramData {
   potrzebyByManager?: Record<string, number>;
   planowanePrzyjecia?: Record<string, { id: string; department: string; jobTitle: string; date: string; count: number }>;
   komentarzeZapotrzebowania?: Record<string, { text: string; author?: string; updatedAt?: string }>;
+  /** Pełne nazwy stanowisk z konfiguracji — do odzyskania nazw z kluczy potrzebyObsady (bez znaków . # $ [ ] /). */
+  jobTitles?: string[];
+  /** Wszyscy zatrudnieni (dowolny status) z ostatniego roku — tylko do weryfikacji w Historii. */
+  hires?: { fullName: string; department: string; jobTitle: string; hireDate: string }[];
   transfery?: Record<string, { employeeId: string; fullName: string; fromDepartment: string; fromJobTitle: string; toDepartment: string; toJobTitle: string; date: string; at?: string; by?: string }>;
 }
 
@@ -134,7 +142,6 @@ export function buildHarmonogram(
   // Przydział planowanych przyjęć (arrivals) per dział i stanowisko
   const arrivalsByDeptJob = new Map<string, { date: string; count: number }[]>();
   const toRecruitByDeptJob = new Map<string, number>();
-  const explicitPotrzebyByDeptJob = new Map<string, number>();
 
   data.recruitments.forEach(r => {
     const slots = r.positions.map(p => {
@@ -142,9 +149,6 @@ export function buildHarmonogram(
       const needed = Number(p.toRecruit) || 0;
       const key = `${r.department}|${job}`;
       toRecruitByDeptJob.set(key, (toRecruitByDeptJob.get(key) ?? 0) + needed);
-      if (p.potrzeby !== undefined) {
-        explicitPotrzebyByDeptJob.set(key, (explicitPotrzebyByDeptJob.get(key) ?? 0) + Number(p.potrzeby));
-      }
       return { jobTitle: job, left: needed };
     });
 
@@ -167,11 +171,36 @@ export function buildHarmonogram(
       });
   });
 
+  // Planowane przyjęcia z zakładki Zapotrzebowania. Liczą się tylko nadchodzące (data >= dziś):
+  // minione trafiają do Historii, a ich realizacja jest już widoczna jako pracownicy z datą zatrudnienia.
+  // Osoby, które już dopasowano do przyjęcia (zatrudnienie/transfer w oknie dat), są policzone
+  // jako pracownicy od swojej daty zatrudnienia — odejmujemy je, żeby nie liczyć ich podwójnie.
+  const todayKey = dayKey(today);
+  const upcomingPlannedJobs: { department: string; jobTitle: string }[] = [];
+  const upcomingPlanned = Object.values(data.planowanePrzyjecia ?? {})
+    .map(p => ({ p, ymd: p.date ? toYmd(p.date) : null, count: Number(p.count) || 0 }))
+    .filter(x => x.ymd && x.ymd >= todayKey && x.count > 0 && x.p.department);
+  const plannedAllocation = allocateArrivals(
+    upcomingPlanned.map(x => ({ id: x.p.id, department: x.p.department, jobTitle: x.p.jobTitle, date: x.ymd as string, count: x.count })),
+    data.employees.map(e => ({ fullName: e.fullName, department: e.department, jobTitle: e.jobTitle, hireDate: e.hireDate })),
+    Object.values(data.transfery ?? {})
+  );
+  upcomingPlanned.forEach(({ p, ymd, count }) => {
+    const job = p.jobTitle?.trim() || 'Inne';
+    upcomingPlannedJobs.push({ department: p.department, jobTitle: job });
+    const matched = plannedAllocation.get(p.id);
+    const remaining = count - (matched ? matched.hired.length + matched.moved.length : 0);
+    if (remaining <= 0) return;
+    const key = `${p.department}|${job}`;
+    const arr = arrivalsByDeptJob.get(key) ?? [];
+    arr.push({ date: ymd as string, count: remaining });
+    arrivalsByDeptJob.set(key, arr);
+  });
+
   // Wszyscy unikalni pracownicy przefiltrowani pod kątem widoczności w danym miesiącu
   // Pracownik jest widoczny, jeśli nie został zwolniony przed początkiem tego miesiąca
   // i nie został zatrudniony po końcu tego miesiąca.
-  // Planowana data rozwiązania NIE zwalnia pracownika — liczy się status 'aktywny'
-  // albo faktyczna data zwolnienia (planowana tylko dla statusu 'zwolniony').
+  // Data zwolnienia = ostatni dzień pracy: faktyczna, a gdy jej brak — planowana.
   const effectiveTermDate = (e: HarmonogramEmployee): Date | null => {
     const actual = parseSafeDate(e.terminationDate);
     if (actual) return actual;
@@ -198,6 +227,7 @@ export function buildHarmonogram(
   const deptsSet = new Set<string>();
   data.recruitments.forEach(r => r.department && deptsSet.add(r.department));
   data.employees.forEach(e => e.department && deptsSet.add(e.department));
+  upcomingPlannedJobs.forEach(p => deptsSet.add(p.department));
   const sortedDepts = [...deptsSet].sort((a, b) => a.localeCompare(b, 'pl'));
 
   const rows: HarmonogramRow[] = sortedDepts.map(dept => {
@@ -212,15 +242,65 @@ export function buildHarmonogram(
       employeesByManager.set(mgr, list);
     });
 
+    // Stanowiska z jawnie ustawionymi potrzebami (potrzebyObsady), na których nikt już nie pracuje —
+    // bez tego znikają z widoku razem z ostatnim pracownikiem, a brak obsady przestaje być widoczny.
+    // Klucze są "zsanityzowane", więc nazwy odzyskujemy z danych (pracownicy, rekrutacje, przyjęcia);
+    // nieznanej nazwy nie odtwarzamy (nie ma jej jak poprawnie zapisać), a stanowisko dostaje
+    // tylko kierownik, który nadal ma w dziale pracowników — martwe klucze nie wracają jako "widma".
+    const knownJobs = new Map<string, string>();
+    const addKnownJob = (job?: string) => {
+      const name = job?.trim() || 'Inne';
+      knownJobs.set(sanitizeKeyPart(name), name);
+    };
+    (data.jobTitles ?? []).forEach(addKnownJob);
+    data.employees.filter(e => e.department === dept).forEach(e => addKnownJob(e.jobTitle));
+    data.recruitments.filter(r => r.department === dept).forEach(r => r.positions.forEach(p => addKnownJob(p.jobTitle)));
+    upcomingPlannedJobs.filter(p => p.department === dept).forEach(p => addKnownJob(p.jobTitle));
+
+    const extraJobsByMgr = new Map<string, Set<string>>();
+    const keyPrefix = `${sanitizeKeyPart(dept)}___`;
+    Object.entries(data.potrzebyByManager ?? {}).forEach(([k, v]) => {
+      if (!k.startsWith(keyPrefix) || !(Number(v) > 0)) return;
+      const rest = k.slice(keyPrefix.length);
+      const sep = rest.indexOf('___');
+      if (sep < 0) return;
+      const mgrName = [...employeesByManager.keys()].find(m => sanitizeKeyPart(m) === rest.slice(0, sep));
+      const jobName = knownJobs.get(rest.slice(sep + 3));
+      if (!mgrName || !jobName) return;
+      const alreadyShown = (employeesByManager.get(mgrName) ?? []).some(e => (e.jobTitle?.trim() || 'Inne') === jobName);
+      if (alreadyShown) return;
+      const set = extraJobsByMgr.get(mgrName) ?? new Set<string>();
+      set.add(jobName);
+      extraJobsByMgr.set(mgrName, set);
+    });
+
     // Jeśli brak pracowników w dziale, upewnijmy się, że istnieje grupa dla zapotrzebowań
     if (employeesByManager.size === 0) {
       employeesByManager.set('Brak kierownika', []);
     }
 
-    // Stanowiska z zapotrzebowań w tym dziale
-    const deptRecruitPositions = data.recruitments
-      .filter(r => r.department === dept)
-      .flatMap(r => r.positions.map(p => p.jobTitle?.trim() || 'Inne'));
+    // Stanowiska z rekrutacji / planowanych przyjęć, na których nikt nie pracuje, muszą trafić do
+    // jakiejś grupy: 'Brak kierownika' (tworzona w razie potrzeby) albo jedynego kierownika.
+    const jobsHeldByEmployees = new Set(deptEmployees.map(e => e.jobTitle?.trim() || 'Inne'));
+    const recruitOnlyJobs = [
+      ...new Set(
+        data.recruitments
+          .filter(r => r.department === dept)
+          .flatMap(r => r.positions.map(p => p.jobTitle?.trim() || 'Inne'))
+          .concat(upcomingPlannedJobs.filter(p => p.department === dept).map(p => p.jobTitle))
+      ),
+    ].filter(job => !jobsHeldByEmployees.has(job));
+    let recruitHost: string | null = null;
+    if (recruitOnlyJobs.length > 0) {
+      if (!employeesByManager.has('Brak kierownika') && employeesByManager.size !== 1) {
+        employeesByManager.set('Brak kierownika', []);
+      }
+      recruitHost = employeesByManager.has('Brak kierownika') ? 'Brak kierownika' : [...employeesByManager.keys()][0];
+    }
+
+    // toRecruit i przyjęcia są per dział+stanowisko (bez kierownika) — przypisujemy je
+    // tylko do pierwszego wiersza stanowiska, żeby nie liczyć ich podwójnie przy kilku kierownikach.
+    const claimedRecruitKeys = new Set<string>();
 
     const managers: HarmonogramManagerRow[] = [...employeesByManager.entries()]
       .sort(([a], [b]) => {
@@ -238,12 +318,13 @@ export function buildHarmonogram(
           employeesByJob.set(job, list);
         });
 
-        // Jeśli to 'Brak kierownika' (lub jedyny kierownik), dodaj stanowiska z rekrutacji, które nie mają pracowników
-        if (mgrName === 'Brak kierownika' || employeesByManager.size === 1) {
-          deptRecruitPositions.forEach(job => {
-            if (!employeesByJob.has(job)) {
-              employeesByJob.set(job, []);
-            }
+        extraJobsByMgr.get(mgrName)?.forEach(job => {
+          if (!employeesByJob.has(job)) employeesByJob.set(job, []);
+        });
+
+        if (mgrName === recruitHost) {
+          recruitOnlyJobs.forEach(job => {
+            if (!employeesByJob.has(job)) employeesByJob.set(job, []);
           });
         }
 
@@ -355,7 +436,10 @@ export function buildHarmonogram(
             const posObecnie = employeeRows.reduce((sum, emp) => sum + emp.obecnie, 0);
 
             // Potrzeby stanowiska
-            const toRecruit = toRecruitByDeptJob.get(`${dept}|${jobTitle}`) ?? 0;
+            const recruitKey = `${dept}|${jobTitle}`;
+            const ownsRecruitment = !claimedRecruitKeys.has(recruitKey);
+            claimedRecruitKeys.add(recruitKey);
+            const toRecruit = ownsRecruitment ? toRecruitByDeptJob.get(recruitKey) ?? 0 : 0;
             const termCount = employeeRows.filter(
               emp =>
                 isPendingTermination(emp.status, emp.terminationDate, emp.plannedTerminationDate, today.getTime())
@@ -366,7 +450,7 @@ export function buildHarmonogram(
               : Math.max(posObecnie, posObecnie + toRecruit - termCount);
 
             // Przyjęcia dla tego stanowiska
-            const arrivals = arrivalsByDeptJob.get(`${dept}|${jobTitle}`) ?? [];
+            const arrivals = ownsRecruitment ? arrivalsByDeptJob.get(recruitKey) ?? [] : [];
 
             const posCells: HarmonogramCell[] = days.map((d, dayIndex) => {
               const key = dayKey(d);

@@ -30,7 +30,8 @@ export interface HireMatch {
   hireDate: string;
 }
 
-export type ArrivalStatus = 'done' | 'partial' | 'missing';
+/** pending = okno weryfikacji jeszcze trwa (brak dopasowań, ale osoby mogą jeszcze dojść). */
+export type ArrivalStatus = 'done' | 'partial' | 'pending' | 'missing';
 
 export const HIRE_WINDOW_BEFORE_DAYS = 7;
 export const HIRE_WINDOW_AFTER_DAYS = 14;
@@ -93,14 +94,27 @@ export function matchHires(
     .sort((a, b) => a.hireDate.localeCompare(b.hireDate) || a.fullName.localeCompare(b.fullName, 'pl'));
 }
 
-export function arrivalStatus(arrival: HistoriaArrival, matchedCount: number): ArrivalStatus {
+/** Ostatni dzień okna weryfikacji (yyyy-mm-dd) — po nim brak dopasowań = niezrealizowane. */
+export function arrivalWindowEnd(arrival: HistoriaArrival): string | null {
+  return addDaysYmd(arrival.date, HIRE_WINDOW_AFTER_DAYS);
+}
+
+export function arrivalStatus(
+  arrival: HistoriaArrival,
+  matchedCount: number,
+  todayYmd?: string
+): ArrivalStatus {
   if (matchedCount >= arrival.count) return 'done';
   if (matchedCount > 0) return 'partial';
+  if (todayYmd) {
+    const end = arrivalWindowEnd(arrival);
+    if (end && todayYmd <= end) return 'pending';
+  }
   return 'missing';
 }
 
 /**
- * Czy osoba faktycznie DOPINGO odejdzie (liczy się do "zwalnia")?
+ * Czy osoba faktycznie jeszcze odejdzie (liczy się do "zwalnia")?
  * Już zwolniony = już odszedł — nie liczy się, nawet gdy terminationDate == dziś.
  */
 export function isPendingTermination(
@@ -157,4 +171,68 @@ export function matchTransfers(
     )
     .map(t => ({ fullName: t.fullName, date: t.date, fromDepartment: t.fromDepartment }))
     .sort((a, b) => a.date.localeCompare(b.date) || a.fullName.localeCompare(b.fullName, 'pl'));
+}
+
+export interface ArrivalAllocation {
+  hired: HireMatch[];
+  moved: TransferMatch[];
+}
+
+function dayDistance(aYmd: string, bYmd: string): number {
+  const toMs = (ymd: string) => {
+    const [y, m, d] = ymd.split('-').map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.abs(toMs(aYmd) - toMs(bYmd)) / 86_400_000;
+}
+
+/**
+ * Przydziela zatrudnienia i transfery do przyjęć tak, by ta sama osoba liczyła się tylko raz.
+ * Przyjęcia idą chronologicznie; każde bierze najbliższe (w dniach) jeszcze wolne osoby,
+ * ale nie więcej niż swoje `count`. Nadwyżka zostaje dostępna dla kolejnych przyjęć.
+ */
+export function allocateArrivals(
+  arrivals: HistoriaArrival[],
+  employees: HistoriaEmployee[],
+  transfers: TransferRecord[]
+): Map<string, ArrivalAllocation> {
+  const result = new Map<string, ArrivalAllocation>();
+  const claimed = new Set<string>();
+  const ordered = [...arrivals].sort(
+    (a, b) => (normalizeToYmd(a.date) ?? a.date).localeCompare(normalizeToYmd(b.date) ?? b.date) || a.id.localeCompare(b.id)
+  );
+
+  ordered.forEach(a => {
+    const ymd = normalizeToYmd(a.date) ?? a.date;
+    const byDistance = <T extends { fullName: string }>(items: T[], dateOf: (i: T) => string, keyOf: (name: string) => string) =>
+      items
+        .filter(i => !claimed.has(keyOf(i.fullName)))
+        .sort((x, y) => dayDistance(dateOf(x), ymd) - dayDistance(dateOf(y), ymd) || x.fullName.localeCompare(y.fullName, 'pl'));
+
+    const hired: HireMatch[] = [];
+    // Klucz osoby: dział + stanowisko przyjęcia + imię i nazwisko (dopasowania są już zawężone
+    // do tego działu/stanowiska), więc tezki z innych działów nie blokują się nawzajem.
+    const personKey = (fullName: string) => `${a.department}|${a.jobTitle}|${fullName}`;
+
+    for (const h of byDistance(matchHires(a, employees), h => h.hireDate, personKey)) {
+      if (hired.length >= a.count) break;
+      if (claimed.has(personKey(h.fullName))) continue;
+      claimed.add(personKey(h.fullName));
+      hired.push(h);
+    }
+
+    const moved: TransferMatch[] = [];
+    for (const m of byDistance(matchTransfers(a, transfers), m => m.date, personKey)) {
+      if (hired.length + moved.length >= a.count) break;
+      if (claimed.has(personKey(m.fullName))) continue;
+      claimed.add(personKey(m.fullName));
+      moved.push(m);
+    }
+
+    hired.sort((x, y) => x.hireDate.localeCompare(y.hireDate) || x.fullName.localeCompare(y.fullName, 'pl'));
+    moved.sort((x, y) => x.date.localeCompare(y.date) || x.fullName.localeCompare(y.fullName, 'pl'));
+    result.set(a.id, { hired, moved });
+  });
+
+  return result;
 }
