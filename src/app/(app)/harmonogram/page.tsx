@@ -164,19 +164,24 @@ type JobTitleStat = { jobTitle: string; count: number; toRecruit: number; termin
 function usePublicZapotrzebowaniaStats(data: HarmonogramData) {
   return useMemo(() => {
     const result = buildHarmonogram(data, 0);
-    const jobTitlesByDept = new Map<string, { jobTitle: string; obecnie: number; potrzeby: number; zwalnia: number; zwalniani: { date: string; count: number; names: string[] }[]; managers: { manager: string; potrzeby: number }[] }[]>();
+    const jobTitlesByDept = new Map<string, { jobTitle: string; obecnie: number; potrzeby: number; zwalnia: number; zwalniani: { date: string; count: number; names: string[] }[]; managers: { manager: string; potrzeby: number; obecnie: number; zwalnia: number }[] }[]>();
     const today = startOfDay(new Date()).getTime();
 
     result.rows.forEach(deptRow => {
-      const jobsMap = new Map<string, { obecnie: number; potrzeby: number; zwalnia: number; zwalnianiMap: Map<string, { count: number; names: string[] }>; managers: { manager: string; potrzeby: number }[] }>();
+      const jobsMap = new Map<string, { obecnie: number; potrzeby: number; zwalnia: number; zwalnianiMap: Map<string, { count: number; names: string[] }>; managers: { manager: string; potrzeby: number; obecnie: number; zwalnia: number }[] }>();
       
       deptRow.managers.forEach(mgrRow => {
          mgrRow.positions.forEach(posRow => {
             const jobTitle = posRow.jobTitle;
-            const current = jobsMap.get(jobTitle) || { obecnie: 0, potrzeby: 0, zwalnia: 0, zwalnianiMap: new Map(), managers: [] as { manager: string; potrzeby: number }[] };
+            const current = jobsMap.get(jobTitle) || { obecnie: 0, potrzeby: 0, zwalnia: 0, zwalnianiMap: new Map(), managers: [] as { manager: string; potrzeby: number; obecnie: number; zwalnia: number }[] };
             current.obecnie += posRow.obecnie;
             current.potrzeby += posRow.potrzeby;
-            current.managers.push({ manager: posRow.manager, potrzeby: posRow.potrzeby });
+            current.managers.push({
+              manager: posRow.manager,
+              potrzeby: posRow.potrzeby,
+              obecnie: posRow.obecnie,
+              zwalnia: posRow.employees.filter(e => isPendingTermination(e.status, e.terminationDate, e.plannedTerminationDate, today)).length,
+            });
             
              posRow.employees.forEach(empRow => {
                 const emp = empRow;
@@ -807,18 +812,40 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                 <td colSpan={COLS} className="px-4 py-3">
                                   <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2 2xl:grid-cols-3">
                                     {job.managers.length > 1 && (
-                                      <PanelBlock title="Potrzeby wg kierowników" tone="violet">
+                                      <PanelBlock title="Obsada wg kierowników" hint="Jest = aktywni dziś" tone="violet">
                                         <div className="flex flex-col gap-1.5">
-                                          {job.managers.map(m => (
-                                            <div key={m.manager} className="flex items-center justify-between gap-2 rounded-md bg-muted/60 px-3 py-2">
-                                              <span className="font-medium">{m.manager === 'Brak kierownika' ? m.manager : `Kierownik: ${m.manager}`}</span>
-                                              {isAdmin ? (
-                                                <PotrzebyInput value={m.potrzeby} onCommit={n => commitPotrzeby(dept, m.manager, job.jobTitle, n)} />
-                                              ) : (
-                                                <strong className="text-base">{m.potrzeby}</strong>
-                                              )}
-                                            </div>
-                                          ))}
+                                          {job.managers.map(m => {
+                                            const lack = Math.max(0, m.potrzeby - m.obecnie);
+                                            return (
+                                              <div key={m.manager} className="rounded-md bg-muted/60 px-3 py-2">
+                                                <div className="mb-1 font-semibold">{m.manager === 'Brak kierownika' ? m.manager : `Kierownik: ${m.manager}`}</div>
+                                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                                  <span>Jest: <strong className="text-base tabular-nums">{m.obecnie}</strong></span>
+                                                  <span className="flex items-center gap-1.5">
+                                                    Potrzeby:
+                                                    {isAdmin ? (
+                                                      <PotrzebyInput value={m.potrzeby} onCommit={n => commitPotrzeby(dept, m.manager, job.jobTitle, n)} />
+                                                    ) : (
+                                                      <strong className="text-base tabular-nums">{m.potrzeby}</strong>
+                                                    )}
+                                                  </span>
+                                                  {m.zwalnia > 0 && (
+                                                    <span className="text-red-700 dark:text-red-400">Zwalnia: <strong className="tabular-nums">{m.zwalnia}</strong></span>
+                                                  )}
+                                                  {lack > 0 ? (
+                                                    <Badge variant="destructive" className="px-2 py-0 text-sm tabular-nums">brakuje {lack}</Badge>
+                                                  ) : (
+                                                    <Badge variant="outline" className="border-emerald-500/60 px-2 py-0 text-sm text-emerald-700 dark:text-emerald-400">komplet</Badge>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-3 pt-2 font-semibold">
+                                            <span>Razem</span>
+                                            <span>Jest: <span className="text-base tabular-nums">{job.obecnie}</span></span>
+                                            <span>Potrzeby: <span className="text-base tabular-nums">{job.potrzeby}</span></span>
+                                          </div>
                                         </div>
                                       </PanelBlock>
                                     )}
