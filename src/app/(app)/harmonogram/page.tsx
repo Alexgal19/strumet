@@ -623,6 +623,34 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
   );
   const COLS = 9;
 
+  // Stałe szerokości kolumn: każdy dział to osobna tabela, a kolumny mają się zgadzać między działami.
+  const columnWidths = (
+    <colgroup>
+      <col />
+      <col className="w-[72px] md:w-[90px]" />
+      <col className="hidden md:table-column md:w-[70px]" />
+      <col className="hidden md:table-column md:w-[85px]" />
+      <col className="w-[56px] md:w-[75px]" />
+      <col className="hidden md:table-column md:w-[85px]" />
+      <col className="w-[64px] md:w-[95px]" />
+      <col className="hidden md:table-column md:w-[95px]" />
+      <col className="w-[72px] md:w-[130px]" />
+    </colgroup>
+  );
+  const columnLabels = (
+    <tr className="border-b bg-muted/60 text-sm font-semibold text-foreground">
+                  <th className="px-3 py-2 text-left font-semibold">Dział / Stanowisko</th>
+                  <th className="px-1 md:px-2 py-2 text-right font-semibold" title="Obsada docelowa">Potrzeby</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Aktywni pracownicy dziś">Jest</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Osoby z datą zwolnienia dziś lub później">Zwalnia</th>
+                  <th className="px-1 md:px-2 py-2 text-right font-semibold" title="Potrzeby − Jest, dziś">Teraz</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title={`Prognoza na ${formatYmdPl(plus7)} (po zwolnieniach i przyjęciach)`}>Za 7 dni</th>
+                  <th className="px-1 md:px-2 py-2 text-right font-semibold" title={`Prognoza na ${formatYmdPl(plus30)} (po zwolnieniach i przyjęciach)`}>Za 30 dni</th>
+                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Zaplanowane przyjęcia (data od dziś)">Przyjęcia</th>
+                  <th className="px-2 md:px-3 py-2 text-right font-semibold" title="Stan docelowy po wszystkich zwolnieniach i zaplanowanych przyjęciach"><span className="md:hidden">Netto</span><span className="hidden md:inline">Brakuje netto</span></th>
+                </tr>
+  );
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
@@ -683,37 +711,24 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-base md:min-w-[820px]">
-              <thead className="bg-muted/60 text-sm font-semibold text-foreground">
-                <tr className="border-b">
-                  <th className="px-3 py-2 text-left font-semibold">Dział / Stanowisko</th>
-                  <th className="px-1 md:px-2 py-2 text-right font-semibold" title="Obsada docelowa">Potrzeby</th>
-                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Aktywni pracownicy dziś">Jest</th>
-                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Osoby z datą zwolnienia dziś lub później">Zwalnia</th>
-                  <th className="px-1 md:px-2 py-2 text-right font-semibold" title="Potrzeby − Jest, dziś">Teraz</th>
-                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title={`Prognoza na ${formatYmdPl(plus7)} (po zwolnieniach i przyjęciach)`}>Za 7 dni</th>
-                  <th className="px-1 md:px-2 py-2 text-right font-semibold" title={`Prognoza na ${formatYmdPl(plus30)} (po zwolnieniach i przyjęciach)`}>Za 30 dni</th>
-                  <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Zaplanowane przyjęcia (data od dziś)">Przyjęcia</th>
-                  <th className="px-2 md:px-3 py-2 text-right font-semibold" title="Stan docelowy po wszystkich zwolnieniach i zaplanowanych przyjęciach"><span className="md:hidden">Netto</span><span className="hidden md:inline">Brakuje netto</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {deptModels.length === 0 && (
-                  <tr>
-                    <td colSpan={COLS} className="px-3 py-8 text-center text-sm text-foreground">
-                      {onlyProblems || q ? 'Brak wyników dla wybranych filtrów.' : 'Brak stanowisk.'}
-                    </td>
-                  </tr>
-                )}
-                {deptModels.map(({ dept, agg, jobs }) => {
-                  const collapsed = !!collapsedDepts[dept];
-                  return (
-                    <React.Fragment key={dept}>
+      {deptModels.length === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-foreground">
+            {onlyProblems || q ? 'Brak wyników dla wybranych filtrów.' : 'Brak stanowisk.'}
+          </CardContent>
+        </Card>
+      )}
+      <div className="flex flex-col gap-5">
+        {deptModels.map(({ dept, agg, jobs }) => {
+          const collapsed = !!collapsedDepts[dept];
+          return (
+            <Card key={dept} className="overflow-hidden border-2 shadow-md">
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed border-collapse text-base md:min-w-[820px]">
+                  {columnWidths}
+                  <thead>
                       <tr
-                        className={`zap-row cursor-pointer border-b bg-muted/40 font-semibold ${flashDepts[dept] ? 'demand-flash-row' : ''}`}
+                        className={`zap-row cursor-pointer border-b bg-primary/15 font-semibold ${flashDepts[dept] ? 'demand-flash-row' : ''}`}
                         onClick={() => setCollapsedDepts(prev => ({ ...prev, [dept]: !prev[dept] }))}
                       >
                         <td className="px-3 py-2">
@@ -739,6 +754,9 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                         </td>
                       </tr>
 
+                    {!collapsed && columnLabels}
+                  </thead>
+                  <tbody>
                       {!collapsed && jobs.map(({ job, planned, forecast, now, in7, in30, plannedTotal, net }) => {
                         const key = `${dept}|${job.jobTitle}`;
                         const cKey = commentKey(dept, job.jobTitle);
@@ -787,60 +805,66 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                             {open && (
                               <tr className="border-b bg-muted/20">
                                 <td colSpan={COLS} className="px-4 py-3">
-                                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    <div className="flex flex-col gap-3">
-                                      {job.managers.length > 1 && (
-                                        <div className="flex flex-col gap-1">
-                                          <span className="text-sm font-medium text-foreground">Potrzeby wg kierowników:</span>
+                                  <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+                                    {job.managers.length > 1 && (
+                                      <PanelBlock title="Potrzeby wg kierowników" tone="violet">
+                                        <div className="flex flex-col gap-1.5">
                                           {job.managers.map(m => (
-                                            <div key={m.manager} className="flex items-center justify-between gap-2 rounded bg-muted/50 px-2 py-1 text-sm">
-                                              <span>{m.manager === 'Brak kierownika' ? m.manager : `Kierownik: ${m.manager}`}</span>
+                                            <div key={m.manager} className="flex items-center justify-between gap-2 rounded-md bg-muted/60 px-3 py-2">
+                                              <span className="font-medium">{m.manager === 'Brak kierownika' ? m.manager : `Kierownik: ${m.manager}`}</span>
                                               {isAdmin ? (
                                                 <PotrzebyInput value={m.potrzeby} onCommit={n => commitPotrzeby(dept, m.manager, job.jobTitle, n)} />
                                               ) : (
-                                                <strong>{m.potrzeby}</strong>
+                                                <strong className="text-base">{m.potrzeby}</strong>
                                               )}
                                             </div>
                                           ))}
                                         </div>
-                                      )}
+                                      </PanelBlock>
+                                    )}
 
-                                      {forecast.length > 1 && (
-                                        <div className="flex flex-col gap-0.5 text-sm">
-                                          <span className="font-medium text-foreground">Prognoza braków:</span>
+                                    <PanelBlock title="Prognoza braków" tone="amber">
+                                      {forecast.length > 1 ? (
+                                        <div className="flex flex-col gap-1.5">
                                           {forecast.map((r, ri) => (
-                                            <div key={ri} className="flex items-center gap-1.5 text-foreground">
-                                              <span aria-hidden="true">•</span>
-                                              {r.kind === 'now' ? (
-                                                <span>teraz brakuje: <strong className="text-foreground">{r.shortage}</strong></span>
-                                              ) : (
-                                                <span>od {formatYmdPl(r.date)}: brakuje <strong className="text-foreground">{r.shortage}</strong></span>
-                                              )}
+                                            <div key={ri} className="flex items-center justify-between gap-2 rounded-md bg-muted/60 px-3 py-2">
+                                              <span className="font-medium">{r.kind === 'now' ? 'Teraz' : `od ${formatYmdPl(r.date)}`}</span>
+                                              <span className="flex items-center gap-1.5">
+                                                brakuje
+                                                {r.shortage > 0 ? (
+                                                  <Badge variant="destructive" className="px-2 py-0 text-sm tabular-nums">{r.shortage}</Badge>
+                                                ) : (
+                                                  <Badge variant="outline" className="border-emerald-500/60 px-2 py-0 text-sm text-emerald-700 dark:text-emerald-400">0</Badge>
+                                                )}
+                                              </span>
                                             </div>
                                           ))}
                                         </div>
+                                      ) : (
+                                        <p>Brak zmian — nie ma zaplanowanych zwolnień ani przyjęć.</p>
                                       )}
+                                    </PanelBlock>
 
-                                      {job.zwalniani.length > 0 && (
-                                        <div className="flex flex-col gap-1">
-                                          <span className="text-sm font-medium text-foreground">Planowane zwolnienia (ostatni dzień pracy):</span>
+                                    {job.zwalniani.length > 0 && (
+                                      <PanelBlock title="Planowane zwolnienia" hint="data = ostatni dzień pracy" count={job.zwalnia} tone="red">
+                                        <div className="flex flex-col gap-1.5">
                                           {job.zwalniani.map((z, idx) => {
                                             const expKey = `${dept}|${job.jobTitle}|${z.date}`;
                                             const expanded = !!expandedTerminations[expKey];
                                             return (
-                                              <div key={idx} className="rounded bg-red-500/10 text-sm">
+                                              <div key={idx} className="rounded-md bg-red-500/10">
                                                 <button
                                                   type="button"
                                                   onClick={() => toggleTerminations(expKey)}
                                                   aria-expanded={expanded}
                                                   title="Pokaż pracowników"
-                                                  className="flex w-full cursor-pointer items-center justify-between px-2 py-1 text-left text-red-700 dark:text-red-400"
+                                                  className="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left font-medium text-red-700 dark:text-red-400"
                                                 >
-                                                  <span>📅 {formatYmdPl(z.date)} — <strong>{z.count} os.</strong></span>
-                                                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                                                  <span>{formatYmdPl(z.date)} — <strong>{z.count} os.</strong></span>
+                                                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                                                 </button>
                                                 {expanded && (
-                                                  <ul className="space-y-0.5 border-t border-red-500/20 px-2 py-1.5 text-red-700 dark:text-red-400">
+                                                  <ul className="space-y-0.5 border-t border-red-500/20 px-3 py-2 text-red-700 dark:text-red-400">
                                                     {z.names.map(name => (
                                                       <li key={name} className="flex items-center gap-1.5">
                                                         <span aria-hidden="true">•</span>
@@ -853,76 +877,81 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                             );
                                           })}
                                         </div>
-                                      )}
+                                      </PanelBlock>
+                                    )}
 
-                                      {forecast.length <= 1 && job.zwalniani.length === 0 && job.managers.length <= 1 && (
-                                        <p className="text-sm text-foreground">Brak zmian w prognozie — nie ma zaplanowanych zwolnień ani przyjęć.</p>
-                                      )}
-                                    </div>
-
-                                    <div className="flex flex-col gap-2">
-                                      {planned.length > 0 && (
-                                        <div className="flex flex-col gap-1">
-                                          <span className="text-sm font-medium text-foreground">Zaplanowane przyjęcia:</span>
-                                          {planned.map(p => (
-                                            <ArrivalRow
-                                              key={p.id}
-                                              p={p}
-                                              onUpdate={handleUpdateArrival}
-                                              onRemove={handleRemoveArrival}
-                                              canDelete={isAdmin}
-                                            />
-                                          ))}
-                                        </div>
-                                      )}
-                                      <div className="flex items-center gap-2">
-                                        <Input
-                                          type="date"
-                                          min={todayYmd}
-                                          className="h-8 flex-1 text-sm"
-                                          value={newArrivalDate[key] || ''}
-                                          onChange={e => setNewArrivalDate(prev => ({ ...prev, [key]: e.target.value }))}
-                                        />
-                                        <Input
-                                          type="number"
-                                          min="1"
-                                          max="50"
-                                          placeholder="Ilość"
-                                          className={`h-8 w-20 text-sm ${newArrivalDate[key] && !newArrivalCount[key] ? 'guide-pulse' : ''}`}
-                                          value={newArrivalCount[key] || ''}
-                                          onChange={e => setNewArrivalCount(prev => ({ ...prev, [key]: e.target.value }))}
-                                        />
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          className="h-8 text-sm"
-                                          onClick={() => handleAddArrival(dept, job.jobTitle)}
-                                          disabled={!newArrivalDate[key] || !newArrivalCount[key]}
-                                        >
-                                          Dodaj
-                                        </Button>
-                                        {(newArrivalDate[key] || newArrivalCount[key]) && (
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            title="Anuluj wpisywanie"
-                                            aria-label="Anuluj wpisywanie"
-                                            className="h-8 w-8 shrink-0 text-foreground"
-                                            onClick={() => {
-                                              setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
-                                              setNewArrivalCount(prev => ({ ...prev, [key]: '' }));
-                                            }}
-                                          >
-                                            <X className="h-4 w-4" />
-                                          </Button>
+                                    <PanelBlock title="Zaplanowane przyjęcia" count={plannedTotal} tone="blue">
+                                      <div className="flex flex-col gap-2">
+                                        {planned.length > 0 ? (
+                                          <div className="flex flex-col gap-1.5">
+                                            {planned.map(p => (
+                                              <ArrivalRow
+                                                key={p.id}
+                                                p={p}
+                                                onUpdate={handleUpdateArrival}
+                                                onRemove={handleRemoveArrival}
+                                                canDelete={isAdmin}
+                                              />
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <p>Brak zaplanowanych przyjęć.</p>
                                         )}
+                                        <div className="mt-1 flex flex-col gap-1.5 border-t pt-2">
+                                          <span className="font-semibold">Dodaj przyjęcie</span>
+                                          <div className="flex items-center gap-2">
+                                            <Input
+                                              type="date"
+                                              min={todayYmd}
+                                              className="h-9 flex-1 text-sm"
+                                              value={newArrivalDate[key] || ''}
+                                              onChange={e => setNewArrivalDate(prev => ({ ...prev, [key]: e.target.value }))}
+                                            />
+                                            <Input
+                                              type="number"
+                                              min="1"
+                                              max="50"
+                                              placeholder="Ilość"
+                                              className={`h-9 w-20 text-sm ${newArrivalDate[key] && !newArrivalCount[key] ? 'guide-pulse' : ''}`}
+                                              value={newArrivalCount[key] || ''}
+                                              onChange={e => setNewArrivalCount(prev => ({ ...prev, [key]: e.target.value }))}
+                                            />
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              className="h-9 text-sm"
+                                              onClick={() => handleAddArrival(dept, job.jobTitle)}
+                                              disabled={!newArrivalDate[key] || !newArrivalCount[key]}
+                                            >
+                                              Dodaj
+                                            </Button>
+                                            {(newArrivalDate[key] || newArrivalCount[key]) && (
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                title="Anuluj wpisywanie"
+                                                aria-label="Anuluj wpisywanie"
+                                                className="h-9 w-9 shrink-0 text-foreground"
+                                                onClick={() => {
+                                                  setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
+                                                  setNewArrivalCount(prev => ({ ...prev, [key]: '' }));
+                                                }}
+                                              >
+                                                <X className="h-4 w-4" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                          {!isAdmin && (
+                                            <p className="text-sm">
+                                              Jako Gość możesz dodawać i edytować przyjęcia oraz komentarze. Usuwanie i zmiana potrzeb — dla administratora.
+                                            </p>
+                                          )}
+                                        </div>
                                       </div>
-                                      {!isAdmin && (
-                                        <p className="text-sm text-foreground">
-                                          Jako Gość możesz dodawać i edytować przyjęcia oraz komentarze. Usuwanie i zmiana potrzeb — dla administratora.
-                                        </p>
-                                      )}
+                                    </PanelBlock>
+
+                                    <PanelBlock title="Komentarz" tone="slate">
                                       <PositionComment
                                         saved={data.komentarzeZapotrzebowania?.[cKey]}
                                         draft={commentDrafts[cKey] ?? ''}
@@ -935,7 +964,7 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                                         onCancel={() => setEditingComment(prev => ({ ...prev, [cKey]: false }))}
                                         onSave={() => handleSaveComment(dept, job.jobTitle)}
                                       />
-                                    </div>
+                                    </PanelBlock>
                                   </div>
                                 </td>
                               </tr>
@@ -943,14 +972,13 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
                           </React.Fragment>
                         );
                       })}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
       <p className="text-sm text-foreground">
         Teraz = Potrzeby − Jest. Za 7 / 30 dni = prognoza po zwolnieniach (brak liczony od dnia po ostatnim dniu pracy) i zaplanowanych przyjęciach.
         Brakuje netto = stan docelowy po wszystkich zwolnieniach i przyjęciach. Kliknij stanowisko, aby dodać przyjęcie lub komentarz.
@@ -964,6 +992,36 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
         onAdd={(dept, job, date, count) => addArrival(dept, job, date, count, true)}
       />
     </>
+  );
+}
+
+const PANEL_TONES: Record<string, string> = {
+  violet: 'border-l-violet-500',
+  amber: 'border-l-amber-500',
+  red: 'border-l-red-500',
+  blue: 'border-l-blue-500',
+  slate: 'border-l-slate-500',
+};
+
+/** Osobny blok informacji w panelu stanowiska: nagłówek (+ licznik/podpowiedź) i treść. */
+function PanelBlock({ title, hint, count, tone = 'slate', children }: {
+  title: string;
+  hint?: string;
+  count?: number;
+  tone?: keyof typeof PANEL_TONES | string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={`min-w-0 rounded-lg border border-l-4 bg-card p-3 text-sm text-foreground shadow-sm ${PANEL_TONES[tone] ?? PANEL_TONES.slate}`}>
+      <header className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2">
+        <h4 className="text-base font-bold">
+          {title}
+          {count !== undefined && <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-sm font-semibold tabular-nums">{count}</span>}
+        </h4>
+        {hint && <span className="text-xs">{hint}</span>}
+      </header>
+      {children}
+    </section>
   );
 }
 
