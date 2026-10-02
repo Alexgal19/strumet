@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HarmonogramView } from '@/components/harmonogram-view';
+import { InstallAppButton } from '@/components/install-app-button';
 import { type HarmonogramData, buildHarmonogram, getPotrzebyKey } from '@/lib/harmonogram';
 import { getDB } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -138,6 +139,7 @@ function PublicPlanowanieView() {
                   })()}
                 </Button>
               </div>
+              <InstallAppButton className="w-full sm:ml-auto sm:w-auto" />
             </div>
 
             {view === 'harmonogram' ? (
@@ -1237,15 +1239,15 @@ function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpd
   }
 
   return (
-    <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-sm group">
+    <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-0.5 text-sm">
       <span>📅 {formatYmdPl(p.date) || 'bez daty'} — <strong>{p.count} os.</strong></span>
-      <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-         <Button type="button" variant="ghost" size="icon" title="Edytuj" className="h-5 w-5 text-blue-600 hover:text-blue-700" onClick={startEditing}>
-           <Pencil className="h-3 w-3" />
+      <div className="flex items-center gap-0.5">
+         <Button type="button" variant="ghost" size="icon" title="Edytuj" aria-label="Edytuj przyjęcie" className="h-8 w-8 text-blue-600 hover:text-blue-700" onClick={startEditing}>
+           <Pencil className="h-4 w-4" />
          </Button>
          {canDelete && (
-           <Button type="button" variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => onRemove(p.id)}>
-             <Trash2 className="h-3 w-3" />
+           <Button type="button" variant="ghost" size="icon" title="Usuń" aria-label="Usuń przyjęcie" className="h-8 w-8 text-destructive" onClick={() => onRemove(p.id)}>
+             <Trash2 className="h-4 w-4" />
            </Button>
          )}
       </div>
