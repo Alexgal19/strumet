@@ -2,6 +2,7 @@ import { format, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { Employee, Recruitment } from '@/lib/types';
 import { parseMaybeDate } from '@/lib/date';
+import { isActiveEmployee, isEffectivelyTerminated } from '@/lib/employee-status';
 
 export interface DirectorReportEmployeeItem {
   id: string;
@@ -78,6 +79,8 @@ export function calculateDirectorReport(params: {
   periodLabel?: string;
   coordinatorName?: string;
   companyName?: string;
+  /** Moment odniesienia dla "aktywny dziś" (domyślnie teraz; parametr ułatwia testy). */
+  now?: Date;
 }): DirectorReportData {
   const {
     employees,
@@ -87,15 +90,18 @@ export function calculateDirectorReport(params: {
     periodLabel = 'w wybranym okresie',
     coordinatorName = 'Oleksandr Holiadynets',
     companyName = 'STRUMET',
+    now = new Date(),
   } = params;
+  const today = startOfDay(now);
 
   const interval = {
     start: startOfDay(from),
     end: endOfDay(to),
   };
 
-  // 1. Stan aktualny pracowników (aktywni)
-  const activeEmployees = employees.filter(e => e.status === 'aktywny');
+  // 1. Stan aktualny pracowników (aktywni) — ta sama definicja co w Statystykach:
+  // status 'aktywny' i planowana data zwolnienia jeszcze nie minęła.
+  const activeEmployees = employees.filter(e => isActiveEmployee(e, today));
   const totalActive = activeEmployees.length;
 
   const jobCounts: Record<string, number> = {};
@@ -121,10 +127,12 @@ export function calculateDirectorReport(params: {
   const termJobCounts: Record<string, number> = {};
 
   employees.forEach(e => {
-    // Sprawdzamy datę zwolnienia: terminationDate lub plannedTerminationDate (jeśli zwolniony)
+    // Data zwolnienia: terminationDate, a gdy jej brak — plannedTerminationDate dla osoby zwolnionej
+    // albo faktycznie już niepracującej (planowana data minęła, mimo statusu 'aktywny').
+    // Dzięki temu nikt nie "znika" z raportu: jest albo w aktywnych, albo wśród kończących pracę.
     const termDate =
       parseMaybeDate(e.terminationDate) ||
-      (e.status === 'zwolniony' ? parseMaybeDate(e.plannedTerminationDate) : null);
+      (e.status === 'zwolniony' || isEffectivelyTerminated(e, today) ? parseMaybeDate(e.plannedTerminationDate) : null);
 
     if (termDate && isWithinInterval(termDate, interval)) {
       const job = e.jobTitle?.trim() || 'Brak stanowiska';
