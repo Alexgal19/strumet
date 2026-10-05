@@ -3,7 +3,7 @@ import {
   Users, BarChart3, CalendarClock, UserX, CalendarDays, Shirt,
   CreditCard, Fingerprint, FileWarning, Settings, LayoutDashboard,
   Mail, History, LayoutGrid, Car, NotebookPen, CalendarRange,
-  CalendarCheck, UserPlus,
+  CalendarCheck, UserPlus, ArrowLeftRight,
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -46,6 +46,7 @@ export const NAV_SECTIONS: NavSection[] = [
   { title: 'System', items: [
     { href: '/konfiguracja', icon: Settings, label: 'Konfiguracja' },
     { href: '/szablony-email', icon: Mail, label: 'Szablony email' },
+    { href: '/kolejnosc-nazwisk', icon: ArrowLeftRight, label: 'Kolejność nazwisk' },
     { href: '/historia-email', icon: History, label: 'Historia email' },
   ] },
   { title: 'Publiczne', items: [

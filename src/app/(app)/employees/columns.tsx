@@ -11,6 +11,7 @@ import { formatDate, parseMaybeDate, vacationHasStarted } from "@/lib/date"
 import { getStatusColor } from "@/lib/legalization-statuses"
 import { cn } from "@/lib/utils"
 import { Copy, UserX } from "lucide-react"
+import { splitFullName } from "@/lib/person-name"
 import { EmployeeRowActions } from "./employee-actions"
 
 const isPlannedTermination = (employee: Employee): boolean => {
@@ -95,17 +96,13 @@ export function getColumns({
     },
     {
       id: "lastName",
-      accessorFn: (row) => {
-        const nameParts = row.fullName.trim().split(' ');
-        return nameParts.pop() || '';
-      },
+      accessorFn: (row) => splitFullName(row.fullName).lastName,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Nazwisko" />
       ),
       cell: ({ row }) => {
         const employee = row.original;
-        const nameParts = employee.fullName.trim().split(' ');
-        const lastName = nameParts.pop() || '';
+        const { lastName } = splitFullName(employee.fullName);
         const onVacation = vacationHasStarted(employee.vacationStartDate);
         const plannedTerm = isPlannedTermination(employee);
         return (
@@ -135,18 +132,12 @@ export function getColumns({
     },
     {
       id: "firstName",
-      accessorFn: (row) => {
-        const nameParts = row.fullName.trim().split(' ');
-        nameParts.pop();
-        return nameParts.join(' ');
-      },
+      accessorFn: (row) => splitFullName(row.fullName).firstName,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Imię" />
       ),
       cell: ({ row }) => {
-        const nameParts = row.original.fullName.trim().split(' ');
-        nameParts.pop();
-        const firstName = nameParts.join(' ');
+        const { firstName } = splitFullName(row.original.fullName);
         return <span className="font-medium">{firstName}</span>;
       },
       enableSorting: false,

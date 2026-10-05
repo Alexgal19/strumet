@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { joinFullName, splitFullName } from '@/lib/person-name';
 
 
 const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
@@ -195,9 +196,8 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     useEffect(() => {
         setFormData(getInitialFormData(employee));
         if (employee?.fullName) {
-            const nameParts = employee.fullName.trim().split(' ');
-            const lName = nameParts.pop() || '';
-            const fName = nameParts.join(' ');
+            // fullName = "Nazwisko Imię": pierwszy wyraz to nazwisko, reszta to imię/imiona
+            const { lastName: lName, firstName: fName } = splitFullName(employee.fullName);
             setFirstName(fName);
             setLastName(lName);
         } else {
@@ -251,7 +251,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     };
     
     const handleCopyFullName = () => {
-        const fullNameForCopy = `${lastName.trim()} ${firstName.trim()}`;
+        const fullNameForCopy = joinFullName(lastName, firstName);
         if (fullNameForCopy.trim()) {
             navigator.clipboard.writeText(fullNameForCopy.trim());
             toast({
@@ -324,7 +324,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validate()) {
-            const newFullName = `${firstName.trim()} ${lastName.trim()}`;
+            const newFullName = joinFullName(lastName, firstName);
             let dataToSave = { ...formData, fullName: newFullName };
             
             onSave({
@@ -350,7 +350,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
 
     const handleOpenClothingDialog = () => {
         if (!clothingSet || !onPrintClothing) return;
-        const fullName = `${firstName.trim()} ${lastName.trim()}`;
+        const fullName = joinFullName(lastName, firstName);
         const tempEmployee: Employee = {
             ...formData,
             id: employee?.id || 'temp',
