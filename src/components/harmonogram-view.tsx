@@ -15,6 +15,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 
+import { toYmd } from '@/lib/date';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { CalendarPlus, CalendarDays } from 'lucide-react';
@@ -99,15 +100,16 @@ export function HarmonogramView({
     const diff = perDayMam.map(v => v - potrzeby);
     const employedGap = result.days.map(() => stanZatrudnienia - potrzeby);
     
-    const currentMonthArrivals = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).filter(p => {
-      const d = new Date(p.date);
-      return d.getMonth() === result.monthDate.getMonth() && d.getFullYear() === result.monthDate.getFullYear();
-    }).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()) : [];
-    const monthEnd = new Date(result.monthDate.getFullYear(), result.monthDate.getMonth() + 1, 0, 23, 59, 59, 999);
-    const upcomingArrivals = data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia).filter(p => {
-      const d = new Date(p.date);
-      return !isNaN(d.getTime()) && d > monthEnd;
-    }).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()) : [];
+    // Tylko NADCHODZĄCE przyjęcia (data >= dziś): minione trafiają do zakładki Historia
+    // (tak samo jak w Zapotrzebowania), więc nie są "oczekiwane". Porównanie na yyyy-MM-dd.
+    const todayYmd = format(new Date(), 'yyyy-MM-dd');
+    const monthPrefix = format(result.monthDate, 'yyyy-MM');
+    const upcomingPlanned = (data.planowanePrzyjecia ? Object.values(data.planowanePrzyjecia) : [])
+      .map(p => ({ p, ymd: toYmd(p.date) }))
+      .filter((x): x is { p: typeof x.p; ymd: string } => !!x.ymd && x.ymd >= todayYmd)
+      .sort((a, b) => a.ymd.localeCompare(b.ymd));
+    const currentMonthArrivals = upcomingPlanned.filter(x => x.ymd.startsWith(monthPrefix)).map(x => x.p);
+    const upcomingArrivals = upcomingPlanned.filter(x => x.ymd.slice(0, 7) > monthPrefix).map(x => x.p);
     return { potrzeby, stanZatrudnienia, presentNa, absentNa, diff, employedGap, currentMonthArrivals, upcomingArrivals };
   }, [result, activeDayIndex]);
 
