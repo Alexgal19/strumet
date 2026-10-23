@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { joinFullName, splitFullName } from '@/lib/person-name';
+import { joinFullName, getEmployeeNameParts } from '@/lib/person-name';
 
 
 const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
@@ -197,7 +197,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
         setFormData(getInitialFormData(employee));
         if (employee?.fullName) {
             // fullName = "Nazwisko Imię": pierwszy wyraz to nazwisko, reszta to imię/imiona
-            const { lastName: lName, firstName: fName } = splitFullName(employee.fullName);
+            const { lastName: lName, firstName: fName } = getEmployeeNameParts(employee);
             setFirstName(fName);
             setLastName(lName);
         } else {
@@ -325,7 +325,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
         e.preventDefault();
         if (validate()) {
             const newFullName = joinFullName(lastName, firstName);
-            let dataToSave = { ...formData, fullName: newFullName };
+            let dataToSave = { ...formData, fullName: newFullName, lastName: lastName.trim().replace(/\s+/g, ' '), firstName: firstName.trim().replace(/\s+/g, ' ') };
             
             onSave({
                 ...dataToSave,
@@ -356,6 +356,8 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             id: employee?.id || 'temp',
             status: employee?.status || 'aktywny',
             fullName,
+            lastName: lastName.trim(),
+            firstName: firstName.trim(),
         };
         const issuance: ClothingIssuance = {
             id: `print-temp-${Date.now()}`,

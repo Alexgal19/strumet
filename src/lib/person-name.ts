@@ -61,3 +61,15 @@ export function suggestReordered(fullName: string): string {
   const last = parts.pop() as string;
   return [last, ...parts].join(' ');
 }
+
+/**
+ * Zwraca nazwisko i imię pracownika. Jeśli zapisano je osobno (i zgadzają się z fullName),
+ * używa ich dokładnie tak, jak wpisał użytkownik (nazwiska dwuczłonowe / wiele imion).
+ * W przeciwnym razie (stare rekordy) dzieli fullName po pierwszym wyrazie.
+ */
+export function getEmployeeNameParts(e: { fullName?: string | null; lastName?: string | null; firstName?: string | null }): SplitName {
+  const ln = clean(e.lastName ?? '');
+  const fn = clean(e.firstName ?? '');
+  if ((ln || fn) && joinFullName(ln, fn) === clean(e.fullName ?? '')) return { lastName: ln, firstName: fn };
+  return splitFullName(e.fullName);
+}

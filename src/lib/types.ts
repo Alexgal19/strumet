@@ -1,4 +1,4 @@
-
+﻿
 
 export type ActiveView =
   | 'aktywni'
@@ -16,6 +16,8 @@ export type ActiveView =
 export interface Employee {
   id: string;
   fullName: string;
+  lastName?: string; // Nazwisko wpisane w formularzu (zachowuje nazwiska/imiona wieloczłonowe)
+  firstName?: string; // Imię/imiona wpisane w formularzu
   hireDate: string; // ISO string format
   jobTitle: string;
   department: string;

@@ -55,7 +55,7 @@ import { EmployeeCard } from "@/components/employee-card"
 import { ExcelExportButton } from "@/components/excel-export-button"
 import { cn } from "@/lib/utils"
 import { getStatusColor } from "@/lib/legalization-statuses"
-import { splitFullName } from "@/lib/person-name"
+import { getEmployeeNameParts } from "@/lib/person-name"
 
 interface EmployeeTableProps {
   data: Employee[]
@@ -132,7 +132,7 @@ export function EmployeeTable({
   const nationalityOptions = React.useMemo(() => config.nationalities.map(n => ({ value: n.name, label: n.name })), [config.nationalities]);
 
   const lastNameOptions = React.useMemo(() => {
-    const lastNames = data.map(e => splitFullName(e.fullName).lastName);
+    const lastNames = data.map(e => getEmployeeNameParts(e).lastName);
     return [...new Set(lastNames)].sort().map(lastName => ({ value: lastName, label: lastName }));
   }, [data]);
 
