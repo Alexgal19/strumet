@@ -67,12 +67,11 @@ interface EmployeeFormProps {
 }
 
 // Kroki kreatora na mobile — każdy panel = jeden ekran (Android wizard)
-const STEPS = ['Dane osobowe', 'Zatrudnienie', 'Identyfikacja', 'Planowanie'] as const;
+const STEPS = ['Dane osobowe', 'Zatrudnienie', 'Identyfikacja i planowanie'] as const;
 const STEP_FIELDS: Record<number, string[]> = {
   0: ['lastName', 'firstName', 'nationality', 'legalizationStatus'],
   1: ['department', 'jobTitle', 'manager', 'hireDate'],
-  2: ['cardNumber'],
-  3: ['vacationEndDate'],
+  2: ['cardNumber', 'vacationEndDate'],
 };
 
 const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
@@ -672,8 +671,8 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                     </div>
                 </div>
 
-                {/* Panel 4: Planowanie */}
-                <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 3 && 'hidden')}>
+                {/* Panel 4: Planowanie — na mobile w trzecim kroku razem z identyfikacją */}
+                <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 2 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-orange-500" />
                       <h3 className="font-semibold text-foreground">Planowanie</h3>
