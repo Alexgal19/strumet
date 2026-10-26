@@ -1,253 +1,31 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Trash2, Loader2, Edit, Save, KeyRound, Users, ShieldCheck, Mail, Send, Eye, EyeOff, List, Shirt, AtSign, History, Database, ChevronRight, ArrowLeft, type LucideIcon } from 'lucide-react';
-import type { ConfigItem, ConfigType, JobTitle, JobTitleClothingSet, User, UserRole } from '@/lib/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import type { ConfigItem, ConfigType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useHasMounted, useIsMobile } from '@/hooks/use-mobile';
 import { useAppContext } from '@/context/app-context';
-import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { getDB } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AuditLogList } from '@/components/audit-log-list';
 import { BackupCard } from '@/components/backup-card';
 import { cn } from '@/lib/utils';
-import { sendEmail } from '@/ai/tools';
-
-
-const objectToArray = (obj: Record<string, any> | undefined | null): any[] => {
-  return obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
-};
-
-
-type ConfigView = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems' | 'jobTitleClothingSets';
-
-const configLabels: Record<ConfigView, string> = {
-  departments: 'Działy',
-  jobTitles: 'Stanowiska',
-  managers: 'Kierownicy',
-  nationalities: 'Narodowości',
-  clothingItems: 'Odzież',
-  jobTitleClothingSets: 'Zestawy odzieży'
-};
-
-type ConfigCategory = {
-  value: string;
-  label: string;
-  description: string;
-  icon: LucideIcon;
-  adminOnly?: boolean;
-};
-
-const CONFIG_CATEGORIES: ConfigCategory[] = [
-  { value: 'lists', label: 'Listy i słowniki', description: 'Działy, stanowiska, kierownicy, narodowości', icon: List },
-  { value: 'clothing_sets', label: 'Zestawy odzieży', description: 'Przypisanie odzieży do stanowisk', icon: Shirt },
-  { value: 'api_keys', label: 'Powiadomienia e-mail', description: 'SMTP i Gmail do wysyłki', icon: Mail, adminOnly: true },
-  { value: 'emails', label: 'Adresy odbiorców', description: 'Skrzynki otrzymujące powiadomienia', icon: AtSign, adminOnly: true },
-  { value: 'users', label: 'Użytkownicy', description: 'Role i uprawnienia', icon: Users, adminOnly: true },
-  { value: 'audit', label: 'Historia zmian', description: 'Kto, kiedy i co zmienił', icon: History, adminOnly: true },
-  { value: 'backup', label: 'Dane i kopia zapasowa', description: 'Eksport i przywracanie danych', icon: Database, adminOnly: true },
-];
-
-const JobTitleClothingSetsTab = () => {
-    const { config, handleSaveJobTitleClothingSet, isAdmin } = useAppContext();
-    const { jobTitles } = config;
-    const [jobTitleClothingSets, setJobTitleClothingSets] = useState<JobTitleClothingSet[]>([]);
-    const [isLoadingSets, setIsLoadingSets] = useState(true);
-
-    const [descriptions, setDescriptions] = useState<Record<string, string>>({});
-
-    useEffect(() => {
-      const db = getDB();
-      if (!db) return;
-      
-      const setsRef = ref(db, 'config/jobTitleClothingSets');
-      const unsubscribe = onValue(setsRef, (snapshot) => {
-        setJobTitleClothingSets(objectToArray(snapshot.val()));
-        setIsLoadingSets(false);
-      });
-      return () => unsubscribe();
-    }, []);
-
-    useEffect(() => {
-        const initialDescriptions: Record<string, string> = {};
-        jobTitles.forEach(jt => {
-            const set = jobTitleClothingSets.find(s => s.id === jt.id);
-            initialDescriptions[jt.id] = set ? set.description : '';
-        });
-        setDescriptions(initialDescriptions);
-    }, [jobTitles, jobTitleClothingSets]);
-
-    const handleSave = async (jobTitleId: string) => {
-        await handleSaveJobTitleClothingSet(jobTitleId, descriptions[jobTitleId] || '');
-    };
-
-    if (isLoadingSets) {
-        return (
-            <Card className="h-full flex flex-col items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
-            </Card>
-        );
-    }
-
-    return (
-        <Card className="h-full flex flex-col">
-            <CardHeader>
-                <CardTitle>Zestawy odzieży dla stanowisk</CardTitle>
-                <CardDescription>Przypisz domyślne zestawy odzieży do poszczególnych stanowisk.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow overflow-y-auto">
-                <Accordion type="multiple" className="w-full">
-                    {jobTitles.map((jobTitle) => (
-                        <AccordionItem value={jobTitle.id} key={jobTitle.id}>
-                            <AccordionTrigger>{jobTitle.name}</AccordionTrigger>
-                            <AccordionContent>
-                                <div className="space-y-4 p-2">
-                                     <Textarea
-                                        placeholder="Wpisz pełny komplet odzieży, np. Spodnie, koszula, buty (rozmiar 42)..."
-                                        value={descriptions[jobTitle.id] || ''}
-                                        onChange={(e) => {
-                                            setDescriptions(prev => ({ ...prev, [jobTitle.id]: e.target.value }));
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="min-h-[100px]"
-                                        disabled={!isAdmin}
-                                    />
-                                    {isAdmin && (
-                                        <Button onClick={(e) => { e.stopPropagation(); handleSave(jobTitle.id); }}>
-                                            <Save className="mr-2 h-4 w-4" />
-                                            Zapisz zestaw
-                                        </Button>
-                                    )}
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
-                </Accordion>
-            </CardContent>
-        </Card>
-    );
-};
-
-const UserManagementTab = () => {
-    const { users, currentUser, handleUpdateUserRole } = useAppContext();
-    const { toast } = useToast();
-    const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-
-    const handleRoleChange = (user: User, newRole: UserRole) => {
-        if (user.id === currentUser?.uid) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie można zmienić własnej roli.' });
-            return;
-        }
-        setUpdatingUserId(user.id);
-        handleUpdateUserRole(user.id, newRole).finally(() => {
-            setUpdatingUserId(null);
-        });
-    };
-    
-    return (
-        <Card>
-            <CardHeader>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                <CardTitle>Zarządzanie Użytkownikami</CardTitle>
-                <CardDescription>
-                    Przeglądaj użytkowników i zarządzaj ich uprawnieniami.
-                </CardDescription>
-                </div>
-                {users.length > 0 && (
-                    <GenericExcelExportButton
-                        data={users}
-                        columns={[
-                            { key: 'email', name: 'Email' },
-                            { key: 'role', name: 'Rola' },
-                        ]}
-                        fileName="uzytkownicy"
-                    />
-                )}
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="hidden md:block rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Email</TableHead>
-                                <TableHead className="w-[150px] text-center">Rola</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {users.map(user => (
-                                <TableRow key={user.id}>
-                                    <TableCell className="font-medium">{user.email}</TableCell>
-                                     <TableCell className="text-center">
-                                        <Select
-                                            value={user.role}
-                                            onValueChange={(value) => handleRoleChange(user, value as UserRole)}
-                                            disabled={user.id === currentUser?.uid || updatingUserId === user.id}
-                                        >
-                                            <SelectTrigger className="w-[150px] ml-auto" aria-label="Rola użytkownika">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="admin">Administrator</SelectItem>
-                                                <SelectItem value="editor">Kolega</SelectItem>
-                                                <SelectItem value="guest">Gość</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                     </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-                <div className="md:hidden flex flex-col gap-4 mt-4">
-                    {users.map(user => (
-                        <Card key={user.id} className="bg-card">
-                            <CardContent className="p-4 flex flex-col gap-3">
-                                <span className="font-semibold text-base break-all">{user.email}</span>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium">Rola</span>
-                                    <Select
-                                        value={user.role}
-                                        onValueChange={(value) => handleRoleChange(user, value as UserRole)}
-                                        disabled={user.id === currentUser?.uid || updatingUserId === user.id}
-                                    >
-                                        <SelectTrigger className="w-[150px]" aria-label="Rola użytkownika">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="admin">Administrator</SelectItem>
-                                            <SelectItem value="editor">Kolega</SelectItem>
-                                            <SelectItem value="guest">Gość</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
-
+import { configLabels, CONFIG_CATEGORIES, type ConfigView } from '@/components/konfiguracja/config-meta';
+import { JobTitleClothingSetsTab } from '@/components/konfiguracja/job-title-clothing-sets-tab';
+import { UserManagementTab } from '@/components/konfiguracja/user-management-tab';
+import { ListsTab } from '@/components/konfiguracja/lists-tab';
+import { MobileCategoryHub } from '@/components/konfiguracja/mobile-category-hub';
+import { SmtpSettingsCard } from '@/components/konfiguracja/smtp-settings-card';
+import { RecipientEmailsCard } from '@/components/konfiguracja/recipient-emails-card';
+import { AddItemDialog } from '@/components/konfiguracja/add-item-dialog';
+import { EditItemDialog } from '@/components/konfiguracja/edit-item-dialog';
+import { DeleteItemDialog } from '@/components/konfiguracja/delete-item-dialog';
+import { useEmailSettings } from '@/components/konfiguracja/use-email-settings';
 
 export default function ConfigurationPage() {
-  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, handleSaveGmailCredentials, handleSaveSmtpSettings, updateRecipientEmails, isAdmin } = useAppContext();
+  const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, isAdmin } = useAppContext();
   const hasMounted = useHasMounted();
   const isMobile = useIsMobile();
   const [hubOpen, setHubOpen] = useState(true);
@@ -262,33 +40,8 @@ export default function ConfigurationPage() {
   const [editedItemName, setEditedItemName] = useState('');
   const [itemToDelete, setItemToDelete] = useState<{ configType: ConfigType; itemId: string } | null>(null);
 
-  const [gmailUser, setGmailUser] = useState('');
-  const [gmailAppPassword, setGmailAppPassword] = useState('');
-  const [smtpHost, setSmtpHost] = useState('');
-  const [smtpPort, setSmtpPort] = useState('587');
-  const [smtpSecure, setSmtpSecure] = useState(false);
-  const [smtpUser, setSmtpUser] = useState('');
-  const [smtpPass, setSmtpPass] = useState('');
-  const [fromName, setFromName] = useState('Strumet HR');
-  const [recipientEmails, setRecipientEmails] = useState<string[]>([]);
-  const [newEmail, setNewEmail] = useState('');
-  const [isSendingTest, setIsSendingTest] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
+  const emailSettings = useEmailSettings();
   const { toast } = useToast();
-  
-  useEffect(() => {
-    setGmailUser(config.gmailUser || '');
-    setGmailAppPassword(config.gmailAppPassword || '');
-    setRecipientEmails(config.recipientEmails || []);
-    setSmtpHost(config.smtpHost || '');
-    setSmtpPort(config.smtpPort ? String(config.smtpPort) : '587');
-    setSmtpSecure(config.smtpSecure ?? false);
-    setSmtpUser(config.smtpUser || '');
-    setSmtpPass(config.smtpPass || '');
-    setFromName(config.fromName || 'Strumet HR');
-  }, [config.gmailUser, config.gmailAppPassword, config.recipientEmails, config.smtpHost, config.smtpPort, config.smtpSecure, config.smtpUser, config.smtpPass, config.fromName]);
-
 
   const openAddDialog = (configType: ConfigType) => {
     setCurrentConfigType(configType);
@@ -310,7 +63,7 @@ export default function ConfigurationPage() {
       .split('\n')
       .map(name => name.trim())
       .filter(name => name !== '');
-    
+
     if (itemsToAdd.length === 0) return;
 
     await addConfigItems(currentConfigType, itemsToAdd);
@@ -320,20 +73,20 @@ export default function ConfigurationPage() {
     setNewItemsText('');
     setCurrentConfigType(null);
   };
-  
+
   const handleUpdateItem = async () => {
       if (!editingItem || !currentConfigType || !editedItemName.trim()) return;
-      
+
       const oldName = editingItem.name;
       const newName = editedItemName.trim();
-      
+
       if (oldName === newName) {
           setIsEditDialogOpen(false);
           return;
       }
-      
+
       await updateConfigItem(currentConfigType, editingItem.id, newName);
-      
+
       setIsEditDialogOpen(false);
       setEditingItem(null);
       setCurrentConfigType(null);
@@ -343,71 +96,6 @@ export default function ConfigurationPage() {
   const handleRemoveItem = (configType: ConfigType, itemId: string) => {
     // Potwierdzenie przeniesione do AlertDialog (window.confirm blokuje wątek UI i nie ma dark-mode)
     setItemToDelete({ configType, itemId });
-  };
-
-  const onSaveGmailCredentials = async () => {
-    await handleSaveGmailCredentials(gmailUser, gmailAppPassword);
-  };
-
-  const onSaveSmtpSettings = async () => {
-    await handleSaveSmtpSettings({
-      host: smtpHost.trim(),
-      port: Number(smtpPort) || 587,
-      secure: smtpSecure,
-      user: smtpUser.trim(),
-      pass: smtpPass,
-      fromName: fromName.trim() || 'Strumet HR',
-    });
-  };
-
-  const addEmail = async () => {
-    const email = newEmail.trim().toLowerCase();
-    if (!email) return;
-    if (!email.includes('@')) {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Podaj prawidłowy adres email.' });
-      return;
-    }
-    if (recipientEmails.includes(email)) {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Ten adres już istnieje.' });
-      return;
-    }
-    const newList = [...recipientEmails, email];
-    await updateRecipientEmails(newList);
-    setRecipientEmails(newList);
-    setNewEmail('');
-  };
-
-  const removeEmail = async (emailToRemove: string) => {
-    const newList = recipientEmails.filter(e => e !== emailToRemove);
-    await updateRecipientEmails(newList);
-    setRecipientEmails(newList);
-  };
-
-  const handleSendTestEmail = async () => {
-    if (recipientEmails.length === 0) {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Brak adresów email do wysłania.' });
-      return;
-    }
-    setIsSendingTest(true);
-    try {
-      const result = await sendEmail({
-        subject: 'Test powiadomienia – Strumet HR',
-        body: '<p>To jest testowa wiadomość z systemu <strong>Strumet HR</strong>.</p><p>Powiadomienia email działają poprawnie.</p>',
-        gmailUser: gmailUser,
-        gmailAppPassword: gmailAppPassword,
-        recipientEmails: recipientEmails,
-      });
-      if (result.success) {
-        toast({ title: 'Sukces', description: result.message });
-      } else {
-        toast({ variant: 'destructive', title: 'Błąd wysyłki', description: result.message });
-      }
-    } catch (error: any) {
-      console.error("Test email error:", error);
-      toast({ variant: 'destructive', title: 'Błąd', description: error?.message || 'Wystąpił nieoczekiwany błąd serwera.' });
-    } finally {
-      setIsSendingTest(false);
-    }
   };
 
   const configLists: { type: ConfigType; items: ConfigItem[] }[] = [
@@ -424,6 +112,9 @@ export default function ConfigurationPage() {
   );
   const activeCategory = visibleCategories.find((category) => category.value === activeTab);
 
+  const addDialogTitle = `Dodaj nowe ${currentConfigType ? configLabels[currentConfigType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase() : ''}`;
+  const editDialogTitle = `Edytuj ${currentConfigType ? configLabels[currentConfigType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase().slice(0, -1) + 'ę' : ''}`;
+
   return (
     <div className="flex h-full flex-col">
       {isLoading || !hasMounted ? (
@@ -432,11 +123,11 @@ export default function ConfigurationPage() {
         </div>
         ) : (
         <>
-            <PageHeader 
+            <PageHeader
                 title="Konfiguracja"
                 description="Zarządzaj opcjami dostępnymi w systemie."
             />
-            
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col">
                 {!isMobile && (
                     <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-2 sm:grid-cols-4 lg:grid-cols-7" : "grid-cols-2")}>
@@ -451,28 +142,13 @@ export default function ConfigurationPage() {
                 )}
 
                 {isMobile && hubOpen && (
-                    <div className="mt-2 space-y-2">
-                        {visibleCategories.map((category) => (
-                            <button
-                                key={category.value}
-                                type="button"
-                                onClick={() => {
-                                    setActiveTab(category.value);
-                                    setHubOpen(false);
-                                }}
-                                className="flex min-h-[64px] w-full items-center justify-start gap-3 rounded-2xl border p-4 text-left transition-colors hover:bg-muted/50 active:bg-muted"
-                            >
-                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted">
-                                    <category.icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                    <span className="block font-medium text-sm">{category.label}</span>
-                                    <span className="block truncate text-xs text-muted-foreground">{category.description}</span>
-                                </span>
-                                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                            </button>
-                        ))}
-                    </div>
+                    <MobileCategoryHub
+                        categories={visibleCategories}
+                        onSelect={(value) => {
+                            setActiveTab(value);
+                            setHubOpen(false);
+                        }}
+                    />
                 )}
 
                 {isMobile && !hubOpen && (
@@ -505,49 +181,13 @@ export default function ConfigurationPage() {
                 )}
 
                 <TabsContent value="lists" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
-                    <Card className="flex-grow flex flex-col">
-                    <CardHeader>
-                            <CardTitle>Listy Konfiguracyjne</CardTitle>
-                            <CardDescription>Zarządzaj listami działów, stanowisk, etc.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-grow">
-                            <Accordion type="multiple" className="w-full">
-                                {configLists.map(({ type, items }) => (
-                                    <AccordionItem value={type} key={type}>
-                                        <AccordionTrigger>{configLabels[type as Exclude<ConfigView, 'jobTitleClothingSets'>]}</AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="space-y-3 p-2">
-                                            <div className="space-y-2">
-                                                {items.map((item) => (
-                                                <div key={item.id} className="flex items-center justify-between rounded-md border p-3 gap-2">
-                                                    <span className="flex-1 break-words font-medium text-sm">{item.name}</span>
-                                                    {isAdmin && (
-                                                        <div className="flex items-center gap-2 shrink-0">
-                                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-11 w-11" onClick={() => openEditDialog(type, item)}>
-                                                                <Edit className="h-4 w-4" />
-                                                            </Button>
-                                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-11 w-11" onClick={() => handleRemoveItem(type, item.id)}>
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                ))}
-                                                {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
-                                            </div>
-                                            {isAdmin && (
-                                                <Button className="mt-2 w-full" variant="secondary" onClick={() => openAddDialog(type)}>
-                                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                                    Dodaj nowe
-                                                </Button>
-                                            )}
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
-                        </CardContent>
-                    </Card>
+                    <ListsTab
+                        configLists={configLists}
+                        isAdmin={isAdmin}
+                        onAdd={openAddDialog}
+                        onEdit={openEditDialog}
+                        onRemove={handleRemoveItem}
+                    />
                 </TabsContent>
 
                 <TabsContent value="clothing_sets" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
@@ -556,211 +196,13 @@ export default function ConfigurationPage() {
 
                 {isAdmin && (
                     <TabsContent value="api_keys" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-3">
-                                    <KeyRound className="h-6 w-6" />
-                                    E-mail — wysyłka (SMTP)
-                                </CardTitle>
-                                <CardDescription>
-                                    Skonfiguruj firmową skrzynkę Outlook/M365 lub dowolny serwer SMTP. Gmail działa też — zostaw host pusty.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="rounded-xl border p-4 space-y-4">
-                                    <p className="text-sm font-semibold">Serwer SMTP (Outlook / firmowy)</p>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        <div className="sm:col-span-2">
-                                            <Label htmlFor="smtp-host">Serwer (host)</Label>
-                                            <Input
-                                                id="smtp-host"
-                                                value={smtpHost}
-                                                onChange={(e) => setSmtpHost(e.target.value)}
-                                                placeholder="smtp.office365.com"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label htmlFor="smtp-port">Port</Label>
-                                            <Input
-                                                id="smtp-port"
-                                                type="number"
-                                                value={smtpPort}
-                                                onChange={(e) => setSmtpPort(e.target.value)}
-                                                placeholder="587"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center justify-between rounded-lg border p-3">
-                                        <div>
-                                            <Label htmlFor="smtp-secure" className="text-sm">SSL/TLS (port 465)</Label>
-                                            <p className="text-xs text-muted-foreground">Wyłącz dla portu 587 (STARTTLS) — Outlook/M365</p>
-                                        </div>
-                                        <Switch
-                                            id="smtp-secure"
-                                            checked={smtpSecure}
-                                            onCheckedChange={setSmtpSecure}
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div>
-                                            <Label htmlFor="smtp-user">E-mail (login i nadawca)</Label>
-                                            <Input
-                                                id="smtp-user"
-                                                type="email"
-                                                value={smtpUser}
-                                                onChange={(e) => setSmtpUser(e.target.value)}
-                                                placeholder="o.holiadynets@swl.com.pl"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label htmlFor="smtp-pass">Hasło</Label>
-                                            <Input
-                                                id="smtp-pass"
-                                                type="password"
-                                                value={smtpPass}
-                                                onChange={(e) => setSmtpPass(e.target.value)}
-                                                placeholder="hasło skrzynki"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="from-name">Nazwa nadawcy</Label>
-                                        <Input
-                                            id="from-name"
-                                            value={fromName}
-                                            onChange={(e) => setFromName(e.target.value)}
-                                            placeholder="Strumet HR"
-                                        />
-                                    </div>
-                                    <Button onClick={onSaveSmtpSettings} disabled={!smtpHost || !smtpUser || !smtpPass}>
-                                        <Save className="mr-2 h-4 w-4" />
-                                        Zapisz ustawienia SMTP
-                                    </Button>
-                                </div>
-
-                                <div className="relative py-2 text-center">
-                                    <span className="relative z-10 bg-background px-3 text-xs uppercase tracking-wider text-muted-foreground">lub Gmail (bez hosta)</span>
-                                    <div className="absolute inset-0 top-1/2 h-px bg-border" />
-                                </div>
-
-                                <div>
-                                    <Label htmlFor="gmail-user">Adres Gmail</Label>
-                                    <Input 
-                                        id="gmail-user"
-                                        type="email"
-                                        value={gmailUser}
-                                        onChange={(e) => setGmailUser(e.target.value)}
-                                        placeholder="twoj-email@gmail.com"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="gmail-app-password">Hasło Aplikacji</Label>
-                                    <div className="relative">
-                                        <Input 
-                                            id="gmail-app-password"
-                                            type={showPassword ? "text" : "password"}
-                                            value={gmailAppPassword}
-                                            onChange={(e) => setGmailAppPassword(e.target.value)}
-                                            placeholder="xxxx xxxx xxxx xxxx"
-                                            className="pr-10"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                        >
-                                            {showPassword ? (
-                                                <EyeOff className="h-4 w-4" />
-                                            ) : (
-                                                <Eye className="h-4 w-4" />
-                                            )}
-                                            <span className="sr-only">
-                                                {showPassword ? "Ukryj hasło" : "Pokaż hasło"}
-                                            </span>
-                                        </Button>
-                                    </div>
-                                </div>
-                                <Button onClick={onSaveGmailCredentials}>
-                                    <Save className="mr-2 h-4 w-4" />
-                                    Zapisz poświadczenia
-                                </Button>
-                            </CardContent>
-                        </Card>
+                        <SmtpSettingsCard settings={emailSettings} />
                     </TabsContent>
                 )}
 
                 {isAdmin && (
                     <TabsContent value="emails" className={cn('flex-grow mt-6', isMobile && hubOpen && 'hidden')}>
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <CardTitle className="flex items-center gap-3">
-                                            <Mail className="h-6 w-6" />
-                                            Adresy email do powiadomień
-                                        </CardTitle>
-                                        <CardDescription className="mt-1.5">
-                                            Dodaj adresy, na które będą wysyłane powiadomienia email.
-                                        </CardDescription>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleSendTestEmail}
-                                        disabled={isSendingTest || recipientEmails.length === 0}
-                                        className="shrink-0"
-                                    >
-                                        {isSendingTest ? (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Send className="mr-2 h-4 w-4" />
-                                        )}
-                                        Wyślij test
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="email"
-                                        value={newEmail}
-                                        onChange={(e) => setNewEmail(e.target.value)}
-                                        placeholder="email@example.com"
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                addEmail();
-                                            }
-                                        }}
-                                    />
-                                    <Button onClick={addEmail} variant="secondary">
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Dodaj
-                                    </Button>
-                                </div>
-                                <div className="space-y-2">
-                                    {recipientEmails.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground text-center py-4">Brak adresów email. Dodaj pierwszy.</p>
-                                    ) : (
-                                        recipientEmails.map(email => (
-                                            <div key={email} className="flex items-center justify-between rounded-md border p-3">
-                                                <span className="font-medium text-sm">{email}</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="text-destructive hover:text-destructive h-11 w-11"
-                                                    onClick={() => removeEmail(email)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <RecipientEmailsCard settings={emailSettings} />
                     </TabsContent>
                 )}
 
@@ -774,84 +216,32 @@ export default function ConfigurationPage() {
         </>
         )}
 
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Dodaj nowe {currentConfigType ? configLabels[currentConfigType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase() : ''}</DialogTitle>
-            <DialogDescription>
-              Wprowadź nazwy, każdą w nowej linii. Puste linie zostaną zignorowane.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid w-full gap-1.5">
-              <Label htmlFor="new-items-text">Nazwy</Label>
-              <Textarea 
-                id="new-items-text" 
-                placeholder="Nazwa 1\nNazwa 2\nNazwa 3..." 
-                value={newItemsText}
-                onChange={(e) => setNewItemsText(e.target.value)}
-                className="h-32"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="secondary">Anuluj</Button>
-            </DialogClose>
-            <Button onClick={handleAddMultipleItems}>Dodaj</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edytuj {currentConfigType ? configLabels[currentConfigType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase().slice(0, -1) + 'ę' : ''}</DialogTitle>
-             <DialogDescription>
-                Zmiana nazwy spowoduje aktualizację danych u wszystkich przypisanych pracowników.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid w-full gap-1.5">
-              <Label htmlFor="edit-item-name">Nowa nazwa</Label>
-              <Input
-                id="edit-item-name"
-                value={editedItemName}
-                onChange={(e) => setEditedItemName(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="secondary">Anuluj</Button>
-            </DialogClose>
-            <Button onClick={handleUpdateItem}>Zapisz</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddItemDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        title={addDialogTitle}
+        value={newItemsText}
+        onValueChange={setNewItemsText}
+        onConfirm={handleAddMultipleItems}
+      />
 
-      <AlertDialog open={itemToDelete !== null} onOpenChange={(open) => { if (!open) setItemToDelete(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Usunąć element?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tej operacji nie można cofnąć. Element zostanie trwale usunięty z konfiguracji.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Anuluj</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (itemToDelete) removeConfigItem(itemToDelete.configType, itemToDelete.itemId);
-                setItemToDelete(null);
-              }}
-            >
-              Usuń
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <EditItemDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        title={editDialogTitle}
+        value={editedItemName}
+        onValueChange={setEditedItemName}
+        onConfirm={handleUpdateItem}
+      />
+
+      <DeleteItemDialog
+        open={itemToDelete !== null}
+        onOpenChange={(open) => { if (!open) setItemToDelete(null); }}
+        onConfirm={() => {
+          if (itemToDelete) removeConfigItem(itemToDelete.configType, itemToDelete.itemId);
+          setItemToDelete(null);
+        }}
+      />
 
     </div>
   );
