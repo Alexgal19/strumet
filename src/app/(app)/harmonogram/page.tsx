@@ -42,6 +42,13 @@ function PublicPlanowanieView() {
   const [view, setView] = useState<'harmonogram' | 'zapotrzebowania' | 'historia'>('harmonogram');
   const { isAdmin } = useAppContext();
   const { toast } = useToast();
+  const [onlyShortages, setOnlyShortages] = useState(false);
+
+  // Deep link z Pulpitu: /harmonogram?braki=1
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setOnlyShortages(params.get('braki') === '1');
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,11 +150,12 @@ function PublicPlanowanieView() {
             </div>
 
             {view === 'harmonogram' ? (
-              <HarmonogramView 
-                data={data} 
-                showExport 
-                isAdmin={isAdmin} 
-                onUpdatePotrzeby={handleUpdatePotrzeby} 
+              <HarmonogramView
+                data={data}
+                showExport
+                isAdmin={isAdmin}
+                onUpdatePotrzeby={handleUpdatePotrzeby}
+                onlyShortages={onlyShortages}
               />
             ) : view === 'zapotrzebowania' ? (
               <PublicZapotrzebowaniaView data={data} setData={setData} onUpdatePotrzeby={handleUpdatePotrzeby} />

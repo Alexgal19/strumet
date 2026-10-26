@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { isInWeek } from '@/lib/dashboard-actions';
 import {
   Sheet,
   SheetContent,
@@ -75,6 +77,25 @@ export default function AktywniPage() {
   
   const [editingEmployee, setEditingEmployee] = useState<Employee | 'new' | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [hireWeekOnly, setHireWeekOnly] = useState(false);
+
+  // Deep link z Pulpitu: /aktywni?zatrudnienie=tydzien
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setHireWeekOnly(params.get('zatrudnienie') === 'tydzien');
+  }, []);
+
+  const visibleEmployees = useMemo(
+    () => (hireWeekOnly ? activeEmployees.filter((employee) => isInWeek(employee.hireDate)) : activeEmployees),
+    [activeEmployees, hireWeekOnly]
+  );
+
+  const clearHireWeekFilter = () => {
+    setHireWeekOnly(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('zatrudnienie');
+    window.history.replaceState(null, '', url);
+  };
   const [legalizationEmployee, setLegalizationEmployee] = useState<Employee | null>(null);
   const [absenceEmployee, setAbsenceEmployee] = useState<Employee | null>(null);
 
@@ -136,7 +157,7 @@ export default function AktywniPage() {
           >
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <DepartmentExcelExportButton
-                employees={activeEmployees}
+                employees={visibleEmployees}
                 departments={config.departments?.map(d => d.name) ?? []}
                 columns={exportColumns}
               />
@@ -201,7 +222,7 @@ export default function AktywniPage() {
                 </PopoverContent>
               </Popover>
 
-              <BulkCertDownloadButton employees={activeEmployees} className="hidden md:inline-flex" />
+              <BulkCertDownloadButton employees={visibleEmployees} className="hidden md:inline-flex" />
 
               <Button onClick={handleAddNew} className="hidden md:inline-flex">
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -222,8 +243,18 @@ export default function AktywniPage() {
           </Button>
 
           <div className="flex flex-col flex-grow min-h-0">
+             {hireWeekOnly && (
+               <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
+                 <Badge variant="secondary" className="min-h-8 gap-1.5 px-2.5 text-xs">
+                   Zatrudnieni w tym tygodniu: {visibleEmployees.length}
+                 </Badge>
+                 <Button variant="ghost" size="sm" onClick={clearHireWeekFilter}>
+                   Wyczyść filtr
+                 </Button>
+               </div>
+             )}
              <EmployeeTable
-                data={activeEmployees}
+                data={visibleEmployees}
                 isLoading={isContextLoading || isEmployeesLoading}
                 status="aktywny"
                 config={config}

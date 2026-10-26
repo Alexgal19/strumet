@@ -26,6 +26,7 @@ import { useEmployees } from '@/hooks/use-employees';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AbsentOverview } from '@/components/absent-overview';
 import { AbsenceDateSearchCard } from '@/components/absence-date-search-card';
+import { DashboardActionCards } from '@/components/dashboard-action-cards';
 import { parseMaybeDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import {
@@ -80,9 +81,11 @@ const CHART_COLORS = [
 export default function DashboardPage() {
   const {
     isLoading: isContextLoading,
+    employees,
     notifications,
     statsHistory,
     absences,
+    fingerprintAppointments,
     isAdmin,
   } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } =
@@ -558,6 +561,12 @@ export default function DashboardPage() {
           locale: pl,
         })}`}
         description="Podsumowanie dnia, kluczowe wskaźniki i nadchodzące zdarzenia."
+      />
+
+      <DashboardActionCards
+        employees={employees}
+        fingerprintAppointments={fingerprintAppointments}
+        isLoading={isLoading}
       />
 
       {/* KPI Row */}

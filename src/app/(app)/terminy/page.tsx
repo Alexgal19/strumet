@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Loader2, Download } from 'lucide-react';
 import { isWithinInterval, startOfDay, endOfDay, addDays, format } from 'date-fns';
@@ -19,6 +19,12 @@ export default function TerminyPage() {
   const isLoading = isContextLoading || isEmployeesLoading;
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('umowy');
+
+  // Deep link z Pulpitu: parametr ?tab= wybiera zakładkę (np. zwolnienia, odciski).
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab) setActiveTab(tab);
+  }, []);
 
   const plannedTerminations = useMemo(() => {
     const today = startOfDay(new Date());
