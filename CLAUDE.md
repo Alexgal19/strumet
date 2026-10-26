@@ -135,7 +135,7 @@ src/app/
 | `employee-table.tsx` | Virtualized table (TanStack Virtual). Do NOT add `getPaginationRowModel` |
 | `data-table-toolbar.tsx` | Filters, search, column visibility, export |
 
-> `components/ui/` – shadcn/ui (primary). `components/ui-v2/` – legacy, **do not use**.
+> `components/ui/` – shadcn/ui (primary).
 
 ---
 
@@ -173,7 +173,6 @@ src/app/
 | `lib/utils.ts` | `cn()`, `objectToArray()` |
 | `lib/date.ts` | `formatDate()`, `parseMaybeDate()` |
 | `lib/legalization-statuses.ts` | Status colors + badge logic |
-| `lib/actions/employee-actions.ts` | Server actions – **NOT used**, context handlers replace these |
 
 ---
 
@@ -298,8 +297,6 @@ firebase apphosting:rollouts:create studio --git-branch main
 
 ## Known Issues / Do Not Break
 
-1. `ui-v2/` folder – legacy, do not use
-2. `lib/actions/employee-actions.ts` – unused server actions; context handlers are authoritative
-3. `objectToArray()` duplicated in `app-context.tsx` and `lib/utils.ts` – prefer `lib/utils.ts`
-4. Resend API key stored in Firebase RTDB under `config/resendApiKey`
-5. No server-side PDF – `window.print()` only
+1. `objectToArray()` duplicated in `app-context.tsx` and `lib/utils.ts` – prefer `lib/utils.ts`
+2. Resend API key stored in Firebase RTDB under `config/resendApiKey`
+3. No server-side PDF – `window.print()` only

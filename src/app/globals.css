@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-  /* ===== CATPPUCCIN LATTE (LIGHT) ===== */
-  :root, [data-theme="latte"] {
+  /* ===== JASNY MOTYW ===== */
+  :root {
     --background: 220 18% 89%;         /* #dee1e8 — темніший фон, білі картки виділяються */
     --foreground: 240 12% 4%;         /* near-black, kontrast ~17:1 na tle */
     
@@ -51,8 +51,8 @@
     --chart-5: 355 78% 54%;   /* red */
   }
 
-  /* ===== CATPPUCCIN MOCHA (DARK) ===== */
-  [data-theme="mocha"], .dark {
+  /* ===== CIEMNY MOTYW ===== */
+  .dark {
     --background: 24 24% 6%;           /* #1e1e2e */
     --foreground: 240 7% 94%;          /* jasny tekst na ciemnym tle */
     
@@ -95,42 +95,6 @@
     --chart-3: 159 58% 46%;   /* teal */
     --chart-4: 45 93% 58%;    /* yellow */
     --chart-5: 10 85% 56%;    /* red */
-  }
-
-  /* ===== OPTIONAL: CATPPUCCIN FRAPPE (MEDIUM DARK) ===== */
-  [data-theme="frappe"] {
-    --background: 223 27% 18%;         /* #292c3c */
-    --foreground: 223 18% 89%;         /* #c6d0f5 */
-    --card: 223 27% 15%;               /* #232634 */
-    --card-foreground: 223 18% 89%;
-    --muted-foreground: 223 18% 75%;
-    --primary: 220 83% 63%;            /* #8caaee — blue */
-    --primary-foreground: 223 27% 18%;
-    --accent: 159 58% 46%;             /* #81c8be — teal */
-    --accent-foreground: 223 27% 18%;
-    --destructive: 355 73% 55%;        /* #e78284 — red */
-    --border: 223 18% 25%;             /* #414559 */
-    --input: 223 18% 25%;
-    --ring: 220 83% 63%;
-    --radius: 0.5rem;
-  }
-
-  /* ===== OPTIONAL: CATPPUCCIN MACCHIATO (WARM DARK) ===== */
-  [data-theme="macchiato"] {
-    --background: 24 18% 13%;          /* #24273a */
-    --foreground: 24 13% 93%;          /* #cad3f5 */
-    --card: 24 18% 11%;                /* #1e2030 */
-    --card-foreground: 24 13% 93%;
-    --muted-foreground: 24 13% 76%;
-    --primary: 300 83% 60%;            /* #f5bde6 — pink */
-    --primary-foreground: 24 18% 13%;
-    --accent: 35 100% 54%;             /* #f5a97f — peach */
-    --accent-foreground: 24 18% 13%;
-    --destructive: 10 85% 56%;         /* #ed8796 — red */
-    --border: 24 12% 22%;              /* #363a4f */
-    --input: 24 12% 22%;
-    --ring: 300 83% 60%;
-    --radius: 0.5rem;
   }
 
   /* ===== BASE STYLES ===== */
@@ -353,37 +317,37 @@
      Jasne odcienie *-300/400/500/600 są projektowane na ciemne tła i na białym
      są nieczytelne. W jasnym motywie podbijamy je do 700/800 (kontrast ~5:1+).
      Hue zostaje — semantyka (czerwień=zło, zieleń=ok) jest zachowana. */
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-emerald-300, .text-emerald-400, .text-emerald-500, .text-emerald-600) {
+  :root:not(.dark) :is(.text-emerald-300, .text-emerald-400, .text-emerald-500, .text-emerald-600) {
     color: #047857;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-green-300, .text-green-400, .text-green-500, .text-green-600) {
+  :root:not(.dark) :is(.text-green-300, .text-green-400, .text-green-500, .text-green-600) {
     color: #15803d;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-red-300, .text-red-400, .text-red-500, .text-red-600) {
+  :root:not(.dark) :is(.text-red-300, .text-red-400, .text-red-500, .text-red-600) {
     color: #b91c1c;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-amber-400, .text-amber-500, .text-amber-600) {
+  :root:not(.dark) :is(.text-amber-400, .text-amber-500, .text-amber-600) {
     color: #92400e;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-yellow-400, .text-yellow-500) {
+  :root:not(.dark) :is(.text-yellow-400, .text-yellow-500) {
     color: #854d0e;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-orange-400, .text-orange-500, .text-orange-600) {
+  :root:not(.dark) :is(.text-orange-400, .text-orange-500, .text-orange-600) {
     color: #9a3412;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-blue-400, .text-blue-500, .text-blue-600) {
+  :root:not(.dark) :is(.text-blue-400, .text-blue-500, .text-blue-600) {
     color: #1d4ed8;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-sky-500) {
+  :root:not(.dark) :is(.text-sky-500) {
     color: #0369a1;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-teal-500) {
+  :root:not(.dark) :is(.text-teal-500) {
     color: #0f766e;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-pink-400, .text-pink-600) {
+  :root:not(.dark) :is(.text-pink-400, .text-pink-600) {
     color: #be185d;
   }
-  :root:not(.dark):not([data-theme="mocha"]):not([data-theme="frappe"]):not([data-theme="macchiato"]) :is(.text-violet-400, .text-violet-600) {
+  :root:not(.dark) :is(.text-violet-400, .text-violet-600) {
     color: #6d28d9;
   }
 
@@ -399,20 +363,14 @@
   .zap-row:hover > td {
     background-color: #4ade80;
   }
-  .dark .zap-row:hover > td,
-  [data-theme="mocha"] .zap-row:hover > td,
-  [data-theme="frappe"] .zap-row:hover > td,
-  [data-theme="macchiato"] .zap-row:hover > td {
+  .dark .zap-row:hover > td {
     background-color: #166534;
   }
 
   .harmonogram-table tbody tr:hover > td {
     filter: brightness(0.93);
   }
-  .dark .harmonogram-table tbody tr:hover > td,
-  [data-theme="mocha"] .harmonogram-table tbody tr:hover > td,
-  [data-theme="frappe"] .harmonogram-table tbody tr:hover > td,
-  [data-theme="macchiato"] .harmonogram-table tbody tr:hover > td {
+  .dark .harmonogram-table tbody tr:hover > td {
     filter: brightness(1.15);
   }
 }
