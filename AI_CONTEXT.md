@@ -302,4 +302,4 @@ All public vars are in `apphosting.yaml` and prefixed `NEXT_PUBLIC_FIREBASE_*`. 
 
 ---
 
-*Last reviewed: <!-- AUTO:last-updated -->2026-10-01<!-- /AUTO:last-updated -->*
+*Last reviewed: <!-- AUTO:last-updated -->2026-10-26<!-- /AUTO:last-updated -->*
