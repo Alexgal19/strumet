@@ -91,7 +91,12 @@ export function EmployeeTable({
   initialSorting = [],
 }: EmployeeTableProps) {
   const [rowSelection, setRowSelection] = React.useState({})
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+    manager: false,
+    cardNumber: false,
+    nationality: false,
+    welderLicense: false,
+  })
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [sorting, setSorting] = React.useState<SortingState>(initialSorting);
   const [globalFilter, setGlobalFilter] = React.useState("")
