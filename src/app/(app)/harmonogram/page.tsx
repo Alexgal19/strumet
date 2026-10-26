@@ -409,12 +409,14 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
   const getNetMissing = (dept: string, jobTitle: string) =>
     Math.max(0, getMissing(dept, jobTitle) - getPlannedTotalForJob(dept, jobTitle));
 
-  let totalNetMissing = 0;
+  // "Łącznie brakuje" = braki NA DZIŚ (Potrzeby − Jest per stanowisko, jak kolumna "Teraz"),
+  // bez zwolnień i przyjęć z przyszłości — te widać w kolumnach prognozy i w "Brakuje netto".
+  let totalMissingToday = 0;
   let totalTerminations = 0;
   let totalPlanned = 0;
   jobTitlesByDept.forEach((jobs, dept) => {
     jobs.forEach(job => {
-      totalNetMissing += getNetMissing(dept, job.jobTitle);
+      totalMissingToday += Math.max(0, job.potrzeby - job.obecnie);
       totalTerminations += job.zwalnia;
       totalPlanned += getPlannedTotalForJob(dept, job.jobTitle);
     });
@@ -661,9 +663,13 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
+        <Badge
+          variant="secondary"
+          className="gap-1.5 px-3 py-1.5 text-sm tabular-nums"
+          title="Braki na dziś: Potrzeby − Jest (bez przyszłych zwolnień i przyjęć)"
+        >
           <UserPlus className="h-4 w-4" />
-          Łącznie brakuje: {totalNetMissing}
+          Łącznie brakuje dziś: {totalMissingToday}
         </Badge>
         {totalTerminations > 0 && (
           <Badge
