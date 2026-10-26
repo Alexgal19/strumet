@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(start *)",
-      "Bash(Remove-Item *)"
+      "Bash(Remove-Item *)",
+      "Bash(npm run *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(npx vitest *)",
+      "Read(//c/c/strumet/strumet/.github/**)",
+      "Read(//c/c/strumet/strumet/.github/workflows/**)",
+      "Bash(git -C strumet status --short)",
+      "Bash(git -C strumet status -sb)",
+      "Bash(git -C strumet log --oneline -3)"
     ]
   }
 }
