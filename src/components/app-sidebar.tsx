@@ -69,7 +69,7 @@ export function AppSidebar() {
           {sections.map((section) => (
             <div key={section.title} className="flex flex-col gap-1">
               {!collapsed && (
-                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                   {section.title}
                 </p>
               )}

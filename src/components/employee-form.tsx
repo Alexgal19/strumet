@@ -404,7 +404,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                                 <CalendarOff className="h-4 w-4" />
                                 <span>Nieobecność</span>
                                 {absenceDates.length > 0 && (
-                                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-semibold text-white">
+                                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold text-white">
                                         {absenceDates.length}
                                     </span>
                                 )}

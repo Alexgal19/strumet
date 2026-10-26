@@ -44,7 +44,7 @@ function LegalizationBadge({ status }: { status: string | undefined }) {
   if (!status || status === 'Brak') return null;
   const color = getStatusColor(status);
   return (
-    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold', color)}>
+    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold', color)}>
       {status}
     </span>
   );
@@ -236,7 +236,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
             <div className="flex flex-wrap items-center gap-1">
               {onVacation && (
                 <span
-                  className="animate-pulse inline-flex rounded-full bg-pink-500 px-2 py-0.5 text-[11px] font-semibold text-white"
+                  className="animate-pulse inline-flex rounded-full bg-pink-500 px-2 py-0.5 text-xs font-semibold text-white"
                   title={`Na urlopie${employee.vacationEndDate ? ` do ${formatDate(employee.vacationEndDate)}` : ''}`}
                 >
                   URLOP
@@ -244,7 +244,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
               )}
               {plannedTerm && (
                 <span
-                  className="inline-flex rounded-full border border-orange-500/60 px-2 py-0.5 text-[11px] font-semibold text-orange-600 dark:text-orange-400"
+                  className="inline-flex rounded-full border border-orange-500/60 px-2 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400"
                   title={`Planowane zwolnienie: ${formatDate(employee.plannedTerminationDate)}`}
                 >
                   Zwalnia się

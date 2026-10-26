@@ -318,7 +318,7 @@ export function HarmonogramView({
             {totals.currentMonthArrivals && totals.currentMonthArrivals.length > 0 && (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 gap-2 border-blue-500/30 bg-blue-50/50 hover:bg-blue-100/50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400 dark:hover:bg-blue-900/30">
+                  <Button variant="outline" size="sm" className=" gap-2 border-blue-500/30 bg-blue-50/50 hover:bg-blue-100/50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400 dark:hover:bg-blue-900/30">
                     <CalendarPlus className="h-4 w-4" />
                     Zaplanowane przyjęcia: {totals.currentMonthArrivals.reduce((sum, a) => sum + a.count, 0)} os.
                   </Button>
@@ -344,7 +344,7 @@ export function HarmonogramView({
             {totals.upcomingArrivals && totals.upcomingArrivals.length > 0 && (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 gap-2 border-violet-500/30 bg-violet-50/50 hover:bg-violet-100/50 text-violet-700 dark:bg-violet-950/20 dark:text-violet-400 dark:hover:bg-violet-900/30">
+                  <Button variant="outline" size="sm" className=" gap-2 border-violet-500/30 bg-violet-50/50 hover:bg-violet-100/50 text-violet-700 dark:bg-violet-950/20 dark:text-violet-400 dark:hover:bg-violet-900/30">
                     <CalendarDays className="h-4 w-4" />
                     Kolejne miesiące: {totals.upcomingArrivals.reduce((sum, a) => sum + a.count, 0)} os.
                   </Button>
@@ -497,13 +497,13 @@ export function HarmonogramView({
                 </th>
                 <th className="md:sticky md:left-[240px] top-0 z-20 md:z-30 min-w-[70px] border-b bg-background px-2 py-2 text-right font-semibold">
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[10px] uppercase text-muted-foreground">Stan na</span>
+                    <span className="text-xs uppercase text-muted-foreground">Stan na</span>
                     <span className="text-primary font-bold leading-none text-[13px]">
                       {selectedDayIndex === null && todayIndex >= 0
                         ? `Dziś (${format(result.days[activeDayIndex], 'd.MM')})`
                         : format(result.days[activeDayIndex], 'd.MM')}
                     </span>
-                    <span className="text-[9px] leading-none text-muted-foreground/70">
+                    <span className="text-xs leading-none text-muted-foreground/70">
                       aktywni
                     </span>
                   </div>
@@ -708,7 +708,7 @@ export function HarmonogramView({
                   )
                 );
                 const label =
-                  'sticky left-0 z-30 h-7 min-w-[150px] md:min-w-[180px] border-t bg-background px-2 py-1.5 text-left text-[11px] font-semibold uppercase leading-none';
+                  'sticky left-0 z-30 h-7 min-w-[150px] md:min-w-[180px] border-t bg-background px-2 py-1.5 text-left text-xs font-semibold uppercase leading-none';
                 const fixed =
                   'sticky md:left-[180px] z-30 h-7 min-w-[60px] border-t bg-background px-2 py-1.5 text-right text-[13px] tabular-nums leading-none';
                 const stan =
@@ -1162,7 +1162,7 @@ function AbsenceTooltipTable({
   rows: { key: string; fullName: string; jobTitle: string; manager?: string }[];
 }) {
   return (
-    <table className="w-full text-[13px]">
+    <table className="block w-full overflow-x-auto text-[13px]">
       <thead>
         <tr className="group border-b text-left text-muted-foreground">
           <th className="px-3 py-1 font-medium">Pracownik</th>

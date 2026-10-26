@@ -118,7 +118,10 @@ function checkFile(filePath) {
     }
 
     // Rule 3: Unwrapped tables (skip print templates)
-    if (!isPrintComponent && (line.includes('<Table') || line.includes('<table'))) {
+    // Komponent <Table> z ui/table.tsx sam owija tabelę w div.overflow-auto, a <TableHead>/<TableRow>/<TableCell>
+    // to jego podkomponenty - sprawdzamy tylko surowe <table>.
+    const isRawTable = /<table[\s>]/.test(line);
+    if (!isPrintComponent && isRawTable) {
       const surrounding = lines.slice(Math.max(0, index - 6), Math.min(lines.length, index + 3)).join(' ');
       const hasResponsiveWrap = 
         surrounding.includes('overflow-x-auto') || 

@@ -185,7 +185,7 @@ export default function KolejnoscNazwiskPage() {
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-sm">
+            <table className="w-full md:min-w-[640px] border-collapse text-sm">
               <thead className="bg-muted/60 text-left font-semibold">
                 <tr className="border-b">
                   <th className="w-10 px-3 py-2" />

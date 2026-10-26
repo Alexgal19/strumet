@@ -209,7 +209,7 @@ export default function KalendarzPage() {
                       {dayEvents.slice(0, 2).map((ev, i) => (
                         <div
                           key={i}
-                          className={cn('flex items-center gap-1 rounded border px-1 py-0.5 text-[11px] leading-tight truncate', EVENT_STYLES[ev.type].chip)}
+                          className={cn('flex items-center gap-1 rounded border px-1 py-0.5 text-xs leading-tight truncate', EVENT_STYLES[ev.type].chip)}
                         >
                           <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', EVENT_STYLES[ev.type].dot)} />
                           <span className="truncate">{ev.employee.fullName}</span>
@@ -218,7 +218,7 @@ export default function KalendarzPage() {
                       {dayEvents.length > 2 && (
                         <button
                           type="button"
-                          className="text-left text-[11px] text-muted-foreground pl-1"
+                          className="text-left text-xs text-muted-foreground pl-1"
                           onClick={(e) => { e.stopPropagation(); setSelectedDate(day); }}
                         >
                           +{dayEvents.length - 2} więcej

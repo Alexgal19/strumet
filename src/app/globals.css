@@ -6,7 +6,7 @@
   /* ===== CATPPUCCIN LATTE (LIGHT) ===== */
   :root, [data-theme="latte"] {
     --background: 220 18% 89%;         /* #dee1e8 — темніший фон, білі картки виділяються */
-    --foreground: 240 12% 4%;         /* #4c4f69 */
+    --foreground: 240 12% 4%;         /* near-black, kontrast ~17:1 na tle */
     
     --card: 240 100% 100%;             /* #ffffff */
     --card-foreground: 240 12% 4%;    /* #4c4f69 */
@@ -21,7 +21,7 @@
     --secondary-foreground: 240 12% 4%;/* #4c4f69 */
     
     --muted: 240 7% 90%;               /* #ccd0da */
-    --muted-foreground: 240 8% 18%;    /* #7287fd */
+    --muted-foreground: 240 8% 12%;    /* tekst drugoplanowy: prawie jak główny (>=7:1) */
     
     --accent: 32 94% 44%;              /* #fe640b — peach */
     --accent-foreground: 240 12% 4%; /* #eff1f5 */
@@ -54,7 +54,7 @@
   /* ===== CATPPUCCIN MOCHA (DARK) ===== */
   [data-theme="mocha"], .dark {
     --background: 24 24% 6%;           /* #1e1e2e */
-    --foreground: 240 7% 94%;          /* #cdd6f4 */
+    --foreground: 240 7% 94%;          /* jasny tekst na ciemnym tle */
     
     --card: 24 24% 8%;                 /* #181825 */
     --card-foreground: 240 7% 94%;     /* #cdd6f4 */
@@ -69,7 +69,7 @@
     --secondary-foreground: 240 7% 94%;/* #cdd6f4 */
     
     --muted: 24 12% 17%;               /* #313244 */
-    --muted-foreground: 240 5% 62%;    /* #9399b2 */
+    --muted-foreground: 240 5% 78%;    /* tekst drugoplanowy (>=4.5:1, bliżej głównego) */
     
     --accent: 35 100% 54%;             /* #fab387 — peach */
     --accent-foreground: 24 24% 6%;    /* #1e1e2e */
@@ -103,6 +103,7 @@
     --foreground: 223 18% 89%;         /* #c6d0f5 */
     --card: 223 27% 15%;               /* #232634 */
     --card-foreground: 223 18% 89%;
+    --muted-foreground: 223 18% 75%;
     --primary: 220 83% 63%;            /* #8caaee — blue */
     --primary-foreground: 223 27% 18%;
     --accent: 159 58% 46%;             /* #81c8be — teal */
@@ -120,6 +121,7 @@
     --foreground: 24 13% 93%;          /* #cad3f5 */
     --card: 24 18% 11%;                /* #1e2030 */
     --card-foreground: 24 13% 93%;
+    --muted-foreground: 24 13% 76%;
     --primary: 300 83% 60%;            /* #f5bde6 — pink */
     --primary-foreground: 24 18% 13%;
     --accent: 35 100% 54%;             /* #f5a97f — peach */

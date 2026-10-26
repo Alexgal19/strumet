@@ -718,7 +718,7 @@ function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: 
           <option value="deficit">Sortuj: największe braki</option>
           <option value="name">Sortuj: nazwa A–Z</option>
         </select>
-        <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 sm:ml-auto" onClick={() => setBulkOpen(true)}>
+        <Button type="button" size="sm" variant="outline" className=" gap-1.5 sm:ml-auto" onClick={() => setBulkOpen(true)}>
           <CalendarPlus className="h-4 w-4" />
           Dodaj przyjęcia hurtem
         </Button>
@@ -1173,8 +1173,8 @@ function BulkArrivalsDialog({ open, onOpenChange, options, todayYmd, onAdd }: {
         </DialogHeader>
         <div className="flex flex-wrap items-center gap-2">
           <Input type="date" min={todayYmd} value={date} onChange={e => setDate(e.target.value)} className="h-8 w-44 text-sm" aria-label="Data przyjęcia" />
-          <Button type="button" size="sm" variant="outline" className="h-8" onClick={fillShortages} disabled={busy}>Wypełnij brakami</Button>
-          <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => setLines(prev => [...prev, newLine()])} disabled={busy || depts.length === 0}>
+          <Button type="button" size="sm" variant="outline"  onClick={fillShortages} disabled={busy}>Wypełnij brakami</Button>
+          <Button type="button" size="sm" variant="outline" className=" gap-1" onClick={() => setLines(prev => [...prev, newLine()])} disabled={busy || depts.length === 0}>
             <Plus className="h-3.5 w-3.5" /> Dodaj wiersz
           </Button>
         </div>
@@ -1199,7 +1199,7 @@ function BulkArrivalsDialog({ open, onOpenChange, options, todayYmd, onAdd }: {
                 {(options.get(l.dept) ?? []).map(j => <option key={j.jobTitle} value={j.jobTitle}>{j.jobTitle}</option>)}
               </select>
               <Input type="number" min="1" max="50" placeholder="Ilość" value={l.count} onChange={e => patch(l.id, { count: e.target.value })} className="h-8 w-20 text-sm" aria-label="Ilość" />
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-foreground" aria-label="Usuń wiersz" onClick={() => setLines(prev => prev.filter(x => x.id !== l.id))} disabled={busy}>
+              <Button type="button" variant="ghost" size="icon-sm" className=" shrink-0 text-foreground" aria-label="Usuń wiersz" onClick={() => setLines(prev => prev.filter(x => x.id !== l.id))} disabled={busy}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -1238,8 +1238,8 @@ function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpd
       <div className="flex items-center gap-1 bg-muted/30 p-1 rounded">
         <Input type="date" min={format(new Date(), 'yyyy-MM-dd')} className="h-7 text-sm px-2 flex-1" value={date} onChange={e => setDate(e.target.value)} />
         <Input type="number" min="1" max="50" className="h-7 w-16 text-sm px-2" value={count} onChange={e => setCount(e.target.value)} />
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600 shrink-0" onClick={handleSave}><Check className="h-3 w-3" /></Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-foreground shrink-0" onClick={() => { setDate(p.date); setCount(p.count); setIsEditing(false); }}><X className="h-3 w-3" /></Button>
+        <Button size="icon-sm" variant="ghost" className=" text-emerald-600 shrink-0" onClick={handleSave}><Check className="h-3 w-3" /></Button>
+        <Button size="icon-sm" variant="ghost" className=" text-foreground shrink-0" onClick={() => { setDate(p.date); setCount(p.count); setIsEditing(false); }}><X className="h-3 w-3" /></Button>
       </div>
     );
   }
@@ -1248,11 +1248,11 @@ function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpd
     <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-0.5 text-sm">
       <span>📅 {formatYmdPl(p.date) || 'bez daty'} — <strong>{p.count} os.</strong></span>
       <div className="flex items-center gap-0.5">
-         <Button type="button" variant="ghost" size="icon" title="Edytuj" aria-label="Edytuj przyjęcie" className="h-8 w-8 text-blue-600 hover:text-blue-700" onClick={startEditing}>
+         <Button type="button" variant="ghost" size="icon-sm" title="Edytuj" aria-label="Edytuj przyjęcie" className=" text-blue-600 hover:text-blue-700" onClick={startEditing}>
            <Pencil className="h-4 w-4" />
          </Button>
          {canDelete && (
-           <Button type="button" variant="ghost" size="icon" title="Usuń" aria-label="Usuń przyjęcie" className="h-8 w-8 text-destructive" onClick={() => onRemove(p.id)}>
+           <Button type="button" variant="ghost" size="icon-sm" title="Usuń" aria-label="Usuń przyjęcie" className=" text-destructive" onClick={() => onRemove(p.id)}>
              <Trash2 className="h-4 w-4" />
            </Button>
          )}
@@ -1281,8 +1281,8 @@ function PositionComment({ saved, draft, isEditing, onStartEdit, onDraftChange, 
           onChange={e => onDraftChange(e.target.value)}
         />
         <div className="flex items-center gap-1.5">
-          <Button type="button" size="sm" className="h-7 text-sm" onClick={onSave}>Zapisz</Button>
-          <Button type="button" variant="ghost" size="sm" className="h-7 text-sm" onClick={onCancel}>Anuluj</Button>
+          <Button type="button" size="sm" className=" text-sm" onClick={onSave}>Zapisz</Button>
+          <Button type="button" variant="ghost" size="sm" className=" text-sm" onClick={onCancel}>Anuluj</Button>
         </div>
       </div>
     );
@@ -1306,7 +1306,7 @@ function PositionComment({ saved, draft, isEditing, onStartEdit, onDraftChange, 
     );
   }
   return (
-    <Button type="button" variant="ghost" size="sm" className="mt-1 h-7 gap-1 text-sm text-foreground" onClick={onStartEdit}>
+    <Button type="button" variant="ghost" size="sm" className="mt-1 gap-1 text-sm text-foreground" onClick={onStartEdit}>
       <Plus className="h-3 w-3" /> Dodaj komentarz
     </Button>
   );
@@ -1448,7 +1448,7 @@ function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: Re
                             <Badge variant="destructive" className="text-xs">Niezrealizowane</Badge>
                           )}
                           {isAdmin && (
-                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemove(a.id)}>
+                            <Button type="button" variant="ghost" size="icon-sm" className=" text-destructive" onClick={() => handleRemove(a.id)}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           )}

@@ -222,12 +222,12 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                             <span className="flex items-center gap-1.5">
                                                 {employee.fullName}
                                                 {vacationHasStarted(employee.vacationStartDate) && (
-                                                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">URLOP</span>
+                                                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-xs font-semibold text-white">URLOP</span>
                                                 )}
                                                 {(() => {
                                                     const planned = parseMaybeDate(employee.plannedTerminationDate);
                                                     if (!planned || startOfDay(planned) < startOfDay(new Date())) return null;
-                                                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">Zwalnia się</span>;
+                                                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400">Zwalnia się</span>;
                                                 })()}
                                             </span>
                                             <span className="flex items-center gap-1">
@@ -248,12 +248,12 @@ const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             <span className="flex items-center gap-1.5 font-medium">
                 {employee.fullName}
                 {vacationHasStarted(employee.vacationStartDate) && (
-                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">URLOP</span>
+                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-xs font-semibold text-white">URLOP</span>
                 )}
                 {(() => {
                     const planned = parseMaybeDate(employee.plannedTerminationDate);
                     if (!planned || startOfDay(planned) < startOfDay(new Date())) return null;
-                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">Zwalnia się</span>;
+                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400">Zwalnia się</span>;
                 })()}
             </span>
             <span className="flex items-center gap-1">

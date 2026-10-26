@@ -21,9 +21,11 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-auto min-h-10 px-4 py-2",
-        sm: "h-9 px-3",
+        sm: "h-10 px-3 sm:h-9",
         lg: "h-11 px-8",
         icon: "h-10 w-10",
+        // gęste tabele: na telefonie nadal 40px (dotyk), od md kompaktowe 32px
+        "icon-sm": "h-10 w-10 md:h-8 md:w-8",
       },
     },
     defaultVariants: {

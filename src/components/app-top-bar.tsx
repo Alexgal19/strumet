@@ -79,7 +79,7 @@ function Notifications() {
         <button aria-label="Powiadomienia" className="relative rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 justify-center p-0 text-[10px] bg-emerald-500 text-white border-0">
+            <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 justify-center p-0 text-xs bg-emerald-500 text-white border-0">
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
           )}
@@ -205,7 +205,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
           >
             <Search className="h-4 w-4 shrink-0" />
             <span className="flex-1 text-left">Szukaj...</span>
-            <kbd className="pointer-events-none rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium">
+            <kbd className="pointer-events-none rounded border border-border bg-muted px-1.5 font-mono text-xs font-medium">
               ⌘K
             </kbd>
           </button>

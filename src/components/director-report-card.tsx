@@ -443,7 +443,7 @@ export function DirectorReportCard({
                         placeholder="Imię i nazwisko"
                         autoFocus
                       />
-                      <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setIsEditingName(false)}>
+                      <Button size="sm" variant="ghost" className=" px-2" onClick={() => setIsEditingName(false)}>
                         <Check className="h-4 w-4" />
                       </Button>
                     </div>

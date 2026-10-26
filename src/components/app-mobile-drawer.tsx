@@ -91,7 +91,7 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
             {sections.length === 0 && <p className="px-2 py-6 text-sm text-muted-foreground">Nie znaleziono sekcji.</p>}
             {sections.map((section) => (
               <div key={section.title} className="mb-4 last:mb-0">
-                <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <p className="px-2 pb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
                   {section.title}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
