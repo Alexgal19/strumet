@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
 import { addMonths, format, getDaysInMonth } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import {
@@ -80,17 +79,18 @@ export function HarmonogramView({
 
   const result = useMemo(() => buildHarmonogram(data, monthOffset), [data, monthOffset]);
 
-  const displayRows = useMemo(
-    () =>
-      onlyShortages
-        ? result.rows.filter((row) =>
-            row.positions.some(
-              (position) => position.potrzeby - position.obecnie > 0
-            )
-          )
-        : result.rows,
-    [result.rows, onlyShortages]
-  );
+  const displayRows = useMemo(() => {
+    const hasShortage = (row: HarmonogramRow) =>
+      row.potrzeby - row.obecnie > 0 ||
+      row.positions.some((position) => position.potrzeby - position.obecnie > 0);
+
+    return [...result.rows].sort((a, b) => {
+      const aShort = hasShortage(a) ? 1 : 0;
+      const bShort = hasShortage(b) ? 1 : 0;
+      if (aShort !== bShort) return bShort - aShort;
+      return a.dept.localeCompare(b.dept, 'pl');
+    });
+  }, [result.rows]);
 
   const todayIndex = useMemo(
     () => result.days.findIndex(d => format(d, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')),
@@ -205,19 +205,6 @@ export function HarmonogramView({
 
   return (
     <Card className="min-w-0 md:flex md:min-h-0 md:flex-1 md:flex-col">
-      {onlyShortages && (
-        <div className="mx-4 mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
-          <span className="font-medium">
-            Tylko działy z brakami na dziś ({displayRows.length})
-          </span>
-          <Link
-            href="/harmonogram"
-            className="inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline"
-          >
-            Pokaż wszystkie działy
-          </Link>
-        </div>
-      )}
       {isMobile ? (
         <CardContent className="space-y-4 p-4">
           <div className="flex items-center justify-between gap-2">
@@ -334,7 +321,7 @@ export function HarmonogramView({
             })}
             {displayRows.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                {onlyShortages ? 'Brak działów z brakami na dziś.' : 'Brak danych.'}
+                Brak danych.
               </p>
             )}
           </div>
@@ -851,7 +838,7 @@ export function HarmonogramView({
           </table>
           {displayRows.length === 0 && (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              {onlyShortages ? 'Brak działów z brakami na dziś.' : 'Brak danych.'}
+              Brak danych.
             </p>
           )}
         </div>
