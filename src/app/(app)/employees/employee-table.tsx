@@ -185,15 +185,30 @@ export function EmployeeTable({
     getFacetedUniqueValues: getFacetedUniqueValues(),
     globalFilterFn: (row, _columnId, filterValue) => {
       const employee = row.original;
+      const query = String(filterValue ?? '').trim();
+      if (!query) return true;
+
+      // Jeśli użytkownik jawnie szuka po kierowniku za pomocą prefiksu: "kierownik: Nazwisko"
+      const managerMatch = query.match(/^(?:kierownik|kier|manager):\s*(.+)$/i);
+      if (managerMatch) {
+        return excelLikeMatch(managerMatch[1], [employee.manager]);
+      }
 
       // Wyszukiwanie w stylu Excel: każde słowo zapytania musi wystąpić
-      // w co najmniej jednym polu (ignoruje wielkość liter i polskie znaki).
-      return excelLikeMatch(String(filterValue ?? ''), [
+      // w co najmniej jednym polu (ignoruje wielkość liter, cyrylicę i polskie znaki).
+      // Uwaga: celowo NIE przeszukujemy employee.manager domyślnie, aby wyszukiwanie po nazwisku
+      // (np. "Tkachenko") nie zwracało wszystkich pracowników z działu danego kierownika.
+      // Do filtrowania po kierowniku służy dedykowany przycisk-filtr "Kierownik" w pasku narzędzi.
+      const nameParts = getEmployeeNameParts(employee);
+      return excelLikeMatch(query, [
         employee.fullName,
+        employee.lastName,
+        employee.firstName,
+        nameParts.lastName,
+        nameParts.firstName,
         employee.cardNumber,
         employee.department,
         employee.jobTitle,
-        employee.manager,
         employee.nationality,
         employee.lockerNumber,
         employee.departmentLockerNumber,

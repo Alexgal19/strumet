@@ -70,6 +70,11 @@ export function suggestReordered(fullName: string): string {
 export function getEmployeeNameParts(e: { fullName?: string | null; lastName?: string | null; firstName?: string | null }): SplitName {
   const ln = clean(e.lastName ?? '');
   const fn = clean(e.firstName ?? '');
-  if ((ln || fn) && joinFullName(ln, fn) === clean(e.fullName ?? '')) return { lastName: ln, firstName: fn };
+  if (ln || fn) {
+    const cleanFull = clean(e.fullName ?? '');
+    if (!cleanFull || joinFullName(ln, fn) === cleanFull || clean(`${fn} ${ln}`) === cleanFull) {
+      return { lastName: ln, firstName: fn };
+    }
+  }
   return splitFullName(e.fullName);
 }

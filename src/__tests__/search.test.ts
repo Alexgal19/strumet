@@ -57,6 +57,21 @@ describe('excelLikeMatch', () => {
     expect(excelLikeMatch('kowal', [null, undefined, 'Jan Kowalski'])).toBe(true);
     expect(excelLikeMatch('kowal', [null, undefined])).toBe(false);
   });
+
+  it('matches Ukrainian and Russian Cyrillic to Latin and vice versa', () => {
+    expect(excelLikeMatch('Ткаченко', ['Oleksandr Tkachenko'])).toBe(true);
+    expect(excelLikeMatch('Tkachenko', ['Олександр Ткаченко'])).toBe(true);
+    expect(excelLikeMatch('Дудник', ['Denys Dudnyk'])).toBe(true);
+    expect(excelLikeMatch('Шевченко', ['Taras Shevchenko'])).toBe(true);
+  });
+
+  it('unifies Polish and English transliterations (cz/ch, sz/sh, w/v)', () => {
+    expect(excelLikeMatch('Tkachenko', ['Tkaczenko'])).toBe(true);
+    expect(excelLikeMatch('Tkaczenko', ['Tkachenko'])).toBe(true);
+    expect(excelLikeMatch('Ткаченко', ['Tkaczenko'])).toBe(true);
+    expect(excelLikeMatch('Szewczenko', ['Shevchenko'])).toBe(true);
+    expect(excelLikeMatch('Krawczuk', ['Kravchuk'])).toBe(true);
+  });
 });
 
 describe('commandExcelFilter', () => {
