@@ -1,6 +1,6 @@
 // public/sw.js
 
-const CACHE_NAME = 'baza-st-cache-v3'; // Increment version to force update
+const CACHE_NAME = 'baza-st-cache-v4'; // Increment version to force update
 
 // On install, perform setup.
 self.addEventListener('install', (event) => {

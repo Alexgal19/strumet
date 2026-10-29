@@ -28,7 +28,7 @@ export const getAdminApp = () => {
             adminApp = admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
                 databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'kadry-online-4h3x9.firebasestorage.app',
             });
         } catch (error: any) {
             if (!/already exists/i.test(error.message)) {
@@ -41,7 +41,7 @@ export const getAdminApp = () => {
         try {
             adminApp = admin.initializeApp({
                 databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'kadry-online-4h3x9.firebasestorage.app',
             });
         } catch (error: any) {
             if (!/already exists/i.test(error.message)) {

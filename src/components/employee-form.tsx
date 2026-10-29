@@ -263,17 +263,34 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     const handleCertUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const storage = getStorage_();
-        if (!storage) { toast({ variant: 'destructive', title: 'Błąd', description: 'Storage nie jest dostępny.' }); return; }
         const maxSize = 5 * 1024 * 1024; // 5 MB
         if (file.size > maxSize) { toast({ variant: 'destructive', title: 'Błąd', description: 'Plik jest za duży (max 5 MB).' }); return; }
         setIsUploading(true);
         try {
             const empId = employee?.id || `temp_${Date.now()}`;
-            const ext = file.name.split('.').pop() || 'jpg';
-            const fileRef = storageRef(storage, `certificates/${empId}.${ext}`);
-            await uploadBytes(fileRef, file);
-            const url = await getDownloadURL(fileRef);
+            let url = '';
+
+            // 1. Przesyłanie przez serwerowe API (/api/certificates) do Firebase Storage
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', file);
+            uploadFormData.append('empId', empId);
+            const res = await fetch('/api/certificates', {
+                method: 'POST',
+                body: uploadFormData,
+            });
+            if (res.ok) {
+                const data = await res.json();
+                url = data.url;
+            } else {
+                // 2. Fallback: bezpośredni zapis przez klienta Firebase Storage SDK
+                const storage = getStorage_();
+                if (!storage) throw new Error('Storage nie jest dostępny.');
+                const ext = file.name.split('.').pop() || 'jpg';
+                const fileRef = storageRef(storage, `certificates/${empId}.${ext}`);
+                await uploadBytes(fileRef, file);
+                url = await getDownloadURL(fileRef);
+            }
+
             handleChange('certificateUrl', url);
             handleChange('welderLicense', 'Tak');
             toast({ title: 'Gotowe!', description: 'Certyfikat został dodany.' });
@@ -288,11 +305,18 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
 
     const handleCertDelete = async () => {
         if (!formData.certificateUrl) return;
-        const storage = getStorage_();
-        if (!storage) return;
+        const currentUrl = formData.certificateUrl;
         try {
-            const fileRef = storageRef(storage, formData.certificateUrl);
-            await deleteObject(fileRef).catch(() => { /* ignore if already deleted */ });
+            await fetch('/api/certificates', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: currentUrl, empId: employee?.id }),
+            }).catch(() => {});
+            const storage = getStorage_();
+            if (storage) {
+                const fileRef = storageRef(storage, currentUrl);
+                await deleteObject(fileRef).catch(() => { /* ignore if already deleted */ });
+            }
         } catch { /* ignore */ }
         handleChange('certificateUrl', undefined);
         toast({ title: 'Usunięto', description: 'Certyfikat został usunięty.' });
