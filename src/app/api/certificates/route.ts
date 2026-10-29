@@ -1,8 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminApp, adminStorage } from '@/lib/firebase-admin';
-import crypto from 'crypto';
+import { certificatePathFromUrl } from '@/lib/certificate-url';
 
 const BUCKET_NAME = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'kadry-online-4h3x9.firebasestorage.app';
+
+const getBucket = () => {
+    getAdminApp();
+    return adminStorage().bucket(BUCKET_NAME);
+};
+
+/**
+ * GET /api/certificates?path=certificates/xxx.jpg[&download=1&name=...]
+ * Serwuje plik certyfikatu przez Admin SDK — niezależnie od tokenów pobierania
+ * Firebase Storage (które zmieniają się przy każdym ponownym przesłaniu).
+ */
+export async function GET(req: NextRequest) {
+    try {
+        const params = req.nextUrl.searchParams;
+        const rawPath = params.get('path') || certificatePathFromUrl(params.get('url'));
+        if (!rawPath || !rawPath.startsWith('certificates/') || rawPath.includes('..')) {
+            return NextResponse.json({ error: 'Nieprawidłowa ścieżka.' }, { status: 400 });
+        }
+
+        const file = getBucket().file(rawPath);
+        const [exists] = await file.exists();
+        if (!exists) {
+            return NextResponse.json({ error: 'Plik nie istnieje.' }, { status: 404 });
+        }
+
+        const [[metadata], [buffer]] = await Promise.all([file.getMetadata(), file.download()]);
+        const contentType = (metadata.contentType as string) || 'application/octet-stream';
+        const fileName = params.get('name') || rawPath.split('/').pop() || 'certyfikat';
+        const disposition = params.get('download') === '1' ? 'attachment' : 'inline';
+
+        return new NextResponse(new Uint8Array(buffer), {
+            status: 200,
+            headers: {
+                'Content-Type': contentType,
+                'Content-Length': String(buffer.length),
+                'Content-Disposition': `${disposition}; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+                'Cache-Control': 'private, no-store',
+            },
+        });
+    } catch (error: any) {
+        console.error('Certificate API get error:', error);
+        return NextResponse.json({ error: error?.message || 'Nie udało się pobrać pliku.' }, { status: 500 });
+    }
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -22,27 +66,23 @@ export async function POST(req: NextRequest) {
         const safeEmpId = empId.replace(/[^a-zA-Z0-9_-]/g, '_');
         const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
         const filePath = `certificates/${safeEmpId}.${ext}`;
-        const downloadToken = crypto.randomUUID();
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const buffer = Buffer.from(await file.arrayBuffer());
 
-        getAdminApp();
-        const bucket = adminStorage().bucket(BUCKET_NAME);
-        const storageFile = bucket.file(filePath);
+        const bucket = getBucket();
 
-        await storageFile.save(buffer, {
+        // Usuń stare pliki tego pracownika z innym rozszerzeniem (np. .jpg -> .pdf)
+        const [oldFiles] = await bucket.getFiles({ prefix: `certificates/${safeEmpId}.` });
+        await Promise.all(
+            oldFiles.filter(f => f.name !== filePath).map(f => f.delete({ ignoreNotFound: true }))
+        );
+
+        await bucket.file(filePath).save(buffer, {
             resumable: false,
-            metadata: {
-                contentType: file.type || 'application/octet-stream',
-                metadata: {
-                    firebaseStorageDownloadTokens: downloadToken,
-                },
-            },
+            metadata: { contentType: file.type || 'application/octet-stream' },
         });
 
-        const encodedPath = encodeURIComponent(filePath);
-        const url = `https://firebasestorage.googleapis.com/v0/b/${BUCKET_NAME}/o/${encodedPath}?alt=media&token=${downloadToken}`;
-
+        // Stały link przez nasze API (v= tylko omija cache przeglądarki po zmianie pliku)
+        const url = `/api/certificates?path=${encodeURIComponent(filePath)}&v=${Date.now()}`;
         return NextResponse.json({ url, filePath });
     } catch (error: any) {
         console.error('Certificate API upload error:', error);
@@ -56,17 +96,11 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     try {
         const { url, empId } = await req.json();
-        getAdminApp();
-        const bucket = adminStorage().bucket(BUCKET_NAME);
+        const bucket = getBucket();
 
-        if (url && typeof url === 'string') {
-            const match = url.match(/\/o\/([^?]+)/);
-            if (match?.[1]) {
-                const filePath = decodeURIComponent(match[1]);
-                if (filePath.startsWith('certificates/')) {
-                    await bucket.file(filePath).delete({ ignoreNotFound: true });
-                }
-            }
+        const filePath = certificatePathFromUrl(url);
+        if (filePath && filePath.startsWith('certificates/') && !filePath.includes('..')) {
+            await bucket.file(filePath).delete({ ignoreNotFound: true });
         } else if (empId) {
             const safeEmpId = String(empId).replace(/[^a-zA-Z0-9_-]/g, '_');
             const [files] = await bucket.getFiles({ prefix: `certificates/${safeEmpId}.` });

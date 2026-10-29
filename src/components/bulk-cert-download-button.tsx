@@ -7,6 +7,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { useToast } from '@/hooks/use-toast';
 import type { Employee } from '@/lib/types';
+import { certificateViewUrl, certificateExt } from '@/lib/certificate-url';
 
 interface BulkCertDownloadButtonProps {
     employees: Employee[];
@@ -35,10 +36,11 @@ export function BulkCertDownloadButton({ employees, className }: BulkCertDownloa
             for (const emp of certEmployees) {
                 if (!emp.certificateUrl) continue;
                 try {
-                    const res = await fetch(emp.certificateUrl);
+                    const res = await fetch(certificateViewUrl(emp.certificateUrl));
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     const blob = await res.blob();
                     const name = emp.fullName.trim().replace(/\s+/g, '_');
-                    const ext = emp.certificateUrl.split('?')[0].split('.').pop() || 'jpg';
+                    const ext = certificateExt(emp.certificateUrl);
                     folder.file(`Certyfikat_${name}.${ext}`, blob);
                 } catch (e) {
                     console.error(`Nie udało się pobrać certyfikatu dla ${emp.fullName}`, e);

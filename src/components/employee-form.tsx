@@ -22,6 +22,7 @@ import { useAppContext } from '@/context/app-context';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { joinFullName, getEmployeeNameParts } from '@/lib/person-name';
+import { certificateViewUrl, certificateExt } from '@/lib/certificate-url';
 
 
 const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
@@ -313,7 +314,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 body: JSON.stringify({ url: currentUrl, empId: employee?.id }),
             }).catch(() => {});
             const storage = getStorage_();
-            if (storage) {
+            if (storage && currentUrl.startsWith('http')) {
                 const fileRef = storageRef(storage, currentUrl);
                 await deleteObject(fileRef).catch(() => { /* ignore if already deleted */ });
             }
@@ -325,14 +326,15 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     const handleCertDownload = async () => {
         if (!formData.certificateUrl) return;
         try {
-            const res = await fetch(formData.certificateUrl);
+            const res = await fetch(certificateViewUrl(formData.certificateUrl));
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const blob = await res.blob();
             const localUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = localUrl;
             // Spawacz_Imie_Nazwisko
             const name = `${firstName.trim()}_${lastName.trim()}`.replace(/\s+/g, '_');
-            const ext = formData.certificateUrl.split('?')[0].split('.').pop() || 'jpg';
+            const ext = certificateExt(formData.certificateUrl);
             a.download = `Certyfikat_${name}.${ext}`;
             document.body.appendChild(a);
             a.click();
@@ -631,7 +633,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                             <div className="flex flex-col gap-2">
                                 <div className="flex gap-2">
                                     <a
-                                        href={formData.certificateUrl}
+                                        href={certificateViewUrl(formData.certificateUrl)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex flex-1 items-center gap-2 rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
