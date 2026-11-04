@@ -30,6 +30,7 @@ export interface Employee {
   status: 'aktywny' | 'zwolniony';
   status_fullName?: string; // Composite key for queries: `${status}_${fullName}`
   terminationDate?: string; // ISO string format will be present for 'zwolniony'
+  terminationReason?: string; // Powód zwolnienia — nazwa z listy config/terminationReasons
   plannedTerminationDate?: string; // ISO string format
   vacationStartDate?: string; // ISO string format
   vacationEndDate?: string; // ISO string format
@@ -49,8 +50,9 @@ export type JobTitle = ConfigItem;
 export type Manager = ConfigItem;
 export type Nationality = ConfigItem;
 export type ClothingItem = ConfigItem;
+export type TerminationReason = ConfigItem;
 
-export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems';
+export type ConfigType = 'departments' | 'jobTitles' | 'managers' | 'nationalities' | 'clothingItems' | 'terminationReasons';
 
 export interface JobTitleClothingSet {
   id: string; // Corresponds to jobTitleId
@@ -63,6 +65,7 @@ export interface AllConfig {
   managers: Manager[];
   nationalities: Nationality[];
   clothingItems: ClothingItem[];
+  terminationReasons: TerminationReason[];
   jobTitleClothingSets: JobTitleClothingSet[];
   gmailUser?: string;
   gmailAppPassword?: string;

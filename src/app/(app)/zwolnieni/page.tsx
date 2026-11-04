@@ -38,6 +38,7 @@ const exportColumns = [
   { key: 'fullName' as keyof Employee, name: 'Nazwisko i imię' },
   { key: 'hireDate' as keyof Employee, name: 'Data zatrudnienia' },
   { key: 'terminationDate' as keyof Employee, name: 'Data zwolnienia' },
+  { key: 'terminationReason' as keyof Employee, name: 'Powód zwolnienia' },
   { key: 'jobTitle' as keyof Employee, name: 'Stanowisko' },
   { key: 'department' as keyof Employee, name: 'Dział' },
   { key: 'manager' as keyof Employee, name: 'Kierownik' },

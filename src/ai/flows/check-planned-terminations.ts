@@ -42,7 +42,9 @@ export async function checkPlannedTerminations(): Promise<{ processedCount: numb
   const updates: Record<string, any> = {};
   employeesToProcess.forEach(emp => {
     updates[`/employees/${emp.id}/status`] = 'zwolniony';
-    updates[`/employees/${emp.id}/terminationDate`] = emp.plannedTerminationDate;
+    updates[`/employees/${emp.id}/status_fullName`] = `zwolniony_${(emp.fullName || '').toLowerCase()}`;
+    // Data zwolnienia = planowana, ale nie nadpisujemy faktycznej daty wpisanej ręcznie.
+    if (!emp.terminationDate) updates[`/employees/${emp.id}/terminationDate`] = emp.plannedTerminationDate;
   });
   await db.ref().update(updates);
   console.log(`Processed ${employeesToProcess.length} terminations.`);

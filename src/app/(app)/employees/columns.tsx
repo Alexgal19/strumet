@@ -189,6 +189,16 @@ export function getColumns({
         };
         return getDays(rowA) - getDays(rowB);
       }
+    },
+    {
+      accessorKey: "terminationReason",
+      header: ({ column }: HeaderContext<Employee, unknown>) => (
+        <DataTableColumnHeader column={column} title="Powód zwolnienia" />
+      ),
+      cell: ({ row }: CellContext<Employee, unknown>) => {
+        const reason = row.original.terminationReason;
+        return reason ? <span>{reason}</span> : <span className="text-muted-foreground">—</span>;
+      },
     }] : []),
     {
       accessorKey: "jobTitle",

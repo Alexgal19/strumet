@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AuditLogList } from '@/components/audit-log-list';
 import { BackupCard } from '@/components/backup-card';
 import { cn } from '@/lib/utils';
-import { configLabels, CONFIG_CATEGORIES, type ConfigView } from '@/components/konfiguracja/config-meta';
+import { configDialogTitles, CONFIG_CATEGORIES } from '@/components/konfiguracja/config-meta';
 import { JobTitleClothingSetsTab } from '@/components/konfiguracja/job-title-clothing-sets-tab';
 import { UserManagementTab } from '@/components/konfiguracja/user-management-tab';
 import { ListsTab } from '@/components/konfiguracja/lists-tab';
@@ -104,6 +104,7 @@ export default function ConfigurationPage() {
     { type: 'managers', items: config.managers },
     { type: 'nationalities', items: config.nationalities },
     { type: 'clothingItems', items: config.clothingItems },
+    { type: 'terminationReasons', items: config.terminationReasons },
   ];
 
   const visibleCategories = useMemo(
@@ -112,8 +113,8 @@ export default function ConfigurationPage() {
   );
   const activeCategory = visibleCategories.find((category) => category.value === activeTab);
 
-  const addDialogTitle = `Dodaj nowe ${currentConfigType ? configLabels[currentConfigType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase() : ''}`;
-  const editDialogTitle = `Edytuj ${currentConfigType ? configLabels[currentConfigType as Exclude<ConfigView, 'jobTitleClothingSets'>].toLowerCase().slice(0, -1) + 'ę' : ''}`;
+  const addDialogTitle = currentConfigType ? configDialogTitles[currentConfigType].add : 'Dodaj nowy element';
+  const editDialogTitle = currentConfigType ? configDialogTitles[currentConfigType].edit : 'Edytuj element';
 
   return (
     <div className="flex h-full flex-col">

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Edit, PlusCircle, Trash2 } from 'lucide-react';
 import type { ConfigItem, ConfigType } from '@/lib/types';
-import { configLabels, type ConfigView } from './config-meta';
+import { configLabels } from './config-meta';
 
 type ListsTabProps = {
   configLists: { type: ConfigType; items: ConfigItem[] }[];
@@ -26,7 +26,7 @@ export function ListsTab({ configLists, isAdmin, onAdd, onEdit, onRemove }: List
         <Accordion type="multiple" className="w-full">
           {configLists.map(({ type, items }) => (
             <AccordionItem value={type} key={type}>
-              <AccordionTrigger>{configLabels[type as Exclude<ConfigView, 'jobTitleClothingSets'>]}</AccordionTrigger>
+              <AccordionTrigger>{configLabels[type]}</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-3 p-2">
                   <div className="space-y-2">

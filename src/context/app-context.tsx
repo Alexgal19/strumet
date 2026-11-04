@@ -22,7 +22,8 @@ import { getFirebaseServices } from '@/lib/firebase';
 import { setupPushNotifications } from '@/lib/push';
 import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
+import { getEffectiveTerminationDate, withEffectiveTerminationDate } from '@/lib/employee-status';
 import type {
     Employee,
     AllConfig,
@@ -167,7 +168,7 @@ interface AppContextType {
     voiceDataReady: boolean;
     isHistoryLoading: boolean;
     handleSaveEmployee: (employeeData: Employee) => Promise<boolean>;
-    handleTerminateEmployee: (employeeId: string, employeeFullName: string) => Promise<boolean>;
+    handleTerminateEmployee: (employeeId: string, employeeFullName: string, options?: { terminationDate?: string; terminationReason?: string }) => Promise<boolean>;
     handleRestoreEmployee: (employeeId: string, employeeFullName: string) => Promise<boolean>;
     handleEndVacation: (employeeId: string, employeeFullName: string) => Promise<boolean>;
     handleDeleteEmployeePermanently: (employeeId: string) => Promise<boolean>;
@@ -230,7 +231,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [cars, setCars] = useState<Car[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
-    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], gmailUser: '', gmailAppPassword: '' });
+    const [config, setConfig] = useState<AllConfig>({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], terminationReasons: [], jobTitleClothingSets: [], gmailUser: '', gmailAppPassword: '' });
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [statsHistory, setStatsHistory] = useState<StatsSnapshot[]>([]);
     const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
@@ -249,6 +250,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const dataLoadedRef = useRef<Set<string>>(new Set());
     const authInitializedRef = useRef(false);
     const pushInitializedRef = useRef(false);
+    // Zwolnieni (planowana data minęła) bez zapisanej daty zwolnienia — uzupełniamy ją w bazie (admin).
+    const missingTerminationDatesRef = useRef<{ id: string; date: string }[]>([]);
 
     const isAdmin = currentUser?.role === 'admin';
     const isEditor = currentUser?.role === 'editor';
@@ -268,6 +271,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.error('[logAudit] Error:', error);
         }
     }, [services, currentUser]);
+
+    // Administrator uzupełnia w bazie brakujące daty zwolnienia (= planowana data) osób, które już odeszły.
+    // Zapisujemy wyłącznie pole terminationDate; kolejka jest czyszczona przed zapisem (brak pętli).
+    useEffect(() => {
+        if (!services || !isAdmin || !currentUser) return;
+        const queue = missingTerminationDatesRef.current;
+        if (queue.length === 0) return;
+        missingTerminationDatesRef.current = [];
+        const updates: Record<string, string> = {};
+        queue.forEach(({ id, date }) => { updates[`/employees/${id}/terminationDate`] = date; });
+        update(ref(services.db), updates)
+            .then(() => void logAudit('Automatyczna data zwolnienia', `Uzupełniono datę zwolnienia (= planowana) dla ${queue.length} pracowników`))
+            .catch(error => console.error('[terminationDate] Auto-fill error:', error));
+    }, [employees, services, isAdmin, currentUser, logAudit]);
 
     useEffect(() => {
         const services = getFirebaseServices();
@@ -312,7 +329,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setEmployees([]);
             setCars([]);
             setUsers([]);
-            setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], jobTitleClothingSets: [], gmailUser: '', gmailAppPassword: '' });
+            setConfig({ departments: [], jobTitles: [], managers: [], nationalities: [], clothingItems: [], terminationReasons: [], jobTitleClothingSets: [], gmailUser: '', gmailAppPassword: '' });
             setAbsences([]);
             setNotifications([]);
             setStatsHistory([]);
@@ -339,7 +356,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const cachedClothingIssuances = loadFromStorage(STORAGE_KEYS.clothingIssuances);
         const cachedFingerprintAppointments = loadFromStorage(STORAGE_KEYS.fingerprintAppointments);
 
-        if (cachedEmployees) setEmployees(cachedEmployees);
+        if (cachedEmployees) setEmployees(cachedEmployees.map((e: Employee) => withEffectiveTerminationDate(e)));
         if (cachedCars) setCars(cachedCars);
         if (cachedConfig) {
             setConfig({
@@ -348,6 +365,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 managers: dedupeByName(cachedConfig.managers || []),
                 nationalities: dedupeByName(cachedConfig.nationalities || []),
                 clothingItems: cachedConfig.clothingItems || [],
+                terminationReasons: dedupeByName(cachedConfig.terminationReasons || []),
                 jobTitleClothingSets: cachedConfig.jobTitleClothingSets || [],
                 gmailUser: cachedConfig.gmailUser || '',
                 gmailAppPassword: cachedConfig.gmailAppPassword || '',
@@ -397,7 +415,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 path: "employees",
                 setter: (data: any) => {
                     const arr = objectToArray(data);
-                    setEmployees(arr);
+                    // Data zwolnienia = planowana, gdy osoba jest już zwolniona, a faktycznej daty brak.
+                    const today = startOfDay(new Date());
+                    missingTerminationDatesRef.current = arr
+                        .filter((e: Employee) => !e.terminationDate)
+                        .map((e: Employee) => ({ id: e.id, date: getEffectiveTerminationDate(e, today) }))
+                        .filter((x: { id: string; date?: string }): x is { id: string; date: string } => !!x.date);
+                    setEmployees(arr.map((e: Employee) => withEffectiveTerminationDate(e, today)));
                     saveToStorage(STORAGE_KEYS.employees, arr);
                     dataLoadedRef.current.add('employees');
                 },
@@ -445,6 +469,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                             managers: dedupeByName(objectToArray(configData.managers)),
                             nationalities: dedupeByName(objectToArray(configData.nationalities)),
                             clothingItems: objectToArray(configData.clothingItems),
+                            terminationReasons: dedupeByName(objectToArray(configData.terminationReasons)),
                             jobTitleClothingSets: objectToArray(configData.jobTitleClothingSets),
                         };
                         saveToStorage(STORAGE_KEYS.config, updated);
@@ -673,7 +698,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const status = dataToSave.status || 'aktywny';
             const status_fullName = `${status}_${dataToSave.fullName.toLowerCase()}`;
 
-            const finalData: { [key: string]: any } = { ...dataToSave, status_fullName };
+            // Zwolniony (lub minęła planowana data), a brak daty zwolnienia → bierzemy planowaną datę.
+            const withTermination = withEffectiveTerminationDate({ ...dataToSave, id: id || '', status } as Employee);
+            const finalData: { [key: string]: any } = { ...dataToSave, terminationDate: withTermination.terminationDate, status_fullName };
 
             for (const key in finalData) {
                 if (finalData[key] === undefined) {
@@ -722,15 +749,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [services, toast, logAudit, employees, currentUser]);
 
-    const handleTerminateEmployee = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
+    const handleTerminateEmployee = useCallback(async (
+        employeeId: string,
+        employeeFullName: string,
+        options?: { terminationDate?: string; terminationReason?: string }
+    ): Promise<boolean> => {
         if (!services) return false;
         const { db } = services;
         try {
-            await update(ref(db, `employees/${employeeId}`), {
+            const updates: Record<string, string> = {
                 status: 'zwolniony',
-                terminationDate: format(new Date(), 'yyyy-MM-dd'),
-                status_fullName: `zwolniony_${employeeFullName.toLowerCase()}`
-            });
+                terminationDate: options?.terminationDate || format(new Date(), 'yyyy-MM-dd'),
+                status_fullName: `zwolniony_${employeeFullName.toLowerCase()}`,
+            };
+            if (options?.terminationReason) updates.terminationReason = options.terminationReason;
+            await update(ref(db, `employees/${employeeId}`), updates);
             toast({ title: 'Pracownik zwolniony', description: 'Status pracownika został zmieniony na "zwolniony".' });
             void logAudit('Zwolnienie pracownika', employeeFullName);
             return true;
@@ -1032,7 +1065,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const updates: Record<string, any> = {};
             updates[`/config/${configType}/${itemId}/name`] = newName;
 
-            const employeeFieldToUpdate = configType === 'departments' ? 'department' : configType === 'jobTitles' ? 'jobTitle' : configType === 'managers' ? 'manager' : configType === 'nationalities' ? 'nationality' : null;
+            const employeeFieldToUpdate = configType === 'departments' ? 'department' : configType === 'jobTitles' ? 'jobTitle' : configType === 'managers' ? 'manager' : configType === 'nationalities' ? 'nationality' : configType === 'terminationReasons' ? 'terminationReason' : null;
 
             if (employeeFieldToUpdate) {
                 const allEmployeesSnapshot = await get(ref(db, 'employees'));

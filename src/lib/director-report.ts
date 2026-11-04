@@ -13,6 +13,7 @@ export interface DirectorReportEmployeeItem {
   date: string; // ISO or YYYY-MM-DD
   formattedDate: string; // dd.MM.yyyy
   status?: string;
+  terminationReason?: string; // tylko dla odchodzących, jeśli uzupełniono
 }
 
 export interface DirectorReportGroupCount {
@@ -146,6 +147,7 @@ export function calculateDirectorReport(params: {
         date: format(termDate, 'yyyy-MM-dd'),
         formattedDate: format(termDate, 'dd.MM.yyyy'),
         status: e.status,
+        terminationReason: e.terminationReason?.trim() || undefined,
       });
     }
   });
@@ -282,7 +284,8 @@ export function generateDirectorReportText(
       lines.push('');
       lines.push('Szczegóły (kto i kiedy):');
       data.terminatedEmployees.forEach(e => {
-        lines.push(`• ${e.fullName} (${e.jobTitle}, ${e.department}) – data: ${e.formattedDate}`);
+        const reason = e.terminationReason ? ` – powód: ${e.terminationReason}` : '';
+        lines.push(`• ${e.fullName} (${e.jobTitle}, ${e.department}) – data: ${e.formattedDate}${reason}`);
       });
     }
   }

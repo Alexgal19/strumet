@@ -222,17 +222,18 @@ export function DirectorReportCard({
 
       // 2. Odeszli
       const terminatedData = report.terminatedEmployees.map(emp => ({
-        'Imię i nazwisko': emp.fullName,
+        'Nazwisko i imię': emp.fullName,
         'Stanowisko': emp.jobTitle,
         'Dział': emp.department,
-        'Koniec pracy': emp.formattedDate
+        'Koniec pracy': emp.formattedDate,
+        'Powód zwolnienia': emp.terminationReason ?? ''
       }));
       const wsTerminated = XLSX.utils.json_to_sheet(terminatedData);
       XLSX.utils.book_append_sheet(wb, wsTerminated, 'Odeszli');
 
       // 3. Zatrudnieni
       const hiredData = report.hiredEmployees.map(emp => ({
-        'Imię i nazwisko': emp.fullName,
+        'Nazwisko i imię': emp.fullName,
         'Stanowisko': emp.jobTitle,
         'Dział': emp.department,
         'Data zatrudnienia': emp.formattedDate
@@ -548,7 +549,12 @@ export function DirectorReportCard({
                                   ({emp.jobTitle} • {emp.department})
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2 self-start sm:self-auto">
+                              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                                {emp.terminationReason && (
+                                  <Badge variant="outline" className="border-border bg-background text-foreground text-xs font-semibold" title="Powód zwolnienia">
+                                    Powód: {emp.terminationReason}
+                                  </Badge>
+                                )}
                                 <Badge variant="outline" className="bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200 border-red-300 text-xs font-bold">
                                   Koniec pracy: {emp.formattedDate}
                                 </Badge>

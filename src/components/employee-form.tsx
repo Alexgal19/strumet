@@ -25,7 +25,7 @@ import { joinFullName, getEmployeeNameParts } from '@/lib/person-name';
 import { certificateViewUrl, certificateExt } from '@/lib/certificate-url';
 
 
-const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
+export const DatePickerInput = ({ value, onChange, placeholder, maxDate }: { value?: string, onChange: (date?: string) => void, placeholder: string, maxDate?: Date }) => {
     const dateValue = parseMaybeDate(value);
     return (
         <Popover>
@@ -45,6 +45,7 @@ const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onC
                     selected={dateValue || undefined}
                     onSelect={(date) => onChange(date ? formatFns(date, 'yyyy-MM-dd') : undefined)}
                     locale={pl}
+                    disabled={maxDate ? { after: maxDate } : undefined}
                     initialFocus
                 />
                 {value && (
@@ -75,6 +76,9 @@ const STEP_FIELDS: Record<number, string[]> = {
   2: ['cardNumber', 'vacationEndDate'],
 };
 
+/** Wartość pozycji „brak powodu” (Radix Select nie przyjmuje pustego value). */
+const NO_REASON = '__none__';
+
 const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
     if (employee) {
         return {
@@ -94,6 +98,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             contractEndDate: employee.contractEndDate,
             legalizationStatus: employee.legalizationStatus || 'Brak',
             terminationDate: employee.terminationDate,
+            terminationReason: employee.terminationReason,
             welderLicense: employee.welderLicense || 'Nie',
             certificateUrl: employee.certificateUrl,
         };
@@ -114,6 +119,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
         vacationEndDate: undefined,
         contractEndDate: undefined,
         legalizationStatus: 'Brak',
+        terminationReason: undefined,
         welderLicense: 'Nie',
         certificateUrl: undefined,
     };
@@ -121,6 +127,7 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
 
 export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintClothing, config }: EmployeeFormProps) {
     const { departments, jobTitles, managers, nationalities } = config;
+    const terminationReasons = config.terminationReasons ?? [];
     const { toast } = useToast();
     const { absences, addAbsence, deleteAbsence } = useAppContext();
     const isMobile = useIsMobile();
@@ -719,6 +726,24 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                     <div className="space-y-2">
                         <Label className="text-sm font-medium">Data zwolnienia</Label>
                         <DatePickerInput value={formData.terminationDate} onChange={d => handleChange('terminationDate', d)} placeholder="Wybierz datę" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Powód zwolnienia</Label>
+                        <Select
+                            value={formData.terminationReason || NO_REASON}
+                            onValueChange={value => handleChange('terminationReason', value === NO_REASON ? undefined : value)}
+                        >
+                            <SelectTrigger className="h-10 transition-all">
+                                <SelectValue placeholder="Wybierz powód" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={NO_REASON}>— brak —</SelectItem>
+                                {terminationReasons.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
+                                {formData.terminationReason && !terminationReasons.some(r => r.name === formData.terminationReason) && (
+                                    <SelectItem value={formData.terminationReason}>{formData.terminationReason}</SelectItem>
+                                )}
+                            </SelectContent>
+                        </Select>
                     </div>
                     {(employee?.status === 'zwolniony' || formData.terminationDate) ? (
                         <div className="space-y-2">

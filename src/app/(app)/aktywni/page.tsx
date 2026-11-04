@@ -43,6 +43,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useRouter } from 'next/navigation';
 import { EmployeeTable } from '../employees/employee-table';
 import { EmployeeForm } from '@/components/employee-form';
+import { TerminateEmployeeDialog } from '@/components/terminate-employee-dialog';
 import { LegalizationEmailDialog } from '@/components/legalization-email-dialog';
 import { AbsenceEmailDialog } from '@/components/absence-email-dialog';
 import { EmployeeTimeline } from '@/components/employee-timeline';
@@ -112,8 +113,13 @@ export default function AktywniPage() {
     });
   };
 
-  const onTerminate = async (id: string, fullName: string) => {
-    await handleTerminateEmployee(id, fullName);
+  // Zwolnienie: najpierw okno z datą i powodem, dopiero potem zmiana statusu.
+  const confirmTerminate = async (employee: Employee, details: { terminationDate: string; terminationReason?: string }) => {
+    const success = await handleTerminateEmployee(employee.id, employee.fullName, details);
+    if (success && editingEmployee && editingEmployee !== 'new' && editingEmployee.id === employee.id) {
+      setEditingEmployee(null);
+    }
+    return success;
   };
 
   const onDeletePermanently = async (id: string) => {
@@ -270,28 +276,12 @@ export default function AktywniPage() {
              />
           </div>
 
-          <AlertDialog open={!!terminatingEmployee} onOpenChange={(open) => !open && setTerminatingEmployee(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Czy na pewno chcesz zwolnić pracownika?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Pracownik <strong>{terminatingEmployee?.fullName}</strong> zostanie przeniesiony do archiwum.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setTerminatingEmployee(null)}>Anuluj</AlertDialogCancel>
-                    <AlertDialogAction onClick={async (e) => {
-                        e.preventDefault();
-                        if (terminatingEmployee) {
-                            await onTerminate(terminatingEmployee.id, terminatingEmployee.fullName);
-                            setTerminatingEmployee(null);
-                        }
-                    }}>
-                    Zwolnij
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <TerminateEmployeeDialog
+            employee={terminatingEmployee}
+            reasons={config.terminationReasons ?? []}
+            onCancel={() => setTerminatingEmployee(null)}
+            onConfirm={confirmTerminate}
+          />
 
           <AlertDialog open={!!deletingEmployee} onOpenChange={(open) => !open && setDeletingEmployee(null)}>
               <AlertDialogContent>
@@ -360,9 +350,8 @@ export default function AktywniPage() {
                 if (success) setEditingEmployee(null);
               }}
               onCancel={() => setEditingEmployee(null)}
-              onTerminate={async (id, fullName) => {
-                const success = await handleTerminateEmployee(id, fullName);
-                if (success) setEditingEmployee(null);
+              onTerminate={() => {
+                if (editingEmployee && editingEmployee !== 'new') setTerminatingEmployee(editingEmployee);
               }}
               onPrintClothing={handlePrintClothingIssuance}
               config={config}

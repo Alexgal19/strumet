@@ -1,4 +1,4 @@
-import { calculateDirectorReport } from '@/lib/director-report';
+import { calculateDirectorReport, generateDirectorReportText } from '@/lib/director-report';
 import type { Employee } from '@/lib/types';
 
 const NOW = new Date(2026, 9, 3); // 2026-10-03
@@ -44,5 +44,30 @@ describe('calculateDirectorReport — liczba aktywnych', () => {
     const r = report(employees, new Date(2026, 8, 21), new Date(2026, 8, 27));
     expect(r.totalActive).toBe(1);
     expect(r.terminatedEmployees).toHaveLength(0);
+  });
+});
+
+describe('calculateDirectorReport — powód zwolnienia', () => {
+  const from = new Date(2026, 8, 21);
+  const to = new Date(2026, 8, 27);
+
+  it('przenosi powód zwolnienia do listy kończących pracę, gdy uzupełniony', () => {
+    const employees = [
+      emp({ fullName: 'A', status: 'zwolniony', terminationDate: '2026-09-25', terminationReason: 'Zmiana pracy' }),
+      emp({ fullName: 'B', status: 'zwolniony', terminationDate: '2026-09-24' }),
+    ];
+    const r = report(employees, from, to);
+    const byName = Object.fromEntries(r.terminatedEmployees.map(t => [t.fullName, t.terminationReason]));
+    expect(byName).toEqual({ A: 'Zmiana pracy', B: undefined });
+  });
+
+  it('tekst raportu zawiera powód tylko tam, gdzie jest', () => {
+    const employees = [
+      emp({ fullName: 'A', status: 'zwolniony', terminationDate: '2026-09-25', terminationReason: 'Zmiana pracy' }),
+      emp({ fullName: 'B', status: 'zwolniony', terminationDate: '2026-09-24' }),
+    ];
+    const text = generateDirectorReportText(report(employees, from, to), { includeEmployeeList: true });
+    expect(text).toContain('powód: Zmiana pracy');
+    expect(text.match(/powód:/g)).toHaveLength(1);
   });
 });
