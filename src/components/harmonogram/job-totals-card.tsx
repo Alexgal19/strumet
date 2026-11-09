@@ -18,7 +18,7 @@ function Num({ value, danger = true }: { value: number; danger?: boolean }) {
  * ile brakuje dziś i docelowo — np. ilu spawaczy, montażystów palet, szlifierzy.
  */
 export function JobTotalsCard({ totals }: { totals: JobTotal[] }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false); // domyślnie zwinięta: odpowiedź „kogo i ilu” jest w etykietach powyżej tabeli
   const sum = totals.reduce(
     (s, t) => ({
       potrzeby: s.potrzeby + t.potrzeby,
@@ -32,8 +32,10 @@ export function JobTotalsCard({ totals }: { totals: JobTotal[] }) {
     { potrzeby: 0, obecnie: 0, zwalnia: 0, now: 0, in30: 0, planned: 0, net: 0 }
   );
 
+  const needed = totals.filter(t => t.now > 0);
+
   return (
-    <section className="min-w-0 overflow-hidden rounded-lg border border-l-4 border-l-violet-500 bg-card text-foreground shadow-sm">
+    <section className="min-w-0 shrink-0 overflow-hidden rounded-lg border border-l-4 border-l-violet-500 bg-card text-foreground shadow-sm">
       <button
         type="button"
         aria-expanded={open}
@@ -43,12 +45,29 @@ export function JobTotalsCard({ totals }: { totals: JobTotal[] }) {
         <span className="flex items-center gap-2 text-base font-bold">
           {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
           <Briefcase className="h-5 w-5 shrink-0 text-violet-600 dark:text-violet-400" />
-          Zapotrzebowanie po stanowiskach
+          Zapotrzebowania na dziś — po stanowiskach
         </span>
         <span className="text-sm">
           brakuje dziś: <strong className="tabular-nums">{sum.now}</strong>
         </span>
       </button>
+
+      {/* Szybka odpowiedź „kogo i ilu potrzebujemy dziś” — widoczna także po zwinięciu tabeli */}
+      <div className="flex flex-wrap gap-2 border-t px-4 py-3">
+        {needed.length === 0 ? (
+          <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Dziś komplet na wszystkich stanowiskach.</span>
+        ) : (
+          needed.map(t => (
+            <span
+              key={t.jobTitle}
+              className="inline-flex items-center gap-2 rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-sm font-semibold text-foreground"
+            >
+              {t.jobTitle}
+              <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold tabular-nums text-white">{t.now}</span>
+            </span>
+          ))
+        )}
+      </div>
 
       {open && (
         <div className="overflow-x-auto border-t">
