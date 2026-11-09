@@ -25,7 +25,7 @@ export interface AssistantSnapshot {
 }
 
 export const SOURCE_FIELDS = {
-  employees: ['id', 'fullName', 'hireDate', 'jobTitle', 'department', 'manager', 'cardNumber', 'nationality', 'lockerNumber', 'departmentLockerNumber', 'sealNumber', 'status', 'terminationDate', 'plannedTerminationDate', 'vacationStartDate', 'vacationEndDate', 'contractEndDate', 'legalizationStatus', 'welderLicense'],
+  employees: ['id', 'fullName', 'hireDate', 'jobTitle', 'department', 'manager', 'cardNumber', 'nationality', 'lockerNumber', 'lockerNumber2', 'lockerNumber3', 'departmentLockerNumber', 'sealNumber', 'status', 'terminationDate', 'plannedTerminationDate', 'vacationStartDate', 'vacationEndDate', 'contractEndDate', 'legalizationStatus', 'welderLicense'],
   absences: ['id', 'employeeId', 'date'],
   absenceRecords: ['id', 'employeeId', 'employeeFullName', 'incidentDate', 'department', 'jobTitle', 'hours', 'reason'],
   cars: ['id', 'registrationNumber', 'makeModel', 'vin', 'insuranceEndDate', 'inspectionEndDate', 'driverId', 'driverFullName', 'dateFrom', 'dateTo', 'status'],

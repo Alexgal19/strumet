@@ -96,7 +96,7 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
           </div>
           <InfoRow icon={<ShieldCheck className="h-4 w-4" />} label="Status legalizacyjny" value={employee.legalizationStatus} />
           <InfoRow icon={<CreditCard className="h-4 w-4" />} label="Nr karty" value={employee.cardNumber} />
-          <InfoRow icon={<DoorOpen className="h-4 w-4" />} label="Nr szafki" value={employee.lockerNumber} />
+          <InfoRow icon={<DoorOpen className="h-4 w-4" />} label="Nr szafki" value={[employee.lockerNumber, employee.lockerNumber2, employee.lockerNumber3].map(v => v?.trim()).filter(Boolean).join(', ')} />
           <InfoRow icon={<DoorOpen className="h-4 w-4" />} label="Nr szafki w dziale" value={employee.departmentLockerNumber} />
           <InfoRow icon={<Tag className="h-4 w-4" />} label="Nr pieczęci" value={employee.sealNumber} />
         </div>

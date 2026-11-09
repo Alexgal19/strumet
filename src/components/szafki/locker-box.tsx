@@ -3,24 +3,24 @@
 import { cn } from '@/lib/utils';
 
 export function LockerBox({
-  id,
   label,
+  occupants,
   isEditing,
   isHighlighted,
-  isOccupied,
-  occupiedBy,
+  isDimmed,
   onChange,
   onClick,
 }: {
-  id: string;
   label: string;
+  occupants: string[];
   isEditing: boolean;
   isHighlighted: boolean;
-  isOccupied: boolean;
-  occupiedBy?: string;
+  isDimmed: boolean;
   onChange: (val: string) => void;
   onClick: () => void;
 }) {
+  const boxSize = 'w-[76px] h-[60px] shrink-0 rounded-md';
+
   if (isEditing) {
     return (
       <input
@@ -32,31 +32,35 @@ export function LockerBox({
         onKeyDown={(e) => {
           if (e.key === 'Enter') onClick();
         }}
-        className={cn(
-          'w-full h-full min-h-[56px] text-center text-base font-semibold rounded-md border-2 border-primary bg-primary/10 text-primary outline-none px-2'
-        )}
+        className={cn(boxSize, 'border-2 border-primary bg-primary/10 text-center text-sm font-semibold text-primary outline-none px-1')}
       />
     );
   }
 
-  const isLabel = label.includes('OKREME') || label.includes('СТІНА') || label.includes('напрямок');
+  const isOccupied = occupants.length > 0;
+  const isConflict = occupants.length > 1;
+  // Pierwszy człon nazwiska wystarczy, żeby rozpoznać właściciela
+  const shortName = isConflict ? `${occupants.length} os.` : occupants[0]?.split(' ')[0];
 
   return (
     <button
-      title={occupiedBy || label}
+      type="button"
+      title={isOccupied ? `${label}\n${occupants.join('\n')}` : `${label} — wolna`}
       onClick={onClick}
       className={cn(
-        'w-full min-h-[56px] rounded-md border text-base font-medium transition-all duration-200 flex items-center justify-center px-3 py-2',
-        isLabel
-          ? 'border-transparent bg-transparent text-muted-foreground cursor-default hover:bg-transparent'
+        boxSize,
+        'flex flex-col items-center justify-center gap-0.5 border px-1 transition-all duration-150',
+        isConflict
+          ? 'border-amber-500 bg-amber-500/20 text-amber-800 dark:text-amber-300 hover:bg-amber-500/30'
           : isOccupied
-            ? 'border-green-500 bg-green-500/20 text-green-700 hover:bg-green-500/30 hover:border-green-600 shadow-[0_0_8px_hsl(var(--green-500)_/_0.2)]'
-            : isHighlighted
-              ? 'border-primary bg-primary/20 text-primary shadow-[0_0_10px_hsl(var(--primary)_/_0.3)] scale-105 z-10'
-              : 'border-border/60 bg-muted/40 text-foreground hover:bg-muted hover:border-primary/40 hover:shadow-sm'
+            ? 'border-green-500 bg-green-500/20 text-green-800 dark:text-green-300 hover:bg-green-500/30'
+            : 'border-border/60 bg-muted/40 text-foreground hover:bg-muted hover:border-primary/40',
+        isHighlighted && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+        isDimmed && 'opacity-30'
       )}
     >
-      <span className="truncate">{label}</span>
+      <span className="text-sm font-semibold leading-none">{label}</span>
+      {shortName && <span className="w-full truncate text-center text-[10px] leading-tight opacity-80">{shortName}</span>}
     </button>
   );
 }

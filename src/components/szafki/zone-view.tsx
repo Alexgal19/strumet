@@ -1,186 +1,98 @@
 'use client';
 
-import type { LockerZone } from './locker-types';
-import { LockerSectionView } from './locker-section-view';
+import { excelLikeMatch } from '@/lib/search';
+import { normalizeLockerLabel } from '@/lib/lockers';
+import type { LockerPosition, LockerZone } from './locker-types';
+import { LockerBox } from './locker-box';
+
+export interface LockerRow {
+  key: string;
+  lockers: LockerPosition[];
+}
+
+const lockerNumber = (label: string) => Number(label.replace(/\D/g, '')) || 0;
+// Napisy typu "OKREME:" czy "СТІНА" to podpisy na planie, nie szafki
+const isRealLocker = (l: LockerPosition) => /^K?\d+$/i.test(l.defaultLabel.trim());
+
+/** Rozkłada strefę na rzędy posortowane rosnąco po numerach szafek. */
+export function getZoneRows(zone: LockerZone): LockerRow[] {
+  const rows: LockerRow[] = [];
+  for (const section of zone.sections) {
+    const lockers = section.lockers.filter(isRealLocker);
+    if (lockers.length === 0) continue;
+    // Sekcje jednokolumnowe (pionowe na planie) to jeden rząd; siatki dzielimy po polu `row`
+    const groups = new Map<number, LockerPosition[]>();
+    for (const locker of lockers) {
+      const rowNo = section.gridCols === 1 ? 1 : locker.row;
+      groups.set(rowNo, [...(groups.get(rowNo) ?? []), locker]);
+    }
+    for (const [rowNo, group] of groups) {
+      rows.push({
+        key: `${section.id}-${rowNo}`,
+        lockers: [...group].sort((a, b) => lockerNumber(a.defaultLabel) - lockerNumber(b.defaultLabel)),
+      });
+    }
+  }
+  return rows.sort((a, b) => lockerNumber(a.lockers[0].defaultLabel) - lockerNumber(b.lockers[0].defaultLabel));
+}
 
 export function ZoneView({
-  zone,
+  rows,
   labels,
   editingId,
   highlightQuery,
-  occupiedLockers,
-  occupiedByMap,
+  occupancy,
   onEdit,
   onChange,
 }: {
-  zone: LockerZone;
+  rows: LockerRow[];
   labels: Record<string, string>;
   editingId: string | null;
   highlightQuery: string;
-  occupiedLockers: Set<string>;
-  occupiedByMap: Record<string, string>;
+  occupancy: Record<string, string[]>;
   onEdit: (id: string | null) => void;
   onChange: (id: string, val: string) => void;
 }) {
-  // For Zone 1, we need a special layout to match the image
-  if (zone.id === 'zone1') {
-    return (
-      <div className="space-y-6">
-        {/* Top row: left and right columns */}
-        <div className="flex justify-between items-start">
-          <LockerSectionView
-            section={zone.sections[0]}
-            labels={labels}
-            editingId={editingId}
-            highlightQuery={highlightQuery}
-            occupiedLockers={occupiedLockers}
-            occupiedByMap={occupiedByMap}
-            onEdit={onEdit}
-            onChange={onChange}
-          />
-          <LockerSectionView
-            section={zone.sections[1]}
-            labels={labels}
-            editingId={editingId}
-            highlightQuery={highlightQuery}
-            occupiedLockers={occupiedLockers}
-            occupiedByMap={occupiedByMap}
-            onEdit={onEdit}
-            onChange={onChange}
-          />
-        </div>
+  const query = highlightQuery.trim();
+  const labelOf = (l: LockerPosition) => labels[l.id] ?? l.defaultLabel;
+  const occupantsOf = (l: LockerPosition) => occupancy[normalizeLockerLabel(labelOf(l))] ?? [];
 
-        {/* Wall label */}
-        <div className="flex justify-center">
-          <LockerSectionView
-            section={zone.sections[2]}
-            labels={labels}
-            editingId={editingId}
-            highlightQuery={highlightQuery}
-            occupiedLockers={occupiedLockers}
-            occupiedByMap={occupiedByMap}
-            onEdit={onEdit}
-            onChange={onChange}
-          />
-        </div>
-
-        {/* Middle: left column + right sections */}
-        <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
-          {/* Left column */}
-          <div className="shrink-0 w-24">
-            <LockerSectionView
-              section={zone.sections[3]}
-              labels={labels}
-              editingId={editingId}
-              highlightQuery={highlightQuery}
-              occupiedLockers={occupiedLockers}
-              occupiedByMap={occupiedByMap}
-              onEdit={onEdit}
-              onChange={onChange}
-            />
-          </div>
-
-          {/* Right sections */}
-          <div className="flex flex-col gap-4">
-            <LockerSectionView
-              section={zone.sections[4]}
-              labels={labels}
-              editingId={editingId}
-              highlightQuery={highlightQuery}
-              occupiedLockers={occupiedLockers}
-              occupiedByMap={occupiedByMap}
-              onEdit={onEdit}
-              onChange={onChange}
-            />
-            <LockerSectionView
-              section={zone.sections[5]}
-              labels={labels}
-              editingId={editingId}
-              highlightQuery={highlightQuery}
-              occupiedLockers={occupiedLockers}
-              occupiedByMap={occupiedByMap}
-              onEdit={onEdit}
-              onChange={onChange}
-            />
-            <LockerSectionView
-              section={zone.sections[6]}
-              labels={labels}
-              editingId={editingId}
-              highlightQuery={highlightQuery}
-              occupiedLockers={occupiedLockers}
-              occupiedByMap={occupiedByMap}
-              onEdit={onEdit}
-              onChange={onChange}
-            />
-            <div className="border border-dashed border-red-300/50 rounded-lg p-2 bg-red-50/30 dark:bg-red-950/10">
-              <LockerSectionView
-                section={zone.sections[7]}
-                labels={labels}
-                editingId={editingId}
-                highlightQuery={highlightQuery}
-                occupiedLockers={occupiedLockers}
-                occupiedByMap={occupiedByMap}
-                onEdit={onEdit}
-                onChange={onChange}
-              />
-            </div>
-            <LockerSectionView
-              section={zone.sections[8]}
-              labels={labels}
-              editingId={editingId}
-              highlightQuery={highlightQuery}
-              occupiedLockers={occupiedLockers}
-              occupiedByMap={occupiedByMap}
-              onEdit={onEdit}
-              onChange={onChange}
-            />
-          </div>
-        </div>
-
-        {/* Bottom sections */}
-        <div className="flex flex-col gap-4">
-          <LockerSectionView
-            section={zone.sections[9]}
-            labels={labels}
-            editingId={editingId}
-            highlightQuery={highlightQuery}
-            occupiedLockers={occupiedLockers}
-            occupiedByMap={occupiedByMap}
-            onEdit={onEdit}
-            onChange={onChange}
-          />
-          <LockerSectionView
-            section={zone.sections[10]}
-            labels={labels}
-            editingId={editingId}
-            highlightQuery={highlightQuery}
-            occupiedLockers={occupiedLockers}
-            occupiedByMap={occupiedByMap}
-            onEdit={onEdit}
-            onChange={onChange}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // For Zone 2 floors, just stack sections
   return (
-    <div className="space-y-6">
-      {zone.sections.map((section) => (
-        <div key={section.id} className="flex justify-center">
-          <LockerSectionView
-            section={section}
-            labels={labels}
-            editingId={editingId}
-            highlightQuery={highlightQuery}
-            occupiedLockers={occupiedLockers}
-            occupiedByMap={occupiedByMap}
-            onEdit={onEdit}
-            onChange={onChange}
-          />
-        </div>
-      ))}
+    <div className="divide-y divide-border/60">
+      {rows.map((row, idx) => {
+        const first = labelOf(row.lockers[0]);
+        const last = labelOf(row.lockers[row.lockers.length - 1]);
+        const taken = row.lockers.filter((l) => occupantsOf(l).length > 0).length;
+        return (
+          <div key={row.key} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex items-baseline gap-2 sm:w-32 sm:shrink-0 sm:flex-col sm:gap-0.5">
+              <span className="text-sm font-semibold">Rząd {idx + 1}</span>
+              <span className="text-xs text-muted-foreground">
+                {row.lockers.length > 1 ? `${first} – ${last}` : first} · {taken}/{row.lockers.length} zajęte
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {row.lockers.map((locker) => {
+                const label = labelOf(locker);
+                const occupants = occupantsOf(locker);
+                const matches = query.length > 0 && excelLikeMatch(query, [label, ...occupants]);
+                return (
+                  <LockerBox
+                    key={locker.id}
+                    label={label}
+                    occupants={occupants}
+                    isEditing={editingId === locker.id}
+                    isHighlighted={matches}
+                    isDimmed={query.length > 0 && !matches}
+                    onChange={(val) => onChange(locker.id, val)}
+                    onClick={() => onEdit(editingId === locker.id ? null : locker.id)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

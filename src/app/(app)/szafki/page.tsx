@@ -16,7 +16,8 @@ import { ref, onValue, update } from 'firebase/database';
 import { Save, RotateCcw, Lock, Search } from 'lucide-react';
 import type { LockerPosition } from '@/components/szafki/locker-types';
 import { ALL_ZONES } from '@/components/szafki/locker-data';
-import { ZoneView } from '@/components/szafki/zone-view';
+import { ZoneView, getZoneRows } from '@/components/szafki/zone-view';
+import { EMPLOYEE_LOCKER_FIELDS, buildLockerOccupancy, normalizeLockerLabel } from '@/lib/lockers';
 
 export default function LockersPage() {
   const { isAdmin } = useAppContext();
@@ -42,26 +43,10 @@ export default function LockersPage() {
     return list;
   }, []);
 
-  // Build occupied lockers set and map from ACTIVE employees only
-  // Terminated employees' lockers are considered free to avoid conflicts
-  const occupied = new Set<string>();
-  const byMap: Record<string, string> = {};
-  employees
-    .filter((emp: Employee) => emp.status === 'aktywny')
-    .forEach((emp: Employee) => {
-      const locker = emp.lockerNumber?.trim();
-      const deptLocker = emp.departmentLockerNumber?.trim();
-      if (locker) {
-        occupied.add(locker);
-        byMap[locker] = emp.fullName;
-      }
-      if (deptLocker) {
-        occupied.add(deptLocker);
-        byMap[deptLocker] = emp.fullName;
-      }
-    });
-  const occupiedLockers = occupied;
-  const occupiedByMap = byMap;
+  // Zajętość liczona ze wszystkich szafek aktywnych pracowników (3 główne + działowa).
+  // Szafki zwolnionych są wolne.
+  const occupancy = useMemo(() => buildLockerOccupancy(employees), [employees]);
+  const zoneRows = useMemo(() => ALL_ZONES.map((zone) => ({ zone, rows: getZoneRows(zone) })), []);
 
   // Load from Firebase
   useEffect(() => {
@@ -102,14 +87,12 @@ export default function LockersPage() {
           employees
             .filter((emp: Employee) => emp.status === 'aktywny')
             .forEach((emp: Employee) => {
-              if (emp.id) {
-                if (emp.lockerNumber === oldLabel) {
-                  employeeUpdates[`employees/${emp.id}/lockerNumber`] = newLabel;
+              if (!emp.id) return;
+              EMPLOYEE_LOCKER_FIELDS.forEach((field) => {
+                if (normalizeLockerLabel(emp[field]) === normalizeLockerLabel(oldLabel)) {
+                  employeeUpdates[`employees/${emp.id}/${field}`] = newLabel;
                 }
-                if (emp.departmentLockerNumber === oldLabel) {
-                  employeeUpdates[`employees/${emp.id}/departmentLockerNumber`] = newLabel;
-                }
-              }
+              });
             });
         }
       });
@@ -194,7 +177,7 @@ export default function LockersPage() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Szukaj szafki (np. 77, K15)..."
+          placeholder="Szukaj szafki lub pracownika (np. 77, K15, Kowalski)..."
           value={highlightQuery}
           onChange={(e) => setHighlightQuery(e.target.value)}
           className="pl-9"
@@ -215,11 +198,15 @@ export default function LockersPage() {
           <span>Zajęta (przypisana do pracownika)</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-sm border border-amber-500 bg-amber-500/20" />
+          <span>Przypisana do kilku osób</span>
+        </div>
+        <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm border border-border/60 bg-muted/40" />
           <span>Wolna</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm border border-primary bg-primary/20" />
+          <span className="inline-block w-3 h-3 rounded-sm ring-2 ring-primary" />
           <span>Wyszukana</span>
         </div>
       </div>
@@ -231,38 +218,44 @@ export default function LockersPage() {
           <TabsTrigger value="zone2-f2" className="flex-1 sm:flex-initial text-xs sm:text-sm">Strefa 2 — Piętro 2 (K121-K240)</TabsTrigger>
         </TabsList>
 
-        {ALL_ZONES.map((zone) => (
-          <TabsContent key={zone.id} value={zone.id}>
-            <Card>
-              <CardHeader>
-                <CardTitle>{zone.name}</CardTitle>
-                <CardDescription>
-                  Kliknij na szafkę, aby {isAdmin ? 'edytować jej numer' : 'zaznaczyć'}.
-                  {highlightQuery && (
-                    <span className="ml-1 text-primary font-medium">
-                      Wyniki wyszukiwania dla &quot;{highlightQuery}&quot;
-                    </span>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="overflow-x-auto">
-                <ZoneView
-                  zone={zone}
-                  labels={labels}
-                  editingId={editingId}
-                  highlightQuery={highlightQuery}
-                  occupiedLockers={occupiedLockers}
-                  occupiedByMap={occupiedByMap}
-                  onEdit={(id) => {
-                    if (!isAdmin) return;
-                    setEditingId(id);
-                  }}
-                  onChange={handleChange}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
+        {zoneRows.map(({ zone, rows }) => {
+          const total = rows.reduce((sum, r) => sum + r.lockers.length, 0);
+          const taken = rows.reduce(
+            (sum, r) => sum + r.lockers.filter((l) => occupancy[normalizeLockerLabel(labels[l.id] ?? l.defaultLabel)]?.length).length,
+            0
+          );
+          return (
+            <TabsContent key={zone.id} value={zone.id}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{zone.name}</CardTitle>
+                  <CardDescription>
+                    Zajęte {taken} z {total} · wolne {total - taken}. Najedź na szafkę, aby zobaczyć właściciela{isAdmin ? '; kliknij, aby edytować jej numer' : ''}.
+                    {highlightQuery && (
+                      <span className="ml-1 text-primary font-medium">
+                        Wyniki wyszukiwania dla &quot;{highlightQuery}&quot;
+                      </span>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ZoneView
+                    rows={rows}
+                    labels={labels}
+                    editingId={editingId}
+                    highlightQuery={highlightQuery}
+                    occupancy={occupancy}
+                    onEdit={(id) => {
+                      if (!isAdmin) return;
+                      setEditingId(id);
+                    }}
+                    onChange={handleChange}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </div>
   );

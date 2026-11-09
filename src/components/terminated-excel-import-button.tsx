@@ -21,6 +21,8 @@ const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status
   'Nr karty': 'cardNumber',
   'Narodowość': 'nationality',
   'Nr szafki': 'lockerNumber',
+  'Nr szafki 2': 'lockerNumber2',
+  'Nr szafki 3': 'lockerNumber3',
   'Nr szafki w dziale': 'departmentLockerNumber',
   'Nr plomby': 'sealNumber',
 };
@@ -83,6 +85,8 @@ export function TerminatedExcelImportButton() {
             cardNumber: String(englishItem.cardNumber || '').trim(),
             nationality: String(englishItem.nationality || '').trim(),
             lockerNumber: String(englishItem.lockerNumber || '').trim(),
+            lockerNumber2: String(englishItem.lockerNumber2 || '').trim(),
+            lockerNumber3: String(englishItem.lockerNumber3 || '').trim(),
             departmentLockerNumber: String(englishItem.departmentLockerNumber || '').trim(),
             sealNumber: String(englishItem.sealNumber || '').trim(),
             status: 'zwolniony',

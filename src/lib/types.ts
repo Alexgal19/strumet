@@ -25,6 +25,8 @@ export interface Employee {
   cardNumber: string;
   nationality: string;
   lockerNumber: string;
+  lockerNumber2?: string; // Druga szafka główna (opcjonalna)
+  lockerNumber3?: string; // Trzecia szafka główna (opcjonalna)
   departmentLockerNumber: string;
   sealNumber: string;
   status: 'aktywny' | 'zwolniony';

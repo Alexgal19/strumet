@@ -211,6 +211,8 @@ export function EmployeeTable({
         employee.jobTitle,
         employee.nationality,
         employee.lockerNumber,
+        employee.lockerNumber2,
+        employee.lockerNumber3,
         employee.departmentLockerNumber,
         employee.sealNumber,
         employee.welderLicense,

@@ -90,6 +90,8 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             cardNumber: employee.cardNumber || '',
             nationality: employee.nationality || '',
             lockerNumber: employee.lockerNumber || '',
+            lockerNumber2: employee.lockerNumber2 || '',
+            lockerNumber3: employee.lockerNumber3 || '',
             departmentLockerNumber: employee.departmentLockerNumber || '',
             sealNumber: employee.sealNumber || '',
             plannedTerminationDate: employee.plannedTerminationDate,
@@ -112,6 +114,8 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
         cardNumber: '',
         nationality: '',
         lockerNumber: '',
+        lockerNumber2: '',
+        lockerNumber3: '',
         departmentLockerNumber: '',
         sealNumber: '',
         plannedTerminationDate: undefined,
@@ -693,6 +697,14 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                     <div className="space-y-2">
                         <Label htmlFor="lockerNumber" className="text-sm font-medium">Szafka główna</Label>
                         <Input id="lockerNumber" value={formData.lockerNumber} onChange={e => handleChange('lockerNumber', e.target.value)} className="h-10" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="lockerNumber2" className="text-sm font-medium">Szafka główna 2</Label>
+                        <Input id="lockerNumber2" value={formData.lockerNumber2 ?? ''} onChange={e => handleChange('lockerNumber2', e.target.value)} className="h-10" placeholder="Opcjonalnie" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="lockerNumber3" className="text-sm font-medium">Szafka główna 3</Label>
+                        <Input id="lockerNumber3" value={formData.lockerNumber3 ?? ''} onChange={e => handleChange('lockerNumber3', e.target.value)} className="h-10" placeholder="Opcjonalnie" />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="departmentLockerNumber" className="text-sm font-medium">Szafka działowa</Label>
