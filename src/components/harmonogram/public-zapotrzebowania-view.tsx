@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAppContext } from '@/context/app-context';
@@ -14,6 +14,8 @@ import { DemandSummary } from './demand-summary';
 import { DemandToolbar } from './demand-toolbar';
 import { DeptDemandCard } from './dept-demand-card';
 import type { DemandRenderContext } from './demand-context';
+import { LastWeekMovement } from './last-week-movement';
+import { summarizeLastWeek } from '@/lib/weekly-movement';
 
 export function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>>, onUpdatePotrzeby?: (dept: string, mgr: string, job: string, newAmount: number) => void | boolean | Promise<boolean | void> }) {
   const { jobTitlesByDept } = usePublicZapotrzebowaniaStats(data);
@@ -34,6 +36,12 @@ export function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: {
   const [editingComment, setEditingComment] = useState<Record<string, boolean>>({});
 
   const todayYmd = format(new Date(), 'yyyy-MM-dd');
+
+  // Zatrudnieni / odeszli w poprzednim tygodniu (pon–niedz) — liczone na nowo, gdy zmienią się dane lub dzień.
+  const lastWeek = useMemo(
+    () => summarizeLastWeek(data.employees ?? [], data.hires),
+    [data.employees, data.hires, todayYmd]
+  );
 
   const model = useZapotrzebowaniaModel({
     jobTitlesByDept,
@@ -145,6 +153,8 @@ export function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: {
         totalTerminations={model.totalTerminations}
         totalPlanned={model.totalPlanned}
       />
+
+      <LastWeekMovement movement={lastWeek} />
 
       <DemandToolbar
         query={query}
