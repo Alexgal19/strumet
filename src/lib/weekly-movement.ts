@@ -1,9 +1,9 @@
-import { endOfWeek, format, startOfWeek, subWeeks } from 'date-fns';
+import { endOfWeek, format, startOfWeek, subDays, subWeeks } from 'date-fns';
 import { toYmd } from '@/lib/date';
 
 /**
- * Ruch kadrowy w poprzednim tygodniu kalendarzowym (pon–niedz): ile osób zatrudniono i ile odeszło,
- * w podziale na działy i stanowiska. Działa na danych publicznego harmonogramu (bez danych wrażliwych).
+ * Ruch kadrowy w wybranym okresie (dzień albo tydzień kalendarzowy pon–niedz): ile osób zatrudniono
+ * i ile odeszło, w podziale na działy i stanowiska. Działa na danych publicznego harmonogramu.
  */
 
 export interface MovementPerson {
@@ -33,13 +33,24 @@ export interface WeeklyMovement {
   left: MovementSummary;
 }
 
-/** Poprzedni tydzień kalendarzowy względem `now` (poniedziałek–niedziela), jako yyyy-MM-dd. */
-export function lastWeekRange(now: Date = new Date()): { fromYmd: string; toYmd: string } {
-  const ref = subWeeks(now, 1);
+/** Tydzień kalendarzowy (pon–niedz) cofnięty o `weeksBack` od `now` (0 = ten tydzień, 1 = zeszły). */
+export function weekRange(now: Date = new Date(), weeksBack = 1): { fromYmd: string; toYmd: string } {
+  const ref = subWeeks(now, weeksBack);
   return {
     fromYmd: format(startOfWeek(ref, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
     toYmd: format(endOfWeek(ref, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
   };
+}
+
+/** Pojedynczy dzień cofnięty o `daysBack` od `now` (0 = dziś, 1 = wczoraj). */
+export function dayRange(now: Date = new Date(), daysBack = 1): { fromYmd: string; toYmd: string } {
+  const ymd = format(subDays(now, daysBack), 'yyyy-MM-dd');
+  return { fromYmd: ymd, toYmd: ymd };
+}
+
+/** Poprzedni tydzień kalendarzowy względem `now` (poniedziałek–niedziela), jako yyyy-MM-dd. */
+export function lastWeekRange(now: Date = new Date()): { fromYmd: string; toYmd: string } {
+  return weekRange(now, 1);
 }
 
 /**
@@ -74,12 +85,14 @@ function summarize(people: MovementPerson[]): MovementSummary {
   return { total: people.length, groups };
 }
 
-export function summarizeLastWeek(
+/** Zatrudnieni i odchodzący w okresie [fromYmd, toYmd] (włącznie). */
+export function summarizeRange(
   employees: MovementPerson[],
   hires: MovementPerson[] | undefined,
+  range: { fromYmd: string; toYmd: string },
   now: Date = new Date()
 ): WeeklyMovement {
-  const { fromYmd, toYmd: toYmdStr } = lastWeekRange(now);
+  const { fromYmd, toYmd: toYmdStr } = range;
   const todayYmd = format(now, 'yyyy-MM-dd');
   const inRange = (ymd: string | null) => !!ymd && ymd >= fromYmd && ymd <= toYmdStr;
 
@@ -88,4 +101,12 @@ export function summarizeLastWeek(
   const leftPeople = employees.filter(p => inRange(leaveDateYmd(p, todayYmd)));
 
   return { fromYmd, toYmd: toYmdStr, hired: summarize(hiredPeople), left: summarize(leftPeople) };
+}
+
+export function summarizeLastWeek(
+  employees: MovementPerson[],
+  hires: MovementPerson[] | undefined,
+  now: Date = new Date()
+): WeeklyMovement {
+  return summarizeRange(employees, hires, lastWeekRange(now), now);
 }

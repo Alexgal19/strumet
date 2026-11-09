@@ -40,3 +40,29 @@ describe('weekly-movement', () => {
     expect(r.left.total).toBe(0);
   });
 });
+
+import { dayRange, summarizeRange, weekRange } from '@/lib/weekly-movement';
+
+describe('weekly-movement — dzień i dowolny tydzień', () => {
+  it('dayRange: dziś, wczoraj i dalej wstecz', () => {
+    expect(dayRange(NOW, 0)).toEqual({ fromYmd: '2026-11-09', toYmd: '2026-11-09' });
+    expect(dayRange(NOW, 1)).toEqual({ fromYmd: '2026-11-08', toYmd: '2026-11-08' });
+    expect(dayRange(NOW, 9)).toEqual({ fromYmd: '2026-10-31', toYmd: '2026-10-31' });
+  });
+
+  it('weekRange: ten tydzień i dwa tygodnie temu', () => {
+    expect(weekRange(NOW, 0)).toEqual({ fromYmd: '2026-11-09', toYmd: '2026-11-15' });
+    expect(weekRange(NOW, 2)).toEqual({ fromYmd: '2026-10-26', toYmd: '2026-11-01' });
+  });
+
+  it('summarizeRange dla jednego dnia (wczoraj)', () => {
+    const employees = [
+      { department: 'CNC', jobTitle: 'Operator', hireDate: '2026-11-08', status: 'aktywny' },
+      { department: 'CNC', jobTitle: 'Operator', hireDate: '2026-11-07', status: 'aktywny' },
+      { department: 'CNC', jobTitle: 'Operator', hireDate: '2025-01-01', status: 'zwolniony', terminationDate: '2026-11-08' },
+    ];
+    const r = summarizeRange(employees, undefined, dayRange(NOW, 1), NOW);
+    expect(r.hired.total).toBe(1);
+    expect(r.left.total).toBe(1);
+  });
+});
