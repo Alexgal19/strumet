@@ -43,3 +43,16 @@ export type DeptDemandModel = {
 };
 
 export type BulkOptions = Map<string, { jobTitle: string; net: number }[]>;
+
+/** Zapotrzebowanie zsumowane po stanowisku ze wszystkich działów (bez filtrów widoku). */
+export type JobTotal = {
+  jobTitle: string;
+  departments: number;
+  potrzeby: number;
+  obecnie: number;
+  zwalnia: number;
+  now: number;
+  in30: number;
+  planned: number;
+  net: number;
+};

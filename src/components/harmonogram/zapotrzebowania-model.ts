@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { addDaysToYmd, forecastShortage, shortageAt } from '@/lib/braki-prognoza';
 import { toYmd } from '@/lib/date';
 import type { HarmonogramData } from '@/lib/harmonogram';
-import type { BulkOptions, DeptDemandModel, JobTitlesByDept, PlannedArrival } from './demand-types';
+import type { BulkOptions, DeptDemandModel, JobTitlesByDept, JobTotal, PlannedArrival } from './demand-types';
 
 type PlannedIndex = {
   list: Map<string, PlannedArrival[]>;
@@ -78,6 +78,9 @@ export function useZapotrzebowaniaModel({
     const plus30 = addDaysToYmd(todayYmd, 30);
     const q = query.trim().toLowerCase();
 
+    // Suma po stanowisku ze wszystkich działów — liczona z pełnych danych, niezależnie od wyszukiwania/filtrów.
+    const jobTotalsMap = new Map<string, JobTotal & { deptSet: Set<string> }>();
+
     const deptModels: DeptDemandModel[] = Array.from(jobTitlesByDept.entries()).map(([dept, jobs]) => {
       const all = jobs.map(job => {
         const planned = getPlannedForJob(dept, job.jobTitle);
@@ -92,6 +95,21 @@ export function useZapotrzebowaniaModel({
           plannedTotal: getPlannedTotalForJob(dept, job.jobTitle),
           net: getNetMissing(dept, job.jobTitle),
         };
+      });
+      all.forEach(j => {
+        const t = jobTotalsMap.get(j.job.jobTitle) ?? {
+          jobTitle: j.job.jobTitle, departments: 0, potrzeby: 0, obecnie: 0, zwalnia: 0, now: 0, in30: 0, planned: 0, net: 0,
+          deptSet: new Set<string>(),
+        };
+        t.deptSet.add(dept);
+        t.potrzeby += j.job.potrzeby;
+        t.obecnie += j.job.obecnie;
+        t.zwalnia += j.job.zwalnia;
+        t.now += j.now;
+        t.in30 += j.in30;
+        t.planned += j.plannedTotal;
+        t.net += j.net;
+        jobTotalsMap.set(j.job.jobTitle, t);
       });
       const agg = all.reduce(
         (s, j) => ({
@@ -124,6 +142,10 @@ export function useZapotrzebowaniaModel({
           : x.dept.localeCompare(y.dept, 'pl')
       );
 
+    const jobTotals: JobTotal[] = [...jobTotalsMap.values()]
+      .map(({ deptSet, ...t }) => ({ ...t, departments: deptSet.size }))
+      .sort((a, b) => b.now - a.now || b.net - a.net || b.potrzeby - a.potrzeby || a.jobTitle.localeCompare(b.jobTitle, 'pl'));
+
     const bulkOptions: BulkOptions = new Map();
     jobTitlesByDept.forEach((jobs, dept) => {
       bulkOptions.set(dept, jobs.map(j => ({ jobTitle: j.jobTitle, net: getNetMissing(dept, j.jobTitle) })));
@@ -131,6 +153,7 @@ export function useZapotrzebowaniaModel({
 
     return {
       deptModels,
+      jobTotals,
       bulkOptions,
       plannedIndex,
       getPlannedTotalForJob,
