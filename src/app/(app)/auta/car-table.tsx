@@ -158,6 +158,13 @@ export function CarTable({
     overscan: 10,
   })
 
+  // Rzędy zostają zwykłymi <tr> (bez position:absolute), żeby kolumny trzymały się nagłówka;
+  // przewijanie zapewniają puste wiersze-odstępy nad i pod widocznym fragmentem.
+  const virtualItems = virtualizer.getVirtualItems()
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0
+  const paddingBottom =
+    virtualItems.length > 0 ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end : 0
+
   const isMobile = useIsMobile()
 
   if (isLoading) {
@@ -250,32 +257,28 @@ export function CarTable({
           <TableBody>
             {rows.length > 0 ? (
               <>
-                <tr style={{ height: `${virtualizer.getTotalSize()}px`, display: 'block', width: '100%' }}></tr>
-                {virtualizer.getVirtualItems().map((virtualRow) => {
+                {paddingTop > 0 && (
+                  <tr aria-hidden="true">
+                    <td colSpan={columns.length} style={{ height: `${paddingTop}px` }} />
+                  </tr>
+                )}
+                {virtualItems.map((virtualRow) => {
                   const row = rows[virtualRow.index]
                   return (
                     <TableRow
                       key={row.id}
+                      data-index={virtualRow.index}
+                      ref={virtualizer.measureElement}
                       data-state={row.getIsSelected() && "selected"}
-                      className="group cursor-pointer hover:bg-muted/30 transition-colors border-b-border/50 absolute w-full"
-                      style={{
-                        top: 0,
-                        left: 0,
-                        transform: `translateY(${virtualRow.start}px)`,
-                        height: `${virtualRow.size}px`,
-                      }}
+                      className="group cursor-pointer hover:bg-muted/30 transition-colors border-b-border/50"
                       onClick={(e) => {
-                          // Prevent opening edit form if clicking on actions button
+                          // Klik w przycisk akcji nie otwiera formularza edycji
                           if ((e.target as HTMLElement).closest('button')) return;
                           onEdit(row.original);
                       }}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell 
-                            key={cell.id} 
-                            className="py-3 h-full"
-                            style={{ width: cell.column.getSize() }}
-                        >
+                        <TableCell key={cell.id} className="py-3">
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
@@ -285,6 +288,11 @@ export function CarTable({
                     </TableRow>
                   )
                 })}
+                {paddingBottom > 0 && (
+                  <tr aria-hidden="true">
+                    <td colSpan={columns.length} style={{ height: `${paddingBottom}px` }} />
+                  </tr>
+                )}
               </>
             ) : (
               <TableRow>
