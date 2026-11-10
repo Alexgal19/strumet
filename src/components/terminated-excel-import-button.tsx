@@ -11,6 +11,7 @@ import { push } from 'firebase/database';
 import { format } from 'date-fns';
 import { parseMaybeDate } from '@/lib/date';
 
+import { t } from '@/lib/i18n';
 const polishToEnglishMapping: Record<string, keyof Omit<Employee, 'id' | 'status'>> = {
   'Nazwisko i imię': 'fullName',
   'Data zatrudnienia': 'hireDate',
@@ -43,7 +44,7 @@ export function TerminatedExcelImportButton() {
       try {
         const db = getDB();
         if (!db) {
-          toast({ variant: 'destructive', title: 'Błąd', description: 'Baza danych nie jest dostępna' });
+          toast({ variant: 'destructive', title: t('importx.error'), description: t('importx.theDatabaseIsNotAvailable') });
           return;
         }
 
@@ -114,8 +115,8 @@ export function TerminatedExcelImportButton() {
         if (Object.keys(updates).length === 0) {
             toast({
                 variant: 'destructive',
-                title: 'Błąd importu',
-                description: 'Nie znaleziono prawidłowych danych do importu. Sprawdź strukturę pliku i nazwy kolumn.',
+                title: t('importx.importError'),
+                description: t('importx.noValidDataFoundTo'),
             });
             setIsImporting(false);
             return;
@@ -124,15 +125,15 @@ export function TerminatedExcelImportButton() {
         await update(ref(db), updates);
 
         toast({
-          title: 'Import zakończony sukcesem',
-          description: `Zaimportowano ${Object.keys(updates).length} zwolnionych pracowników.`,
+          title: t('importx.importSuccessful'),
+          description: t('importx.importedCountFormerEmployees', { count: Object.keys(updates).length }),
         });
       } catch (error) {
         console.error("Error importing from Excel: ", error);
         toast({
           variant: 'destructive',
-          title: 'Błąd podczas importu',
-          description: 'Nie udało się przetworzyć pliku. Upewnij się, że ma poprawny format i strukturę.',
+          title: t('importx.importFailed'),
+          description: t('importx.couldNotProcessTheFile'),
         });
       } finally {
         setIsImporting(false);
@@ -146,8 +147,8 @@ export function TerminatedExcelImportButton() {
         setIsImporting(false);
         toast({
             variant: 'destructive',
-            title: 'Błąd odczytu pliku',
-            description: 'Nie udało się odczytać pliku.',
+            title: t('importx.fileReadError'),
+            description: t('importx.couldNotReadTheFile'),
         });
         console.error("FileReader error: ", error);
     };
@@ -163,7 +164,7 @@ export function TerminatedExcelImportButton() {
         onChange={handleFileChange}
         className="hidden"
         accept=".xlsx, .xls"
-        title="Wybierz plik Excel do importu"
+        title={t('importx.selectAnExcelFileTo')}
       />
       <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
         {isImporting ? (
@@ -171,7 +172,7 @@ export function TerminatedExcelImportButton() {
         ) : (
             <FileUp className="mr-2 h-4 w-4" />
         )}
-        Importuj z Excel
+        {t('importx.importFromExcel')}
       </Button>
     </>
   );

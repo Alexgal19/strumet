@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { format as formatFns } from "date-fns"
-import { pl } from "date-fns/locale"
+import { getDateLocale, rich } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { Employee } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
@@ -14,6 +14,7 @@ import { Mail, Send, Loader2 } from "lucide-react"
 import { sendEmail } from "@/ai/tools"
 import { buildAbsenceEmailHtml } from "@/lib/email-signature"
 
+import { t } from '@/lib/i18n';
 interface AbsenceEmailDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
@@ -64,8 +65,8 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     const dateStr = getAbsenceDateString()
     if (!dateStr) {
       toast({
-        title: "Błąd",
-        description: "Wybierz datę lub zakres nieobecności w kalendarzu.",
+        title: t('dialogs.error'),
+        description: t('dialogs.pickAnAbsenceDateOr'),
         variant: "destructive"
       })
       return
@@ -84,22 +85,22 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
       const result = await sendEmail({ subject, body: htmlBody })
       if (result.success) {
         toast({
-          title: 'E-mail wysłany',
-          description: 'Wiadomość z graficzną stopką SWL została wysłana do odbiorców z konfiguracji.',
+          title: t('dialogs.emailSent'),
+          description: t('dialogs.theMessageWithTheSwl'),
         })
         onOpenChange(false)
       } else {
         toast({
           variant: 'destructive',
-          title: 'Nie udało się wysłać',
-          description: `${result.message} Użyj opcji „Otwórz w kliencie", aby wysłać ręcznie.`,
+          title: t('dialogs.couldNotSend'),
+          description: t('dialogs.messageUseOpenInClient', { message: result.message ?? '' }),
         })
       }
     } catch {
       toast({
         variant: 'destructive',
-        title: 'Błąd wysyłki',
-        description: 'Spróbuj ponownie lub użyj opcji „Otwórz w kliencie".',
+        title: t('dialogs.sendingError'),
+        description: t('dialogs.tryAgainOrUseOpen'),
       })
     } finally {
       setIsSending(false)
@@ -149,9 +150,9 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
-          <DialogTitle>Zgłoszenie Nieobecności</DialogTitle>
+          <DialogTitle>{t('dialogs.absenceReport')}</DialogTitle>
           <DialogDescription>
-            Wygeneruj powiadomienie o nieobecności pracownika: <span className="font-semibold text-foreground">{employee?.fullName}</span>
+            {rich(t('dialogs.generateAnAbsenceNotificationFor'), { name: <span className="font-semibold text-foreground">{employee?.fullName}</span> })}
           </DialogDescription>
         </DialogHeader>
 
@@ -165,7 +166,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
                 mode === "range" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Przedział dat (Od - Do)
+              {t('dialogs.dateRangeFromTo')}
             </button>
             <button
               onClick={() => setMode("multiple")}
@@ -174,7 +175,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
                 mode === "multiple" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Dowolne wybrane dni
+              {t('dialogs.anySelectedDays')}
             </button>
           </div>
 
@@ -185,7 +186,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
                 mode="range"
                 selected={range}
                 onSelect={setRange}
-                locale={pl}
+                locale={getDateLocale()}
                 className="w-full flex justify-center"
               />
             ) : (
@@ -193,7 +194,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
                 mode="multiple"
                 selected={multipleDates}
                 onSelect={setMultipleDates}
-                locale={pl}
+                locale={getDateLocale()}
                 className="w-full flex justify-center"
               />
             )}
@@ -202,10 +203,10 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
           {/* Selected Dates Display */}
           <div className="space-y-1.5 bg-muted/40 p-3 rounded-md border border-border/50">
             <span className="text-xs uppercase font-bold tracking-wider text-muted-foreground block">
-              Wybrany okres / daty:
+              {t('dialogs.selectedPeriodDates')}
             </span>
             <span className="text-xs font-medium block break-all text-foreground min-h-[16px]">
-              {getAbsenceDateString() || <span className="text-muted-foreground italic">Wybierz dni w kalendarzu powyżej</span>}
+              {getAbsenceDateString() || <span className="text-muted-foreground italic">{t('dialogs.pickDaysInTheCalendar')}</span>}
             </span>
           </div>
         </div>
@@ -216,7 +217,7 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
             disabled={!getAbsenceDateString() || isSending}
           >
             {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {isSending ? 'Wysyłanie...' : 'Wyślij e-mail (stopka graficzna)'}
+            {isSending ? t('dialogs.sending') : t('dialogs.sendEmailGraphicSignature')}
           </Button>
           <Button
             variant="outline"
@@ -224,11 +225,10 @@ export function AbsenceEmailDialog({ isOpen, onOpenChange, employee }: AbsenceEm
             disabled={isSending}
           >
             <Mail className="mr-2 h-4 w-4" />
-            Otwórz w kliencie (tekst)
+            {t('dialogs.openInClientText')}
           </Button>
           <p className="text-xs text-muted-foreground text-center leading-snug">
-            Wysyłka z aplikacji używa konta Gmail z Konfiguracji i listy odbiorców —
-            w treści pojawi się graficzna stopka SWL. Wersja „w kliencie" to zwykły tekst (mailto).
+            {t('dialogs.sendingFromTheAppUses')}
           </p>
         </DialogFooter>
       </DialogContent>

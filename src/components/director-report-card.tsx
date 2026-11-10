@@ -50,6 +50,7 @@ import {
   DirectorReportData,
 } from '@/lib/director-report';
 
+import { t } from '@/lib/i18n';
 interface DirectorReportCardProps {
   employees: Employee[];
   initialCoordinatorName?: string;
@@ -189,16 +190,16 @@ export function DirectorReportCard({
       setTimeout(() => setCopiedType(null), 2500);
 
       toast({
-        title: 'Skopiowano do schowka!',
+        title: t('stats.copiedToClipboard'),
         description: fullDetails
-          ? 'Pełny raport ze szczegółami pracowników i datami jest gotowy do wklejenia (WhatsApp / E-mail).'
-          : 'Zwięzły raport liczbowy został skopiowany.',
+          ? t('stats.theFullReportWithEmployee')
+          : t('stats.theShortNumericReportHas'),
       });
     } catch {
       toast({
         variant: 'destructive',
-        title: 'Błąd kopiowania',
-        description: 'Nie udało się uzyskać dostępu do schowka.',
+        title: t('stats.copyError'),
+        description: t('stats.couldNotAccessTheClipboard'),
       });
     }
   };
@@ -257,15 +258,15 @@ export function DirectorReportCard({
       XLSX.writeFile(wb, fileName);
 
       toast({
-        title: 'Eksport zakończony',
-        description: `Pobrano plik: ${fileName}`,
+        title: t('stats.exportFinished'),
+        description: t('stats.downloadedFileFile', { file: fileName }),
       });
     } catch (error) {
       console.error(error);
       toast({
         variant: 'destructive',
-        title: 'Błąd eksportu',
-        description: 'Nie udało się wygenerować pliku Excel.',
+        title: t('stats.exportError'),
+        description: t('stats.couldNotGenerateTheExcel'),
       });
     }
   };
@@ -280,14 +281,14 @@ export function DirectorReportCard({
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
                 <CardTitle className="text-xl font-bold tracking-tight">
-                  Raport dla Dyrektora
+                  {t('stats.reportForTheDirector')}
                 </CardTitle>
                 <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
-                  Gotowy do wysyłki
+                  {t('stats.readyToSend')}
                 </Badge>
               </div>
               <CardDescription className="mt-1">
-                Aktualny stan zatrudnienia, bilans odejść z datami, nowych przyjęć oraz aktualne zapotrzebowanie rekrutacyjne.
+                {t('stats.currentHeadcountLeaversWithDates')}
               </CardDescription>
             </div>
 
@@ -300,7 +301,7 @@ export function DirectorReportCard({
                 onClick={() => handleCopy(true)}
               >
                 {copiedType === 'full' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                <span>Kopiuj pełny raport (z nazwiskami i datami)</span>
+                <span>{t('stats.copyTheFullReportWith')}</span>
               </Button>
 
               <Button
@@ -308,10 +309,10 @@ export function DirectorReportCard({
                 size="sm"
                 className="gap-1.5"
                 onClick={() => handleCopy(false)}
-                title="Kopiuje zwięzłą wersję bez imiennej listy"
+                title={t('stats.copiesAShortVersionWithout')}
               >
                 {copiedType === 'short' ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-                <span className="hidden sm:inline">Kopiuj skrócony</span>
+                <span className="hidden sm:inline">{t('stats.copyShort')}</span>
               </Button>
 
               <Button
@@ -319,10 +320,10 @@ export function DirectorReportCard({
                 size="sm"
                 className="gap-1.5"
                 onClick={handlePrint}
-                title="Drukuj lub zapisz jako PDF"
+                title={t('stats.printOrSaveAsPdf')}
               >
                 <Printer className="h-4 w-4" />
-                <span className="hidden sm:inline">Drukuj / PDF</span>
+                <span className="hidden sm:inline">{t('stats.printPdf')}</span>
               </Button>
 
               <Button
@@ -330,7 +331,7 @@ export function DirectorReportCard({
                 size="sm"
                 className="gap-1.5"
                 onClick={handleExportExcel}
-                title="Pobierz jako arkusz Excel"
+                title={t('stats.downloadAsAnExcelSheet')}
               >
                 <Table className="h-4 w-4" />
                 <span className="hidden sm:inline">Excel</span>
@@ -343,7 +344,7 @@ export function DirectorReportCard({
           {/* Wybór okresu (Presety) */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/40 print:hidden">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
-              Okres:
+              {t('stats.period')}
             </span>
 
             <Button
@@ -352,7 +353,7 @@ export function DirectorReportCard({
               className={cn('h-8 text-xs', preset === 'lastWeek' && 'font-semibold')}
               onClick={() => setPreset('lastWeek')}
             >
-              Zeszły tydzień
+              {t('stats.lastWeek')}
             </Button>
 
             <Button
@@ -361,7 +362,7 @@ export function DirectorReportCard({
               className={cn('h-8 text-xs', preset === 'thisWeek' && 'font-semibold')}
               onClick={() => setPreset('thisWeek')}
             >
-              Ten tydzień
+              {t('stats.thisWeek')}
             </Button>
 
             <Button
@@ -370,7 +371,7 @@ export function DirectorReportCard({
               className={cn('h-8 text-xs', preset === 'thisMonth' && 'font-semibold')}
               onClick={() => setPreset('thisMonth')}
             >
-              Bieżący miesiąc
+              {t('stats.thisMonth')}
             </Button>
 
             <Button
@@ -379,7 +380,7 @@ export function DirectorReportCard({
               className={cn('h-8 text-xs', preset === 'lastMonth' && 'font-semibold')}
               onClick={() => setPreset('lastMonth')}
             >
-              Poprzedni miesiąc
+              {t('stats.lastMonth')}
             </Button>
 
             {/* Kalendarz zakresu własnego */}
@@ -399,7 +400,7 @@ export function DirectorReportCard({
                       format(customRange.from, 'dd.MM.yyyy')
                     )
                   ) : (
-                    'Własny zakres'
+                    t('stats.customRange')
                   )}
                 </Button>
               </PopoverTrigger>

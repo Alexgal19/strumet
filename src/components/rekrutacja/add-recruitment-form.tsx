@@ -14,6 +14,7 @@ import {
 import { Briefcase, Loader2, Plus, Trash2, Users } from 'lucide-react';
 import { formatHeadcount } from './format';
 
+import { t } from '@/lib/i18n';
 export const AddRecruitmentForm = ({
   newDepartment,
   onDepartmentChange,
@@ -49,13 +50,13 @@ export const AddRecruitmentForm = ({
           value={newDepartment}
           onValueChange={onDepartmentChange}
         >
-          <SelectTrigger className="w-full lg:w-80" aria-label="Wybierz dział">
-            <SelectValue placeholder="Wybierz dział…" />
+          <SelectTrigger className="w-full lg:w-80" aria-label={t('recruit.selectADepartment')}>
+            <SelectValue placeholder={t('recruit.selectADepartment2')} />
           </SelectTrigger>
           <SelectContent>
             {availableDepartments.length === 0 ? (
               <p className="px-3 py-2 text-sm text-muted-foreground">
-                Brak dostępnych działów.
+                {t('recruit.noDepartmentsAvailable')}
               </p>
             ) : (
               availableDepartments.map(dept => (
@@ -83,14 +84,14 @@ export const AddRecruitmentForm = ({
                   >
                     <SelectTrigger
                       className="w-full sm:w-64"
-                      aria-label={`Stanowisko — wiersz ${index + 1}`}
+                      aria-label={t('recruit.jobTitleRowN', { n: index + 1 })}
                     >
-                      <SelectValue placeholder="Wybierz stanowisko…" />
+                      <SelectValue placeholder={t('recruit.selectAJobTitle')} />
                     </SelectTrigger>
                     <SelectContent>
                       {rowOptions.length === 0 ? (
                         <p className="px-3 py-2 text-sm text-muted-foreground">
-                          Brak dostępnych stanowisk.
+                          {t('recruit.noJobTitlesAvailable')}
                         </p>
                       ) : (
                         rowOptions.map(jt => (
@@ -104,7 +105,7 @@ export const AddRecruitmentForm = ({
                   <Input
                     type="number"
                     min={1}
-                    placeholder="Ile osób?"
+                    placeholder={t('recruit.howMany')}
                     value={row.count}
                     onChange={e =>
                       setFormRows(prev =>
@@ -112,7 +113,7 @@ export const AddRecruitmentForm = ({
                       )
                     }
                     className="w-full sm:w-32"
-                    aria-label={`Liczba osób — stanowisko ${index + 1}`}
+                    aria-label={t('recruit.numberOfPeopleJobTitle', { n: index + 1 })}
                   />
                   {formRows.length > 1 && (
                     <Button
@@ -121,7 +122,7 @@ export const AddRecruitmentForm = ({
                       variant="ghost"
                       className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={() => setFormRows(prev => prev.filter((_, i) => i !== index))}
-                      aria-label={`Usuń wiersz ${index + 1}`}
+                      aria-label={t('recruit.deleteRowN', { n: index + 1 })}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -137,7 +138,7 @@ export const AddRecruitmentForm = ({
               onClick={() => setFormRows(prev => [...prev, { jobTitle: '', count: '' }])}
             >
               <Plus className="h-3.5 w-3.5" />
-              Dodaj stanowisko
+              {t('recruit.addJobTitle')}
             </Button>
           </div>
         )}
@@ -150,7 +151,7 @@ export const AddRecruitmentForm = ({
             </p>
             {selectedDepartmentStats.rows.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                Brak aktywnych pracowników w tym dziale.
+                {t('recruit.noActiveEmployeesInThis')}
               </p>
             ) : (
               <div className="space-y-1.5">
@@ -165,8 +166,8 @@ export const AddRecruitmentForm = ({
                     </span>
                     <span className="text-muted-foreground">
                       {row.managers.length > 0
-                        ? `Kierownik: ${row.managers.join(', ')}`
-                        : 'Brak kierownika'}
+                        ? t('recruit.managerNames', { names: row.managers.join(', ') })
+                        : t('recruit.noManager')}
                     </span>
                   </div>
                 ))}
@@ -178,7 +179,7 @@ export const AddRecruitmentForm = ({
         <div className="flex justify-end">
           <Button className="gap-2" disabled={!canSubmitForm || isAdding} onClick={onSubmit}>
             {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            {formRows.length > 1 ? `Dodaj zapotrzebowanie (${formRows.length} stanowiska)` : 'Dodaj'}
+            {formRows.length > 1 ? t('recruit.addRequestCountPositions', { count: formRows.length }) : t('recruit.add')}
           </Button>
         </div>
       </CardContent>

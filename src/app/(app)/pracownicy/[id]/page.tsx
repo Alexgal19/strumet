@@ -8,6 +8,7 @@ import { ClothingIssuancePrintForm } from '@/components/clothing-issuance-print-
 import type { Employee, ClothingIssuance } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
+import { t } from '@/lib/i18n';
 export default function EmployeePage() {
   const params = useParams();
   const router = useRouter();
@@ -65,7 +66,7 @@ export default function EmployeePage() {
   if (!employee && id !== 'new') {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
-        Pracownik nie został znaleziony.
+        {t('importx.employeeNotFound')}
       </div>
     );
   }

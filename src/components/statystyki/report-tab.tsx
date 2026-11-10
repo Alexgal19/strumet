@@ -29,6 +29,7 @@ import { parseMaybeDate, vacationHasStarted } from '@/lib/date';
 import type { Employee, Stats } from '@/lib/types';
 import { EmployeeEditOverlay } from './employee-edit-overlay';
 
+import { t } from '@/lib/i18n';
 const StatisticsPieChart = dynamic(() => import('@/components/statistics-pie-chart'), {
     ssr: false,
 });
@@ -112,8 +113,8 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             const departmentEmployees = activeEmployees.filter(e => e.department === name);
             const hierarchy: DepartmentHierarchy = {};
             departmentEmployees.forEach(emp => {
-                const manager = emp.manager || "Brak kierownika";
-                const jobTitle = emp.jobTitle || "Brak stanowiska";
+                const manager = emp.manager || t('stats.noManager');
+                const jobTitle = emp.jobTitle || t('stats.noJobTitle');
                 if (!hierarchy[manager]) {
                     hierarchy[manager] = {};
                 }
@@ -123,7 +124,7 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                 hierarchy[manager][jobTitle].push(emp);
             });
             setDialogContent({
-                title: `Struktura działu: ${name}`,
+                title: t('stats.departmentStructureName', { name }),
                 total: departmentEmployees.length,
                 type: "hierarchy",
                 data: hierarchy
@@ -134,8 +135,8 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                 ? activeEmployees.filter(e => e.nationality === name)
                 : activeEmployees.filter(e => e.jobTitle === name);
             const title = type === "nationality"
-                ? `Pracownicy narodowości: ${name}`
-                : `Pracownicy na stanowisku: ${name}`;
+                ? t('stats.employeesOfNationalityName', { name })
+                : t('stats.employeesInJobTitleName', { name });
             setDialogContent({
                 title,
                 total: filtered.length,
@@ -179,7 +180,7 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                     <AccordionTrigger className="hover:no-underline text-sm">
                         <div className="flex justify-between w-full pr-2">
                             <span className="font-semibold">{manager}</span>
-                            <span className="text-muted-foreground text-xs">{Object.values(jobTitles).flat().length} os.</span>
+                            <span className="text-muted-foreground text-xs">{t('stats.countPpl', { count: Object.values(jobTitles).flat().length })}</span>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent>
@@ -188,7 +189,7 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                 <AccordionTrigger className="hover:no-underline text-xs">
                                     <div className="flex justify-between w-full pr-2">
                                         <span className="font-medium text-muted-foreground">{jobTitle}</span>
-                                        <span className="text-muted-foreground">{emps.length} os.</span>
+                                        <span className="text-muted-foreground">{t('stats.countPpl', { count: emps.length })}</span>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>
@@ -197,12 +198,12 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                             <span className="flex items-center gap-1.5">
                                                 {employee.fullName}
                                                 {vacationHasStarted(employee.vacationStartDate) && (
-                                                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-xs font-semibold text-white">URLOP</span>
+                                                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-xs font-semibold text-white">{t('stats.leave')}</span>
                                                 )}
                                                 {(() => {
                                                     const planned = parseMaybeDate(employee.plannedTerminationDate);
                                                     if (!planned || startOfDay(planned) < startOfDay(new Date())) return null;
-                                                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400">Zwalnia się</span>;
+                                                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400">{t('stats.leaving')}</span>;
                                                 })()}
                                             </span>
                                             <span className="flex items-center gap-1">
@@ -223,12 +224,12 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             <span className="flex items-center gap-1.5 font-medium">
                 {employee.fullName}
                 {vacationHasStarted(employee.vacationStartDate) && (
-                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-xs font-semibold text-white">URLOP</span>
+                    <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-xs font-semibold text-white">{t('stats.leave')}</span>
                 )}
                 {(() => {
                     const planned = parseMaybeDate(employee.plannedTerminationDate);
                     if (!planned || startOfDay(planned) < startOfDay(new Date())) return null;
-                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400">Zwalnia się</span>;
+                    return <span className="rounded-full border border-orange-500/60 px-1.5 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400">{t('stats.leaving')}</span>;
                 })()}
             </span>
             <span className="flex items-center gap-1">
@@ -246,23 +247,23 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
     };
     return (<div className="flex flex-col space-y-6 flex-grow">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <h3 className="text-xl font-bold">Raport bieżący</h3>
+            <h3 className="text-xl font-bold">{t('stats.currentReport')}</h3>
             <div className="flex items-center gap-2">
                 {isAdmin && activeEmployees.length > 0 && (
                     <Button
                         variant="outline"
                         onClick={handlePrintReport}
-                        title="Raport miesięczny do druku / PDF"
+                        title={t('stats.monthlyReportForPrintPdf')}
                     >
                         <Printer className="mr-2 h-4 w-4" />
-                        Raport miesięczny
+                        {t('stats.monthlyReport')}
                     </Button>
                 )}
                 {isAdmin && activeEmployees.length > 0 && <StatisticsExcelExportButton stats={stats} departmentData={departmentData} nationalityData={nationalityData} jobTitleData={jobTitleData} employees={activeEmployees} />}
             </div>
         </div>
         {activeEmployees.length === 0 ? (<div className="text-center text-muted-foreground py-10">
-            Brak danych do wyświetlenia statystyk. Dodaj pracowników, aby zobaczyć analizę.
+            {t('stats.noDataToShowStatistics')}
         </div>) : (<div
             className="space-y-6"
         >
@@ -270,23 +271,23 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                 <div>
                     <Card className="glass-card border-0 p-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-base font-medium">Aktywni pracownicy</CardTitle>
+                            <CardTitle className="text-base font-medium">{t('stats.activeEmployees')}</CardTitle>
                             <Users className="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-gradient-primary">{stats.totalActiveEmployees}</div>
                             <p className="text-xs text-muted-foreground mt-1">
-                                Całkowita liczba pracowników
+                                {t('stats.totalNumberOfEmployees')}
                                 {(onVacationCount > 0 || plannedTerminationCount > 0) && (
                                     <span className="mt-1 block space-x-2">
                                         {onVacationCount > 0 && (
                                             <span className="inline-flex animate-pulse rounded-full bg-pink-500 px-2 py-0.5 font-semibold text-white">
-                                                Na urlopie: {onVacationCount}
+                                                {t('stats.onLeaveCount', { count: onVacationCount })}
                                             </span>
                                         )}
                                         {plannedTerminationCount > 0 && (
                                             <span className="inline-flex rounded-full border border-orange-500/60 px-2 py-0.5 font-semibold text-orange-600 dark:text-orange-400">
-                                                Zwalnia się: {plannedTerminationCount}
+                                                {t('stats.leavingCount', { count: plannedTerminationCount })}
                                             </span>
                                         )}
                                     </span>
@@ -298,37 +299,37 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                 <div>
                     <Card className="glass-card border-0 p-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-base font-medium">Liczba działów</CardTitle>
+                            <CardTitle className="text-base font-medium">{t('stats.departments2')}</CardTitle>
                             <Building className="h-4 w-4 text-accent" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold">{stats.totalDepartments}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Aktywne działy w firmie</p>
+                            <p className="text-xs text-muted-foreground mt-1">{t('stats.activeDepartmentsInTheCompany')}</p>
                         </CardContent>
                     </Card>
                 </div>
                 <div>
                     <Card className="glass-card border-0 p-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-base font-medium">Liczba stanowisk</CardTitle>
+                            <CardTitle className="text-base font-medium">{t('stats.jobTitles2')}</CardTitle>
                             <Briefcase className="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold">{stats.totalJobTitles}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Liczba unikalnych stanowisk</p>
+                            <p className="text-xs text-muted-foreground mt-1">{t('stats.numberOfDistinctJobTitles')}</p>
                         </CardContent>
                     </Card>
                 </div>
             </div>
             <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 md:grid md:grid-cols-3 md:overflow-visible">
                 <div className="min-w-[85%] snap-center md:min-w-0">
-                    {renderPieChart(departmentData, "Rozkład wg Działów", "Liczba pracowników w poszczególnych działach.", "department")}
+                    {renderPieChart(departmentData, t('stats.byDepartment'), t('stats.numberOfEmployeesInEach'), "department")}
                 </div>
                 <div className="min-w-[85%] snap-center md:min-w-0">
-                    {renderPieChart(nationalityData, "Rozkład wg Narodowości", "Struktura pracowników z podziałem na narodowości.", "nationality")}
+                    {renderPieChart(nationalityData, t('stats.byNationality'), t('stats.employeesBrokenDownByNationality'), "nationality")}
                 </div>
                 <div className="min-w-[85%] snap-center md:min-w-0">
-                    {renderPieChart(jobTitleData, "Rozkład wg Stanowisk", "Liczba pracowników na poszczególnych stanowiskach.", "jobTitle")}
+                    {renderPieChart(jobTitleData, t('stats.byJobTitle'), t('stats.numberOfEmployeesInEach2'), "jobTitle")}
                 </div>
             </div>
         </div>)}
@@ -337,7 +338,7 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                 <DialogHeader>
                     <DialogTitle>{dialogContent?.title}</DialogTitle>
                     <DialogDescription>
-                        Znaleziono {dialogContent?.total} pracowników.
+                        {t('stats.foundCountEmployees', { count: dialogContent?.total ?? 0 })}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 min-h-0 overflow-y-auto my-4 pr-1">

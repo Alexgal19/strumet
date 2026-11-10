@@ -41,7 +41,7 @@ import { AbsenceRecord, Employee } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/date';
 import { format, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,6 +52,7 @@ import { useEmployees } from '@/hooks/use-employees';
 import { EmployeeCombobox } from '@/components/employee-combobox';
 
 
+import { t } from '@/lib/i18n';
 export default function NoLoginPage() {
   const { isLoading: isAppLoading, absenceRecords, addAbsenceRecord, deleteAbsenceRecord } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
@@ -94,8 +95,8 @@ export default function NoLoginPage() {
     if (!selectedEmployee || !incidentDate || !reason) {
       toast({
         variant: 'destructive',
-        title: 'Błąd walidacji',
-        description: 'Proszę wypełnić wszystkie pola: pracownik, data i przyczyna.',
+        title: t('ops.validationError'),
+        description: t('ops.pleaseFillInAllFields'),
       });
       return;
     }
@@ -139,20 +140,20 @@ export default function NoLoginPage() {
         ) : (
             <>
                 <PageHeader
-                title="Brak logowania"
-                description="Generuj raporty dotyczące braku logowania przez pracowników."
+                title={t('ops.missedClockIns')}
+                description={t('ops.generateReportsOnEmployeesWho')}
                 />
 
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 <div className="order-2 lg:order-1 lg:col-span-1">
                     <Card>
                     <CardHeader>
-                        <CardTitle>Dodaj nowy zapis</CardTitle>
-                        <CardDescription>Wybierz pracownika i datę, aby dodać nowy incydent.</CardDescription>
+                        <CardTitle>{t('ops.addRecord')}</CardTitle>
+                        <CardDescription>{t('ops.selectAnEmployeeAndA2')}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                        <Label>Pracownik</Label>
+                        <Label>{t('ops.employee')}</Label>
                         <EmployeeCombobox
                             employees={activeEmployees}
                             value={selectedEmployeeId}
@@ -161,7 +162,7 @@ export default function NoLoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                        <Label>Data</Label>
+                        <Label>{t('ops.date')}</Label>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -172,7 +173,7 @@ export default function NoLoginPage() {
                                 )}
                                 >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {incidentDate ? format(incidentDate, "PPP", { locale: pl }) : <span>Wybierz datę</span>}
+                                {incidentDate ? format(incidentDate, "PPP", { locale: getDateLocale() }) : <span>{t('ops.pickADate')}</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -180,7 +181,7 @@ export default function NoLoginPage() {
                                     mode="single"
                                     selected={incidentDate}
                                     onSelect={setIncidentDate}
-                                    locale={pl}
+                                    locale={getDateLocale()}
                                     initialFocus
                                 />
                             </PopoverContent>
@@ -188,18 +189,18 @@ export default function NoLoginPage() {
                         </div>
                         
                         <div className="space-y-2">
-                        <Label htmlFor="hours">Godziny świadczenia usług</Label>
+                        <Label htmlFor="hours">{t('ops.workingHours')}</Label>
                         <Input 
                             id="hours"
                             type="text"
-                            placeholder="np. 8 lub 08:00-16:00"
+                            placeholder={t('ops.eG8Or08')}
                             value={hours}
                             onChange={(e) => setHours(e.target.value)}
                         />
                         </div>
 
                         <div className="space-y-3">
-                            <Label>Przyczyna</Label>
+                            <Label>{t('ops.reason')}</Label>
                             <RadioGroup value={reason} onValueChange={(value) => setReason(value as any)} className="space-y-2">
                                 <Label
                                     htmlFor="r1"
@@ -209,7 +210,7 @@ export default function NoLoginPage() {
                                     )}
                                 >
                                     <RadioGroupItem value="no_card" id="r1" />
-                                    <span>Nieodbicie dyskietki spowodowane było jej brakiem</span>
+                                    <span>{t('ops.notClockedInBecauseThe')}</span>
                                 </Label>
                                 <Label
                                     htmlFor="r2"
@@ -219,14 +220,14 @@ export default function NoLoginPage() {
                                     )}
                                 >
                                     <RadioGroupItem value="forgot_to_scan" id="r2" />
-                                    <span>Nieodbicie dyskietki na wejściu/wyjściu wynikło z zapomnienia</span>
+                                    <span>{t('ops.forgotToClockInOut')}</span>
                                 </Label>
                             </RadioGroup>
                         </div>
 
                         <Button onClick={handleSaveRecord} disabled={isSaving} className="w-full">
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FilePlus2 className="mr-2 h-4 w-4" />}
-                        Zapisz
+                        {t('ops.save')}
                         </Button>
                     </CardContent>
                     </Card>
@@ -237,19 +238,19 @@ export default function NoLoginPage() {
                     <CardHeader>
                         <div className="flex items-center justify-between">
                         <div>
-                        <CardTitle>Zarejestrowane incydenty</CardTitle>
-                        <CardDescription>Lista zarejestrowanych przypadków braku logowania.</CardDescription>
+                        <CardTitle>{t('ops.recordedIncidents')}</CardTitle>
+                        <CardDescription>{t('ops.recordedCasesOfMissedClock')}</CardDescription>
                         </div>
                         {sortedRecords.length > 0 && (
                             <GenericExcelExportButton
                                 data={sortedRecords}
                                 columns={[
-                                    { key: 'employeeFullName', name: 'Pracownik' },
-                                    { key: 'incidentDate', name: 'Data' },
-                                    { key: 'hours', name: 'Godziny' },
-                                    { key: 'reason', name: 'Przyczyna' },
-                                    { key: 'department', name: 'Dział' },
-                                    { key: 'jobTitle', name: 'Stanowisko' },
+                                    { key: 'employeeFullName', name: t('ops.employee') },
+                                    { key: 'incidentDate', name: t('ops.date') },
+                                    { key: 'hours', name: t('ops.hours') },
+                                    { key: 'reason', name: t('ops.reason') },
+                                    { key: 'department', name: t('ops.department') },
+                                    { key: 'jobTitle', name: t('ops.jobTitle') },
                                 ]}
                                 fileName="brak_logowania"
                             />
@@ -261,11 +262,11 @@ export default function NoLoginPage() {
                         <Table>
                             <TableHeader>
                             <TableRow>
-                                <TableHead>Pracownik</TableHead>
-                                <TableHead>Data</TableHead>
-                                <TableHead>Godziny</TableHead>
-                                <TableHead>Przyczyna</TableHead>
-                                <TableHead className="text-right">Akcje</TableHead>
+                                <TableHead>{t('ops.employee')}</TableHead>
+                                <TableHead>{t('ops.date')}</TableHead>
+                                <TableHead>{t('ops.hours')}</TableHead>
+                                <TableHead>{t('ops.reason')}</TableHead>
+                                <TableHead className="text-right">{t('ops.actions')}</TableHead>
                             </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -275,7 +276,7 @@ export default function NoLoginPage() {
                                     <TableCell className="font-medium">{rec.employeeFullName}</TableCell>
                                     <TableCell>{formatDate(rec.incidentDate, "dd.MM.yyyy")}</TableCell>
                                     <TableCell>{rec.hours}</TableCell>
-                                    <TableCell>{rec.reason === 'no_card' ? 'Brak karty' : 'Zapomnienie'}</TableCell>
+                                    <TableCell>{rec.reason === 'no_card' ? t('ops.noCard') : t('ops.forgot')}</TableCell>
                                     <TableCell className="text-right space-x-2">
                                     <Button variant="ghost" size="icon" onClick={() => handlePrint(rec)}>
                                         <Printer className="h-4 w-4" />
@@ -289,7 +290,7 @@ export default function NoLoginPage() {
                             ) : (
                                 <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center">
-                                    Brak zarejestrowanych incydentów.
+                                    {t('ops.noRecordedIncidents')}
                                 </TableCell>
                                 </TableRow>
                             )}
@@ -313,15 +314,15 @@ export default function NoLoginPage() {
                                                 </div>
                                             </div>
                                             <div className="flex flex-col text-sm text-muted-foreground gap-1">
-                                                <span><strong className="text-foreground font-medium">Data:</strong> {formatDate(rec.incidentDate, "dd.MM.yyyy")}</span>
-                                                <span><strong className="text-foreground font-medium">Godziny:</strong> {rec.hours}</span>
-                                                <span><strong className="text-foreground font-medium">Przyczyna:</strong> {rec.reason === 'no_card' ? 'Brak karty' : 'Zapomnienie'}</span>
+                                                <span><strong className="text-foreground font-medium">{t('ops.date2')}</strong> {formatDate(rec.incidentDate, "dd.MM.yyyy")}</span>
+                                                <span><strong className="text-foreground font-medium">{t('ops.hours2')}</strong> {rec.hours}</span>
+                                                <span><strong className="text-foreground font-medium">{t('ops.reason2')}</strong> {rec.reason === 'no_card' ? t('ops.noCard') : t('ops.forgot')}</span>
                                             </div>
                                         </CardContent>
                                     </Card>
                                 ))
                             ) : (
-                                <p className="text-center text-muted-foreground py-4">Brak zarejestrowanych incydentów.</p>
+                                <p className="text-center text-muted-foreground py-4">{t('ops.noRecordedIncidents')}</p>
                             )}
                         </div>
                     </CardContent>
@@ -331,15 +332,15 @@ export default function NoLoginPage() {
                 <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Czy jesteś pewien?</AlertDialogTitle>
+                            <AlertDialogTitle>{t('ops.areYouSure')}</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie tego zapisu.
+                                {t('ops.thisCannotBeUndoneThe2')}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => setDeletingId(null)}>Anuluj</AlertDialogCancel>
+                            <AlertDialogCancel onClick={() => setDeletingId(null)}>{t('ops.cancel')}</AlertDialogCancel>
                             <AlertDialogAction onClick={() => deletingId && handleDeleteRecord(deletingId)}>
-                                Usuń
+                                {t('ops.delete')}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

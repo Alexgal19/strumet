@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Loader2 } from 'lucide-react';
 
+import { t } from '@/lib/i18n';
 export const RecruitmentDeleteDialog = ({
   toDelete,
   isDeleting,
@@ -28,18 +29,16 @@ export const RecruitmentDeleteDialog = ({
     <AlertDialog open={!!toDelete} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Usunąć zapotrzebowanie?</AlertDialogTitle>
+          <AlertDialogTitle>{t('recruit.deleteThisRequest')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Zapotrzebowanie dla działu „{toDelete?.department}” ({toDelete?.positions.length ?? 0}{' '}
-            pozycji) zostanie usunięte razem z liczbami osób i wszystkimi datami przyjęć. Tej
-            operacji nie można cofnąć.
+            {t('recruit.theRequestForDepartmentDepartment', { department: toDelete?.department ?? '', count: toDelete?.positions.length ?? 0 })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Anuluj</AlertDialogCancel>
+          <AlertDialogCancel>{t('recruit.cancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} disabled={isDeleting} className="gap-2">
             {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Usuń
+            {t('recruit.delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

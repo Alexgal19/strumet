@@ -8,6 +8,7 @@ import { pl } from 'date-fns/locale';
 import type { Employee, Absence } from '@/lib/types';
 import { getPolishHolidays } from '@/lib/holidays';
 
+import { t } from '@/lib/i18n';
 interface AttendanceExcelExportButtonProps {
     currentDate: Date;
     employees: Employee[];
@@ -203,7 +204,7 @@ export function AttendanceExcelExportButton({
     return (
         <Button variant="outline" onClick={handleExport} disabled={employees.length === 0}>
             <FileDown className="mr-2 h-4 w-4" />
-            Eksportuj Raport (Excel)
+            {t('attendance.exportReportExcel')}
         </Button>
     );
 }

@@ -30,6 +30,7 @@ import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 
 
+import { t } from '@/lib/i18n';
 export default function CirculationCardsPage() {
   const { isLoading: isAppLoading, circulationCards, addCirculationCard } = useAppContext();
   const { employees, isLoading: isEmployeesLoading } = useEmployees(); // Fetch all employees
@@ -58,8 +59,8 @@ export default function CirculationCardsPage() {
         if (!selectedEmployee) {
             toast({
                 variant: 'destructive',
-                title: 'Błąd',
-                description: 'Proszę wybrać pracownika.',
+                title: t('ops.error'),
+                description: t('ops.pleaseSelectAnEmployee'),
             });
             return;
         }
@@ -93,20 +94,20 @@ export default function CirculationCardsPage() {
         ) : (
         <>
             <PageHeader
-            title="Karty obiegowe"
-            description="Generuj i drukuj karty obiegowe dla pracowników."
+            title={t('ops.clearanceForms')}
+            description={t('ops.generateAndPrintClearanceForms')}
             />
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="lg:col-span-1">
                 <Card>
                 <CardHeader>
-                    <CardTitle>Utwórz nową kartę</CardTitle>
-                    <CardDescription>Wybierz pracownika (aktywnego lub zwolnionego), aby wygenerować kartę.</CardDescription>
+                    <CardTitle>{t('ops.createANewForm')}</CardTitle>
+                    <CardDescription>{t('ops.selectAnEmployeeActiveOr')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                    <label className="text-sm font-medium">Pracownik</label>
+                    <label className="text-sm font-medium">{t('ops.employee')}</label>
                     <EmployeeCombobox
                         employees={employees}
                         value={selectedEmployeeId}
@@ -116,7 +117,7 @@ export default function CirculationCardsPage() {
 
                     <Button onClick={() => handlePrint()} disabled={!selectedEmployee} className="w-full">
                     <Printer className="mr-2 h-4 w-4" />
-                    Drukuj kartę
+                    {t('ops.printForm')}
                     </Button>
                 </CardContent>
                 </Card>
@@ -129,9 +130,9 @@ export default function CirculationCardsPage() {
                     <div className="flex items-center gap-3">
                     <History className="h-6 w-6" />
                     <div>
-                        <CardTitle>Historia kart obiegowych</CardTitle>
+                        <CardTitle>{t('ops.clearanceFormHistory')}</CardTitle>
                         <CardDescription>
-                        {selectedEmployee ? `dla ${selectedEmployee.fullName}` : 'Wybierz pracownika, aby zobaczyć historię.'}
+                        {selectedEmployee ? `dla ${selectedEmployee.fullName}` : t('ops.selectAnEmployeeToSee')}
                         </CardDescription>
                     </div>
                     </div>
@@ -139,8 +140,8 @@ export default function CirculationCardsPage() {
                         <GenericExcelExportButton
                             data={employeeCardHistory}
                             columns={[
-                                { key: 'date', name: 'Data wygenerowania' },
-                                { key: 'employeeFullName', name: 'Pracownik' },
+                                { key: 'date', name: t('ops.generatedOn') },
+                                { key: 'employeeFullName', name: t('ops.employee') },
                             ]}
                             fileName="historia_kart_obiegowych"
                         />
@@ -155,8 +156,8 @@ export default function CirculationCardsPage() {
                         <Table>
                             <TableHeader>
                             <TableRow>
-                                <TableHead>Data wygenerowania</TableHead>
-                                <TableHead className="text-right">Akcje</TableHead>
+                                <TableHead>{t('ops.generatedOn')}</TableHead>
+                                <TableHead className="text-right">{t('ops.actions')}</TableHead>
                             </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -178,7 +179,7 @@ export default function CirculationCardsPage() {
                                 <Card key={card.id} className="bg-card">
                                     <CardContent className="p-4 flex items-center justify-between">
                                         <div className="flex flex-col">
-                                            <span className="text-sm text-muted-foreground">Data wygenerowania</span>
+                                            <span className="text-sm text-muted-foreground">{t('ops.generatedOn')}</span>
                                             <span className="font-medium">{formatDateTime(card.date, "dd.MM.yyyy HH:mm")}</span>
                                         </div>
                                         <Button variant="ghost" size="icon" onClick={() => handlePrint(card)}>
@@ -190,11 +191,11 @@ export default function CirculationCardsPage() {
                         </div>
                         </>
                     ) : (
-                        <p className="text-sm text-muted-foreground text-center py-10">Brak historii kart dla tego pracownika.</p>
+                        <p className="text-sm text-muted-foreground text-center py-10">{t('ops.noFormHistoryForThis')}</p>
                     )
                     ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground text-center py-10">
-                        Wybierz pracownika, aby zobaczyć historię.
+                        {t('ops.selectAnEmployeeToSee')}
                     </div>
                     )}
                 </CardContent>

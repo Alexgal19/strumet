@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatYmdPl } from '@/lib/date';
 
+import { t } from '@/lib/i18n';
 export function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any, onUpdate: any, onRemove: any, canDelete?: boolean }) {
   const [isEditing, setIsEditing] = useState(false);
   const [date, setDate] = useState(p.date);
@@ -37,13 +38,13 @@ export function ArrivalRow({ p, onUpdate, onRemove, canDelete = true }: { p: any
 
   return (
     <div className="flex items-center justify-between bg-muted/50 rounded px-2 py-0.5 text-sm">
-      <span>📅 {formatYmdPl(p.date) || 'bez daty'} — <strong>{p.count} os.</strong></span>
+      <span>📅 {formatYmdPl(p.date) || t('schedule.noDate')} — <strong>{t('schedule.countPpl', { count: p.count })}</strong></span>
       <div className="flex items-center gap-0.5">
-         <Button type="button" variant="ghost" size="icon-sm" title="Edytuj" aria-label="Edytuj przyjęcie" className=" text-blue-600 hover:text-blue-700" onClick={startEditing}>
+         <Button type="button" variant="ghost" size="icon-sm" title={t('schedule.edit')} aria-label={t('schedule.editArrival')} className=" text-blue-600 hover:text-blue-700" onClick={startEditing}>
            <Pencil className="h-4 w-4" />
          </Button>
          {canDelete && (
-           <Button type="button" variant="ghost" size="icon-sm" title="Usuń" aria-label="Usuń przyjęcie" className=" text-destructive" onClick={() => onRemove(p.id)}>
+           <Button type="button" variant="ghost" size="icon-sm" title={t('schedule.delete')} aria-label={t('schedule.deleteArrival')} className=" text-destructive" onClick={() => onRemove(p.id)}>
              <Trash2 className="h-4 w-4" />
            </Button>
          )}

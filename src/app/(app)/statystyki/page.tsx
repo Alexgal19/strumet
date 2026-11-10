@@ -9,6 +9,7 @@ import { HiresAndFiresTab } from '@/components/statystyki/hires-and-fires-tab';
 import { OrdersTab } from '@/components/statystyki/orders-tab';
 import { ReportTab } from '@/components/statystyki/report-tab';
 
+import { t } from '@/lib/i18n';
 export default function StatisticsPage() {
     const { isLoading: isContextLoading } = useAppContext();
     const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
@@ -17,8 +18,8 @@ export default function StatisticsPage() {
     return (
         <div className="min-h-full flex flex-col w-full">
             <PageHeader
-                title="Statystyki i Planowanie"
-                description="Kluczowe wskaźniki i zapotrzebowanie na personel."
+                title={t('stats.statisticsAndPlanning')}
+                description={t('stats.keyFiguresAndStaffingNeeds')}
             />
             {isLoading && activeEmployees.length === 0 ? (
                 <div className="flex h-full w-full items-center justify-center">
@@ -27,9 +28,9 @@ export default function StatisticsPage() {
             ) : (
                 <Tabs defaultValue="report" className="flex-grow flex flex-col">
                     <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="report" className="text-xs sm:text-sm">Raport</TabsTrigger>
-                        <TabsTrigger value="hires_fires" className="text-xs sm:text-sm">Analiza</TabsTrigger>
-                        <TabsTrigger value="orders" className="text-xs sm:text-sm">Zamówienia</TabsTrigger>
+                        <TabsTrigger value="report" className="text-xs sm:text-sm">{t('stats.report')}</TabsTrigger>
+                        <TabsTrigger value="hires_fires" className="text-xs sm:text-sm">{t('stats.analysis')}</TabsTrigger>
+                        <TabsTrigger value="orders" className="text-xs sm:text-sm">{t('stats.orders')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="report" className="flex-grow mt-6">
                         <ReportTab />

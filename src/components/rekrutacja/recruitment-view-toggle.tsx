@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 
+import { t } from '@/lib/i18n';
 export const RecruitmentViewToggle = ({
   view,
   onViewChange,
@@ -19,7 +20,7 @@ export const RecruitmentViewToggle = ({
           className="rounded-none border-0"
           onClick={() => onViewChange('karty')}
         >
-          Zapotrzebowania
+          {t('recruit.needs')}
         </Button>
         <Button
           type="button"
@@ -28,7 +29,7 @@ export const RecruitmentViewToggle = ({
           className="rounded-none border-0"
           onClick={() => onViewChange('harmonogram')}
         >
-          Harmonogram obsady
+          {t('recruit.staffingSchedule')}
         </Button>
       </div>
     </div>

@@ -12,6 +12,7 @@ import { ref, onValue } from 'firebase/database';
 import { useAppContext } from '@/context/app-context';
 import { objectToArray } from '@/lib/utils';
 
+import { t } from '@/lib/i18n';
 export const JobTitleClothingSetsTab = () => {
     const { config, handleSaveJobTitleClothingSet, isAdmin } = useAppContext();
     const { jobTitles } = config;
@@ -56,8 +57,8 @@ export const JobTitleClothingSetsTab = () => {
     return (
         <Card className="h-full flex flex-col">
             <CardHeader>
-                <CardTitle>Zestawy odzieży dla stanowisk</CardTitle>
-                <CardDescription>Przypisz domyślne zestawy odzieży do poszczególnych stanowisk.</CardDescription>
+                <CardTitle>{t('settings.catClothingSets')}</CardTitle>
+                <CardDescription>{t('settings.assignDefaultWorkwearSetsTo')}</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow overflow-y-auto">
                 <Accordion type="multiple" className="w-full">
@@ -67,7 +68,7 @@ export const JobTitleClothingSetsTab = () => {
                             <AccordionContent>
                                 <div className="space-y-4 p-2">
                                      <Textarea
-                                        placeholder="Wpisz pełny komplet odzieży, np. Spodnie, koszula, buty (rozmiar 42)..."
+                                        placeholder={t('settings.enterTheFullWorkwearSet')}
                                         value={descriptions[jobTitle.id] || ''}
                                         onChange={(e) => {
                                             setDescriptions(prev => ({ ...prev, [jobTitle.id]: e.target.value }));
@@ -79,7 +80,7 @@ export const JobTitleClothingSetsTab = () => {
                                     {isAdmin && (
                                         <Button onClick={(e) => { e.stopPropagation(); handleSave(jobTitle.id); }}>
                                             <Save className="mr-2 h-4 w-4" />
-                                            Zapisz zestaw
+                                            {t('settings.saveSet')}
                                         </Button>
                                     )}
                                 </div>

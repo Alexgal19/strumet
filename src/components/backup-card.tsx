@@ -12,7 +12,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getFirebaseServices } from '@/lib/firebase';
 import { Database, Download, Upload, Loader2 } from 'lucide-react';
+import { rich } from '@/lib/i18n';
 
+import { t } from '@/lib/i18n';
 async function getAuthToken(): Promise<string | null> {
   const services = getFirebaseServices();
   const user = services?.auth?.currentUser;
@@ -32,11 +34,11 @@ export function BackupCard() {
     setIsExporting(true);
     try {
       const token = await getAuthToken();
-      if (!token) throw new Error('Brak uwierzytelnienia.');
+      if (!token) throw new Error(t('settings.notAuthenticated'));
       const response = await fetch('/api/backup', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error('Serwer odmówił dostępu.');
+      if (!response.ok) throw new Error(t('settings.theServerDeniedAccess'));
       const data = await response.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -45,12 +47,12 @@ export function BackupCard() {
       link.download = `baza-st-backup-${new Date().toISOString().slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
-      toast({ title: 'Kopia pobrana', description: 'Pełny zrzut bazy został zapisany jako JSON.' });
+      toast({ title: t('settings.backupDownloaded'), description: t('settings.aFullDatabaseDumpWas') });
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Błąd',
-        description: error instanceof Error ? error.message : 'Nie udało się pobrać kopii.',
+        title: t('settings.error'),
+        description: error instanceof Error ? error.message : t('settings.couldNotDownloadTheBackup'),
       });
     } finally {
       setIsExporting(false);
@@ -62,11 +64,11 @@ export function BackupCard() {
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
-      if (!parsed || typeof parsed !== 'object') throw new Error('Nieprawidłowy format.');
+      if (!parsed || typeof parsed !== 'object') throw new Error(t('settings.invalidFormat'));
       setRestoreData(parsed);
       setConfirmText('');
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Wybierz prawidłowy plik JSON kopii zapasowej.' });
+      toast({ variant: 'destructive', title: t('settings.error'), description: t('settings.selectAValidBackupJson') });
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -77,7 +79,7 @@ export function BackupCard() {
     setIsRestoring(true);
     try {
       const token = await getAuthToken();
-      if (!token) throw new Error('Brak uwierzytelnienia.');
+      if (!token) throw new Error(t('settings.notAuthenticated'));
       const response = await fetch('/api/backup', {
         method: 'POST',
         headers: {
@@ -86,14 +88,14 @@ export function BackupCard() {
         },
         body: JSON.stringify(restoreData),
       });
-      if (!response.ok) throw new Error('Serwer odmówił przywrócenia.');
-      toast({ title: 'Przywrócono', description: 'Baza została nadpisana kopią zapasową. Odśwież stronę.' });
+      if (!response.ok) throw new Error(t('settings.theServerRefusedTheRestore'));
+      toast({ title: t('settings.restored'), description: t('settings.theDatabaseWasOverwrittenWith') });
       setRestoreData(null);
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Błąd',
-        description: error instanceof Error ? error.message : 'Nie udało się przywrócić kopii.',
+        title: t('settings.error'),
+        description: error instanceof Error ? error.message : t('settings.couldNotRestoreTheBackup'),
       });
     } finally {
       setIsRestoring(false);
@@ -105,20 +107,20 @@ export function BackupCard() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Database className="h-5 w-5 text-primary" />
-          <CardTitle className="text-base">Kopia zapasowa bazy</CardTitle>
+          <CardTitle className="text-base">{t('settings.databaseBackup')}</CardTitle>
         </div>
         <CardDescription className="text-xs">
-          Pełny zrzut całej bazy (pracownicy, nieobecności, karty, ustawienia) w formacie JSON.
+          {t('settings.aFullDumpOfThe')}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col sm:flex-row gap-3">
         <Button onClick={handleExport} disabled={isExporting}>
           {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-          Pobierz kopię zapasową
+          {t('settings.downloadBackup')}
         </Button>
         <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isRestoring}>
           <Upload className="mr-2 h-4 w-4" />
-          Przywróć z pliku...
+          {t('settings.restoreFromFile')}
         </Button>
         <input
           ref={fileInputRef}
@@ -132,14 +134,13 @@ export function BackupCard() {
       <AlertDialog open={!!restoreData} onOpenChange={(open) => !open && setRestoreData(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Nadpisać całą bazę danych?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.overwriteTheWholeDatabase')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Wszystkie obecne dane zostaną <strong>trwale zastąpione</strong> zawartością pliku kopii.
-              Aby potwierdzić, wpisz <strong>PRZYWRÓĆ</strong> w pole poniżej.
+              {rich(t('settings.allCurrentDataWillBe'), { replaced: <strong>{t('settings.permanentlyReplaced')}</strong>, word: <strong>PRZYWRÓĆ</strong> })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2">
-            <Label htmlFor="restore-confirm">Potwierdzenie</Label>
+            <Label htmlFor="restore-confirm">{t('settings.confirmation')}</Label>
             <Input
               id="restore-confirm"
               value={confirmText}
@@ -148,7 +149,7 @@ export function BackupCard() {
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogCancel>{t('settings.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={confirmText !== 'PRZYWRÓĆ' || isRestoring}
@@ -158,7 +159,7 @@ export function BackupCard() {
               }}
             >
               {isRestoring ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Przywróć
+              {t('settings.restore')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

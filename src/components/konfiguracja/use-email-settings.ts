@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
 import { sendEmail } from '@/ai/tools';
 
+import { t } from '@/lib/i18n';
 export function useEmailSettings() {
   const { config, handleSaveGmailCredentials, handleSaveSmtpSettings, updateRecipientEmails } = useAppContext();
   const { toast } = useToast();
@@ -53,11 +54,11 @@ export function useEmailSettings() {
     const email = newEmail.trim().toLowerCase();
     if (!email) return;
     if (!email.includes('@')) {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Podaj prawidłowy adres email.' });
+      toast({ variant: 'destructive', title: t('settings.error'), description: t('settings.enterAValidEmailAddress') });
       return;
     }
     if (recipientEmails.includes(email)) {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Ten adres już istnieje.' });
+      toast({ variant: 'destructive', title: t('settings.error'), description: t('settings.thisAddressAlreadyExists') });
       return;
     }
     const newList = [...recipientEmails, email];
@@ -74,7 +75,7 @@ export function useEmailSettings() {
 
   const handleSendTestEmail = async () => {
     if (recipientEmails.length === 0) {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Brak adresów email do wysłania.' });
+      toast({ variant: 'destructive', title: t('settings.error'), description: t('settings.noEmailAddressesToSend') });
       return;
     }
     setIsSendingTest(true);
@@ -87,13 +88,13 @@ export function useEmailSettings() {
         recipientEmails: recipientEmails,
       });
       if (result.success) {
-        toast({ title: 'Sukces', description: result.message });
+        toast({ title: t('settings.success'), description: result.message });
       } else {
-        toast({ variant: 'destructive', title: 'Błąd wysyłki', description: result.message });
+        toast({ variant: 'destructive', title: t('settings.sendingError'), description: result.message });
       }
     } catch (error: any) {
       console.error("Test email error:", error);
-      toast({ variant: 'destructive', title: 'Błąd', description: error?.message || 'Wystąpił nieoczekiwany błąd serwera.' });
+      toast({ variant: 'destructive', title: t('settings.error'), description: error?.message || t('settings.anUnexpectedServerErrorOccurred') });
     } finally {
       setIsSendingTest(false);
     }

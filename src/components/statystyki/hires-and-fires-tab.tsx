@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { format, subDays } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale, rich } from '@/lib/i18n';
 import type { DateRange } from 'react-day-picker';
 import {
   Archive,
@@ -51,6 +51,7 @@ import {
 } from './report-change-cards';
 import { TurnoverCards } from './turnover-cards';
 
+import { t } from '@/lib/i18n';
 export const HiresAndFiresTab = () => {
     const { isAdmin, currentUser, statsHistory, employees } = useAppContext();
     const isMobile = useIsMobile();
@@ -99,13 +100,13 @@ export const HiresAndFiresTab = () => {
                 throw new Error(result.message);
             }
             toast({
-                title: 'Archiwizacja zakończona',
-                description: `Pomyślnie utworzono plik: ${result.filePath}`,
+                title: t('stats.archivingFinished'),
+                description: t('stats.fileCreatedPath', { path: result.filePath ?? '' }),
             });
 
         } catch (error: any) {
             console.error("Error creating manual archive:", error);
-            toast({ variant: 'destructive', title: 'Błąd archiwizacji', description: error.message || 'Wystąpił błąd po stronie serwera.' });
+            toast({ variant: 'destructive', title: t('stats.archivingError'), description: error.message || t('stats.aServerErrorOccurred') });
         } finally {
             setIsArchiving(false);
         }
@@ -113,7 +114,7 @@ export const HiresAndFiresTab = () => {
 
     const generateReport = async () => {
         if (!date || !date.from) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Proszę wybrać datę lub zakres dat.' });
+            toast({ variant: 'destructive', title: t('stats.error'), description: t('stats.pleasePickADateOr') });
             return;
         }
 
@@ -129,7 +130,7 @@ export const HiresAndFiresTab = () => {
 
         } catch (error: any) {
             console.error("Error generating report:", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: error.message || 'Nie udało się wygenerować raportu.' });
+            toast({ variant: 'destructive', title: t('stats.error'), description: error.message || t('stats.couldNotGenerateTheReport') });
         } finally {
             setIsLoading(false);
         }
@@ -152,27 +153,27 @@ export const HiresAndFiresTab = () => {
                 <CardHeader>
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle>Analiza historyczna</CardTitle>
-                            <CardDescription>Porównaj stan zatrudnienia między dwoma dniami lub zobacz stan na jeden dzień.</CardDescription>
+                            <CardTitle>{t('stats.historicalAnalysis')}</CardTitle>
+                            <CardDescription>{t('stats.compareHeadcountBetweenTwoDays')}</CardDescription>
                         </div>
                         {isAdmin && (
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button disabled={isArchiving}>
                                         {isArchiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}
-                                        Utwórz archiwum teraz
+                                        {t('stats.createArchiveNow')}
                                     </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Czy jesteś pewien?</AlertDialogTitle>
+                                        <AlertDialogTitle>{t('stats.areYouSure')}</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Spowoduje to utworzenie nowego archiwum na dzień dzisiejszy. Jeśli archiwum na dziś już istnieje, zostanie ono nadpisane.
+                                            {t('stats.thisWillCreateANew')}
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleManualArchive}>Kontynuuj</AlertDialogAction>
+                                        <AlertDialogCancel>{t('stats.cancel')}</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleManualArchive}>{t('stats.continue')}</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
@@ -181,7 +182,7 @@ export const HiresAndFiresTab = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid gap-2">
-                        <Label>Wybierz okres lub jeden dzień</Label>
+                        <Label>{t('stats.pickAPeriodOrA')}</Label>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -197,14 +198,14 @@ export const HiresAndFiresTab = () => {
                                     {date?.from ? (
                                         date.to ? (
                                             <>
-                                                {format(date.from, "dd LLL, y", { locale: pl })} -{" "}
-                                                {format(date.to, "dd LLL, y", { locale: pl })}
+                                                {format(date.from, "dd LLL, y", { locale: getDateLocale() })} -{" "}
+                                                {format(date.to, "dd LLL, y", { locale: getDateLocale() })}
                                             </>
                                         ) : (
-                                            format(date.from, "dd LLL, y", { locale: pl })
+                                            format(date.from, "dd LLL, y", { locale: getDateLocale() })
                                         )
                                     ) : (
-                                        <span>Wybierz zakres dat</span>
+                                        <span>{t('stats.pickADateRange')}</span>
                                     )}
                                 </Button>
                             </PopoverTrigger>
@@ -216,7 +217,7 @@ export const HiresAndFiresTab = () => {
                                     selected={date}
                                     onSelect={setDate}
                                     numberOfMonths={isMobile ? 1 : 2}
-                                    locale={pl}
+                                    locale={getDateLocale()}
                                     disabled={isLoading}
                                 />
                             </PopoverContent>
@@ -224,7 +225,7 @@ export const HiresAndFiresTab = () => {
                     </div>
                     <Button onClick={generateReport} disabled={isLoading || !date?.from}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Generuj raport
+                        {t('stats.generateReport')}
                     </Button>
                 </CardContent>
             </Card>
@@ -237,7 +238,7 @@ export const HiresAndFiresTab = () => {
             {isLoading && !report && (
                 <div className="flex justify-center items-center py-10">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-4 text-muted-foreground">Generowanie raportu, to może potrwać chwilę...</p>
+                    <p className="ml-4 text-muted-foreground">{t('stats.generatingTheReportThisMay')}</p>
                 </div>
             )}
 
@@ -245,14 +246,14 @@ export const HiresAndFiresTab = () => {
                 <div className="space-y-6 animate-fade-in">
                     <Card className="bg-muted/30">
                         <CardHeader>
-                            <CardTitle>Podsumowanie zmian</CardTitle>
+                            <CardTitle>{t('stats.summaryOfChanges')}</CardTitle>
                             <CardDescription>
-                                Porównanie stanu z dnia <span className="font-bold">{report.start.date}</span> i <span className="font-bold">{report.end.date}</span>.
+                                {rich(t('stats.comparisonOfFromAndTo'), { from: <span className="font-bold">{report.start.date}</span>, to: <span className="font-bold">{report.end.date}</span> })}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="p-4 rounded-lg border bg-background text-center">
-                                <p className="text-sm text-muted-foreground">Liczba pracowników</p>
+                                <p className="text-sm text-muted-foreground">{t('stats.numberOfEmployees')}</p>
                                 <div className="flex items-center justify-center gap-4 mt-2">
                                     <span className="text-2xl font-bold">{report.start.total}</span>
                                     <ArrowRight className="h-6 w-6 text-muted-foreground" />
@@ -260,7 +261,7 @@ export const HiresAndFiresTab = () => {
                                 </div>
                             </div>
                             <div className="p-4 rounded-lg border bg-background text-center">
-                                <p className="text-sm text-muted-foreground">Różnica</p>
+                                <p className="text-sm text-muted-foreground">{t('stats.difference')}</p>
                                 <div className="flex items-center justify-center gap-4 mt-2">
                                     <span className={cn("text-3xl font-bold", report.diff >= 0 ? 'text-green-500' : 'text-destructive')}>
                                         {report.diff > 0 ? '+' : ''}{report.diff}
@@ -268,7 +269,7 @@ export const HiresAndFiresTab = () => {
                                 </div>
                             </div>
                             <div className="p-4 rounded-lg border bg-background text-center">
-                                <p className="text-sm text-muted-foreground">Nowi / Odeszli</p>
+                                <p className="text-sm text-muted-foreground">{t('stats.newLeft')}</p>
                                 <div className="flex items-center justify-center gap-4 mt-2">
                                     <span className="text-2xl font-bold text-green-500">+{report.newHires.length}</span>
                                     <span className="text-2xl font-bold text-destructive">-{report.terminated.length}</span>
@@ -279,12 +280,12 @@ export const HiresAndFiresTab = () => {
 
                     <Accordion type="multiple" className="w-full">
                         <AccordionItem value="range-unit-changes">
-                            <AccordionTrigger>Zmiany w działach, stanowiskach i narodowościach</AccordionTrigger>
+                            <AccordionTrigger>{t('stats.changesInDepartmentsJobTitles')}</AccordionTrigger>
                             <AccordionContent>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <PeriodChangeCard title="Zmiany w działach" data={report.deptChanges} />
-                                    <PeriodChangeCard title="Zmiany na stanowiskach" data={report.jobTitleChanges} />
-                                    <PeriodChangeCard title="Zmiany narodowości" data={report.nationalityChanges} />
+                                    <PeriodChangeCard title={t('stats.departmentChanges')} data={report.deptChanges} />
+                                    <PeriodChangeCard title={t('stats.jobTitleChanges')} data={report.jobTitleChanges} />
+                                    <PeriodChangeCard title={t('stats.nationalityChanges')} data={report.nationalityChanges} />
                                 </div>
                             </AccordionContent>
                         </AccordionItem>
@@ -297,26 +298,26 @@ export const HiresAndFiresTab = () => {
                     {report.isRange ? (
                         <Accordion type="multiple" className="w-full">
                             <AccordionItem value="range-hires-fires">
-                                <AccordionTrigger>Szczegóły rotacji w okresie (zatrudnienia i zwolnienia)</AccordionTrigger>
+                                <AccordionTrigger>{t('stats.turnoverDetailsForThePeriod')}</AccordionTrigger>
                                 <AccordionContent>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <EmployeeChangeList
-                                            title="Nowo zatrudnieni"
+                                            title={t('stats.newHires')}
                                             employees={report.newHires}
                                             icon={<UserPlus className="h-6 w-6 text-green-500" />}
-                                            emptyText="Brak zatrudnień."
+                                            emptyText={t('stats.noHires')}
                                         />
                                         <EmployeeChangeList
-                                            title="Zwolnieni"
+                                            title={t('stats.terminated')}
                                             employees={report.terminated}
                                             icon={<UserX className="h-6 w-6 text-destructive" />}
-                                            emptyText="Brak zwolnień."
+                                            emptyText={t('stats.noTerminations')}
                                         />
                                     </div>
                                 </AccordionContent>
                             </AccordionItem>
                             <AccordionItem value="range-field-changes">
-                                <AccordionTrigger>Zmiany w danych pracowników</AccordionTrigger>
+                                <AccordionTrigger>{t('stats.changesInEmployeeData')}</AccordionTrigger>
                                 <AccordionContent>
                                     <FieldChangeList changes={report.fieldChanges || []} />
                                 </AccordionContent>
@@ -326,24 +327,24 @@ export const HiresAndFiresTab = () => {
                         <>
                             <Card className="bg-muted/30">
                                 <CardHeader>
-                                    <CardTitle>Raport na dzień: {report.date}</CardTitle>
-                                    <CardDescription>Stan zatrudnienia i zdarzenia w wybranym dniu.</CardDescription>
+                                    <CardTitle>{t('stats.reportForDate', { date: report.date })}</CardTitle>
+                                    <CardDescription>{t('stats.headcountAndEventsOnThe')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="p-4 rounded-lg border bg-background text-center">
-                                        <p className="text-sm text-muted-foreground">Całkowita liczba pracowników</p>
+                                        <p className="text-sm text-muted-foreground">{t('stats.totalNumberOfEmployees')}</p>
                                         <div className="flex items-center justify-center gap-4 mt-2">
                                             <span className="text-3xl font-bold">{report.total}</span>
                                         </div>
                                     </div>
                                     <div className="p-4 rounded-lg border bg-background text-center">
-                                        <p className="text-sm text-muted-foreground">Zatrudnieni tego dnia</p>
+                                        <p className="text-sm text-muted-foreground">{t('stats.hiredThatDay')}</p>
                                         <div className="flex items-center justify-center gap-4 mt-2">
                                             <span className="text-3xl font-bold text-green-500">+{report.newHires.length}</span>
                                         </div>
                                     </div>
                                     <div className="p-4 rounded-lg border bg-background text-center">
-                                        <p className="text-sm text-muted-foreground">Zwolnieni tego dnia</p>
+                                        <p className="text-sm text-muted-foreground">{t('stats.terminatedThatDay')}</p>
                                         <div className="flex items-center justify-center gap-4 mt-2">
                                             <span className="text-3xl font-bold text-destructive">-{report.terminated.length}</span>
                                         </div>
@@ -352,16 +353,16 @@ export const HiresAndFiresTab = () => {
                             </Card>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <EmployeeChangeList
-                                    title="Zatrudnieni w tym dniu"
+                                    title={t('stats.hiredOnThisDay')}
                                     employees={report.newHires}
                                     icon={<UserPlus className="h-6 w-6 text-green-500" />}
-                                    emptyText="Brak zatrudnień."
+                                    emptyText={t('stats.noHires')}
                                 />
                                 <EmployeeChangeList
-                                    title="Zwolnieni w tym dniu"
+                                    title={t('stats.terminatedOnThisDay')}
                                     employees={report.terminated}
                                     icon={<UserX className="h-6 w-6 text-destructive" />}
-                                    emptyText="Brak zwolnień."
+                                    emptyText={t('stats.noTerminations')}
                                 />
                             </div>
                             <FieldChangeList changes={report.fieldChanges || []} />
@@ -372,11 +373,11 @@ export const HiresAndFiresTab = () => {
 
             {report && !report.isRange && (
                 <div className="space-y-6 animate-fade-in">
-                    <h3 className="text-lg font-semibold mt-8">Statystyki na dzień {report.date}</h3>
+                    <h3 className="text-lg font-semibold mt-8">{t('stats.statisticsForDate', { date: report.date })}</h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <SingleDayReportCard title="Liczba pracowników w działach" data={report.deptChanges} />
-                        <SingleDayReportCard title="Liczba pracowników na stanowiskach" data={report.jobTitleChanges} />
-                        <SingleDayReportCard title="Liczba pracowników wg narodowości" data={report.nationalityChanges} />
+                        <SingleDayReportCard title={t('stats.employeesByDepartment')} data={report.deptChanges} />
+                        <SingleDayReportCard title={t('stats.employeesByJobTitle')} data={report.jobTitleChanges} />
+                        <SingleDayReportCard title={t('stats.employeesByNationality')} data={report.nationalityChanges} />
                     </div>
                 </div>
             )}

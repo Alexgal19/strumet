@@ -16,7 +16,8 @@ export default [
     rules: {
       ...nextPlugin.configs["core-web-vitals"].rules,
       ...prettier.rules,
-      "no-secrets/no-secrets": "error",
+      // Klucze tłumaczeń (np. "schedule.employedActiveStatus") mają wysoką entropię, ale nie są sekretami
+      "no-secrets/no-secrets": ["error", { ignoreContent: ["^[a-z]+\\.[a-zA-Z0-9]+$"] }],
       "@next/next/no-html-link-for-pages": "off",
       "@next/next/no-inline-styles": "off",
     },

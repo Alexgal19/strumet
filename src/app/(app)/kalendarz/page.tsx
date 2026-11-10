@@ -15,9 +15,10 @@ import {
   format, addMonths, subMonths, addDays, startOfDay, startOfMonth, endOfMonth,
   startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday,
 } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import { CalendarRange, ChevronLeft, ChevronRight, FileText, Fingerprint, UserX, Umbrella, CalendarClock, Loader2 } from 'lucide-react';
 
+import { t } from '@/lib/i18n';
 type EventType = 'contract' | 'vacation' | 'termination' | 'fingerprint' | 'absence';
 
 interface CalEvent {
@@ -26,15 +27,19 @@ interface CalEvent {
   label: string;
 }
 
-const EVENT_STYLES: Record<EventType, { dot: string; chip: string; label: string }> = {
-  contract: { dot: 'bg-amber-500', chip: 'border-amber-500/40 bg-amber-500/10', label: 'Koniec umowy' },
-  vacation: { dot: 'bg-sky-500', chip: 'border-sky-500/40 bg-sky-500/10', label: 'Urlop' },
-  termination: { dot: 'bg-destructive', chip: 'border-destructive/40 bg-destructive/10', label: 'Zwolnienie' },
-  fingerprint: { dot: 'bg-blue-500', chip: 'border-blue-500/40 bg-blue-500/10', label: 'Odciski palców' },
-  absence: { dot: 'bg-muted-foreground', chip: 'border-border bg-muted/50', label: 'Nieobecność' },
+const EVENT_STYLES: Record<EventType, { dot: string; chip: string }> = {
+  contract: { dot: 'bg-amber-500', chip: 'border-amber-500/40 bg-amber-500/10' },
+  vacation: { dot: 'bg-sky-500', chip: 'border-sky-500/40 bg-sky-500/10' },
+  termination: { dot: 'bg-destructive', chip: 'border-destructive/40 bg-destructive/10' },
+  fingerprint: { dot: 'bg-blue-500', chip: 'border-blue-500/40 bg-blue-500/10' },
+  absence: { dot: 'bg-muted-foreground', chip: 'border-border bg-muted/50' },
 };
 
-const WEEKDAYS = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+// Teksty liczone w trakcie renderu — po zmianie języka strona jest przemontowywana
+const eventLabel = (type: EventType): string =>
+  ({ contract: t('calendar.contractEnds'), vacation: t('calendar.leave'), termination: t('calendar.termination'), fingerprint: t('calendar.fingerprints'), absence: t('calendar.absence') })[type];
+
+const weekdays = () => [t('calendar.mo'), t('calendar.tu'), t('calendar.we'), t('calendar.th'), t('calendar.fr'), t('calendar.sa'), t('calendar.su')];
 
 export default function KalendarzPage() {
   const { absences, fingerprintAppointments, isLoading: isContextLoading } = useAppContext();
@@ -57,20 +62,20 @@ export default function KalendarzPage() {
     };
 
     employees.forEach((e) => {
-      add(e.contractEndDate, 'contract', e, 'Koniec umowy');
-      add(e.vacationStartDate, 'vacation', e, 'Urlop od');
-      add(e.vacationEndDate, 'vacation', e, 'Urlop do');
-      add(e.plannedTerminationDate, 'termination', e, 'Planowane zwolnienie');
+      add(e.contractEndDate, 'contract', e, t('calendar.contractEnds'));
+      add(e.vacationStartDate, 'vacation', e, t('calendar.leaveFrom'));
+      add(e.vacationEndDate, 'vacation', e, t('calendar.leaveUntil'));
+      add(e.plannedTerminationDate, 'termination', e, t('calendar.plannedTermination'));
     });
 
     absences.forEach((a) => {
       const employee = employees.find((e) => e.id === a.employeeId);
-      if (employee) add(a.date, 'absence', employee, 'Nieobecność');
+      if (employee) add(a.date, 'absence', employee, t('calendar.absence'));
     });
 
     fingerprintAppointments.forEach((f) => {
       const employee = employees.find((e) => e.id === f.employeeId);
-      if (employee) add(f.appointmentDate, 'fingerprint', employee, 'Odciski palców');
+      if (employee) add(f.appointmentDate, 'fingerprint', employee, t('calendar.fingerprints'));
     });
 
     return map;
@@ -107,21 +112,21 @@ export default function KalendarzPage() {
   return (
     <div className="min-h-full w-full space-y-6 pb-8">
       <PageHeader
-        title="Kalendarz"
-        description="Umowy, urlopy, zwolnienia, odciski i nieobecności w jednym widoku."
+        title={t('calendar.calendar')}
+        description={t('calendar.contractsLeaveTerminationsFingerprintsAnd')}
       >
         <div className="flex items-center gap-1 p-1 rounded-md border bg-card">
           <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setCurrentDate((p) => subMonths(p, 1))}>
             <ChevronLeft />
           </Button>
           <span className="px-2 text-sm font-semibold capitalize min-w-[130px] text-center">
-            {format(currentDate, 'LLLL yyyy', { locale: pl })}
+            {format(currentDate, 'LLLL yyyy', { locale: getDateLocale() })}
           </span>
           <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setCurrentDate((p) => addMonths(p, 1))}>
             <ChevronRight />
           </Button>
           <Button variant="ghost" size="sm" className="h-11 px-4" onClick={() => { setCurrentDate(new Date()); setSelectedDate(null); }}>
-            Dziś
+            {t('calendar.today')}
           </Button>
         </div>
       </PageHeader>
@@ -133,7 +138,7 @@ export default function KalendarzPage() {
             {agendaDays.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                  Brak zdarzeń w tym miesiącu i najbliższych 14 dniach.
+                  {t('calendar.noEventsThisMonthOr')}
                 </CardContent>
               </Card>
             ) : (
@@ -143,13 +148,13 @@ export default function KalendarzPage() {
                   <Card key={day.toISOString()}>
                     <CardHeader className="pb-2">
                       <CardTitle className="flex flex-wrap items-center gap-2 text-sm font-semibold capitalize">
-                        {format(day, 'EEEE, dd.MM', { locale: pl })}
-                        {isToday(day) && <Badge>Dziś</Badge>}
+                        {format(day, 'EEEE, dd.MM', { locale: getDateLocale() })}
+                        {isToday(day) && <Badge>{t('calendar.today')}</Badge>}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {dayEvents.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">Brak zdarzeń.</p>
+                        <p className="text-xs text-muted-foreground">{t('calendar.noEvents')}</p>
                       ) : (
                         dayEvents.map((ev, i) => (
                           <div
@@ -160,7 +165,7 @@ export default function KalendarzPage() {
                             <div className="min-w-0">
                               <p className="line-clamp-2 font-medium leading-snug">{ev.employee.fullName}</p>
                               <p className="line-clamp-2 leading-snug text-muted-foreground">
-                                {EVENT_STYLES[ev.type].label} • {ev.employee.department || '—'}
+                                {eventLabel(ev.type)} • {ev.employee.department || '—'}
                               </p>
                             </div>
                           </div>
@@ -176,7 +181,7 @@ export default function KalendarzPage() {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           <Card className="xl:col-span-3 overflow-hidden">
             <div className="grid grid-cols-7 border-b bg-muted/40">
-              {WEEKDAYS.map((d) => (
+              {weekdays().map((d) => (
                 <div key={d} className="p-2 text-center text-xs font-semibold text-muted-foreground">
                   {d}
                 </div>
@@ -221,7 +226,7 @@ export default function KalendarzPage() {
                           className="text-left text-xs text-muted-foreground pl-1"
                           onClick={(e) => { e.stopPropagation(); setSelectedDate(day); }}
                         >
-                          +{dayEvents.length - 2} więcej
+                          {t('calendar.countMore', { count: dayEvents.length - 2 })}
                         </button>
                       )}
                     </div>
@@ -235,20 +240,20 @@ export default function KalendarzPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
                 {selectedDate
-                  ? format(selectedDate, 'd MMMM yyyy', { locale: pl })
-                  : 'Wybierz dzień'}
+                  ? format(selectedDate, 'd MMMM yyyy', { locale: getDateLocale() })
+                  : t('calendar.pickADay')}
               </CardTitle>
               <CardDescription className="text-xs">
                 {selectedDate
-                  ? `${selectedEvents.length} ${selectedEvents.length === 1 ? 'zdarzenie' : 'zdarzeń'}`
-                  : 'Zdarzenia z zaznaczonego dnia.'}
+                  ? selectedEvents.length === 1 ? t('calendar.countEvent', { count: 1 }) : t('calendar.countEvents', { count: selectedEvents.length })
+                  : t('calendar.eventsOnTheSelectedDay')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {selectedDate ? (
                 selectedEvents.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">
-                    Brak zdarzeń tego dnia.
+                    {t('calendar.noEventsOnThisDay')}
                   </p>
                 ) : (
                   selectedEvents.map((ev, i) => {
@@ -275,7 +280,7 @@ export default function KalendarzPage() {
                   {(Object.keys(EVENT_STYLES) as EventType[]).map((type) => (
                     <div key={type} className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span className={cn('h-2 w-2 rounded-full', EVENT_STYLES[type].dot)} />
-                      {EVENT_STYLES[type].label}
+                      {eventLabel(type)}
                     </div>
                   ))}
                 </div>
@@ -287,11 +292,11 @@ export default function KalendarzPage() {
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" /> Koniec umowy</Badge>
-        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-sky-500" /> Urlop</Badge>
-        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive" /> Zwolnienie</Badge>
-        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-500" /> Odciski palców</Badge>
-        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-muted-foreground" /> Nieobecność</Badge>
+        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" /> {t('calendar.contractEnds')}</Badge>
+        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-sky-500" /> {t('calendar.leave')}</Badge>
+        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive" /> {t('calendar.termination')}</Badge>
+        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-500" /> {t('calendar.fingerprints')}</Badge>
+        <Badge variant="outline" className="gap-1.5"><span className="h-2 w-2 rounded-full bg-muted-foreground" /> {t('calendar.absence')}</Badge>
       </div>
     </div>
   );

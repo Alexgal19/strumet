@@ -30,7 +30,7 @@ import {
 import { useAppContext } from '@/context/app-context';
 import { cn } from '@/lib/utils';
 import { format, isPast, differenceInHours, isToday, isTomorrow } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import {
   NotebookPen,
   Plus,
@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import type { Note } from '@/lib/types';
 
+import { t } from '@/lib/i18n';
 function parseDueDateTime(note: Note): Date {
   return new Date(note.dueDate + 'T' + note.dueTime + ':00');
 }
@@ -59,9 +60,9 @@ function getUrgency(note: Note): 'overdue' | 'soon' | 'future' {
 
 function formatDueLabel(note: Note): string {
   const due = parseDueDateTime(note);
-  if (isToday(due)) return 'Dzis o ' + note.dueTime;
-  if (isTomorrow(due)) return 'Jutro o ' + note.dueTime;
-  return format(due, 'd MMM yyyy', { locale: pl }) + ' o ' + note.dueTime;
+  if (isToday(due)) return t('notes.todayAtTime', { time: note.dueTime });
+  if (isTomorrow(due)) return t('notes.tomorrowAtTime', { time: note.dueTime });
+  return t('notes.dateAtTime', { date: format(due, 'd MMM yyyy', { locale: getDateLocale() }), time: note.dueTime });
 }
 
 function UrgencyBadge({ note }: { note: Note }) {
@@ -69,7 +70,7 @@ function UrgencyBadge({ note }: { note: Note }) {
     return (
       <Badge variant="secondary" className="gap-1">
         <BellOff className="h-3 w-3" />
-        Przeczytane
+        {t('notes.read')}
       </Badge>
     );
   }
@@ -78,7 +79,7 @@ function UrgencyBadge({ note }: { note: Note }) {
     return (
       <Badge variant="destructive" className="gap-1">
         <AlertCircle className="h-3 w-3" />
-        Przeterminowane
+        {t('notes.overdue')}
       </Badge>
     );
   }
@@ -86,14 +87,14 @@ function UrgencyBadge({ note }: { note: Note }) {
     return (
       <Badge className="gap-1 bg-amber-500 text-white hover:bg-amber-500/90">
         <Clock className="h-3 w-3" />
-        Wkrotce
+        {t('notes.soon')}
       </Badge>
     );
   }
   return (
     <Badge variant="outline" className="gap-1">
       <Bell className="h-3 w-3" />
-      Zaplanowane
+      {t('notes.scheduled')}
     </Badge>
   );
 }
@@ -149,7 +150,7 @@ function NoteCard({ note, onMarkRead, onDelete }: {
             onClick={() => onMarkRead(note.id)}
           >
             <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-            Oznacz jako przeczytane
+            {t('notes.markAsRead')}
           </Button>
         )}
 
@@ -161,23 +162,23 @@ function NoteCard({ note, onMarkRead, onDelete }: {
               className="gap-1.5 text-xs h-11 text-muted-foreground hover:text-destructive ml-auto"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Usun
+              {t('notes.delete')}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Usunac notatke?</AlertDialogTitle>
+              <AlertDialogTitle>{t('notes.deleteThisNote')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Tej operacji nie mozna cofnac. Notatka zostanie trwale usunieta.
+                {t('notes.thisCannotBeUndoneThe')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Anuluj</AlertDialogCancel>
+              <AlertDialogCancel>{t('notes.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => onDelete(note.id)}
               >
-                Usun
+                {t('notes.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -242,8 +243,8 @@ export default function NotatkiPage() {
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
       <PageHeader
-        title="Notatki"
-        description="Twoje zadania i przypomnienia z powiadomieniami email"
+        title={t('notes.notes')}
+        description={t('notes.yourTasksAndRemindersWith')}
         icon={<NotebookPen className="h-5 w-5" />}
       />
 
@@ -252,13 +253,13 @@ export default function NotatkiPage() {
           {overdueCount > 0 && (
             <Badge variant="destructive" className="gap-1.5">
               <AlertCircle className="h-3.5 w-3.5" />
-              {overdueCount} przeterminowane
+              {t('notes.countOverdue', { count: overdueCount })}
             </Badge>
           )}
           {unreadCount > 0 && (
             <Badge variant="secondary" className="gap-1.5">
               <Bell className="h-3.5 w-3.5" />
-              {unreadCount} nieprzeczytane
+              {t('notes.countUnread', { count: unreadCount })}
             </Badge>
           )}
         </div>
@@ -269,16 +270,16 @@ export default function NotatkiPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            Nowa notatka
+            {t('notes.newNote')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form id="note-form" onSubmit={handleSubmit} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="note-title">Tytul *</Label>
+              <Label htmlFor="note-title">{t('notes.title')}</Label>
               <Input
                 id="note-title"
-                placeholder="Np. Sprawdzic umowe pracownika..."
+                placeholder={t('notes.eGCheckTheEmployee')}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
@@ -287,10 +288,10 @@ export default function NotatkiPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="note-content">Opis (opcjonalnie)</Label>
+              <Label htmlFor="note-content">{t('notes.descriptionOptional')}</Label>
               <Textarea
                 id="note-content"
-                placeholder="Dodatkowe szczegoly..."
+                placeholder={t('notes.additionalDetails')}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={3}
@@ -300,7 +301,7 @@ export default function NotatkiPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="note-date">Data wykonania *</Label>
+                <Label htmlFor="note-date">{t('notes.dueDate')}</Label>
                 <Input
                   id="note-date"
                   type="date"
@@ -310,7 +311,7 @@ export default function NotatkiPage() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="note-time">Godzina *</Label>
+                <Label htmlFor="note-time">{t('notes.time')}</Label>
                 <Input
                   id="note-time"
                   type="time"
@@ -329,7 +330,7 @@ export default function NotatkiPage() {
                 className="gap-2"
               >
                 <Plus className="h-4 w-4" />
-                {isSaving ? 'Zapisywanie...' : 'Dodaj notatke'}
+                {isSaving ? t('notes.saving') : t('notes.addNote')}
               </Button>
             </div>
           </form>
@@ -339,13 +340,13 @@ export default function NotatkiPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3 h-auto">
           <TabsTrigger value="all" id="tab-all" className="text-xs sm:text-sm py-2">
-            Wszystkie ({notes.length})
+            {t('notes.allCount', { count: notes.length })}
           </TabsTrigger>
           <TabsTrigger value="unread" id="tab-unread" className="text-xs sm:text-sm py-2">
-            Nieprzeczytane ({unreadCount})
+            {t('notes.unreadCount', { count: unreadCount })}
           </TabsTrigger>
           <TabsTrigger value="read" id="tab-read" className="text-xs sm:text-sm py-2">
-            Przeczytane ({readCount})
+            {t('notes.readCount', { count: readCount })}
           </TabsTrigger>
         </TabsList>
 
@@ -354,10 +355,10 @@ export default function NotatkiPage() {
             <EmptyState
               message={
                 activeTab === 'all'
-                  ? 'Brak notatek. Dodaj pierwszą, korzystając z formularza.'
+                  ? t('notes.noNotesYetAddYour')
                   : activeTab === 'unread'
-                  ? 'Brak nieprzeczytanych notatek. Wszystko pod kontrola!'
-                  : 'Brak przeczytanych notatek.'
+                  ? t('notes.noUnreadNotesAllUnder')
+                  : t('notes.noReadNotes')
               }
             />
           ) : (

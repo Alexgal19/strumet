@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import type { Recruitment } from '@/lib/types';
 
+import { t } from '@/lib/i18n';
 type ToastFn = (props: {
   variant?: 'default' | 'destructive';
   title?: string;
@@ -178,8 +179,8 @@ export const exportRecruitmentToExcel = async ({
     console.error('Błąd podczas eksportu:', error);
     toast({
       variant: 'destructive',
-      title: 'Błąd',
-      description: 'Nie udało się wyeksportować danych do pliku Excel.',
+      title: t('recruit.error'),
+      description: t('recruit.couldNotExportTheData'),
     });
   }
 };

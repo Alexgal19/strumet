@@ -14,7 +14,7 @@ import { PageHeader } from '@/components/page-header';
 import type { Employee, Absence } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { add, format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, setYear, setMonth, isWeekend, getDaysInMonth, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -36,6 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { excelLikeMatch } from '@/lib/search';
 
+import { t } from '@/lib/i18n';
 const DepartmentStats = ({
   departmentData,
   onCopy,
@@ -55,12 +56,12 @@ const DepartmentStats = ({
     <Card>
       <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle>Absencja wg działów</CardTitle>
-          <CardDescription>Średni % nieobecności w miesiącu.</CardDescription>
+          <CardTitle>{t('attendance.absenceByDepartment')}</CardTitle>
+          <CardDescription>{t('attendance.averageAbsenceInTheMonth')}</CardDescription>
         </div>
         <Button variant="ghost" size="sm" className="w-full sm:w-auto" onClick={() => onCopy(formatListForCopy())}>
           <Copy className="mr-2 h-4 w-4" />
-          Kopiuj listę
+          {t('attendance.copyList')}
         </Button>
       </CardHeader>
       <CardContent>
@@ -90,7 +91,7 @@ const DepartmentStats = ({
             ))}
           </Accordion>
         ) : (
-          <p className="text-center text-sm text-muted-foreground py-4">Brak danych do wyświetlenia.</p>
+          <p className="text-center text-sm text-muted-foreground py-4">{t('attendance.noDataToShow')}</p>
         )}
       </CardContent>
     </Card>
@@ -110,7 +111,7 @@ export default function OdwiedzalnoscPage() {
   const [absenceDateFilter, setAbsenceDateFilter] = useState<Date[]>([]);
 
   const departmentOptions = useMemo(() => [
-    { value: "all", label: "Wszystkie działy" },
+    { value: "all", label: t('attendance.allDepartments') },
     ...[...new Set(activeEmployees.map(e => e.department).filter(Boolean))].sort().map(d => ({ value: d, label: d }))
   ], [activeEmployees]);
 
@@ -122,7 +123,7 @@ export default function OdwiedzalnoscPage() {
   const months = useMemo(() => {
     return Array.from({ length: 12 }, (_, i) => ({
       value: i,
-      label: format(new Date(2000, i, 1), 'LLLL', { locale: pl }),
+      label: format(new Date(2000, i, 1), 'LLLL', { locale: getDateLocale() }),
     }));
   }, []);
 
@@ -262,8 +263,8 @@ export default function OdwiedzalnoscPage() {
   const handleCopy = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
     toast({
-      title: "Skopiowano!",
-      description: "Statystyki działów zostały skopiowane do schowka.",
+      title: t('attendance.copied'),
+      description: t('attendance.departmentStatisticsCopiedToThe'),
     });
   }, [toast]);
 
@@ -284,8 +285,8 @@ export default function OdwiedzalnoscPage() {
       {dateFilteredEmployees.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed text-center p-12 text-muted-foreground h-full">
               <UserX className="h-12 w-12 mb-4" />
-              <h3 className="text-lg font-semibold">Brak pracowników</h3>
-              <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów.</p>
+              <h3 className="text-lg font-semibold">{t('attendance.noEmployees')}</h3>
+              <p className="text-sm">{t('attendance.noEmployeesMatchTheSelected')}</p>
           </div>
       )}
     </>
@@ -307,14 +308,14 @@ export default function OdwiedzalnoscPage() {
         ) : (
             <>
                 <PageHeader
-                    title="Obecność"
-                    description="Zarządzaj nieobecnościami pracowników i analizuj statystyki."
+                    title={t('attendance.attendance')}
+                    description={t('attendance.manageEmployeeAbsencesAndReview')}
                 />
 
                 <div className="mb-6 flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-3">
                     <Card className="min-w-[70%] sm:min-w-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Dni robocze w miesiącu</CardTitle>
+                            <CardTitle className="text-sm font-medium">{t('attendance.workingDaysInTheMonth')}</CardTitle>
                             <Info className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -323,7 +324,7 @@ export default function OdwiedzalnoscPage() {
                     </Card>
                     <Card className="min-w-[70%] sm:min-w-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Suma nieobecności (miesiąc)</CardTitle>
+                            <CardTitle className="text-sm font-medium">{t('attendance.totalAbsencesMonth')}</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -332,7 +333,7 @@ export default function OdwiedzalnoscPage() {
                     </Card>
                     <Card className="min-w-[70%] sm:min-w-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Absencja (miesiąc)</CardTitle>
+                            <CardTitle className="text-sm font-medium">{t('attendance.absenceRateMonth')}</CardTitle>
                             <UserX className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -344,7 +345,7 @@ export default function OdwiedzalnoscPage() {
                 <div className="mb-6 flex flex-col gap-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <h2 className="text-xl sm:text-2xl font-bold tracking-tight capitalize">
-                            {format(currentDate, 'LLLL yyyy', { locale: pl })}
+                            {format(currentDate, 'LLLL yyyy', { locale: getDateLocale() })}
                         </h2>
                         <AttendanceExcelExportButton
                             currentDate={currentDate}
@@ -356,14 +357,14 @@ export default function OdwiedzalnoscPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <Input
-                            placeholder="Szukaj po nazwisku..."
+                            placeholder={t('attendance.searchByName')}
                             className="flex-1 min-w-[140px]"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                         <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
                             <SelectTrigger className="flex-1 min-w-[140px] sm:w-[200px] sm:flex-none">
-                                <SelectValue placeholder="Wybierz dział" />
+                                <SelectValue placeholder={t('attendance.selectADepartment')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {departmentOptions.map(option => (
@@ -383,7 +384,7 @@ export default function OdwiedzalnoscPage() {
                                     )}
                                 >
                                     <CalendarDays className="mr-2 h-4 w-4 shrink-0" />
-                                    {isDateFilterActive ? `Wybrane dni: ${absenceDateFilter.length}` : 'Filtruj po datach'}
+                                    {isDateFilterActive ? t('attendance.selectedDaysCount', { count: absenceDateFilter.length }) : t('attendance.filterByDates')}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
@@ -392,7 +393,7 @@ export default function OdwiedzalnoscPage() {
                                     selected={absenceDateFilter}
                                     onSelect={(dates) => setAbsenceDateFilter(dates ?? [])}
                                     defaultMonth={currentDate}
-                                    locale={pl}
+                                    locale={getDateLocale()}
                                 />
                                 <div className="p-2 border-t">
                                     <Button
@@ -403,7 +404,7 @@ export default function OdwiedzalnoscPage() {
                                         onClick={() => setAbsenceDateFilter([])}
                                     >
                                         <X className="mr-2 h-4 w-4" />
-                                        Wyczyść filtr dat
+                                        {t('attendance.clearDateFilter')}
                                     </Button>
                                 </div>
                             </PopoverContent>
@@ -429,25 +430,25 @@ export default function OdwiedzalnoscPage() {
                         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
                                 <CardTitle className="text-base">
-                                    Nieobecni w wybranych dniach ({absenceSummary.length})
+                                    {t('attendance.absentOnTheSelectedDays', { count: absenceSummary.length })}
                                 </CardTitle>
                                 <CardDescription className="break-words">
                                     {absenceDateFilter
                                         .slice()
                                         .sort((a, b) => a.getTime() - b.getTime())
-                                        .map(d => format(d, 'dd.MM.yyyy', { locale: pl }))
+                                        .map(d => format(d, 'dd.MM.yyyy', { locale: getDateLocale() }))
                                         .join(', ')}
                                 </CardDescription>
                             </div>
                             <Button variant="ghost" size="sm" className="w-full sm:w-auto shrink-0" onClick={() => setAbsenceDateFilter([])}>
                                 <X className="mr-2 h-4 w-4" />
-                                Wyczyść filtr
+                                {t('attendance.clearFilter')}
                             </Button>
                         </CardHeader>
                         <CardContent>
                             {absenceSummary.length === 0 ? (
                                 <p className="text-center text-sm text-muted-foreground py-4">
-                                    Brak nieobecności w wybranych dniach.
+                                    {t('attendance.noAbsencesOnTheSelected')}
                                 </p>
                             ) : (
                                 <div className="divide-y divide-border/60">
@@ -455,7 +456,7 @@ export default function OdwiedzalnoscPage() {
                                         <div key={employee.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
                                             <div className="min-w-0">
                                                 <p className="text-sm font-medium truncate">{employee.fullName}</p>
-                                                <p className="text-xs text-muted-foreground">{employee.department || 'Bez działu'}</p>
+                                                <p className="text-xs text-muted-foreground">{employee.department || t('attendance.noDepartment')}</p>
                                             </div>
                                             <p className="text-sm font-semibold">{dates.map(d => format(parseISO(d), 'dd.MM')).join(', ')}</p>
                                         </div>
@@ -469,8 +470,8 @@ export default function OdwiedzalnoscPage() {
                 {isMobile ? (
                     <Tabs defaultValue="employees" className="space-y-4">
                         <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="employees" className="min-h-[44px]">Pracownicy</TabsTrigger>
-                            <TabsTrigger value="departments" className="min-h-[44px]">Działy</TabsTrigger>
+                            <TabsTrigger value="employees" className="min-h-[44px]">{t('attendance.employees')}</TabsTrigger>
+                            <TabsTrigger value="departments" className="min-h-[44px]">{t('attendance.departments')}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="employees">{employeesContent}</TabsContent>
                         <TabsContent value="departments">{statsContent}</TabsContent>

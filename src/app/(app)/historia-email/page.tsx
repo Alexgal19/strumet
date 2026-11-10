@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow, format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import {
@@ -15,9 +15,10 @@ import {
 import { useAppContext } from '@/context/app-context';
 import type { EmailLog } from '@/lib/types';
 
+import { t } from '@/lib/i18n';
 const STATUS_LABELS = {
-  sent: 'Wysłano',
-  failed: 'Błąd',
+  get sent() { return t('email.sent'); },
+  get failed() { return t('email.error'); },
 };
 
 export default function EmailHistoryPage() {
@@ -31,31 +32,31 @@ export default function EmailHistoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Historia email</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('email.emailHistory')}</h1>
         <p className="text-muted-foreground mt-1">
-          Wszystkie wysłane wiadomości email.
+          {t('email.allSentEmailMessages')}
         </p>
       </div>
 
       <div className="flex flex-wrap gap-4 items-center">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filtruj status..." />
+            <SelectValue placeholder={t('email.filterStatus')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Wszystkie</SelectItem>
-            <SelectItem value="sent">Wysłane</SelectItem>
-            <SelectItem value="failed">Błędne</SelectItem>
+            <SelectItem value="all">{t('email.all')}</SelectItem>
+            <SelectItem value="sent">{t('email.sent2')}</SelectItem>
+            <SelectItem value="failed">{t('email.failed')}</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">
-          Razem: {emailLogs.length} wiadomości
+          {t('email.totalCountMessages', { count: emailLogs.length })}
         </span>
       </div>
 
       {filteredLogs.length === 0 ? (
         <Card className="p-12 text-center">
-          <p className="text-muted-foreground">Brak wiadomości w historii.</p>
+          <p className="text-muted-foreground">{t('email.noMessagesInTheHistory')}</p>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -77,16 +78,16 @@ export default function EmailHistoryPage() {
                   </p>
                   {log.errorMessage && (
                     <p className="text-sm text-destructive mt-1">
-                      Błąd: {log.errorMessage}
+                      {t('email.errorMessage', { message: log.errorMessage })}
                     </p>
                   )}
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(log.sentAt), 'dd.MM.yyyy HH:mm', { locale: pl })}
+                    {format(new Date(log.sentAt), 'dd.MM.yyyy HH:mm', { locale: getDateLocale() })}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(log.sentAt), { addSuffix: true, locale: pl })}
+                    {formatDistanceToNow(new Date(log.sentAt), { addSuffix: true, locale: getDateLocale() })}
                   </p>
                 </div>
               </div>

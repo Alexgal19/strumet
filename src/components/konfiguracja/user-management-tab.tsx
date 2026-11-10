@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
 import type { User, UserRole } from '@/lib/types';
 
+import { t } from '@/lib/i18n';
 export const UserManagementTab = () => {
     const { users, currentUser, handleUpdateUserRole } = useAppContext();
     const { toast } = useToast();
@@ -16,7 +17,7 @@ export const UserManagementTab = () => {
 
     const handleRoleChange = (user: User, newRole: UserRole) => {
         if (user.id === currentUser?.uid) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie można zmienić własnej roli.' });
+            toast({ variant: 'destructive', title: t('settings.error'), description: t('settings.youCannotChangeYourOwn') });
             return;
         }
         setUpdatingUserId(user.id);
@@ -30,9 +31,9 @@ export const UserManagementTab = () => {
             <CardHeader>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                <CardTitle>Zarządzanie Użytkownikami</CardTitle>
+                <CardTitle>{t('settings.userManagement')}</CardTitle>
                 <CardDescription>
-                    Przeglądaj użytkowników i zarządzaj ich uprawnieniami.
+                    {t('settings.browseUsersAndManageTheir')}
                 </CardDescription>
                 </div>
                 {users.length > 0 && (
@@ -40,7 +41,7 @@ export const UserManagementTab = () => {
                         data={users}
                         columns={[
                             { key: 'email', name: 'Email' },
-                            { key: 'role', name: 'Rola' },
+                            { key: 'role', name: t('settings.role') },
                         ]}
                         fileName="uzytkownicy"
                     />
@@ -53,7 +54,7 @@ export const UserManagementTab = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Email</TableHead>
-                                <TableHead className="w-[150px] text-center">Rola</TableHead>
+                                <TableHead className="w-[150px] text-center">{t('settings.role')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -66,13 +67,13 @@ export const UserManagementTab = () => {
                                             onValueChange={(value) => handleRoleChange(user, value as UserRole)}
                                             disabled={user.id === currentUser?.uid || updatingUserId === user.id}
                                         >
-                                            <SelectTrigger className="w-[150px] ml-auto" aria-label="Rola użytkownika">
+                                            <SelectTrigger className="w-[150px] ml-auto" aria-label={t('settings.userRole')}>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="admin">Administrator</SelectItem>
-                                                <SelectItem value="editor">Kolega</SelectItem>
-                                                <SelectItem value="guest">Gość</SelectItem>
+                                                <SelectItem value="admin">{t('settings.administrator')}</SelectItem>
+                                                <SelectItem value="editor">{t('settings.colleague')}</SelectItem>
+                                                <SelectItem value="guest">{t('settings.guest')}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                      </TableCell>
@@ -87,19 +88,19 @@ export const UserManagementTab = () => {
                             <CardContent className="p-4 flex flex-col gap-3">
                                 <span className="font-semibold text-base break-all">{user.email}</span>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium">Rola</span>
+                                    <span className="text-sm font-medium">{t('settings.role')}</span>
                                     <Select
                                         value={user.role}
                                         onValueChange={(value) => handleRoleChange(user, value as UserRole)}
                                         disabled={user.id === currentUser?.uid || updatingUserId === user.id}
                                     >
-                                        <SelectTrigger className="w-[150px]" aria-label="Rola użytkownika">
+                                        <SelectTrigger className="w-[150px]" aria-label={t('settings.userRole')}>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="admin">Administrator</SelectItem>
-                                            <SelectItem value="editor">Kolega</SelectItem>
-                                            <SelectItem value="guest">Gość</SelectItem>
+                                            <SelectItem value="admin">{t('settings.administrator')}</SelectItem>
+                                            <SelectItem value="editor">{t('settings.colleague')}</SelectItem>
+                                            <SelectItem value="guest">{t('settings.guest')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

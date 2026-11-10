@@ -36,6 +36,7 @@ import { getDB } from '@/lib/firebase';
 import { objectToArray } from '@/lib/utils';
 import type { Order } from '@/lib/types';
 
+import { t } from '@/lib/i18n';
 export const OrdersTab = () => {
     const { config, addOrder, updateOrder, deleteOrder, isLoading: isAppLoading, isAdmin } = useAppContext();
     const [orders, setOrders] = useState<Order[]>([]);
@@ -70,7 +71,7 @@ export const OrdersTab = () => {
 
     const handleAddNewOrder = async (type: 'new' | 'replacement') => {
         if (!newOrderDepartment || !newOrderJobTitle || newOrderQuantity < 1) {
-            toast({ variant: 'destructive', title: 'Błąd walidacji', description: 'Wszystkie pola muszą być wypełnione.' });
+            toast({ variant: 'destructive', title: t('stats.validationError'), description: t('stats.allFieldsMustBeFilled') });
             return;
         }
         await addOrder({
@@ -122,36 +123,36 @@ export const OrdersTab = () => {
                 <div className="order-2 lg:order-1 lg:col-span-1">
                     <Tabs defaultValue="new" className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="new">Nowy pracownik</TabsTrigger>
-                            <TabsTrigger value="replacement">Zastępstwo</TabsTrigger>
+                            <TabsTrigger value="new">{t('stats.newEmployee')}</TabsTrigger>
+                            <TabsTrigger value="replacement">{t('stats.replacement')}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="new">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Zamówienie na nowego pracownika</CardTitle>
-                                    <CardDescription>Wypełnij formularz, aby utworzyć nowe zamówienie.</CardDescription>
+                                    <CardTitle>{t('stats.orderForANewEmployee')}</CardTitle>
+                                    <CardDescription>{t('stats.fillInTheFormTo')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="space-y-1">
-                                        <Label>Dział</Label>
+                                        <Label>{t('stats.department')}</Label>
                                         <Select value={newOrderDepartment} onValueChange={setNewOrderDepartment}>
-                                            <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder={t('stats.selectADepartment')} /></SelectTrigger>
                                             <SelectContent>
                                                 {config.departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label>Stanowisko</Label>
+                                        <Label>{t('stats.jobTitle')}</Label>
                                         <Select value={newOrderJobTitle} onValueChange={setNewOrderJobTitle}>
-                                            <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder={t('stats.selectAJobTitle')} /></SelectTrigger>
                                             <SelectContent>
                                                 {config.jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label>Ilość</Label>
+                                        <Label>{t('stats.quantity')}</Label>
                                         <Input
                                             type="number"
                                             value={newOrderQuantity}
@@ -161,7 +162,7 @@ export const OrdersTab = () => {
                                     </div>
                                     <Button onClick={() => handleAddNewOrder('new')} className="w-full">
                                         <PlusCircle className="mr-2 h-4 w-4" />
-                                        Dodaj zamówienie
+                                        {t('stats.addOrder')}
                                     </Button>
                                 </CardContent>
                             </Card>
@@ -169,30 +170,30 @@ export const OrdersTab = () => {
                         <TabsContent value="replacement">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Zamówienie na zastępstwo</CardTitle>
-                                    <CardDescription>Wypełnij formularz, aby utworzyć zamówienie na zastępstwo.</CardDescription>
+                                    <CardTitle>{t('stats.replacementOrder')}</CardTitle>
+                                    <CardDescription>{t('stats.fillInTheFormTo2')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="space-y-1">
-                                        <Label>Dział</Label>
+                                        <Label>{t('stats.department')}</Label>
                                         <Select value={newOrderDepartment} onValueChange={setNewOrderDepartment}>
-                                            <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder={t('stats.selectADepartment')} /></SelectTrigger>
                                             <SelectContent>
                                                 {config.departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label>Stanowisko</Label>
+                                        <Label>{t('stats.jobTitle')}</Label>
                                         <Select value={newOrderJobTitle} onValueChange={setNewOrderJobTitle}>
-                                            <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder={t('stats.selectAJobTitle')} /></SelectTrigger>
                                             <SelectContent>
                                                 {config.jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label>Ilość</Label>
+                                        <Label>{t('stats.quantity')}</Label>
                                         <Input
                                             type="number"
                                             value={newOrderQuantity}
@@ -202,7 +203,7 @@ export const OrdersTab = () => {
                                     </div>
                                     <Button onClick={() => handleAddNewOrder('replacement')} className="w-full">
                                         <PlusCircle className="mr-2 h-4 w-4" />
-                                        Dodaj zastępstwo
+                                        {t('stats.addReplacement')}
                                     </Button>
                                 </CardContent>
                             </Card>
@@ -213,8 +214,8 @@ export const OrdersTab = () => {
             <div className={isAdmin ? "order-1 lg:order-2 lg:col-span-2" : "order-1 lg:order-2 lg:col-span-3"}>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Aktywne zamówienia</CardTitle>
-                        <CardDescription>Lista aktualnych zapotrzebowań na personel.</CardDescription>
+                        <CardTitle>{t('stats.activeOrders')}</CardTitle>
+                        <CardDescription>{t('stats.currentStaffingRequests')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {Object.keys(groupedOrders).length > 0 ? (
@@ -229,11 +230,11 @@ export const OrdersTab = () => {
                                                 <div className='flex justify-between w-full pr-4 items-center'>
                                                     <div className="flex items-center gap-2">
                                                         <span className='font-bold text-base'>{dept}</span>
-                                                        {hasNewOrders && <Badge variant="outline">Nowe</Badge>}
-                                                        {hasReplacementOrders && <Badge variant="secondary" className="border-orange-500/80 text-orange-800">Zastępstwo</Badge>}
+                                                        {hasNewOrders && <Badge variant="outline">{t('stats.new')}</Badge>}
+                                                        {hasReplacementOrders && <Badge variant="secondary" className="border-orange-500/80 text-orange-800">{t('stats.replacement')}</Badge>}
                                                     </div>
                                                     <span className='text-muted-foreground text-sm font-normal'>
-                                                        {orderList.reduce((sum, o) => sum + o.quantity, 0)} os.
+                                                        {t('stats.countPpl', { count: orderList.reduce((sum, o) => sum + o.quantity, 0) })}
                                                     </span>
                                                 </div>
                                             </AccordionTrigger>
@@ -247,9 +248,9 @@ export const OrdersTab = () => {
                                                                 <div>
                                                                     <p className="font-medium">{order.jobTitle}</p>
                                                                     <div className="text-xs text-muted-foreground space-y-1 mt-2">
-                                                                        <p>Ilość: <span className='font-semibold'>{order.quantity}</span></p>
-                                                                        <p>Zrealizowano: <span className='font-semibold text-green-500'>{realized}</span></p>
-                                                                        <p>Pozostało: <span className='font-semibold text-orange-500'>{remaining}</span></p>
+                                                                        <p>{t('stats.quantity2')} <span className='font-semibold'>{order.quantity}</span></p>
+                                                                        <p>{t('stats.fulfilled')} <span className='font-semibold text-green-500'>{realized}</span></p>
+                                                                        <p>{t('stats.remaining')} <span className='font-semibold text-orange-500'>{remaining}</span></p>
                                                                     </div>
                                                                 </div>
                                                                 {isAdmin && <div>
@@ -270,7 +271,7 @@ export const OrdersTab = () => {
                                 })}
                             </Accordion>
                         ) : (
-                            <p className="text-center text-muted-foreground py-10">Brak aktywnych zamówień.</p>
+                            <p className="text-center text-muted-foreground py-10">{t('stats.noActiveOrders')}</p>
                         )}
                     </CardContent>
                 </Card>
@@ -279,9 +280,9 @@ export const OrdersTab = () => {
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Edytuj zamówienie</DialogTitle>
+                        <DialogTitle>{t('stats.editOrder')}</DialogTitle>
                         <DialogDescription>
-                            Zmień dane dotyczące zapotrzebowania na personel.
+                            {t('stats.changeTheStaffingRequestDetails')}
                         </DialogDescription>
                     </DialogHeader>
                     {editFormData && (
@@ -289,24 +290,24 @@ export const OrdersTab = () => {
                             {editingOrder?.type === 'new' && (
                                 <>
                                     <div className="space-y-1">
-                                        <Label>Dział</Label>
+                                        <Label>{t('stats.department')}</Label>
                                         <Select
                                             value={editFormData.department}
                                             onValueChange={(value) => setEditFormData(d => d ? { ...d, department: value } : null)}
                                         >
-                                            <SelectTrigger><SelectValue placeholder="Wybierz dział" /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder={t('stats.selectADepartment')} /></SelectTrigger>
                                             <SelectContent>
                                                 {config.departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label>Stanowisko</Label>
+                                        <Label>{t('stats.jobTitle')}</Label>
                                         <Select
                                             value={editFormData.jobTitle}
                                             onValueChange={(value) => setEditFormData(d => d ? { ...d, jobTitle: value } : null)}
                                         >
-                                            <SelectTrigger><SelectValue placeholder="Wybierz stanowisko" /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder={t('stats.selectAJobTitle')} /></SelectTrigger>
                                             <SelectContent>
                                                 {config.jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
                                             </SelectContent>
@@ -316,7 +317,7 @@ export const OrdersTab = () => {
                             )}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <Label>Ilość zamówiona</Label>
+                                    <Label>{t('stats.quantityOrdered')}</Label>
                                     <Input
                                         type="number"
                                         value={editFormData.quantity}
@@ -325,7 +326,7 @@ export const OrdersTab = () => {
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label>Ilość zrealizowano</Label>
+                                    <Label>{t('stats.quantityFulfilled')}</Label>
                                     <Input
                                         type="number"
                                         value={editFormData.realizedQuantity}
@@ -337,8 +338,8 @@ export const OrdersTab = () => {
                         </div>
                     )}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Anuluj</Button>
-                        <Button onClick={handleUpdateOrder}>Zapisz zmiany</Button>
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>{t('stats.cancel')}</Button>
+                        <Button onClick={handleUpdateOrder}>{t('stats.saveChanges')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

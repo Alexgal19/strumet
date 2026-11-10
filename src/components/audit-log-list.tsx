@@ -8,9 +8,10 @@ import { AuditEntry } from '@/lib/types';
 import { getFirebaseServices } from '@/lib/firebase';
 import { ref, onValue, query, orderByChild, limitToLast } from 'firebase/database';
 import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import { History } from 'lucide-react';
 
+import { t } from '@/lib/i18n';
 const ACTION_VARIANTS: Record<string, string> = {
   'Dodanie pracownika': 'default',
   'Aktualizacja pracownika': 'secondary',
@@ -50,7 +51,7 @@ export function AuditLogList() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <History className="h-5 w-5 text-primary" />
-          <CardTitle className="text-base">Historia zmian</CardTitle>
+          <CardTitle className="text-base">{t('settings.catAudit')}</CardTitle>
         </div>
         <CardDescription className="text-xs">
           Ostatnie {entries.length} zdarzeń — kto, kiedy i co zmienił.
@@ -58,10 +59,10 @@ export function AuditLogList() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">Ładowanie...</p>
+          <p className="text-sm text-muted-foreground py-6 text-center">{t('settings.loading')}</p>
         ) : entries.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            Brak zapisanych zmian — historia zbiera się od teraz.
+            {t('settings.noRecordedChangesHistoryIs')}
           </p>
         ) : (
           <>
@@ -75,7 +76,7 @@ export function AuditLogList() {
                       className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-2 text-sm"
                     >
                       <span className="text-xs text-muted-foreground w-32 shrink-0">
-                        {format(new Date(entry.at), 'dd.MM.yyyy HH:mm', { locale: pl })}
+                        {format(new Date(entry.at), 'dd.MM.yyyy HH:mm', { locale: getDateLocale() })}
                       </span>
                       <Badge
                         variant={ACTION_VARIANTS[entry.action] === 'destructive' ? 'destructive' : 'secondary'}
@@ -105,7 +106,7 @@ export function AuditLogList() {
                       {entry.action}
                     </Badge>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {format(new Date(entry.at), 'dd.MM HH:mm', { locale: pl })}
+                      {format(new Date(entry.at), 'dd.MM HH:mm', { locale: getDateLocale() })}
                     </span>
                   </div>
                   <p className="font-medium break-words">{entry.details}</p>

@@ -23,18 +23,19 @@ import type {
   EmailTriggerConfig,
 } from '@/lib/types';
 
+import { t } from '@/lib/i18n';
 const TRIGGER_TYPES: { value: EmailTriggerType; label: string }[] = [
-  { value: 'manual', label: 'Manualny' },
-  { value: 'scheduled', label: 'Zaplanowany' },
-  { value: 'event', label: 'Eventowy' },
+  { value: 'manual', get label() { return t('email.manual'); } },
+  { value: 'scheduled', get label() { return t('email.scheduled'); } },
+  { value: 'event', get label() { return t('email.eventBased'); } },
 ];
 
 const TRIGGER_EVENTS: { value: EmailTriggerEvent; label: string }[] = [
-  { value: 'contractExpiry', label: 'Wygaśnięcie kontraktu' },
-  { value: 'fingerprintReminder', label: 'Przypomnienie odcisków palców' },
-  { value: 'newHire', label: 'Nowy pracownik' },
-  { value: 'plannedTermination', label: 'Planowane zwolnienie' },
-  { value: 'legalisationWarning', label: 'Ostrzeżenie legalizacji' },
+  { value: 'contractExpiry', get label() { return t('email.contractExpiry'); } },
+  { value: 'fingerprintReminder', get label() { return t('email.fingerprintReminder'); } },
+  { value: 'newHire', get label() { return t('email.newEmployee'); } },
+  { value: 'plannedTermination', get label() { return t('email.plannedTermination'); } },
+  { value: 'legalisationWarning', get label() { return t('email.legalisationWarning'); } },
 ];
 
 const TEMPLATE_VARIABLES = [
@@ -119,7 +120,7 @@ export default function EmailTemplateFormPage() {
       router.push('/szablony-email');
     } catch (error) {
       console.error('Save error:', error);
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać szablonu.' });
+      toast({ variant: 'destructive', title: t('email.error'), description: t('email.couldNotSaveTheTemplate') });
     } finally {
       setSaving(false);
     }
@@ -140,20 +141,20 @@ export default function EmailTemplateFormPage() {
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => router.push('/szablony-email')}>
-          ← Wróć
+          {t('email.back')}
         </Button>
         <h1 className="text-3xl font-bold tracking-tight">
-          {isNew ? 'Nowy szablon' : 'Edytuj szablon'}
+          {isNew ? t('email.newTemplate') : t('email.editTemplate')}
         </h1>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Ładowanie...</div>
+        <div className="text-center py-12 text-muted-foreground">{t('email.loading')}</div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card className="p-6 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nazwa szablonu</Label>
+              <Label htmlFor="name">{t('email.templateName')}</Label>
               <Input
                 id="name"
                 value={form.name}
@@ -164,7 +165,7 @@ export default function EmailTemplateFormPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subject">Temat wiadomości</Label>
+              <Label htmlFor="subject">{t('email.messageSubject')}</Label>
               <Input
                 id="subject"
                 value={form.subject}
@@ -179,7 +180,7 @@ export default function EmailTemplateFormPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="body-field">Treść wiadomości</Label>
+                <Label htmlFor="body-field">{t('email.messageBody')}</Label>
                 <div className="flex gap-1 flex-wrap">
                   {TEMPLATE_VARIABLES.map(v => (
                     <button
@@ -205,7 +206,7 @@ export default function EmailTemplateFormPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Typ triggera</Label>
+                <Label>{t('email.triggerType')}</Label>
                 <Select
                   value={form.triggerType}
                   onValueChange={(v: EmailTriggerType) => setForm(f => ({ ...f, triggerType: v }))}
@@ -214,9 +215,9 @@ export default function EmailTemplateFormPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TRIGGER_TYPES.map(t => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
+                    {TRIGGER_TYPES.map(tt => (
+                      <SelectItem key={tt.value} value={tt.value}>
+                        {tt.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -224,7 +225,7 @@ export default function EmailTemplateFormPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Event</Label>
+                <Label>{t('email.event')}</Label>
                 <Select
                   value={form.event}
                   onValueChange={(v: EmailTriggerEvent) => setForm(f => ({ ...f, event: v }))}
@@ -245,7 +246,7 @@ export default function EmailTemplateFormPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="daysBefore">Dni przed eventem</Label>
+                <Label htmlFor="daysBefore">{t('email.daysBeforeTheEvent')}</Label>
                 <Input
                   id="daysBefore"
                   type="number"
@@ -264,10 +265,10 @@ export default function EmailTemplateFormPage() {
               variant="outline"
               onClick={() => router.push('/szablony-email')}
             >
-              Anuluj
+              {t('email.cancel')}
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? 'Zapisywanie...' : 'Zapisz szablon'}
+              {saving ? t('email.saving') : t('email.saveTemplate')}
             </Button>
           </div>
         </form>

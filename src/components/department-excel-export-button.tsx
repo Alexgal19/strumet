@@ -11,6 +11,7 @@ import { parseMaybeDate } from '@/lib/date';
 import { format } from 'date-fns';
 
 
+import { t } from '@/lib/i18n';
 interface DepartmentExcelExportButtonProps {
   employees: Employee[];
   departments: string[];
@@ -107,13 +108,13 @@ export function DepartmentExcelExportButton({ employees, departments, columns }:
     <>
       <Button variant="outline" className="min-h-12 md:min-h-10" onClick={handleOpen} disabled={employees.length === 0}>
         <FileDown className="mr-2 h-4 w-4" />
-        Eksportuj wg działów
+        {t('importx.exportByDepartment')}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Eksportuj do Excel – wybierz działy</DialogTitle>
+            <DialogTitle>{t('importx.exportToExcelSelectDepartments')}</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-3 py-2">
@@ -126,7 +127,7 @@ export function DepartmentExcelExportButton({ employees, departments, columns }:
                 onCheckedChange={toggleAll}
               />
               <Label htmlFor="select-all" className="font-semibold cursor-pointer select-none">
-                {allSelected ? 'Odznacz wszystkie' : 'Zaznacz wszystkie'}
+                {allSelected ? t('importx.deselectAll') : t('importx.selectAll3')}
               </Label>
               <span className="ml-auto text-sm text-muted-foreground">
                 {selected.size} / {sortedDepartments.length}
@@ -147,7 +148,7 @@ export function DepartmentExcelExportButton({ employees, departments, columns }:
                     <Label htmlFor={`dept-${dept}`} className="cursor-pointer select-none flex-1">
                       {dept}
                     </Label>
-                    <span className="text-sm text-muted-foreground">{count} os.</span>
+                    <span className="text-sm text-muted-foreground">{t('importx.countPpl', { count })}</span>
                   </div>
                 );
               })}
@@ -155,13 +156,13 @@ export function DepartmentExcelExportButton({ employees, departments, columns }:
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Anuluj</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t('importx.cancel')}</Button>
             <Button
               onClick={handleExport}
               disabled={selected.size === 0 || isExporting}
             >
               <FileDown className="mr-2 h-4 w-4" />
-              {isExporting ? 'Eksportowanie...' : `Eksportuj (${selected.size} ${selected.size === 1 ? 'dział' : 'działy/ów'})`}
+              {isExporting ? t('importx.exporting') : (selected.size === 1 ? t('importx.exportCountDepartment', { count: 1 }) : t('importx.exportCountDepartments', { count: selected.size }))}
             </Button>
           </DialogFooter>
         </DialogContent>

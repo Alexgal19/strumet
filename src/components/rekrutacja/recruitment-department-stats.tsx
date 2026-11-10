@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Briefcase } from 'lucide-react';
 import { formatHeadcount } from './format';
 
+import { t } from '@/lib/i18n';
 export const RecruitmentDepartmentStats = ({
   jobTitleStats,
   departmentHeadcount,
@@ -20,7 +21,7 @@ export const RecruitmentDepartmentStats = ({
     <div className="space-y-1.5 rounded-md border bg-muted/30 p-3">
       <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <Briefcase className="h-3.5 w-3.5 shrink-0" />
-        Stanowiska w dziale ({departmentHeadcount} os.):
+        {t('recruit.jobTitlesInTheDepartment', { count: departmentHeadcount })}
       </p>
       <div className="space-y-1">
         {jobTitleStats.map(s => (
@@ -37,13 +38,13 @@ export const RecruitmentDepartmentStats = ({
               {s.jobTitle} — {formatHeadcount(s.count)}
               {s.terminations > 0 && (
                 <span className="ml-1 text-amber-600 dark:text-amber-400">
-                  (zwalnia się: {s.terminations})
+                  {t('recruit.leavingCount2', { count: s.terminations })}
                 </span>
               )}
             </span>
             {s.toRecruit > 0 && (
               <Badge variant="destructive" className="tabular-nums">
-                Rekrutacja: {s.toRecruit}
+                {t('recruit.recruitingCount', { count: s.toRecruit })}
               </Badge>
             )}
           </div>

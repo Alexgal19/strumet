@@ -2,6 +2,7 @@
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
+import { t } from '@/lib/i18n';
 type DeleteItemDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -13,18 +14,18 @@ export function DeleteItemDialog({ open, onOpenChange, onConfirm }: DeleteItemDi
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Usunąć element?</AlertDialogTitle>
+          <AlertDialogTitle>{t('settings.deleteThisItem')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Tej operacji nie można cofnąć. Element zostanie trwale usunięty z konfiguracji.
+            {t('settings.thisCannotBeUndoneThe')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Anuluj</AlertDialogCancel>
+          <AlertDialogCancel>{t('settings.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={onConfirm}
           >
-            Usuń
+            {t('settings.delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

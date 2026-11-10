@@ -32,6 +32,7 @@ import { useEmployees } from '@/hooks/use-employees';
 import { GenericExcelExportButton } from '@/components/generic-excel-export-button';
 
 
+import { t } from '@/lib/i18n';
 export default function ClothingIssuancePage() {
   const { config, isLoading: isAppLoading, clothingIssuances, addClothingIssuance, deleteClothingIssuance } = useAppContext();
   const { employees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
@@ -74,8 +75,8 @@ export default function ClothingIssuancePage() {
         if (!selectedEmployee || currentItems.length === 0) {
           toast({
             variant: 'destructive',
-            title: 'Błąd',
-            description: 'Proszę wybrać pracownika i przynajmniej jeden element odzieży.',
+            title: t('ops.error'),
+            description: t('ops.pleaseSelectAnEmployeeAnd'),
           });
           return;
         }
@@ -103,7 +104,7 @@ export default function ClothingIssuancePage() {
   };
   
   const handleDeleteIssuance = async (issuanceId: string) => {
-      if (window.confirm('Czy na pewno chcesz usunąć ten zapis?')) {
+      if (window.confirm(t('ops.deleteThisRecord'))) {
         await deleteClothingIssuance(issuanceId);
       }
   };
@@ -124,20 +125,20 @@ export default function ClothingIssuancePage() {
         ) : (
             <>
                 <PageHeader
-                title="Wydawanie odzieży"
-                description="Rejestruj i drukuj potwierdzenia wydania odzieży roboczej."
+                title={t('ops.workwearIssue')}
+                description={t('ops.recordAndPrintWorkwearIssue')}
                 />
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1">
                     <Card>
                     <CardHeader>
-                        <CardTitle className="text-2xl">Nowe wydanie</CardTitle>
-                        <CardDescription className="text-base">Wybierz pracownika i dodaj wydane elementy odzieży.</CardDescription>
+                        <CardTitle className="text-2xl">{t('ops.newIssue')}</CardTitle>
+                        <CardDescription className="text-base">{t('ops.selectAnEmployeeAndAdd')}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
-                        <label className="text-base font-medium">Pracownik</label>
+                        <label className="text-base font-medium">{t('ops.employee')}</label>
                         <EmployeeCombobox
                             employees={employees}
                             value={selectedEmployeeId}
@@ -147,7 +148,7 @@ export default function ClothingIssuancePage() {
                         </div>
 
                         <div className="space-y-2">
-                        <label className="text-base font-medium">Elementy odzieży</label>
+                        <label className="text-base font-medium">{t('ops.workwearItems')}</label>
                         <MultiSelect
                                 options={clothingOptions}
                                 selected={currentItems.map(i => i.id)}
@@ -165,7 +166,7 @@ export default function ClothingIssuancePage() {
                                     }).filter((item): item is { id: string; name: string; quantity: number } => item !== null);
                                     setCurrentItems(newItems);
                                 }}
-                                title="Wybierz odzież..."
+                                title={t('ops.selectWorkwear')}
                                 className="text-base"
                             />
                         </div>
@@ -194,7 +195,7 @@ export default function ClothingIssuancePage() {
 
                         <Button onClick={() => handleSaveAndPrint()} disabled={!selectedEmployee || currentItems.length === 0} className="w-full h-12 text-base">
                         <Printer className="mr-2 h-5 w-5" />
-                        Zapisz i drukuj
+                        {t('ops.saveAndPrint')}
                         </Button>
                     </CardContent>
                     </Card>
@@ -207,9 +208,9 @@ export default function ClothingIssuancePage() {
                         <div className="flex items-center gap-3">
                         <History className="h-7 w-7" />
                         <div>
-                            <CardTitle className="text-2xl">Historia wydań</CardTitle>
+                            <CardTitle className="text-2xl">{t('ops.issueHistory')}</CardTitle>
                             <CardDescription className="text-base">
-                            {selectedEmployee ? `dla ${selectedEmployee.fullName}` : 'Wybierz pracownika, aby zobaczyć historię.'}
+                            {selectedEmployee ? `dla ${selectedEmployee.fullName}` : t('ops.selectAnEmployeeToSee')}
                             </CardDescription>
                         </div>
                         </div>
@@ -217,9 +218,9 @@ export default function ClothingIssuancePage() {
                             <GenericExcelExportButton
                                 data={employeeIssuanceHistory}
                                 columns={[
-                                    { key: 'date', name: 'Data' },
-                                    { key: 'employeeFullName', name: 'Pracownik' },
-                                    { key: 'items', name: 'Elementy' },
+                                    { key: 'date', name: t('ops.date') },
+                                    { key: 'employeeFullName', name: t('ops.employee') },
+                                    { key: 'items', name: t('ops.items') },
                                 ]}
                                 fileName="historia_wydan_odziezy"
                             />
@@ -235,9 +236,9 @@ export default function ClothingIssuancePage() {
                             <Table>
                                 <TableHeader>
                                 <TableRow>
-                                    <TableHead className="text-base">Data</TableHead>
-                                    <TableHead className="text-base">Elementy</TableHead>
-                                    <TableHead className="text-right text-base">Akcje</TableHead>
+                                    <TableHead className="text-base">{t('ops.date')}</TableHead>
+                                    <TableHead className="text-base">{t('ops.items')}</TableHead>
+                                    <TableHead className="text-right text-base">{t('ops.actions')}</TableHead>
                                 </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -272,10 +273,10 @@ export default function ClothingIssuancePage() {
                                             ))}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleSaveAndPrint(issuance)} aria-label="Drukuj">
+                                            <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleSaveAndPrint(issuance)} aria-label={t('ops.print')}>
                                                 <Printer className="h-5 w-5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive" onClick={() => handleDeleteIssuance(issuance.id)} aria-label="Usuń">
+                                            <Button variant="ghost" size="icon" className="h-11 w-11 text-destructive" onClick={() => handleDeleteIssuance(issuance.id)} aria-label={t('ops.delete')}>
                                                 <Trash2 className="h-5 w-5" />
                                             </Button>
                                         </div>
@@ -284,11 +285,11 @@ export default function ClothingIssuancePage() {
                             </div>
                             </>
                         ) : (
-                            <p className="text-base text-muted-foreground text-center py-10">Brak historii wydań dla tego pracownika.</p>
+                            <p className="text-base text-muted-foreground text-center py-10">{t('ops.noIssueHistoryForThis')}</p>
                         )
                         ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground text-center py-10 text-base">
-                            Wybierz pracownika, aby zobaczyć historię.
+                            {t('ops.selectAnEmployeeToSee')}
                         </div>
                         )}
                     </CardContent>

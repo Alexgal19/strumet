@@ -13,6 +13,7 @@ import { ref as dbRef, remove } from 'firebase/database';
 import { allocateArrivals, arrivalStatus, arrivalWindowEnd, splitArrivals, type HistoriaEmployee, type TransferRecord } from '@/lib/przyjecia-historia';
 import { formatYmdPl } from '@/lib/date';
 
+import { t } from '@/lib/i18n';
 /** Historia minionych przyjęć (data < dziś) z weryfikacją, czy osoby faktycznie doszły. */
 export function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>> }) {
   const { isAdmin, logAudit } = useAppContext();
@@ -74,38 +75,38 @@ export function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setD
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
           <History className="h-4 w-4" />
-          Minione przyjęcia: {rows.length}
+          {t('schedule.pastArrivalsCount', { count: rows.length })}
         </Badge>
         {doneCount > 0 && (
           <Badge variant="outline" className="gap-1.5 border-emerald-500/60 px-3 py-1.5 text-sm text-emerald-700 tabular-nums dark:text-emerald-400">
-            Zrealizowane: {doneCount}
+            {t('schedule.fulfilledCount', { count: doneCount })}
           </Badge>
         )}
         {partialCount > 0 && (
           <Badge variant="outline" className="gap-1.5 border-amber-500/60 px-3 py-1.5 text-sm text-amber-700 tabular-nums dark:text-amber-400">
-            Częściowo: {partialCount}
+            {t('schedule.partialCount', { count: partialCount })}
           </Badge>
         )}
         {pendingCount > 0 && (
           <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-sm text-muted-foreground tabular-nums">
-            Oczekuje: {pendingCount}
+            {t('schedule.pendingCount', { count: pendingCount })}
           </Badge>
         )}
         {missingCount > 0 && (
           <Badge variant="destructive" className="gap-1.5 px-3 py-1.5 text-sm tabular-nums">
-            Niezrealizowane: {missingCount}
+            {t('schedule.notFulfilledCount', { count: missingCount })}
           </Badge>
         )}
       </div>
       <p className="text-xs text-muted-foreground">
-        Weryfikacja po dacie zatrudnienia i transferach (okno −7 / +14 dni od planowanej daty); każda osoba liczy się tylko do jednego przyjęcia. W trakcie okna brak dopasowań = „Oczekuje”.
+        {t('schedule.checkedAgainstHireDatesAnd')}
       </p>
 
       {rows.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             <History className="mx-auto mb-3 h-8 w-8 opacity-40" />
-            Brak historii — minione przyjęcia pojawią się tutaj automatycznie.
+            {t('schedule.noHistoryYetPastArrivals')}
           </CardContent>
         </Card>
       ) : (
@@ -127,26 +128,26 @@ export function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setD
                           type="button"
                           onClick={() => setExpanded(prev => ({ ...prev, [expKey]: !prev[expKey] }))}
                           aria-expanded={isOpen}
-                          title={totalMatched > 0 ? 'Pokaż zatrudnionych i transfery' : undefined}
+                          title={totalMatched > 0 ? t('schedule.showHiresAndTransfers') : undefined}
                           className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
                         >
                           <span className="text-xs">
-                            📅 {formatYmdPl(a.date)} — <strong>{a.jobTitle}</strong> — plan: <strong>{a.count} os.</strong>
+                            📅 {formatYmdPl(a.date)} — <strong>{a.jobTitle}</strong> — {t('schedule.plan')} <strong>{t('schedule.countPpl', { count: a.count })}</strong>
                           </span>
                           <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                         </button>
                         <div className="flex items-center gap-1.5">
                           {status === 'done' && (
-                            <Badge variant="outline" className="border-emerald-500/60 text-emerald-700 dark:text-emerald-400 text-xs">Zrealizowane</Badge>
+                            <Badge variant="outline" className="border-emerald-500/60 text-emerald-700 dark:text-emerald-400 text-xs">{t('schedule.fulfilled')}</Badge>
                           )}
                           {status === 'partial' && (
-                            <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-xs">Częściowo {totalMatched}/{a.count}</Badge>
+                            <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-xs">{t('schedule.partialDoneTotal', { done: totalMatched, total: a.count })}</Badge>
                           )}
                           {status === 'pending' && (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">Oczekuje do {formatYmdPl(arrivalWindowEnd(a) ?? '')}</Badge>
+                            <Badge variant="outline" className="text-xs text-muted-foreground">{t('schedule.pendingUntilDate', { date: formatYmdPl(arrivalWindowEnd(a) ?? '') })}</Badge>
                           )}
                           {status === 'missing' && (
-                            <Badge variant="destructive" className="text-xs">Niezrealizowane</Badge>
+                            <Badge variant="destructive" className="text-xs">{t('schedule.notFulfilled')}</Badge>
                           )}
                           {isAdmin && (
                             <Button type="button" variant="ghost" size="icon-sm" className=" text-destructive" onClick={() => handleRemove(a.id)}>
@@ -158,19 +159,19 @@ export function HistoriaPrzyjec({ data, setData }: { data: HarmonogramData, setD
                       {isOpen && (
                         <ul className="mt-1.5 space-y-0.5 border-t pt-1.5 text-xs">
                           {hired.length === 0 && moved.length === 0 ? (
-                            <li className="text-muted-foreground">Brak dopasowanych zatrudnień ani transferów w oknie dat.</li>
+                            <li className="text-muted-foreground">{t('schedule.noMatchingHiresOrTransfers')}</li>
                           ) : (
                             <>
                               {hired.map(m => (
                                 <li key={`h-${m.fullName}`} className="flex items-center justify-between gap-2">
                                   <span className="font-medium">{m.fullName}</span>
-                                  <span className="text-muted-foreground">zatr. {formatYmdPl(m.hireDate)}</span>
+                                  <span className="text-muted-foreground">{t('schedule.hiredDate', { date: formatYmdPl(m.hireDate) })}</span>
                                 </li>
                               ))}
                               {moved.map(m => (
                                 <li key={`t-${m.fullName}-${m.date}`} className="flex items-center justify-between gap-2">
                                   <span className="font-medium">🔀 {m.fullName}</span>
-                                  <span className="text-muted-foreground">transfer z {m.fromDepartment} • {formatYmdPl(m.date)}</span>
+                                  <span className="text-muted-foreground">{t('schedule.transferFromDepartmentDate', { department: m.fromDepartment, date: formatYmdPl(m.date) })}</span>
                                 </li>
                               ))}
                             </>

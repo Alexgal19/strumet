@@ -11,6 +11,7 @@ import { DEMAND_COLS, DemandColgroup, DemandColumnLabels } from './demand-table-
 import { JobDemandPanel } from './job-demand-panel';
 import { PotrzebyInput } from './potrzeby-input';
 
+import { t } from '@/lib/i18n';
 const numCell = (v: number, danger = true) => (
   <span className={v > 0 && danger ? 'font-semibold text-red-600 dark:text-red-400' : v === 0 ? 'text-foreground' : ''}>{v}</span>
 );
@@ -55,7 +56,7 @@ export function DeptDemandCard({
                 {agg.net > 0 ? (
                   <Badge variant="destructive" className="text-sm font-semibold">{agg.net}</Badge>
                 ) : (
-                  <Badge variant="outline" className="border-emerald-500/60 text-sm text-emerald-700 dark:text-emerald-400">Komplet</Badge>
+                  <Badge variant="outline" className="border-emerald-500/60 text-sm text-emerald-700 dark:text-emerald-400">{t('schedule.complete')}</Badge>
                 )}
               </td>
             </tr>
@@ -81,7 +82,7 @@ export function DeptDemandCard({
                         {open ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-foreground" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-foreground" />}
                         <Briefcase className="hidden h-3.5 w-3.5 shrink-0 text-foreground sm:block" />
                         <span className="font-semibold">{job.jobTitle}</span>
-                        {hasComment && <span title="Jest komentarz" aria-label="Jest komentarz">💬</span>}
+                        {hasComment && <span title={t('schedule.hasAComment')} aria-label={t('schedule.hasAComment')}>💬</span>}
                       </button>
                     </td>
                     <td className="px-1 md:px-2 py-1 text-right tabular-nums">
@@ -104,7 +105,7 @@ export function DeptDemandCard({
                       {net > 0 ? (
                         <Badge variant="destructive" className="px-1.5 py-0 text-sm">{net}</Badge>
                       ) : (
-                        <span className="text-sm text-emerald-700 dark:text-emerald-400">Komplet</span>
+                        <span className="text-sm text-emerald-700 dark:text-emerald-400">{t('schedule.complete')}</span>
                       )}
                     </td>
                   </tr>

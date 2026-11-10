@@ -20,6 +20,7 @@ import { useEmployees } from '@/hooks/use-employees';
 import { formatDate } from '@/lib/date';
 
 
+import { t } from '@/lib/i18n';
 export default function NewHireClothingIssuancePage() {
   const { isLoading: isContextLoading, config } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
@@ -104,20 +105,20 @@ export default function NewHireClothingIssuancePage() {
         ) : (
         <>
             <PageHeader
-            title="Wydawanie odzieży / Info dla nowych"
-            description="Wybierz pracownika, aby wygenerować potwierdzenie wydania odzieży lub kartę informacyjną."
+            title={t('ops.workwearNewHireInfo')}
+            description={t('ops.selectAnEmployeeToGenerate')}
             />
 
             <div className="flex justify-center">
                 <div className="w-full max-w-2xl">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Wybierz pracownika</CardTitle>
-                            <CardDescription>Wybierz pracownika z listy, aby zobaczyć podgląd danych do druku.</CardDescription>
+                            <CardTitle>{t('ops.selectAnEmployee')}</CardTitle>
+                            <CardDescription>{t('ops.selectAnEmployeeFromThe')}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Pracownik</label>
+                                <label className="text-sm font-medium">{t('ops.employee')}</label>
                                 <EmployeeCombobox
                                     employees={activeEmployees}
                                     value={selectedEmployeeId}
@@ -127,14 +128,14 @@ export default function NewHireClothingIssuancePage() {
                             
                             {selectedEmployee && (
                                 <div className="space-y-3 rounded-md border p-4 bg-muted/50">
-                                    <h4 className="font-semibold text-lg text-center mb-4">Podgląd danych do druku</h4>
+                                    <h4 className="font-semibold text-lg text-center mb-4">{t('ops.printPreviewData')}</h4>
                                     <div className="flex items-center text-base">
                                         <User className="mr-3 h-5 w-5 text-muted-foreground" />
                                         <span className="font-medium">{selectedEmployee.fullName}</span>
                                     </div>
                                     <div className="flex items-center text-base">
                                         <FileText className="mr-3 h-5 w-5 text-muted-foreground" />
-                                        <span>Numer karty: <span className="font-medium">{selectedEmployee.cardNumber}</span></span>
+                                        <span>{t('ops.cardNumber')} <span className="font-medium">{selectedEmployee.cardNumber}</span></span>
                                     </div>
                                     <div className="flex items-center text-base">
                                         <Building2 className="mr-3 h-5 w-5 text-muted-foreground" />
@@ -151,24 +152,24 @@ export default function NewHireClothingIssuancePage() {
                                     
                                     {clothingSetForEmployee && clothingSetForEmployee.length > 0 ? (
                                         <div className="pt-4">
-                                            <h5 className="font-semibold text-md mb-2 flex items-center"><Package className="mr-2 h-5 w-5 text-muted-foreground"/> Zestaw odzieży:</h5>
+                                            <h5 className="font-semibold text-md mb-2 flex items-center"><Package className="mr-2 h-5 w-5 text-muted-foreground"/> {t('ops.workwearSet')}</h5>
                                             <div className="whitespace-pre-wrap rounded-md border border-dashed p-3 bg-background text-sm">
                                                 {clothingSetForEmployee[0].name}
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-center text-orange-600 pt-4">Brak przypisanego zestawu odzieży dla tego stanowiska w konfiguracji.</p>
+                                        <p className="text-sm text-center text-orange-600 pt-4">{t('ops.noWorkwearSetIsAssigned')}</p>
                                     )}
                                 </div>
                             )}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                                 <Button onClick={handlePrintIssuance} disabled={!selectedEmployee || !clothingSetForEmployee || clothingSetForEmployee.length === 0}>
                                     <Printer className="mr-2 h-4 w-4" />
-                                    Drukuj wydanie odzieży
+                                    {t('ops.printWorkwearIssue')}
                                 </Button>
                                 <Button onClick={handlePrintInfoCard} disabled={!selectedEmployee} variant="secondary">
                                     <Printer className="mr-2 h-4 w-4" />
-                                    Drukuj kartę informacyjną
+                                    {t('ops.printInformationSheet')}
                                 </Button>
                             </div>
 

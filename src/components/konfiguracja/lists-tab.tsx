@@ -7,6 +7,7 @@ import { Edit, PlusCircle, Trash2 } from 'lucide-react';
 import type { ConfigItem, ConfigType } from '@/lib/types';
 import { configLabels } from './config-meta';
 
+import { t } from '@/lib/i18n';
 type ListsTabProps = {
   configLists: { type: ConfigType; items: ConfigItem[] }[];
   isAdmin: boolean;
@@ -19,8 +20,8 @@ export function ListsTab({ configLists, isAdmin, onAdd, onEdit, onRemove }: List
   return (
     <Card className="flex-grow flex flex-col">
       <CardHeader>
-        <CardTitle>Listy Konfiguracyjne</CardTitle>
-        <CardDescription>Zarządzaj listami działów, stanowisk, etc.</CardDescription>
+        <CardTitle>{t('settings.configurationLists')}</CardTitle>
+        <CardDescription>{t('settings.manageTheListsOfDepartments')}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
         <Accordion type="multiple" className="w-full">
@@ -45,12 +46,12 @@ export function ListsTab({ configLists, isAdmin, onAdd, onEdit, onRemove }: List
                         )}
                       </div>
                     ))}
-                    {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak zdefiniowanych elementów.</p>}
+                    {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">{t('settings.noItemsDefined')}</p>}
                   </div>
                   {isAdmin && (
                     <Button className="mt-2 w-full" variant="secondary" onClick={() => onAdd(type)}>
                       <PlusCircle className="mr-2 h-4 w-4" />
-                      Dodaj nowe
+                      {t('settings.addNew')}
                     </Button>
                   )}
                 </div>

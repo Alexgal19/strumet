@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Check, Loader2, Pencil, Trash2, X } from 'lucide-react';
 
+import { t } from '@/lib/i18n';
 export const RecruitmentCardHeader = ({
   recruitment,
   departments,
@@ -58,8 +59,8 @@ export const RecruitmentCardHeader = ({
       {isEditingDept ? (
         <div className="flex w-full flex-wrap items-center gap-2">
           <Select value={deptDraft} onValueChange={setDeptDraft}>
-            <SelectTrigger className="h-9 flex-1 min-w-[180px] sm:w-64 sm:flex-none" aria-label="Edytuj dział">
-              <SelectValue placeholder="Dział…" />
+            <SelectTrigger className="h-9 flex-1 min-w-[180px] sm:w-64 sm:flex-none" aria-label={t('recruit.editDepartment')}>
+              <SelectValue placeholder={t('recruit.department')} />
             </SelectTrigger>
             <SelectContent>
               {departments.map(d => (
@@ -76,7 +77,7 @@ export const RecruitmentCardHeader = ({
               className="h-9 w-9 border-emerald-500/50 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
               disabled={isSavingDept || !deptDraft}
               onClick={handleSaveDept}
-              aria-label="Zapisz zmiany"
+              aria-label={t('recruit.saveChanges')}
             >
               {isSavingDept ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             </Button>
@@ -86,7 +87,7 @@ export const RecruitmentCardHeader = ({
               className="h-9 w-9"
               disabled={isSavingDept}
               onClick={() => setIsEditingDept(false)}
-              aria-label="Anuluj edycję"
+              aria-label={t('recruit.cancelEditing')}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -107,7 +108,7 @@ export const RecruitmentCardHeader = ({
                 variant="ghost"
                 className="h-8 w-8 text-muted-foreground hover:text-primary"
                 onClick={startEditingDept}
-                aria-label={`Edytuj dział ${recruitment.department}`}
+                aria-label={t('recruit.editDepartmentName', { name: recruitment.department })}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -116,7 +117,7 @@ export const RecruitmentCardHeader = ({
                 variant="ghost"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 onClick={() => onDelete(recruitment)}
-                aria-label={`Usuń zapotrzebowanie ${recruitment.department}`}
+                aria-label={t('recruit.deleteRequestName', { name: recruitment.department })}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -125,36 +126,36 @@ export const RecruitmentCardHeader = ({
 
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
             <Badge variant="outline" className="tabular-nums text-xs">
-              Na dziale: {departmentHeadcount} os.
+              {t('recruit.inDepartmentCountPpl', { count: departmentHeadcount })}
             </Badge>
             {sumZwalnia > 0 && (
               <Badge
                 variant="outline"
                 className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400 text-xs"
               >
-                Zwalnia się: −{sumZwalnia}
+                {t('recruit.leavingCount', { count: sumZwalnia })}
               </Badge>
             )}
             <Badge
               variant="outline"
               className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400 text-xs"
             >
-              Potrzeby: {sumPotrzeby} os.
+              {t('recruit.neededCountPpl', { count: sumPotrzeby })}
             </Badge>
             {missing > 0 && (
               <Badge variant="destructive" className="tabular-nums text-xs">
-                Brakuje: {missing}
+                {t('recruit.shortCount', { count: missing })}
               </Badge>
             )}
             <Badge variant="outline" className="tabular-nums text-xs">
-              Rekrutacja: {sumToRecruit} os.
+              {t('recruit.recruitingCountPpl', { count: sumToRecruit })}
             </Badge>
             {surplus > 0 && (
               <Badge
                 variant="outline"
                 className="border-amber-500/60 text-amber-700 tabular-nums dark:text-amber-400 text-xs"
               >
-                Nadwyżka: +{surplus}
+                {t('recruit.surplusCount', { count: surplus })}
               </Badge>
             )}
             {plannedTotal > 0 && missing === 0 && surplus === 0 && (
@@ -162,7 +163,7 @@ export const RecruitmentCardHeader = ({
                 variant="outline"
                 className="border-emerald-500/60 text-emerald-700 tabular-nums dark:text-emerald-400 text-xs"
               >
-                Komplet: {plannedTotal}/{sumToRecruit}
+                {t('recruit.completeDoneTotal', { done: plannedTotal, total: sumToRecruit })}
               </Badge>
             )}
           </div>

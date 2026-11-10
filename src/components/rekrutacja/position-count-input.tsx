@@ -7,6 +7,7 @@ import { getDB } from '@/lib/firebase';
 import type { RecruitmentPosition } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 
+import { t } from '@/lib/i18n';
 export const PositionCountInput = ({
   recruitmentId,
   position,
@@ -36,7 +37,7 @@ export const PositionCountInput = ({
         toRecruit: parsed,
       });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać liczby osób.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotSaveTheNumber') });
     }
   };
 
@@ -53,7 +54,7 @@ export const PositionCountInput = ({
       }}
       onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
       className="h-9 w-24 tabular-nums"
-      aria-label="Liczba osób do rekrutacji"
+      aria-label={t('recruit.numberOfPeopleToRecruit')}
     />
   );
 };

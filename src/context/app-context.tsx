@@ -597,7 +597,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }, (error) => {
                 console.error(`Firebase read error on path ${path}:`, error);
                 if (essential) {
-                    toast({ variant: 'destructive', title: 'Błąd odczytu danych', description: `Nie udało się pobrać danych dla: ${path}` });
+                    toast({ variant: 'destructive', title: tr('toasts.dataReadError'), description: tr('toasts.couldNotLoadDataFor', { path }) });
                 }
                 dataLoadedRef.current.add(path);
                 if (checkEssentialLoaded()) {
@@ -1084,10 +1084,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }
 
             await update(ref(db), updates);
-            toast({ title: "Sukces", description: "Element został zaktualizowany."});
+            toast({ title: tr('toasts.success'), description: tr('toasts.theItemHasBeenUpdated')});
         } catch (error) {
             console.error("Error updating item:", error);
-            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zaktualizować elementu."});
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotUpdateTheItem')});
         }
     }, [services, config, toast]);
 
@@ -1095,7 +1095,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (!services) return;
         const { db } = services;
         await remove(ref(db, `/config/${configType}/${itemId}`));
-        toast({ title: "Sukces", description: "Element został usunięty."});
+        toast({ title: tr('toasts.success'), description: tr('toasts.theItemHasBeenDeleted')});
     }, [services, toast]);
 
     const handleSaveJobTitleClothingSet = useCallback(async (jobTitleId: string, description: string) => {
@@ -1106,10 +1106,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 id: jobTitleId,
                 description: description
             });
-            toast({ title: "Sukces", description: "Zestaw odzieży dla stanowiska został zaktualizowany."});
+            toast({ title: tr('toasts.success'), description: tr('toasts.theWorkwearSetForThe')});
         } catch(error) {
             console.error("Error saving job title clothing set:", error);
-            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać zestawu odzieży."});
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotSaveTheWorkwear')});
         }
     }, [services, toast]);
 
@@ -1121,10 +1121,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 gmailUser: user,
                 gmailAppPassword: pass
             });
-            toast({ title: "Sukces", description: "Dane logowania Gmail zostały zapisane."});
+            toast({ title: tr('toasts.success'), description: tr('toasts.gmailCredentialsSaved')});
         } catch (error) {
             console.error("Error saving Gmail credentials:", error);
-            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać danych."});
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotSaveTheData')});
         }
     }, [services, toast]);
 
@@ -1148,10 +1148,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 fromName: settings.fromName,
             });
             void logAudit('Zmiana ustawień e-mail (SMTP)', settings.host);
-            toast({ title: "Sukces", description: "Ustawienia SMTP zostały zapisane."});
+            toast({ title: tr('toasts.success'), description: tr('toasts.smtpSettingsSaved')});
         } catch (error) {
             console.error("Error saving SMTP settings:", error);
-            toast({ variant: 'destructive', title: "Błąd", description: "Nie udało się zapisać ustawień SMTP."});
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotSaveTheSmtp')});
         }
     }, [services, toast, logAudit]);
 
@@ -1160,10 +1160,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await update(ref(db, `users/${userId}`), { role: newRole });
-            toast({ title: 'Sukces', description: 'Rola użytkownika została zaktualizowana.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theUserRoleHasBeen') });
         } catch (error) {
             console.error("Error updating user role: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować roli użytkownika.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotUpdateTheUser') });
         }
     }, [services, toast]);
 
@@ -1191,10 +1191,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             const newRef = push(ref(db, 'absenceRecords'));
             await set(newRef, record);
-            toast({ title: 'Sukces', description: 'Zapis został pomyślnie dodany.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theRecordHasBeenAdded') });
         } catch (error) {
             console.error('Error saving record:', error);
-            toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać rekordu.' });
+            toast({ variant: 'destructive', title: tr('toasts.serverError'), description: tr('toasts.couldNotSaveTheRecord') });
         }
     }, [services, toast]);
 
@@ -1203,10 +1203,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await remove(ref(db, `absenceRecords/${recordId}`));
-            toast({ title: 'Sukces', description: 'Zapis został usunięty.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theRecordHasBeenDeleted') });
         } catch (error) {
             console.error('Error deleting record:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapisu.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotDeleteTheRecord') });
         }
     }, [services, toast]);
 
@@ -1223,7 +1223,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             return newCard;
         } catch (error) {
             console.error('Error saving circulation card:', error);
-            toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać karty.' });
+            toast({ variant: 'destructive', title: tr('toasts.serverError'), description: tr('toasts.couldNotSaveTheForm') });
             return null;
         }
     }, [services, toast]);
@@ -1234,10 +1234,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             const newRef = push(ref(db, 'fingerprintAppointments'));
             await set(newRef, appointment);
-            toast({ title: 'Sukces', description: 'Termin został pomyślnie dodany.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theAppointmentHasBeenAdded') });
         } catch (error) {
             console.error('Error saving appointment:', error);
-            toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać terminu.' });
+            toast({ variant: 'destructive', title: tr('toasts.serverError'), description: tr('toasts.couldNotSaveTheAppointment') });
         }
     }, [services, toast]);
 
@@ -1246,10 +1246,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await remove(ref(db, `fingerprintAppointments/${appointmentId}`));
-            toast({ title: 'Sukces', description: 'Termin został usunięty.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theAppointmentHasBeenDeleted') });
         } catch (error) {
             console.error('Error deleting appointment:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć terminu.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotDeleteTheAppointment') });
         }
     }, [services, toast]);
 
@@ -1260,11 +1260,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const newRef = push(ref(db, 'clothingIssuances'));
             const newIssuance = { ...issuance, id: newRef.key! };
             await set(newRef, newIssuance);
-            toast({ title: 'Sukces', description: 'Zapis o wydaniu odzieży został zapisany.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theWorkwearIssueHasBeen') });
             return newIssuance;
         } catch (error) {
             console.error('Error saving clothing issuance:', error);
-            toast({ variant: 'destructive', title: 'Błąd serwera', description: 'Nie udało się zapisać danych.' });
+            toast({ variant: 'destructive', title: tr('toasts.serverError'), description: tr('toasts.couldNotSaveTheData') });
             return null;
         }
     }, [services, toast]);
@@ -1274,9 +1274,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await remove(ref(db, `clothingIssuances/${issuanceId}`));
-            toast({ title: 'Sukces', description: 'Zapis został usunięty.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theRecordHasBeenDeleted') });
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapisu.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotDeleteTheRecord') });
         }
     }, [services, toast]);
 
@@ -1290,9 +1290,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 createdAt: new Date().toISOString(),
                 realizedQuantity: order.realizedQuantity || 0
             });
-            toast({ title: 'Sukces', description: 'Nowe zamówienie zostało dodane.'});
+            toast({ title: tr('toasts.success'), description: tr('toasts.theNewOrderHasBeen')});
         } catch(e) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zamówienia.'});
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotAddTheOrder')});
         }
     }, [services, toast]);
 
@@ -1302,9 +1302,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             const { id, ...dataToUpdate } = order;
             await update(ref(db, `orders/${id}`), dataToUpdate);
-            toast({ title: 'Sukces', description: 'Zamówienie zostało zaktualizowane.'});
+            toast({ title: tr('toasts.success'), description: tr('toasts.theOrderHasBeenUpdated')});
         } catch(e) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować zamówienia.'});
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotUpdateTheOrder')});
         }
     }, [services, toast]);
 
@@ -1313,9 +1313,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await remove(ref(db, `orders/${orderId}`));
-            toast({ title: 'Sukces', description: 'Zamówienie zostało usunięte.'});
+            toast({ title: tr('toasts.success'), description: tr('toasts.theOrderHasBeenDeleted')});
         } catch(e) {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zamówienia.'});
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotDeleteTheOrder')});
         }
     }, [services, toast]);
 
@@ -1325,11 +1325,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             const newRef = push(ref(db, 'emailTemplates'));
             await set(newRef, template);
-            toast({ title: 'Sukces', description: 'Szablon został dodany.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theTemplateHasBeenAdded') });
             return newRef.key;
         } catch (error) {
             console.error('Error adding email template:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać szablonu.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotAddTheTemplate') });
             return null;
         }
     }, [services, toast]);
@@ -1339,10 +1339,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await update(ref(db, `emailTemplates/${templateId}`), updates);
-            toast({ title: 'Sukces', description: 'Szablon został zaktualizowany.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theTemplateHasBeenUpdated') });
         } catch (error) {
             console.error('Error updating email template:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować szablonu.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotUpdateTheTemplate') });
         }
     }, [services, toast]);
 
@@ -1351,10 +1351,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await remove(ref(db, `emailTemplates/${templateId}`));
-            toast({ title: 'Sukces', description: 'Szablon został usunięty.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theTemplateHasBeenDeleted') });
         } catch (error) {
             console.error('Error deleting email template:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć szablonu.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotDeleteTheTemplate') });
         }
     }, [services, toast]);
 
@@ -1374,11 +1374,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await set(ref(db, 'configPrivate/recipientEmails'), emails);
-            toast({ title: 'Sukces', description: 'Lista adresów email została zaktualizowana.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theEmailAddressListHas') });
             return true;
         } catch (error) {
             console.error('Error updating recipient emails:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować listy adresów.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotUpdateTheAddress') });
             return false;
         }
     }, [services, toast]);
@@ -1393,10 +1393,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 createdAt: new Date().toISOString(),
                 read: false,
             });
-            toast({ title: 'Sukces', description: 'Notatka została dodana.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theNoteHasBeenAdded') });
         } catch (error) {
             console.error('Error saving note:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać notatki.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotSaveTheNote') });
         }
     }, [services, toast]);
 
@@ -1407,7 +1407,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             await update(ref(db, `notes/${id}`), data);
         } catch (error) {
             console.error('Error updating note:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować notatki.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotUpdateTheNote') });
         }
     }, [services, toast]);
 
@@ -1416,10 +1416,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await remove(ref(db, `notes/${id}`));
-            toast({ title: 'Sukces', description: 'Notatka została usunięta.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.theNoteHasBeenDeleted') });
         } catch (error) {
             console.error('Error deleting note:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć notatki.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotDeleteTheNote') });
         }
     }, [services, toast]);
 
@@ -1428,10 +1428,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await update(ref(db, `notes/${id}`), { read: true });
-            toast({ title: 'Sukces', description: 'Notatka oznaczona jako przeczytana.' });
+            toast({ title: tr('toasts.success'), description: tr('toasts.noteMarkedAsRead') });
         } catch (error) {
             console.error('Error marking note as read:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się oznaczyć notatki.' });
+            toast({ variant: 'destructive', title: tr('toasts.error'), description: tr('toasts.couldNotMarkTheNote') });
         }
     }, [services, toast]);
 

@@ -1,6 +1,7 @@
 import { endOfWeek, format, startOfWeek, subDays, subWeeks } from 'date-fns';
 import { toYmd } from '@/lib/date';
 
+import { t } from '@/lib/i18n';
 /**
  * Ruch kadrowy w wybranym okresie (dzień albo tydzień kalendarzowy pon–niedz): ile osób zatrudniono
  * i ile odeszło, w podziale na działy i stanowiska. Działa na danych publicznego harmonogramu.
@@ -68,8 +69,8 @@ export function leaveDateYmd(p: MovementPerson, todayYmd: string): string | null
 function summarize(people: MovementPerson[]): MovementSummary {
   const byDept = new Map<string, Map<string, number>>();
   people.forEach(p => {
-    const dept = p.department?.trim() || 'Brak działu';
-    const job = p.jobTitle?.trim() || 'Brak stanowiska';
+    const dept = p.department?.trim() || t('schedule.noDepartment');
+    const job = p.jobTitle?.trim() || t('schedule.noJobTitle');
     const jobs = byDept.get(dept) ?? new Map<string, number>();
     jobs.set(job, (jobs.get(job) ?? 0) + 1);
     byDept.set(dept, jobs);

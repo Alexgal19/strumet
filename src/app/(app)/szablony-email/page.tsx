@@ -24,10 +24,11 @@ import { useAppContext } from '@/context/app-context';
 import { useToast } from '@/hooks/use-toast';
 import type { EmailTemplate, EmailTriggerType } from '@/lib/types';
 
+import { t } from '@/lib/i18n';
 const TRIGGER_LABELS: Record<EmailTriggerType, string> = {
-  manual: 'Manualny',
-  scheduled: 'Zaplanowany',
-  event: 'Eventowy',
+  get manual() { return t('email.manual'); },
+  get scheduled() { return t('email.scheduled'); },
+  get event() { return t('email.eventBased'); },
 };
 
 export default function EmailTemplatesPage() {
@@ -49,7 +50,7 @@ export default function EmailTemplatesPage() {
   }
 
   async function handleSendTest(id: string) {
-    toast({ title: 'Test', description: 'Funkcja wysyłania testowego w trakcie implementacji.' });
+    toast({ title: t('email.test'), description: t('email.testSendingIsNotAvailable') });
     setSendTestId(null);
   }
 
@@ -61,15 +62,15 @@ export default function EmailTemplatesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Szablony email</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('email.emailTemplates')}</h1>
           <p className="text-muted-foreground mt-1">
-            Zarządzaj szablonami wiadomości email dla automatycznych powiadomień.
+            {t('email.manageEmailTemplatesForAutomatic')}
           </p>
         </div>
         <Button asChild>
           <Link href="/szablony-email/nowy">
             <Plus className="mr-2 h-4 w-4" />
-            Nowy szablon
+            {t('email.newTemplate')}
           </Link>
         </Button>
       </div>
@@ -77,23 +78,23 @@ export default function EmailTemplatesPage() {
       <div className="flex gap-4 items-center">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filtruj..." />
+            <SelectValue placeholder={t('email.filter')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Wszystkie</SelectItem>
-            <SelectItem value="manual">Manualne</SelectItem>
-            <SelectItem value="scheduled">Zaplanowane</SelectItem>
-            <SelectItem value="event">Eventowe</SelectItem>
+            <SelectItem value="all">{t('email.all')}</SelectItem>
+            <SelectItem value="manual">{t('email.manual2')}</SelectItem>
+            <SelectItem value="scheduled">{t('email.scheduled2')}</SelectItem>
+            <SelectItem value="event">{t('email.eventBased2')}</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">
-          Razem: {emailTemplates.length} szablonów
+          {t('email.totalCountTemplates', { count: emailTemplates.length })}
         </span>
       </div>
 
       {filteredTemplates.length === 0 ? (
         <Card className="p-12 text-center">
-          <p className="text-muted-foreground">Brak szablonów. Utwórz pierwszy.</p>
+          <p className="text-muted-foreground">{t('email.noTemplatesCreateTheFirst')}</p>
         </Card>
       ) : (
         <div className="grid gap-4">
@@ -108,10 +109,10 @@ export default function EmailTemplatesPage() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">
-                    <strong>Temat:</strong> {template.subject}
+                    <strong>{t('email.subject')}</strong> {template.subject}
                   </p>
                   <p className="text-sm text-muted-foreground truncate">
-                    <strong>Treść:</strong> {template.body.slice(0, 100)}...
+                    <strong>{t('email.body')}</strong> {template.body.slice(0, 100)}...
                   </p>
                   {template.triggerConfig?.event && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -125,7 +126,7 @@ export default function EmailTemplatesPage() {
                     variant="ghost"
                     size="icon"
                     asChild
-                    title="Edytuj"
+                    title={t('email.edit')}
                   >
                     <Link href={`/szablony-email/${template.id}`}>
                       <Edit className="h-4 w-4" />
@@ -134,7 +135,7 @@ export default function EmailTemplatesPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    title="Wyślij test"
+                    title={t('email.sendTest')}
                     onClick={() => setSendTestId(template.id)}
                   >
                     <Send className="h-4 w-4" />
@@ -142,7 +143,7 @@ export default function EmailTemplatesPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    title="Usuń"
+                    title={t('email.delete')}
                     onClick={() => setDeleteId(template.id)}
                     className="text-destructive hover:text-destructive"
                   >
@@ -159,17 +160,17 @@ export default function EmailTemplatesPage() {
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Usuń szablon</DialogTitle>
+            <DialogTitle>{t('email.deleteTemplate')}</DialogTitle>
           </DialogHeader>
-          <p>Czy na pewno chcesz usunąć ten szablon? Tej operacji nie można cofnąć.</p>
+          <p>{t('email.deleteThisTemplateThisCannot')}</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteId(null)}>Anuluj</Button>
+            <Button variant="outline" onClick={() => setDeleteId(null)}>{t('email.cancel')}</Button>
             <Button
               variant="destructive"
               onClick={() => deleteId && handleDelete(deleteId)}
               disabled={loading}
             >
-              Usuń
+              {t('email.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -179,16 +180,15 @@ export default function EmailTemplatesPage() {
       <Dialog open={!!sendTestId} onOpenChange={() => setSendTestId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Wyślij testowy email</DialogTitle>
+            <DialogTitle>{t('email.sendATestEmail')}</DialogTitle>
           </DialogHeader>
           <p>
-            Testowy email zostanie wysłany na adres HR. Aby wysłać do konkretnego
-            pracownika, użyj funkcji z poziomu szczegółów pracownika.
+            {t('email.theTestEmailWillBe')}
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSendTestId(null)}>Anuluj</Button>
+            <Button variant="outline" onClick={() => setSendTestId(null)}>{t('email.cancel')}</Button>
             <Button onClick={() => sendTestId && handleSendTest(sendTestId)}>
-              Wyślij test
+              {t('email.sendTest')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -109,10 +109,43 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Ustawiane w trakcie renderu, zanim wyrenderują się dzieci — globalne t() widzi już nowy język
+  currentLocale = locale;
+
   const value = useMemo(() => buildValue(locale, setLocale), [locale, setLocale]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 export function useI18n(): I18nValue {
   return useContext(I18nContext);
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Globalne t() — do użycia w dowolnej funkcji wywoływanej w trakcie renderu lub zdarzenia,
+ * bez hooka. Po zmianie języka <LocaleBoundary> przemontowuje strony, więc wszystkie teksty
+ * liczą się od nowa. NIE używaj t() w stałych na poziomie modułu (policzą się tylko raz).
+ * Na serwerze zawsze polski (język z przeglądarki ustawiany jest dopiero po hydracji).
+ * ---------------------------------------------------------------------------------------- */
+let currentLocale: Locale = 'pl';
+
+export function getLocale(): Locale {
+  return currentLocale;
+}
+
+export function t(key: TranslationKey, vars?: TranslateVars): string {
+  return translate(currentLocale, key, vars);
+}
+
+export function tp(base: PluralKey, count: number, vars?: TranslateVars): string {
+  return translatePlural(currentLocale, base, count, vars);
+}
+
+export function getDateLocale(): DateFnsLocale {
+  return currentLocale === 'en' ? enGB : pl;
+}
+
+/** Przemontowuje zawartość przy zmianie języka (stan stron — np. otwarte okna — jest resetowany). */
+export function LocaleBoundary({ children }: { children: React.ReactNode }) {
+  const { locale } = useI18n();
+  return <React.Fragment key={locale}>{children}</React.Fragment>;
 }

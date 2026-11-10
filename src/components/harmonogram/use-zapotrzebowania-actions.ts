@@ -8,6 +8,7 @@ import { formatYmdPl } from '@/lib/date';
 import type { HarmonogramData } from '@/lib/harmonogram';
 import type { useToast } from '@/hooks/use-toast';
 
+import { t } from '@/lib/i18n';
 type ToastFn = ReturnType<typeof useToast>['toast'];
 
 /** Zapis komentarzy i przyjęć — gość przez publiczne API, admin przez Client SDK. */
@@ -44,7 +45,7 @@ export function useZapotrzebowaniaActions({
     const cKey = commentKey(dept, jobTitle);
     const text = (commentDrafts[cKey] ?? '').trim();
     if (text.length > MAX_COMMENT_LEN) {
-      toast({ variant: 'destructive', title: 'Nie zapisano', description: `Komentarz może mieć maks. ${MAX_COMMENT_LEN} znaków.` });
+      toast({ variant: 'destructive', title: t('schedule.notSaved'), description: t('schedule.aCommentCanHaveAt', { max: MAX_COMMENT_LEN }) });
       return;
     }
     const applyLocal = (saved: { text: string; author: string; updatedAt: string } | null) => {
@@ -68,19 +69,19 @@ export function useZapotrzebowaniaActions({
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
-          toast({ variant: 'destructive', title: 'Nie zapisano', description: json.error || 'Błąd zapisywania. Spróbuj ponownie.' });
+          toast({ variant: 'destructive', title: t('schedule.notSaved'), description: json.error || t('schedule.savingFailedPleaseTryAgain') });
           return;
         }
         if (json.removed) {
           applyLocal(null);
-          toast({ title: 'Usunięto komentarz' });
+          toast({ title: t('schedule.commentDeleted') });
         } else {
           applyLocal({ text, author: 'Gość', updatedAt: new Date().toISOString() });
-          toast({ title: 'Zapisano komentarz' });
+          toast({ title: t('schedule.commentSaved') });
         }
       } catch (err) {
         console.error('Failed to save comment (guest):', err);
-        toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Brak połączenia. Spróbuj ponownie.' });
+        toast({ variant: 'destructive', title: t('schedule.notSaved'), description: t('schedule.noConnectionPleaseTryAgain') });
       }
       return;
     }
@@ -118,7 +119,7 @@ export function useZapotrzebowaniaActions({
       });
     };
     const fail = (message: string) => {
-      if (!silent) toast({ variant: 'destructive', title: 'Nie zapisano', description: message });
+      if (!silent) toast({ variant: 'destructive', title: t('schedule.notSaved'), description: message });
       return message;
     };
 
@@ -131,19 +132,19 @@ export function useZapotrzebowaniaActions({
           body: JSON.stringify(arrivalData),
         });
         const json = await res.json().catch(() => ({}));
-        if (!res.ok) return fail(json.error || 'Błąd zapisywania. Spróbuj ponownie.');
+        if (!res.ok) return fail(json.error || t('schedule.savingFailedPleaseTryAgain'));
         applyLocal(json.id as string);
-        if (!silent) toast({ title: 'Zapisano', description: `Przyjęcie: ${formatYmdPl(date)} — ${count} os.` });
+        if (!silent) toast({ title: t('schedule.saved'), description: t('schedule.arrivalDateCountPpl', { date: formatYmdPl(date), count }) });
         return null;
       } catch (err) {
         console.error('Failed to add arrival (guest):', err);
-        return fail('Brak połączenia. Spróbuj ponownie.');
+        return fail(t('schedule.noConnectionPleaseTryAgain'));
       }
     }
 
     // Admin — przez Client SDK.
     const db = getDB();
-    if (!db) return fail('Brak połączenia z bazą.');
+    if (!db) return fail(t('schedule.noDatabaseConnection'));
     try {
       const newRef = push(dbRef(db, 'planowanePrzyjecia'));
       await set(newRef, arrivalData);
@@ -152,7 +153,7 @@ export function useZapotrzebowaniaActions({
       return null;
     } catch (err) {
       console.error('Failed to add arrival:', err);
-      return fail('Błąd zapisywania. Spróbuj ponownie.');
+      return fail(t('schedule.savingFailedPleaseTryAgain'));
     }
   };
 
@@ -176,7 +177,7 @@ export function useZapotrzebowaniaActions({
 
   const updateArrival = async (id: string, newDate: string, newCount: number): Promise<boolean> => {
     if (!newDate || !Number.isInteger(newCount) || newCount <= 0) {
-      toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Podaj poprawną datę i liczbę osób.' });
+      toast({ variant: 'destructive', title: t('schedule.notSaved'), description: t('schedule.enterAValidDateAnd') });
       return false;
     }
 
@@ -192,8 +193,8 @@ export function useZapotrzebowaniaActions({
         if (!res.ok) {
           toast({
             variant: 'destructive',
-            title: 'Nie zapisano',
-            description: json.error || 'Błąd zapisywania. Spróbuj ponownie.',
+            title: t('schedule.notSaved'),
+            description: json.error || t('schedule.savingFailedPleaseTryAgain'),
           });
           return false;
         }
@@ -205,11 +206,11 @@ export function useZapotrzebowaniaActions({
           }
           return { ...prev, planowanePrzyjecia: current };
         });
-        toast({ title: 'Zapisano', description: `Przyjęcie: ${formatYmdPl(json.date)} — ${json.count} os.` });
+        toast({ title: t('schedule.saved'), description: t('schedule.arrivalDateCountPpl', { date: formatYmdPl(json.date), count: json.count }) });
         return true;
       } catch (err) {
         console.error('Failed to update arrival (guest):', err);
-        toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Brak połączenia. Spróbuj ponownie.' });
+        toast({ variant: 'destructive', title: t('schedule.notSaved'), description: t('schedule.noConnectionPleaseTryAgain') });
         return false;
       }
     }

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "./ui/badge";
 
+import { t } from '@/lib/i18n';
 interface OptionType {
   value: string;
   label: string;
@@ -93,16 +94,16 @@ export function DataTableMultiSelectFilter({
           <div className="p-2 border-b">
              <p className="text-sm font-medium">{title}</p>
           </div>
-          <CommandInput placeholder={`Szukaj ${title?.toLowerCase() ?? 'opcji'}...`} />
+          <CommandInput placeholder={t('importx.searchWhat', { what: title?.toLowerCase() ?? t('importx.options') })} />
           <CommandList>
-            <CommandEmpty>Brak wyników.</CommandEmpty>
+            <CommandEmpty>{t('importx.noResults2')}</CommandEmpty>
             <CommandGroup>
               <div className="flex justify-between p-2">
                 <Button variant="link" size="sm" onClick={handleSelectAll}>
-                  Zaznacz wszystko
+                  {t('importx.selectAll2')}
                 </Button>
                 <Button variant="link" size="sm" onClick={handleClearAll}>
-                  Wyczyść zaznaczenie
+                  {t('importx.clearSelection')}
                 </Button>
               </div>
               {options.map((option) => (
@@ -124,10 +125,10 @@ export function DataTableMultiSelectFilter({
           </CommandList>
           <div className="flex justify-end p-2 border-t">
             <Button variant="outline" size="sm" onClick={handleCancel} className="mr-2">
-              Anuluj
+              {t('importx.cancel')}
             </Button>
             <Button size="sm" onClick={handleApply}>
-              Zastosuj
+              {t('importx.apply')}
             </Button>
           </div>
         </Command>

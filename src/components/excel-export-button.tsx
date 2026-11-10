@@ -8,6 +8,7 @@ import { formatDate, parseMaybeDate } from '@/lib/date';
 import { format } from 'date-fns';
 
 
+import { t } from '@/lib/i18n';
 interface ExcelExportButtonProps {
   employees: Employee[];
   fileName?: string;
@@ -51,7 +52,7 @@ export function ExcelExportButton({ employees, fileName = 'pracownicy', columns,
   return (
     <Button variant={variant} className={className} onClick={handleExport} disabled={employees.length === 0}>
       <FileDown className="mr-2 h-4 w-4" />
-      Eksportuj do Excel
+      {t('importx.exportToExcel')}
     </Button>
   );
 }

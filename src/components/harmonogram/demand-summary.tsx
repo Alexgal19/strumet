@@ -3,6 +3,7 @@
 import { UserPlus, Users, CalendarPlus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
+import { t } from '@/lib/i18n';
 export function DemandSummary({
   totalMissingToday,
   totalTerminations,
@@ -17,10 +18,10 @@ export function DemandSummary({
       <Badge
         variant="secondary"
         className="gap-1.5 px-3 py-1.5 text-sm tabular-nums"
-        title="Braki na dziś: Potrzeby − Jest (bez przyszłych zwolnień i przyjęć)"
+        title={t('schedule.todaySGapsNeededHave')}
       >
         <UserPlus className="h-4 w-4" />
-        Łącznie brakuje dziś: {totalMissingToday}
+        {t('schedule.totalShortTodayCount', { count: totalMissingToday })}
       </Badge>
       {totalTerminations > 0 && (
         <Badge
@@ -28,7 +29,7 @@ export function DemandSummary({
           className="gap-1.5 border-red-500/60 px-3 py-1.5 text-sm text-red-700 tabular-nums dark:text-red-400"
         >
           <Users className="h-4 w-4" />
-          Planowane zwolnienia: {totalTerminations}
+          {t('schedule.plannedTerminationsCount', { count: totalTerminations })}
         </Badge>
       )}
       <Badge
@@ -36,7 +37,7 @@ export function DemandSummary({
         className="gap-1.5 border-blue-500/60 px-3 py-1.5 text-sm text-blue-700 tabular-nums dark:text-blue-400"
       >
         <CalendarPlus className="h-4 w-4" />
-        Zaplanowane przyjęcia: {totalPlanned}
+        {t('schedule.plannedArrivalsCount', { count: totalPlanned })}
       </Badge>
     </div>
   );

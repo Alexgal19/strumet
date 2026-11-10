@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import { ChevronLeft, ChevronRight, UserMinus, UserPlus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
   type MovementSummary,
 } from '@/lib/weekly-movement';
 
+import { t } from '@/lib/i18n';
 type Mode = 'day' | 'week';
 
 const TONES = {
@@ -29,15 +30,15 @@ function MovementCard({ title, summary, tone, icon: Icon, emptyText }: {
   icon: LucideIcon;
   emptyText: string;
 }) {
-  const t = TONES[tone];
+  const tone$ = TONES[tone];
   return (
-    <section className={`min-w-0 rounded-lg border border-l-4 bg-card p-4 text-sm text-foreground shadow-sm ${t.border}`}>
+    <section className={`min-w-0 rounded-lg border border-l-4 bg-card p-4 text-sm text-foreground shadow-sm ${tone$.border}`}>
       <header className="mb-3 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-base font-bold">
-          <Icon className={`h-5 w-5 shrink-0 ${t.icon}`} />
+          <Icon className={`h-5 w-5 shrink-0 ${tone$.icon}`} />
           {title}
         </h3>
-        <span className={`text-3xl font-bold tabular-nums leading-none ${t.number}`}>{summary.total}</span>
+        <span className={`text-3xl font-bold tabular-nums leading-none ${tone$.number}`}>{summary.total}</span>
       </header>
       {summary.total === 0 ? (
         <p>{emptyText}</p>
@@ -47,7 +48,7 @@ function MovementCard({ title, summary, tone, icon: Icon, emptyText }: {
             <li key={g.department} className="rounded-md bg-muted/60 px-3 py-2">
               <div className="flex items-center justify-between gap-2 font-semibold">
                 <span className="min-w-0 [overflow-wrap:anywhere]">{g.department}</span>
-                <span className="shrink-0 tabular-nums">{g.total} os.</span>
+                <span className="shrink-0 tabular-nums">{t('schedule.countPpl', { count: g.total })}</span>
               </div>
               <ul className="mt-1 flex flex-col gap-0.5">
                 {g.jobs.map(j => (
@@ -67,11 +68,11 @@ function MovementCard({ title, summary, tone, icon: Icon, emptyText }: {
 
 function periodLabel(mode: Mode, back: number, fromYmd: string, toYmd: string): string {
   if (mode === 'day') {
-    const name = back === 0 ? 'Dziś' : back === 1 ? 'Wczoraj' : format(parseISO(fromYmd), 'EEEE', { locale: pl });
+    const name = back === 0 ? t('schedule.today2') : back === 1 ? t('schedule.yesterday') : format(parseISO(fromYmd), 'EEEE', { locale: getDateLocale() });
     const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
     return `${capitalized}: ${formatYmdPl(fromYmd)}`;
   }
-  const name = back === 0 ? 'Ten tydzień' : back === 1 ? 'Zeszły tydzień' : 'Tydzień';
+  const name = back === 0 ? t('schedule.thisWeek') : back === 1 ? t('schedule.lastWeek') : t('schedule.week');
   return `${name}: ${formatYmdPl(fromYmd)} – ${formatYmdPl(toYmd)}`;
 }
 
@@ -97,12 +98,12 @@ export function LastWeekMovement({ employees, hires }: { employees: MovementPers
   };
 
   const label = periodLabel(mode, back, movement.fromYmd, movement.toYmd);
-  const periodWord = mode === 'day' ? 'tego dnia' : 'w tym tygodniu';
+  const periodWord = mode === 'day' ? t('schedule.onThisDay') : t('schedule.thisWeek2');
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex overflow-hidden rounded-lg border border-border" role="group" aria-label="Okres">
+        <div className="flex overflow-hidden rounded-lg border border-border" role="group" aria-label={t('schedule.period')}>
           <Button
             type="button"
             size="sm"
@@ -111,7 +112,7 @@ export function LastWeekMovement({ employees, hires }: { employees: MovementPers
             aria-pressed={mode === 'day'}
             onClick={() => switchMode('day')}
           >
-            Dzień
+            {t('schedule.day')}
           </Button>
           <Button
             type="button"
@@ -121,7 +122,7 @@ export function LastWeekMovement({ employees, hires }: { employees: MovementPers
             aria-pressed={mode === 'week'}
             onClick={() => switchMode('week')}
           >
-            Tydzień
+            {t('schedule.week')}
           </Button>
         </div>
         <div className="flex items-center gap-1">
@@ -130,7 +131,7 @@ export function LastWeekMovement({ employees, hires }: { employees: MovementPers
             size="icon"
             variant="outline"
             className="h-9 w-9"
-            aria-label={mode === 'day' ? 'Poprzedni dzień' : 'Poprzedni tydzień'}
+            aria-label={mode === 'day' ? t('schedule.previousDay') : t('schedule.previousWeek')}
             onClick={() => setBack(b => b + 1)}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -140,7 +141,7 @@ export function LastWeekMovement({ employees, hires }: { employees: MovementPers
             size="icon"
             variant="outline"
             className="h-9 w-9"
-            aria-label={mode === 'day' ? 'Następny dzień' : 'Następny tydzień'}
+            aria-label={mode === 'day' ? t('schedule.nextDay') : t('schedule.nextWeek')}
             disabled={back === 0}
             onClick={() => setBack(b => Math.max(0, b - 1))}
           >
@@ -151,18 +152,18 @@ export function LastWeekMovement({ employees, hires }: { employees: MovementPers
       </div>
       <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
         <MovementCard
-          title="Zatrudnieni"
+          title={t('schedule.hired')}
           summary={movement.hired}
           tone="emerald"
           icon={UserPlus}
-          emptyText={`Nikt nie został zatrudniony ${periodWord}.`}
+          emptyText={t('schedule.noOneWasHiredPeriod', { period: periodWord })}
         />
         <MovementCard
-          title="Odeszli"
+          title={t('schedule.left')}
           summary={movement.left}
           tone="red"
           icon={UserMinus}
-          emptyText={`Nikt nie odszedł ${periodWord}.`}
+          emptyText={t('schedule.noOneLeftPeriod', { period: periodWord })}
         />
       </div>
     </div>

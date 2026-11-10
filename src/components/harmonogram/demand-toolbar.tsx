@@ -4,6 +4,7 @@ import { CalendarPlus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+import { t } from '@/lib/i18n';
 export function DemandToolbar({
   query,
   onQueryChange,
@@ -28,7 +29,7 @@ export function DemandToolbar({
         <Input
           value={query}
           onChange={e => onQueryChange(e.target.value)}
-          placeholder="Szukaj działu lub stanowiska…"
+          placeholder={t('schedule.searchDepartmentOrJobTitle')}
           className="h-8 pl-8 text-sm"
         />
       </div>
@@ -40,20 +41,20 @@ export function DemandToolbar({
         aria-pressed={onlyProblems}
         onClick={onToggleOnlyProblems}
       >
-        Tylko z brakami
+        {t('schedule.onlyWithGaps')}
       </Button>
       <select
-        aria-label="Sortowanie"
+        aria-label={t('schedule.sorting')}
         value={sortMode}
         onChange={e => onSortModeChange(e.target.value as 'deficit' | 'name')}
         className="h-8 rounded-md border border-input bg-background px-2 text-sm"
       >
-        <option value="deficit">Sortuj: największe braki</option>
-        <option value="name">Sortuj: nazwa A–Z</option>
+        <option value="deficit">{t('schedule.sortBiggestGaps')}</option>
+        <option value="name">{t('schedule.sortNameAZ')}</option>
       </select>
       <Button type="button" size="sm" variant="outline" className=" gap-1.5 sm:ml-auto" onClick={onOpenBulk}>
         <CalendarPlus className="h-4 w-4" />
-        Dodaj przyjęcia hurtem
+        {t('schedule.addArrivalsInBulk')}
       </Button>
     </div>
   );

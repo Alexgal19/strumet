@@ -17,6 +17,7 @@ import type { DemandRenderContext } from './demand-context';
 import { LastWeekMovement } from './last-week-movement';
 import { JobTotalsCard } from './job-totals-card';
 
+import { t } from '@/lib/i18n';
 export function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: { data: HarmonogramData, setData: React.Dispatch<React.SetStateAction<HarmonogramData | null>>, onUpdatePotrzeby?: (dept: string, mgr: string, job: string, newAmount: number) => void | boolean | Promise<boolean | void> }) {
   const { jobTitlesByDept } = usePublicZapotrzebowaniaStats(data);
   const { isAdmin, currentUser, logAudit } = useAppContext();
@@ -165,7 +166,7 @@ export function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: {
       {model.deptModels.length === 0 && (
         <Card>
           <CardContent className="py-8 text-center text-sm text-foreground">
-            {onlyProblems || query.trim() ? 'Brak wyników dla wybranych filtrów.' : 'Brak stanowisk.'}
+            {onlyProblems || query.trim() ? t('schedule.noResultsForTheSelected') : t('schedule.noPositions')}
           </CardContent>
         </Card>
       )}
@@ -175,8 +176,8 @@ export function PublicZapotrzebowaniaView({ data, setData, onUpdatePotrzeby }: {
         ))}
       </div>
       <p className="text-sm text-foreground">
-        Teraz = Potrzeby − Jest. Za 7 / 30 dni = prognoza po zwolnieniach (brak liczony od dnia po ostatnim dniu pracy) i zaplanowanych przyjęciach.
-        Brakuje netto = stan docelowy po wszystkich zwolnieniach i przyjęciach. Kliknij stanowisko, aby dodać przyjęcie lub komentarz.
+        {t('schedule.nowNeededHaveIn7')}
+        {t('schedule.netShortageTargetAfterAll')}
       </p>
 
       <BulkArrivalsDialog

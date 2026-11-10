@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { UserPlus } from 'lucide-react';
 import { RecruitmentCard } from './recruitment-card';
 
+import { t } from '@/lib/i18n';
 export const RecruitmentList = ({
   sortedRecruitments,
   departments,
@@ -34,7 +35,7 @@ export const RecruitmentList = ({
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
           <UserPlus className="mx-auto mb-3 h-8 w-8 opacity-40" />
-          Brak danych — wybierz dział i stanowiska powyżej, aby zaplanować rekrutację.
+          {t('recruit.noDataPickADepartment')}
         </CardContent>
       </Card>
     );

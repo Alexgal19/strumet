@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CalendarPlus, Trash2 } from 'lucide-react';
 
+import { t } from '@/lib/i18n';
 export const ArrivalRow = ({
   recruitmentId,
   arrival,
@@ -34,7 +35,7 @@ export const ArrivalRow = ({
         date: value,
       });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać daty.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotSaveTheDate') });
     }
   };
 
@@ -52,7 +53,7 @@ export const ArrivalRow = ({
         count: parsed,
       });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać liczby osób.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotSaveTheNumber') });
     }
   };
 
@@ -65,7 +66,7 @@ export const ArrivalRow = ({
           value={arrival.date ?? ''}
           onChange={e => handleDateChange(e.target.value)}
           className="h-9 flex-1"
-          aria-label="Data przyjęcia"
+          aria-label={t('recruit.arrivalDate')}
         />
       </div>
       <div className="flex items-center gap-1.5">
@@ -80,7 +81,7 @@ export const ArrivalRow = ({
             handleCountBlur();
           }}
           className="h-9 w-20 tabular-nums"
-          aria-label="Liczba osób"
+          aria-label={t('recruit.numberOfPeople')}
         />
         <span className="text-xs text-muted-foreground">os.</span>
       </div>
@@ -89,7 +90,7 @@ export const ArrivalRow = ({
         variant="ghost"
         className="ml-auto h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
         onClick={() => onRemove(arrival.id)}
-        aria-label="Usuń datę"
+        aria-label={t('recruit.deleteDate')}
       >
         <Trash2 className="h-4 w-4" />
       </Button>

@@ -4,10 +4,11 @@ export function getPotrzebyKey(dept: string, mgr: string, job: string) {
   return [dept, mgr, job].map(sanitizeKeyPart).join('___');
 }
 import { addDays, addMonths, format, getDaysInMonth, startOfDay, startOfMonth } from 'date-fns';
-import { pl as plLocale } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import { parseMaybeDate, toYmd } from '@/lib/date';
 import { allocateArrivals, isPendingTermination } from '@/lib/przyjecia-historia';
 
+import { t } from '@/lib/i18n';
 export interface HarmonogramEmployee {
   department: string;
   jobTitle: string;
@@ -352,7 +353,7 @@ export function buildHarmonogram(
                       vacationers: [],
                       terminating: [],
                       statusType: 'not_hired',
-                      title: `${e.fullName}: Przed zatrudnieniem (od ${format(hire, 'dd.MM.yyyy')})`,
+                      title: t('schedule.nameBeforeHireFromDate', { name: e.fullName, date: format(hire, 'dd.MM.yyyy') }),
                     };
                   }
 
@@ -363,7 +364,7 @@ export function buildHarmonogram(
                       vacationers: [],
                       terminating: [],
                       statusType: 'terminated',
-                      title: `${e.fullName}: Zwolniony/Planowane zwolnienie (od ${format(term, 'dd.MM.yyyy')})`,
+                      title: t('schedule.nameTerminatedPlannedTerminationFrom', { name: e.fullName, date: format(term, 'dd.MM.yyyy') }),
                     };
                   }
 
@@ -377,7 +378,7 @@ export function buildHarmonogram(
                       vacationers: [],
                       terminating: [e],
                       statusType: 'terminating',
-                      title: `${e.fullName}: Zwolnienie — ostatni dzień (${format(term!, 'dd.MM.yyyy')})`,
+                      title: t('schedule.nameTerminationLastDayDate', { name: e.fullName, date: format(term!, 'dd.MM.yyyy') }),
                     };
                   }
 
@@ -391,7 +392,7 @@ export function buildHarmonogram(
                       vacationers: [],
                       terminating: [],
                       statusType: 'absent',
-                      title: `${e.fullName}: Nieobecny (${absList.map(a => a.jobTitle || 'nieobecność').join(', ')})`,
+                      title: t('schedule.nameAbsentDetails', { name: e.fullName, details: absList.map(a => a.jobTitle || t('schedule.absence')).join(', ') }),
                     };
                   }
 
@@ -405,7 +406,7 @@ export function buildHarmonogram(
                       vacationers: [e],
                       terminating: [],
                       statusType: 'vacation',
-                      title: `${e.fullName}: Na urlopie (${format(vStart, 'dd.MM')} - ${vEnd ? format(vEnd, 'dd.MM') : '...'})`,
+                      title: t('schedule.nameOnLeaveFromTo', { name: e.fullName, from: format(vStart, 'dd.MM'), to: vEnd ? format(vEnd, 'dd.MM') : '...' }),
                     };
                   }
 
@@ -415,7 +416,7 @@ export function buildHarmonogram(
                     vacationers: [],
                     terminating: [],
                     statusType: 'present',
-                    title: `${e.fullName}: Obecny (1)`,
+                    title: t('schedule.namePresent1', { name: e.fullName }),
                   };
                 });
 
@@ -569,7 +570,7 @@ export function buildHarmonogram(
 
   return {
     monthDate,
-    monthLabel: format(monthDate, 'LLLL yyyy', { locale: plLocale }),
+    monthLabel: format(monthDate, 'LLLL yyyy', { locale: getDateLocale() }),
     days,
     rows,
   };
@@ -607,30 +608,28 @@ function buildTitle({
   mam: number;
 }): string | undefined {
   const changes: string[] = [];
-  if (absentees.length > 0) changes.push(`−${absentees.length} nieobecnych`);
-  if (vacationers.length > 0) changes.push(`−${vacationers.length} na urlopie`);
-  if (terminating.length > 0) changes.push(`${terminating.length} zwalnia się`);
+  if (absentees.length > 0) changes.push(t('schedule.countAbsent', { count: absentees.length }));
+  if (vacationers.length > 0) changes.push(t('schedule.countOnLeave', { count: vacationers.length }));
+  if (terminating.length > 0) changes.push(t('schedule.countLeaving', { count: terminating.length }));
   const details: string[] = [];
   if (absentees.length > 0)
     details.push(
-      `Nieobecni: ${absentees
-        .map(a => `${a.fullName} (${a.jobTitle}${a.manager ? `, kier. ${a.manager}` : ''})`)
-        .join('; ')}`
+      t('schedule.absentList', { list: absentees.map(a => personLabel(a.fullName, a.jobTitle, a.manager)).join('; ') })
     );
   if (vacationers.length > 0)
     details.push(
-      `Na urlopie: ${vacationers
-        .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
-        .join('; ')}`
+      t('schedule.onLeaveList', { list: vacationers.map(e => personLabel(e.fullName, e.jobTitle, e.manager)).join('; ') })
     );
   if (terminating.length > 0)
     details.push(
-      `Zwalnia się: ${terminating
-        .map(e => `${e.fullName} (${e.jobTitle}${e.manager ? `, kier. ${e.manager}` : ''})`)
-        .join('; ')}`
+      t('schedule.leavingList', { list: terminating.map(e => personLabel(e.fullName, e.jobTitle, e.manager)).join('; ') })
     );
   const title = [changes.join(', '), ...details].filter(Boolean).join(' | ');
-  return title || `Mam: ${mam}`;
+  return title || t('schedule.haveCount', { count: mam });
+}
+
+function personLabel(fullName: string, jobTitle: string, manager?: string): string {
+  return manager ? t('schedule.nameJobMgrManager', { name: fullName, job: jobTitle, manager }) : `${fullName} (${jobTitle})`;
 }
 
 /** Eksport harmonogramu do Excel (pełna 4-poziomowa hierarchia: Dział -> Kierownik -> Stanowisko -> Pracownik) */

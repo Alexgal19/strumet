@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/date';
 
+import { t } from '@/lib/i18n';
 const DiffBadge = ({ diff }: { diff: number }) => (
     <Badge variant={diff >= 0 ? 'default' : 'destructive'} className={cn(diff >= 0 && "bg-green-500 hover:bg-green-600")}>
         {diff > 0 ? `+${diff}` : diff}
@@ -27,7 +28,7 @@ export const PeriodChangeCard = ({ title, data }: { title: string, data: { name:
             <div className="space-y-3">
                 {data.length > 0 ? data.map(item => (
                     <div key={item.name} className="flex justify-between items-center text-sm">
-                        <span>{item.name || 'Brak'}</span>
+                        <span>{item.name || t('stats.none')}</span>
                         <div className="flex items-center gap-2 font-mono">
                             <span>{item.from}</span>
                             <ArrowRight className="h-3 w-3 text-muted-foreground" />
@@ -35,7 +36,7 @@ export const PeriodChangeCard = ({ title, data }: { title: string, data: { name:
                             <DiffBadge diff={item.diff} />
                         </div>
                     </div>
-                )) : <p className="text-sm text-muted-foreground text-center">Brak zmian</p>}
+                )) : <p className="text-sm text-muted-foreground text-center">{t('stats.noChanges')}</p>}
             </div>
         </CardContent>
     </Card>
@@ -48,10 +49,10 @@ export const SingleDayReportCard = ({ title, data }: { title: string, data: { na
             <div className="space-y-3">
                 {data.length > 0 ? data.map(item => (
                     <div key={item.name} className="flex justify-between items-center text-sm">
-                        <span>{item.name || 'Brak'}</span>
+                        <span>{item.name || t('stats.none')}</span>
                         <span className="font-bold font-mono">{item.to}</span>
                     </div>
-                )) : <p className="text-sm text-muted-foreground text-center">Brak danych</p>}
+                )) : <p className="text-sm text-muted-foreground text-center">{t('stats.noData')}</p>}
             </div>
         </CardContent>
     </Card>
@@ -80,7 +81,7 @@ export const EmployeeChangeList = ({ title, employees, icon, emptyText }: { titl
                     {icon}
                     <div>
                         <CardTitle className="text-lg">{title}</CardTitle>
-                        <CardDescription>{employees.length} pracowników</CardDescription>
+                        <CardDescription>{t('stats.countEmployees', { count: employees.length })}</CardDescription>
                     </div>
                 </div>
             </CardHeader>
@@ -98,7 +99,8 @@ export const EmployeeChangeList = ({ title, employees, icon, emptyText }: { titl
     );
 };
 
-const CHANGE_UNIT_LABEL: Record<string, string> = { department: 'działów', jobTitle: 'stanowisk', nationality: 'narodowości' };
+const changeUnitLabel = (type: string): string =>
+    ({ department: t('stats.departments'), jobTitle: t('stats.jobTitles'), nationality: t('stats.nationalities') } as Record<string, string>)[type] ?? t('stats.categories');
 
 export const FieldChangeList = ({ changes }: { changes: any[] }) => {
     const groupedChanges = changes.reduce((acc, change) => {
@@ -115,8 +117,8 @@ export const FieldChangeList = ({ changes }: { changes: any[] }) => {
                 <div className="flex items-center gap-3">
                     <GitCompareArrows className="h-6 w-6 text-blue-500" />
                     <div>
-                        <CardTitle className="text-lg">Zmiany w danych pracowników</CardTitle>
-                        <CardDescription>{changes.length} zarejestrowanych zmian</CardDescription>
+                        <CardTitle className="text-lg">{t('stats.changesInEmployeeData')}</CardTitle>
+                        <CardDescription>{t('stats.countRecordedChanges', { count: changes.length })}</CardDescription>
                     </div>
                 </div>
             </CardHeader>
@@ -141,7 +143,7 @@ export const FieldChangeList = ({ changes }: { changes: any[] }) => {
                         );
                         return (
                             <AccordionItem value={type} key={type}>
-                                <AccordionTrigger>Zmiany {CHANGE_UNIT_LABEL[type] ?? 'kategorii'} ({(items as any[]).length})</AccordionTrigger>
+                                <AccordionTrigger>{t('stats.changesUnitCount', { unit: changeUnitLabel(type), count: (items as any[]).length })}</AccordionTrigger>
                                 <AccordionContent>
                                     <div className="hidden sm:block"><ScrollArea className="max-h-80">{list}</ScrollArea></div>
                                     <div className="sm:hidden">{list}</div>

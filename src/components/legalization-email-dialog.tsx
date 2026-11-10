@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Employee } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
+import { t, rich } from '@/lib/i18n';
 interface LegalizationEmailDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
@@ -48,13 +49,13 @@ export function LegalizationEmailDialog({ isOpen, onOpenChange, employee }: Lega
     let body = ""
 
     if (activeTab === "wezwanie") {
-      subject = "WEZWANIE"
+      subject = t('dialogs.summons')
       body = `Dotyczy pracownika: ${employee.fullName}\n\nPracownik otrzymał wezwanie z urzędu do uzupełnienia braków formalnych.\n\n(Pamiętaj, aby załączyć skan całego wezwania, na którym widoczna jest data jego doręczenia!)`
     } else if (activeTab === "zamowienie") {
-      subject = "ZAMÓWIENIE"
+      subject = t('dialogs.order')
       body = `Imię i nazwisko: ${employee.fullName}\nNazwa zamawianych dokumentów: ${orderDocs}\nTermin do którego dokumenty są niezbędne: ${orderDate}\nSposób odbioru: ${orderDelivery}`
     } else if (activeTab === "legalnosc") {
-      subject = "LEGALNOŚĆ"
+      subject = t('dialogs.legality')
       body = `Imię i nazwisko: ${employee.fullName}\nAktualny zakład: ${legalityDept}\nSpółka: ${legalityCompany}\nDotyczy zatrudnienia: ${legalityStatus}`
     }
 
@@ -62,8 +63,8 @@ export function LegalizationEmailDialog({ isOpen, onOpenChange, employee }: Lega
     
     navigator.clipboard.writeText(body).then(() => {
       toast({
-        title: "Treść skopiowana!",
-        description: "Wklej ją za pomocą Ctrl + V w oknie Outlooka, aby zachować swoją stopkę z logo.",
+        title: t('dialogs.textCopied'),
+        description: t('dialogs.pasteItWithCtrlV'),
       })
       window.location.href = mailtoLink
     }).catch((err) => {
@@ -80,33 +81,33 @@ export function LegalizationEmailDialog({ isOpen, onOpenChange, employee }: Lega
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Wniosek do Działu Legalizacji</DialogTitle>
+          <DialogTitle>{t('dialogs.requestToTheLegalisationDepartment')}</DialogTitle>
           <DialogDescription>
-            Wygeneruj e-mail do działu legalizacji dla pracownika: {employee?.fullName}
+            {t('dialogs.generateAnEmailToThe', { name: employee?.fullName ?? '' })}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="wezwanie">WEZWANIE</TabsTrigger>
-            <TabsTrigger value="zamowienie">ZAMÓWIENIE</TabsTrigger>
-            <TabsTrigger value="legalnosc">LEGALNOŚĆ</TabsTrigger>
+            <TabsTrigger value="wezwanie">{t('dialogs.summons')}</TabsTrigger>
+            <TabsTrigger value="zamowienie">{t('dialogs.order')}</TabsTrigger>
+            <TabsTrigger value="legalnosc">{t('dialogs.legality')}</TabsTrigger>
           </TabsList>
           
           <div className="py-4">
             <TabsContent value="wezwanie" className="space-y-4">
               <div className="rounded-md bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200">
-                <p className="font-semibold mb-2">Wymagane kroki:</p>
+                <p className="font-semibold mb-2">{t('dialogs.requiredSteps')}</p>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>Dołącz skan całego wezwania w kliencie poczty.</li>
-                  <li>Upewnij się, że na skanie widoczna jest <strong>data jego doręczenia</strong>.</li>
+                  <li>{t('dialogs.attachAScanOfThe')}</li>
+                  <li>{rich(t('dialogs.makeSureTheScanShows'), { date: <strong>{t('dialogs.itsDeliveryDate')}</strong> })}</li>
                 </ul>
               </div>
             </TabsContent>
 
             <TabsContent value="zamowienie" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="orderDocs">Nazwa zamawianych dokumentów</Label>
+                <Label htmlFor="orderDocs">{t('dialogs.documentsToOrder')}</Label>
                 <Input 
                   id="orderDocs" 
                   placeholder="np. załącznik nr 1, ZUS, zaświadczenie" 
@@ -115,7 +116,7 @@ export function LegalizationEmailDialog({ isOpen, onOpenChange, employee }: Lega
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="orderDate">Termin do którego są niezbędne</Label>
+                <Label htmlFor="orderDate">{t('dialogs.neededBy')}</Label>
                 <Input 
                   id="orderDate" 
                   type="date" 
@@ -124,15 +125,15 @@ export function LegalizationEmailDialog({ isOpen, onOpenChange, employee }: Lega
                 />
               </div>
               <div className="space-y-2">
-                <Label>Sposób odbioru</Label>
+                <Label>{t('dialogs.collectionMethod')}</Label>
                 <Select value={orderDelivery} onValueChange={setOrderDelivery}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="odbiór osobisty">Odbiór osobisty</SelectItem>
-                    <SelectItem value="przekazanie przez kogoś">Przekazanie przez kogoś</SelectItem>
-                    <SelectItem value="wysyłka InPost">Wysyłka InPost</SelectItem>
+                    <SelectItem value="odbiór osobisty">{t('dialogs.inPersonCollection')}</SelectItem>
+                    <SelectItem value="przekazanie przez kogoś">{t('dialogs.handedOverBySomeone')}</SelectItem>
+                    <SelectItem value="wysyłka InPost">{t('dialogs.inpostDelivery')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -140,7 +141,7 @@ export function LegalizationEmailDialog({ isOpen, onOpenChange, employee }: Lega
 
             <TabsContent value="legalnosc" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="legalityDept">Aktualny zakład</Label>
+                <Label htmlFor="legalityDept">{t('dialogs.currentPlant')}</Label>
                 <Input 
                   id="legalityDept" 
                   value={legalityDept} 
@@ -148,7 +149,7 @@ export function LegalizationEmailDialog({ isOpen, onOpenChange, employee }: Lega
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="legalityCompany">Spółka</Label>
+                <Label htmlFor="legalityCompany">{t('dialogs.company')}</Label>
                 <Input 
                   id="legalityCompany" 
                   placeholder="np. Strumet Sp. z o.o." 
@@ -157,32 +158,32 @@ export function LegalizationEmailDialog({ isOpen, onOpenChange, employee }: Lega
                 />
               </div>
               <div className="space-y-2">
-                <Label>Dotyczy zatrudnienia</Label>
+                <Label>{t('dialogs.employment')}</Label>
                 <Select value={legalityStatus} onValueChange={setLegalityStatus}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Aktualne">Aktualne</SelectItem>
-                    <SelectItem value="Poprzednie">Poprzednie</SelectItem>
+                    <SelectItem value="Aktualne">{t('dialogs.current')}</SelectItem>
+                    <SelectItem value="Poprzednie">{t('dialogs.previous')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="rounded-md bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200 mt-4">
-                <p className="font-semibold mb-2">Pamiętaj o załączniku!</p>
-                <p>Dołącz np. decyzje, żółte karteczki, paszport ze stemplem, UPO, wnioski.</p>
+                <p className="font-semibold mb-2">{t('dialogs.rememberTheAttachment')}</p>
+                <p>{t('dialogs.attachEGDecisionsYellow')}</p>
               </div>
             </TabsContent>
           </div>
         </Tabs>
 
         <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg my-2 border">
-          💡 <strong>Wskazówka:</strong> Treść e-maila zostanie automatycznie skopiowana. Wklej ją za pomocą <strong>Ctrl + V</strong> w nowo otwartym oknie poczty, aby zachować stopkę z logo.
+          💡 <strong>{t('dialogs.tip')}</strong> {rich(t('dialogs.theEmailTextWillBe'), { keys: <strong>Ctrl + V</strong> })}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Anuluj</Button>
-          <Button onClick={handleGenerateEmail}>Otwórz e-mail</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t('dialogs.cancel')}</Button>
+          <Button onClick={handleGenerateEmail}>{t('dialogs.openEmail')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

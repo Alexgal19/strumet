@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Employee } from '@/lib/types';
 import { certificateViewUrl, certificateExt } from '@/lib/certificate-url';
 
+import { t } from '@/lib/i18n';
 interface BulkCertDownloadButtonProps {
     employees: Employee[];
     className?: string;
@@ -21,12 +22,12 @@ export function BulkCertDownloadButton({ employees, className }: BulkCertDownloa
     const handleDownload = async () => {
         const certEmployees = employees.filter(e => e.certificateUrl);
         if (certEmployees.length === 0) {
-            toast({ title: 'Brak certyfikatów', description: 'Żaden z pracowników na tej liście nie ma dodanego skanu certyfikatu.' });
+            toast({ title: t('importx.noCertificates'), description: t('importx.noneOfTheEmployeesOn') });
             return;
         }
 
         setIsDownloading(true);
-        toast({ title: 'Rozpoczęto pobieranie', description: `Przygotowuję ${certEmployees.length} plików...` });
+        toast({ title: t('importx.downloadStarted'), description: t('importx.preparingCountFiles', { count: certEmployees.length }) });
         
         try {
             const zip = new JSZip();
@@ -49,10 +50,10 @@ export function BulkCertDownloadButton({ employees, className }: BulkCertDownloa
 
             const content = await zip.generateAsync({ type: 'blob' });
             saveAs(content, 'Certyfikaty_Spawaczy.zip');
-            toast({ title: 'Gotowe!', description: 'Archiwum ZIP zostało pobrane.' });
+            toast({ title: t('importx.done'), description: t('importx.theZipArchiveHasBeen') });
         } catch (error) {
             console.error('ZIP error:', error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Wystąpił błąd podczas tworzenia pliku ZIP.' });
+            toast({ variant: 'destructive', title: t('importx.error'), description: t('importx.somethingWentWrongWhileCreating') });
         } finally {
             setIsDownloading(false);
         }
@@ -61,7 +62,7 @@ export function BulkCertDownloadButton({ employees, className }: BulkCertDownloa
     return (
         <Button onClick={handleDownload} disabled={isDownloading} className={className} variant="outline" size="sm">
             {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Pobierz certyfikaty
+            {t('importx.downloadCertificates')}
         </Button>
     );
 }

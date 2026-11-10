@@ -14,13 +14,14 @@ import { useToast } from '@/hooks/use-toast';
 import { getDB } from '@/lib/firebase';
 import { buildTokenFrequency, guessNameOrder, suggestReordered, type NameOrderGuess } from '@/lib/person-name';
 
+import { t } from '@/lib/i18n';
 type Filter = 'suspect' | 'unclear' | 'ok' | 'all';
 
 const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'suspect', label: 'Wygląda na „Imię Nazwisko”' },
-  { id: 'unclear', label: 'Niepewne' },
-  { id: 'ok', label: 'Wygląda poprawnie' },
-  { id: 'all', label: 'Wszyscy' },
+  { id: 'suspect', get label() { return t('email.looksLikeFirstLast'); } },
+  { id: 'unclear', get label() { return t('email.unclear'); } },
+  { id: 'ok', get label() { return t('email.looksCorrect'); } },
+  { id: 'all', get label() { return t('email.everyone'); } },
 ];
 
 const GUESS_OF: Record<Exclude<Filter, 'all'>, NameOrderGuess> = {
@@ -86,10 +87,10 @@ export default function KolejnoscNazwiskPage() {
     const chosen = rows.filter(r => selected.has(r.id));
     const changes = chosen.filter(r => proposalOf(r) && proposalOf(r) !== r.fullName);
     if (changes.length === 0) {
-      toast({ title: 'Brak zmian do zapisania' });
+      toast({ title: t('email.noChangesToSave') });
       return;
     }
-    if (!window.confirm(`Zapisać nową kolejność dla ${changes.length} pracowników?`)) return;
+    if (!window.confirm(t('email.saveTheNewOrderFor', { count: changes.length }))) return;
     const db = getDB();
     if (!db) return;
     setSaving(true);
@@ -102,12 +103,12 @@ export default function KolejnoscNazwiskPage() {
       });
       await update(dbRef(db), updates);
       void logAudit('Zmiana kolejności nazwiska', `Zmieniono ${changes.length} rekordów na „Nazwisko Imię”`);
-      toast({ title: 'Zapisano', description: `Zmieniono kolejność: ${changes.length}.` });
+      toast({ title: t('email.saved'), description: t('email.orderChangedCount', { count: changes.length }) });
       setSelected(new Set());
       setEdits({});
     } catch (err) {
       console.error('Failed to reorder names:', err);
-      toast({ variant: 'destructive', title: 'Nie zapisano', description: 'Spróbuj ponownie.' });
+      toast({ variant: 'destructive', title: t('email.notSaved'), description: t('email.pleaseTryAgain') });
     } finally {
       setSaving(false);
     }
@@ -124,7 +125,7 @@ export default function KolejnoscNazwiskPage() {
   if (!isAdmin) {
     return (
       <div className="flex flex-col gap-4">
-        <PageHeader title="Kolejność nazwisk" description="Narzędzie dostępne tylko dla administratora." />
+        <PageHeader title={t('email.nameOrder')} description={t('email.thisToolIsAvailableTo')} />
       </div>
     );
   }
@@ -132,8 +133,8 @@ export default function KolejnoscNazwiskPage() {
   return (
     <div className="flex flex-col gap-4 pb-6 text-foreground">
       <PageHeader
-        title="Kolejność nazwisk"
-        description="Docelowa kolejność w bazie: „Nazwisko Imię”. Sprawdź podejrzane rekordy i zapisz poprawki."
+        title={t('email.nameOrder')}
+        description={t('email.targetOrderInTheDatabase')}
       />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -151,16 +152,14 @@ export default function KolejnoscNazwiskPage() {
       </div>
 
       <p className="text-sm">
-        Kolejność jest zgadywana po tym, które słowo powtarza się w firmie częściej (imiona powtarzają się częściej niż
-        nazwiska) — to tylko wskazówka, np. częste nazwisko „Singh” bywa mylone z imieniem. Propozycję można poprawić ręcznie
-        (przy nazwiskach dwuczłonowych). W bazie nic nie zmienia się automatycznie.
+        {t('email.theOrderIsGuessedFrom')}
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Szukaj nazwiska…"
+          placeholder={t('email.searchName')}
           className="h-9 w-64 text-sm"
         />
         <Button
@@ -175,10 +174,10 @@ export default function KolejnoscNazwiskPage() {
             })
           }
         >
-          {allVisibleSelected ? 'Odznacz widoczne' : 'Zaznacz widoczne'}
+          {allVisibleSelected ? t('email.deselectVisible') : t('email.selectVisible')}
         </Button>
         <Button type="button" size="sm" onClick={apply} disabled={saving || selected.size === 0}>
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : `Zapisz zaznaczone (${selected.size})`}
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t('email.saveSelectedCount', { count: selected.size })}
         </Button>
       </div>
 
@@ -189,15 +188,15 @@ export default function KolejnoscNazwiskPage() {
               <thead className="bg-muted/60 text-left font-semibold">
                 <tr className="border-b">
                   <th className="w-10 px-3 py-2" />
-                  <th className="px-3 py-2">Obecnie w bazie</th>
-                  <th className="px-3 py-2">Propozycja „Nazwisko Imię”</th>
-                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">{t('email.currentlyInTheDatabase')}</th>
+                  <th className="px-3 py-2">{t('email.suggestedLastFirst')}</th>
+                  <th className="px-3 py-2">{t('email.status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {visible.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-3 py-8 text-center">Brak rekordów w tym widoku.</td>
+                    <td colSpan={4} className="px-3 py-8 text-center">{t('email.noRecordsInThisView')}</td>
                   </tr>
                 )}
                 {visible.map(r => (
@@ -206,7 +205,7 @@ export default function KolejnoscNazwiskPage() {
                       <Checkbox
                         checked={selected.has(r.id)}
                         onCheckedChange={() => toggle(r.id)}
-                        aria-label={`Zaznacz ${r.fullName}`}
+                        aria-label={t('email.selectName', { name: r.fullName })}
                       />
                     </td>
                     <td className="px-3 py-1.5 font-medium">{r.fullName}</td>
@@ -215,7 +214,7 @@ export default function KolejnoscNazwiskPage() {
                         value={edits[r.id] ?? r.proposal}
                         onChange={e => setEdits(prev => ({ ...prev, [r.id]: e.target.value }))}
                         className="h-8 text-sm"
-                        aria-label={`Propozycja dla ${r.fullName}`}
+                        aria-label={t('email.suggestionForName', { name: r.fullName })}
                       />
                     </td>
                     <td className="px-3 py-1.5">{r.status === 'zwolniony' ? 'zwolniony' : 'aktywny'}</td>

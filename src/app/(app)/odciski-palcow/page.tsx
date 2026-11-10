@@ -42,12 +42,13 @@ import { FingerprintAppointment } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate, formatDateTime } from '@/lib/date';
 import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 
 
+import { t } from '@/lib/i18n';
 export default function FingerprintAppointmentsPage() {
   const { isLoading: isAppLoading, fingerprintAppointments, addFingerprintAppointment, deleteFingerprintAppointment } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
@@ -72,8 +73,8 @@ export default function FingerprintAppointmentsPage() {
     if (!selectedEmployee || !appointmentDate) {
       toast({
         variant: 'destructive',
-        title: 'Błąd walidacji',
-        description: 'Proszę wybrać pracownika i datę.',
+        title: t('ops.validationError'),
+        description: t('ops.pleaseSelectAnEmployeeAnd2'),
       });
       return;
     }
@@ -108,20 +109,20 @@ export default function FingerprintAppointmentsPage() {
       ) : (
       <>
         <PageHeader
-          title="Terminy na odciski palców"
-          description="Zarządzaj terminami na pobranie odcisków palców."
+          title={t('ops.fingerprintAppointments')}
+          description={t('ops.manageFingerprintingAppointments')}
         />
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">Dodaj nowy termin</CardTitle>
-                <CardDescription className="text-base">Wybierz pracownika i datę, aby dodać nowy termin.</CardDescription>
+                <CardTitle className="text-2xl">{t('ops.addAppointment')}</CardTitle>
+                <CardDescription className="text-base">{t('ops.selectAnEmployeeAndA')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-base font-medium">Pracownik</label>
+                  <label className="text-base font-medium">{t('ops.employee')}</label>
                   <EmployeeCombobox
                     employees={activeEmployees}
                     value={selectedEmployeeId}
@@ -131,7 +132,7 @@ export default function FingerprintAppointmentsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-base font-medium">Data wizyty</label>
+                  <label className="text-base font-medium">{t('ops.appointmentDate')}</label>
                   <Popover>
                       <PopoverTrigger asChild>
                           <Button
@@ -142,7 +143,7 @@ export default function FingerprintAppointmentsPage() {
                           )}
                           >
                           <CalendarIcon className="mr-2 h-5 w-5" />
-                          {appointmentDate ? formatDateTime(appointmentDate, "PPP HH:mm") : <span>Wybierz datę i godzinę</span>}
+                          {appointmentDate ? formatDateTime(appointmentDate, "PPP HH:mm") : <span>{t('ops.pickDateAndTime')}</span>}
                           </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -150,11 +151,11 @@ export default function FingerprintAppointmentsPage() {
                               mode="single"
                               selected={appointmentDate}
                               onSelect={setAppointmentDate}
-                              locale={pl}
+                              locale={getDateLocale()}
                               initialFocus
                           />
                           <div className="p-3 border-t border-border">
-                              <label className="text-base font-medium">Godzina</label>
+                              <label className="text-base font-medium">{t('ops.time')}</label>
                               <input
                                   type="time"
                                   className="w-full mt-1 p-2 border rounded-md h-12 text-base"
@@ -176,7 +177,7 @@ export default function FingerprintAppointmentsPage() {
 
                 <Button onClick={handleSaveAppointment} disabled={isSaving} className="w-full h-12 text-base">
                   {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <UserPlus className="mr-2 h-5 w-5" />}
-                  Zapisz termin
+                  {t('ops.saveAppointment')}
                 </Button>
               </CardContent>
             </Card>
@@ -187,15 +188,15 @@ export default function FingerprintAppointmentsPage() {
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                <CardTitle className="text-2xl">Zaplanowane terminy</CardTitle>
-                <CardDescription className="text-base">Lista nadchodzących wizyt na pobranie odcisków palców.</CardDescription>
+                <CardTitle className="text-2xl">{t('ops.scheduledAppointments')}</CardTitle>
+                <CardDescription className="text-base">{t('ops.upcomingFingerprintingAppointments')}</CardDescription>
                 </div>
                 {sortedAppointments.length > 0 && (
                     <GenericExcelExportButton
                         data={sortedAppointments}
                         columns={[
-                            { key: 'employeeFullName', name: 'Pracownik' },
-                            { key: 'appointmentDate', name: 'Data i godzina' },
+                            { key: 'employeeFullName', name: t('ops.employee') },
+                            { key: 'appointmentDate', name: t('ops.dateAndTime') },
                         ]}
                         fileName="terminy_odciskow_palcow"
                     />
@@ -207,10 +208,10 @@ export default function FingerprintAppointmentsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-base">Pracownik</TableHead>
-                        <TableHead className="text-base">Data</TableHead>
-                        <TableHead className="text-base">Godzina</TableHead>
-                        <TableHead className="text-right text-base">Akcje</TableHead>
+                        <TableHead className="text-base">{t('ops.employee')}</TableHead>
+                        <TableHead className="text-base">{t('ops.date')}</TableHead>
+                        <TableHead className="text-base">{t('ops.time')}</TableHead>
+                        <TableHead className="text-right text-base">{t('ops.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -230,7 +231,7 @@ export default function FingerprintAppointmentsPage() {
                       ) : (
                         <TableRow>
                           <TableCell colSpan={4} className="h-24 text-center text-base">
-                            Brak zaplanowanych terminów.
+                            {t('ops.noScheduledAppointments')}
                           </TableCell>
                         </TableRow>
                       )}
@@ -249,14 +250,14 @@ export default function FingerprintAppointmentsPage() {
                                         </Button>
                                     </div>
                                     <div className="flex flex-col text-sm text-muted-foreground gap-1">
-                                        <span><strong className="text-foreground font-medium">Data:</strong> {formatDate(apt.appointmentDate, "yyyy-MM-dd")}</span>
-                                        <span><strong className="text-foreground font-medium">Godzina:</strong> {formatDate(apt.appointmentDate, "HH:mm")}</span>
+                                        <span><strong className="text-foreground font-medium">{t('ops.date2')}</strong> {formatDate(apt.appointmentDate, "yyyy-MM-dd")}</span>
+                                        <span><strong className="text-foreground font-medium">{t('ops.time2')}</strong> {formatDate(apt.appointmentDate, "HH:mm")}</span>
                                     </div>
                                 </CardContent>
                             </Card>
                         ))
                     ) : (
-                        <p className="text-center text-muted-foreground py-4">Brak zaplanowanych terminów.</p>
+                        <p className="text-center text-muted-foreground py-4">{t('ops.noScheduledAppointments')}</p>
                     )}
                 </div>
               </CardContent>
@@ -266,15 +267,15 @@ export default function FingerprintAppointmentsPage() {
         <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
               <AlertDialogContent>
                   <AlertDialogHeader>
-                      <AlertDialogTitle>Czy jesteś pewien?</AlertDialogTitle>
+                      <AlertDialogTitle>{t('ops.areYouSure')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                          Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie terminu.
+                          {t('ops.thisCannotBeUndoneThe')}
                       </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                      <AlertDialogCancel onClick={() => setDeletingId(null)}>Anuluj</AlertDialogCancel>
+                      <AlertDialogCancel onClick={() => setDeletingId(null)}>{t('ops.cancel')}</AlertDialogCancel>
                       <AlertDialogAction onClick={() => deletingId && handleDeleteAppointment(deletingId)}>
-                          Usuń
+                          {t('ops.delete')}
                       </AlertDialogAction>
                   </AlertDialogFooter>
               </AlertDialogContent>

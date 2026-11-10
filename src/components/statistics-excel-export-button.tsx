@@ -6,6 +6,7 @@ import { FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Employee, Stats } from '@/lib/types';
 
+import { t } from '@/lib/i18n';
 interface StatData {
     name: string;
     value: number;
@@ -98,7 +99,7 @@ export function StatisticsExcelExportButton({
     return (
         <Button variant="outline" onClick={handleExport} disabled={isDisabled}>
             <FileDown className="mr-2 h-4 w-4" />
-            Eksportuj do Excel
+            {t('stats.exportToExcel')}
         </Button>
     );
 }

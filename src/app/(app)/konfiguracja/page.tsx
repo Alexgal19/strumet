@@ -24,6 +24,7 @@ import { EditItemDialog } from '@/components/konfiguracja/edit-item-dialog';
 import { DeleteItemDialog } from '@/components/konfiguracja/delete-item-dialog';
 import { useEmailSettings } from '@/components/konfiguracja/use-email-settings';
 
+import { t } from '@/lib/i18n';
 export default function ConfigurationPage() {
   const { config, isLoading, addConfigItems, updateConfigItem, removeConfigItem, isAdmin } = useAppContext();
   const hasMounted = useHasMounted();
@@ -68,7 +69,7 @@ export default function ConfigurationPage() {
 
     await addConfigItems(currentConfigType, itemsToAdd);
 
-    toast({ title: "Sukces", description: `${itemsToAdd.length} ${itemsToAdd.length > 1 ? 'elementy zostały' : 'element został'} dodane.`});
+    toast({ title: t('settings.success'), description: itemsToAdd.length > 1 ? t('settings.countItemsAdded', { count: itemsToAdd.length }) : t('settings.countItemAdded', { count: itemsToAdd.length })});
     setIsAddDialogOpen(false);
     setNewItemsText('');
     setCurrentConfigType(null);
@@ -113,8 +114,8 @@ export default function ConfigurationPage() {
   );
   const activeCategory = visibleCategories.find((category) => category.value === activeTab);
 
-  const addDialogTitle = currentConfigType ? configDialogTitles[currentConfigType].add : 'Dodaj nowy element';
-  const editDialogTitle = currentConfigType ? configDialogTitles[currentConfigType].edit : 'Edytuj element';
+  const addDialogTitle = currentConfigType ? configDialogTitles[currentConfigType].add : t('settings.addItem');
+  const editDialogTitle = currentConfigType ? configDialogTitles[currentConfigType].edit : t('settings.editItem');
 
   return (
     <div className="flex h-full flex-col">
@@ -125,20 +126,20 @@ export default function ConfigurationPage() {
         ) : (
         <>
             <PageHeader
-                title="Konfiguracja"
-                description="Zarządzaj opcjami dostępnymi w systemie."
+                title={t('settings.settings')}
+                description={t('settings.manageTheOptionsAvailableIn')}
             />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col">
                 {!isMobile && (
                     <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-2 sm:grid-cols-4 lg:grid-cols-7" : "grid-cols-2")}>
-                        <TabsTrigger value="lists">Listy</TabsTrigger>
-                        <TabsTrigger value="clothing_sets">Zestawy odzieży</TabsTrigger>
-                        {isAdmin && <TabsTrigger value="api_keys">E-mail (SMTP)</TabsTrigger>}
-                        {isAdmin && <TabsTrigger value="emails">Adresy email</TabsTrigger>}
-                        {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
-                        {isAdmin && <TabsTrigger value="audit">Historia</TabsTrigger>}
-                        {isAdmin && <TabsTrigger value="backup">Dane</TabsTrigger>}
+                        <TabsTrigger value="lists">{t('settings.lists')}</TabsTrigger>
+                        <TabsTrigger value="clothing_sets">{t('settings.labelClothingSets')}</TabsTrigger>
+                        {isAdmin && <TabsTrigger value="api_keys">{t('settings.emailSmtp')}</TabsTrigger>}
+                        {isAdmin && <TabsTrigger value="emails">{t('settings.emailAddresses')}</TabsTrigger>}
+                        {isAdmin && <TabsTrigger value="users">{t('settings.catUsers')}</TabsTrigger>}
+                        {isAdmin && <TabsTrigger value="audit">{t('settings.history')}</TabsTrigger>}
+                        {isAdmin && <TabsTrigger value="backup">{t('settings.data')}</TabsTrigger>}
                     </TabsList>
                 )}
 
@@ -159,12 +160,12 @@ export default function ConfigurationPage() {
                             size="icon"
                             className="h-11 w-11 shrink-0"
                             onClick={() => setHubOpen(true)}
-                            aria-label="Wróć do listy ustawień"
+                            aria-label={t('settings.backToSettingsList')}
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
                         <span className="min-w-0 truncate font-semibold">
-                            {activeCategory ? activeCategory.label : 'Konfiguracja'}
+                            {activeCategory ? activeCategory.label : t('settings.settings')}
                         </span>
                     </div>
                 )}

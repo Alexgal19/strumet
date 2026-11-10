@@ -14,6 +14,7 @@ import {
 import { Briefcase, Check, Loader2, Plus, Trash2 } from 'lucide-react';
 import { PositionCountInput } from './position-count-input';
 
+import { t } from '@/lib/i18n';
 export const RecruitmentPositionsEditor = ({
   recruitment,
   positions,
@@ -51,7 +52,7 @@ export const RecruitmentPositionsEditor = ({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium text-muted-foreground">
-          Stanowiska i liczba osób:
+          {t('recruit.jobTitlesAndHeadcount')}
         </p>
         <Button
           size="sm"
@@ -60,12 +61,12 @@ export const RecruitmentPositionsEditor = ({
           onClick={handleAddPositionDraft}
         >
           <Plus className="h-3.5 w-3.5" />
-          Dodaj stanowisko
+          {t('recruit.addJobTitle')}
         </Button>
       </div>
       {positions.length === 0 ? (
         <p className="rounded-md border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">
-          Brak stanowisk — kliknij „Dodaj stanowisko”.
+          {t('recruit.noJobTitlesClickAdd')}
         </p>
       ) : (
         positions.map(pos => {
@@ -82,9 +83,9 @@ export const RecruitmentPositionsEditor = ({
               >
                 <SelectTrigger
                   className="h-9 w-full sm:w-56"
-                  aria-label="Stanowisko"
+                  aria-label={t('recruit.jobTitle')}
                 >
-                  <SelectValue placeholder="Wybierz stanowisko…" />
+                  <SelectValue placeholder={t('recruit.selectAJobTitle')} />
                 </SelectTrigger>
                 <SelectContent>
                   {rowOptions.map(jt => (
@@ -103,7 +104,7 @@ export const RecruitmentPositionsEditor = ({
                 variant="ghost"
                 className="ml-auto sm:order-last h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
                 onClick={() => handleRemovePosition(pos.id)}
-                aria-label="Usuń stanowisko"
+                aria-label={t('recruit.deleteJobTitle')}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -111,7 +112,7 @@ export const RecruitmentPositionsEditor = ({
                 <div className="w-full sm:w-auto text-xs text-muted-foreground">
                   Potrzeby:{' '}
                   <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                    {getPositionStat(pos).potrzeby} os.
+                    {t('recruit.countPpl', { count: getPositionStat(pos).potrzeby })}
                   </span>{' '}
                   (jest {getPositionStat(pos).obecnie}, zwalnia {getPositionStat(pos).zwalnia})
                 </div>
@@ -123,7 +124,7 @@ export const RecruitmentPositionsEditor = ({
 
       {draftPositions.length > 0 && (
         <div className="mt-3 flex flex-col gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
-          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">Nowe stanowiska (niezapisane):</p>
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">{t('recruit.newJobTitlesUnsaved')}</p>
           {draftPositions.map((draft, idx) => {
             const usedInExisting = new Set(positions.map(p => p.jobTitle));
             const usedInDrafts = new Set(draftPositions.map((d, i) => i !== idx ? d.jobTitle : null).filter(Boolean));
@@ -135,7 +136,7 @@ export const RecruitmentPositionsEditor = ({
                   onValueChange={(val) => setDraftPositions(prev => prev.map((d, i) => i === idx ? { ...d, jobTitle: val } : d))}
                 >
                   <SelectTrigger className="h-9 w-full sm:w-56">
-                    <SelectValue placeholder="Wybierz stanowisko..." />
+                    <SelectValue placeholder={t('recruit.selectAJobTitle2')} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableTitles.map(jt => (
@@ -167,7 +168,7 @@ export const RecruitmentPositionsEditor = ({
           <div className="flex justify-end mt-2">
             <Button size="sm" onClick={handleSaveDraftPositions} disabled={isSavingPositions} className="gap-1.5">
               {isSavingPositions ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Zapisz
+              {t('recruit.save')}
             </Button>
           </div>
         </div>

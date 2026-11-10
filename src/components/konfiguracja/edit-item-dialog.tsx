@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+import { t } from '@/lib/i18n';
 type EditItemDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,12 +22,12 @@ export function EditItemDialog({ open, onOpenChange, title, value, onValueChange
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Zmiana nazwy spowoduje aktualizację danych u wszystkich przypisanych pracowników.
+            {t('settings.renamingWillUpdateTheData')}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid w-full gap-1.5">
-            <Label htmlFor="edit-item-name">Nowa nazwa</Label>
+            <Label htmlFor="edit-item-name">{t('settings.newName')}</Label>
             <Input
               id="edit-item-name"
               value={value}
@@ -36,9 +37,9 @@ export function EditItemDialog({ open, onOpenChange, title, value, onValueChange
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button type="button" variant="secondary">Anuluj</Button>
+            <Button type="button" variant="secondary">{t('settings.cancel')}</Button>
           </DialogClose>
-          <Button onClick={onConfirm}>Zapisz</Button>
+          <Button onClick={onConfirm}>{t('settings.save')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

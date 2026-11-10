@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronLeft, ChevronRight, UserX } from "lucide-react";
 
+import { t } from '@/lib/i18n';
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -61,14 +62,14 @@ export function DataTable<TData extends { id: string }, TValue>({
             (table.getIsSomePageRowsSelected() && "indeterminate")
           }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
+          aria-label={t('importx.selectAll')}
         />
       ),
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
+          aria-label={t('importx.selectRow')}
           onClick={(e) => e.stopPropagation()}
         />
       ),
@@ -200,11 +201,9 @@ export function DataTable<TData extends { id: string }, TValue>({
                 >
                   <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
                     <UserX className="h-12 w-12 mb-4" />
-                    <h3 className="text-lg font-semibold">Brak wyników</h3>
+                    <h3 className="text-lg font-semibold">{t('importx.noResults')}</h3>
                     <p className="text-sm max-w-sm">
-                      Nie znaleziono pracowników pasujących do wybranych
-                      kryteriów. Spróbuj zmienić filtry lub wyczyścić je, aby
-                      zobaczyć wszystkie wyniki.
+                      {t('importx.noEmployeesMatchTheSelected')}
                     </p>
                   </div>
                 </TableCell>
@@ -226,7 +225,7 @@ export function DataTable<TData extends { id: string }, TValue>({
             disabled={!table.getCanPreviousPage()}
           >
             <ChevronLeft className="mr-2 h-4 w-4" />
-            Poprzednia
+            {t('importx.previous')}
           </Button>
           <span className="text-sm font-medium">
             Strona {table.getState().pagination.pageIndex + 1} z{" "}
@@ -238,7 +237,7 @@ export function DataTable<TData extends { id: string }, TValue>({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Następna
+            {t('importx.next')}
             <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         </div>

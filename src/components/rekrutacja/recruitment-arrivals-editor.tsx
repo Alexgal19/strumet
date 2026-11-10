@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Plus } from 'lucide-react';
 import { ArrivalRow } from './arrival-row';
 
+import { t } from '@/lib/i18n';
 export const RecruitmentArrivalsEditor = ({
   recruitmentId,
   sortedArrivals,
@@ -24,7 +25,7 @@ export const RecruitmentArrivalsEditor = ({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium text-muted-foreground">
-          Planowane przyjęcia ({plannedTotal} os.):
+          {t('recruit.plannedArrivalsCountPpl', { count: plannedTotal })}
         </p>
         <Button
           size="sm"
@@ -34,12 +35,12 @@ export const RecruitmentArrivalsEditor = ({
           onClick={handleAddArrival}
         >
           {isAddingArrival ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-          Dodaj datę
+          {t('recruit.addDate')}
         </Button>
       </div>
       {sortedArrivals.length === 0 ? (
         <p className="rounded-md border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">
-          Brak zaplanowanych dat przyjęć — kliknij „Dodaj datę”.
+          {t('recruit.noPlannedArrivalDatesClick')}
         </p>
       ) : (
         sortedArrivals.map(arrival => (

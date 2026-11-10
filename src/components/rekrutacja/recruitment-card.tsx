@@ -13,6 +13,7 @@ import { RecruitmentPositionsEditor } from './recruitment-positions-editor';
 import { RecruitmentDepartmentStats } from './recruitment-department-stats';
 import { RecruitmentArrivalsEditor } from './recruitment-arrivals-editor';
 
+import { t } from '@/lib/i18n';
 export const RecruitmentCard = ({
   recruitment,
   departments,
@@ -52,7 +53,7 @@ export const RecruitmentCard = ({
   const handleSaveDept = async () => {
     if (isSavingDept) return;
     if (!deptDraft) {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Wybierz dział.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.selectADepartment3') });
       return;
     }
     setIsSavingDept(true);
@@ -107,7 +108,7 @@ export const RecruitmentCard = ({
     try {
       await update(dbRef(db, `recruitment/${recruitment.id}/positions/${posId}`), { jobTitle });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać stanowiska.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotSaveTheJob') });
     }
   };
 
@@ -136,9 +137,9 @@ export const RecruitmentCard = ({
         await set(posRef, { jobTitle: row.jobTitle, toRecruit: parseInt(row.count, 10) });
       }
       setDraftPositions([]);
-      toast({ title: 'Zapisano', description: 'Dodano nowe stanowiska.' });
+      toast({ title: t('recruit.saved'), description: t('recruit.newJobTitlesAdded') });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać stanowisk.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotSaveTheJob2') });
     } finally {
       setIsSavingPositions(false);
     }
@@ -151,7 +152,7 @@ export const RecruitmentCard = ({
     try {
       await remove(dbRef(db, `recruitment/${recruitment.id}/positions/${posId}`));
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć stanowiska.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotDeleteTheJob') });
     }
   };
 
@@ -163,7 +164,7 @@ export const RecruitmentCard = ({
       const arrRef = push(dbRef(db, `recruitment/${recruitment.id}/arrivals`));
       await set(arrRef, { date: format(new Date(), 'yyyy-MM-dd'), count: 1 });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać daty przyjęcia.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotAddTheArrival') });
     } finally {
       setIsAddingArrival(false);
     }
@@ -175,7 +176,7 @@ export const RecruitmentCard = ({
     try {
       await remove(dbRef(db, `recruitment/${recruitment.id}/arrivals/${arrivalId}`));
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć daty przyjęcia.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotDeleteTheArrival') });
     }
   };
 

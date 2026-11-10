@@ -8,6 +8,7 @@ import type { DemandRenderContext } from './demand-context';
 import type { JobDemandModel } from './demand-types';
 import { PanelBlock } from './panel-block';
 
+import { t } from '@/lib/i18n';
 export function JobArrivalsPanel({
   dept,
   model,
@@ -21,7 +22,7 @@ export function JobArrivalsPanel({
   const { planned, plannedTotal } = model;
 
   return (
-    <PanelBlock title="Zaplanowane przyjęcia" count={plannedTotal} tone="blue">
+    <PanelBlock title={t('schedule.plannedArrivals')} count={plannedTotal} tone="blue">
       <div className="flex flex-col gap-2">
         {planned.length > 0 ? (
           <div className="flex flex-col gap-1.5">
@@ -36,10 +37,10 @@ export function JobArrivalsPanel({
             ))}
           </div>
         ) : (
-          <p>Brak zaplanowanych przyjęć.</p>
+          <p>{t('schedule.noPlannedArrivals')}</p>
         )}
         <div className="mt-1 flex flex-col gap-1.5 border-t pt-2">
-          <span className="font-semibold">Dodaj przyjęcie</span>
+          <span className="font-semibold">{t('schedule.addArrival')}</span>
           <div className="flex items-center gap-2">
             <Input
               type="date"
@@ -52,7 +53,7 @@ export function JobArrivalsPanel({
               type="number"
               min="1"
               max="50"
-              placeholder="Ilość"
+              placeholder={t('schedule.count')}
               className={`h-9 w-20 text-sm ${ctx.newArrivalDate[key] && !ctx.newArrivalCount[key] ? 'guide-pulse' : ''}`}
               value={ctx.newArrivalCount[key] || ''}
               onChange={e => ctx.setNewArrivalCount(prev => ({ ...prev, [key]: e.target.value }))}
@@ -64,15 +65,15 @@ export function JobArrivalsPanel({
               onClick={() => ctx.addArrival(dept, model.job.jobTitle)}
               disabled={!ctx.newArrivalDate[key] || !ctx.newArrivalCount[key]}
             >
-              Dodaj
+              {t('schedule.add')}
             </Button>
             {(ctx.newArrivalDate[key] || ctx.newArrivalCount[key]) && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                title="Anuluj wpisywanie"
-                aria-label="Anuluj wpisywanie"
+                title={t('schedule.cancel2')}
+                aria-label={t('schedule.cancel2')}
                 className="h-9 w-9 shrink-0 text-foreground"
                 onClick={() => {
                   ctx.setNewArrivalDate(prev => ({ ...prev, [key]: '' }));
@@ -85,7 +86,7 @@ export function JobArrivalsPanel({
           </div>
           {!ctx.isAdmin && (
             <p className="text-sm">
-              Jako Gość możesz dodawać i edytować przyjęcia oraz komentarze. Usuwanie i zmiana potrzeb — dla administratora.
+              {t('schedule.asAGuestYouCan')}
             </p>
           )}
         </div>

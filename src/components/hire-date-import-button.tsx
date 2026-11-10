@@ -9,6 +9,7 @@ import { useAppContext } from '@/context/app-context';
 import { parseMaybeDate } from '@/lib/date';
 import { format } from 'date-fns';
 
+import { t } from '@/lib/i18n';
 interface DateUpdatePayload {
   fullName: string;
   hireDate: string;
@@ -49,14 +50,14 @@ export function HireDateImportButton({ className, variant = "outline" }: Props) 
         const hireDateInput = row['Data zatrudnienia'];
 
         if (!fullName || !hireDateInput) {
-          errors.push(`Wiersz ${index + 2}: Brak imienia i nazwiska lub daty zatrudnienia.`);
+          errors.push(t('importx.rowRowMessage', { row: index + 2, message: t('importx.missingNameOrHireDate') }));
           continue;
         }
 
         const hireDate = parseMaybeDate(hireDateInput);
 
         if (!hireDate) {
-          errors.push(`Wiersz ${index + 2}: Nieprawidłowy format daty dla "${fullName}".`);
+          errors.push(t('importx.rowRowMessage', { row: index + 2, message: t('importx.invalidDateFormatForName', { name: fullName }) }));
           continue;
         }
 
@@ -66,11 +67,11 @@ export function HireDateImportButton({ className, variant = "outline" }: Props) 
       if (errors.length > 0) {
         toast({
           variant: 'destructive',
-          title: `Błędy walidacji w pliku (${errors.length})`,
+          title: t('importx.validationErrorsInTheFile', { count: errors.length }),
           description: (
             <div className="max-h-40 overflow-y-auto">
               {errors.slice(0, 5).map((e, i) => <p key={i}>{e}</p>)}
-              {errors.length > 5 && <p>I więcej...</p>}
+              {errors.length > 5 && <p>{t('importx.andMore')}</p>}
             </div>
           )
         });
@@ -81,8 +82,8 @@ export function HireDateImportButton({ className, variant = "outline" }: Props) 
       if (updates.length === 0) {
         toast({
           variant: 'destructive',
-          title: 'Brak danych do importu',
-          description: 'Nie znaleziono prawidłowych wierszy do zaktualizowania.',
+          title: t('importx.noDataToImport'),
+          description: t('importx.noValidRowsFoundTo'),
         });
         setIsImporting(false);
         return;
@@ -94,8 +95,8 @@ export function HireDateImportButton({ className, variant = "outline" }: Props) 
       console.error("Error importing hire dates from Excel: ", error);
       toast({
         variant: 'destructive',
-        title: 'Błąd podczas importu',
-        description: 'Nie udało się przetworzyć pliku. Upewnij się, że ma poprawny format.',
+        title: t('importx.importFailed'),
+        description: t('importx.couldNotProcessTheFile2'),
       });
     } finally {
       setIsImporting(false);
@@ -120,7 +121,7 @@ export function HireDateImportButton({ className, variant = "outline" }: Props) 
         ) : (
           <FileUp className="mr-2 h-4 w-4" />
         )}
-        Aktualizuj daty
+        {t('importx.updateDates')}
       </Button>
     </>
   );

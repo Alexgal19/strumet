@@ -2,6 +2,7 @@
 
 import { formatYmdPl } from '@/lib/date';
 
+import { t } from '@/lib/i18n';
 export const DEMAND_COLS = 9;
 
 // Stałe szerokości kolumn: każdy dział to osobna tabela, a kolumny mają się zgadzać między działami.
@@ -24,15 +25,15 @@ export function DemandColgroup() {
 export function DemandColumnLabels({ plus7, plus30 }: { plus7: string; plus30: string }) {
   return (
     <tr className="border-b bg-muted/60 text-sm font-semibold text-foreground">
-      <th className="px-3 py-2 text-left font-semibold">Dział / Stanowisko</th>
-      <th className="px-1 md:px-2 py-2 text-right font-semibold" title="Obsada docelowa">Potrzeby</th>
-      <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Aktywni pracownicy dziś">Jest</th>
-      <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Osoby z datą zwolnienia dziś lub później">Zwalnia</th>
-      <th className="px-1 md:px-2 py-2 text-right font-semibold" title="Potrzeby − Jest, dziś">Teraz</th>
-      <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title={`Prognoza na ${formatYmdPl(plus7)} (po zwolnieniach i przyjęciach)`}>Za 7 dni</th>
-      <th className="px-1 md:px-2 py-2 text-right font-semibold" title={`Prognoza na ${formatYmdPl(plus30)} (po zwolnieniach i przyjęciach)`}>Za 30 dni</th>
-      <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title="Zaplanowane przyjęcia (data od dziś)">Przyjęcia</th>
-      <th className="px-2 md:px-3 py-2 text-right font-semibold" title="Stan docelowy po wszystkich zwolnieniach i zaplanowanych przyjęciach"><span className="md:hidden">Netto</span><span className="hidden md:inline">Brakuje netto</span></th>
+      <th className="px-3 py-2 text-left font-semibold">{t('schedule.departmentJobTitle')}</th>
+      <th className="px-1 md:px-2 py-2 text-right font-semibold" title={t('schedule.targetStaffing')}>{t('schedule.needed')}</th>
+      <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title={t('schedule.activeEmployeesToday')}>{t('schedule.have')}</th>
+      <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title={t('schedule.peopleWithATerminationDate')}>{t('schedule.leaving2')}</th>
+      <th className="px-1 md:px-2 py-2 text-right font-semibold" title={t('schedule.neededHaveToday')}>{t('schedule.now')}</th>
+      <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title={t('schedule.forecastForDateAfterTerminations', { date: formatYmdPl(plus7) })}>{t('schedule.in7Days')}</th>
+      <th className="px-1 md:px-2 py-2 text-right font-semibold" title={t('schedule.forecastForDateAfterTerminations', { date: formatYmdPl(plus30) })}>{t('schedule.in30Days')}</th>
+      <th className="hidden md:table-cell px-1 md:px-2 py-2 text-right font-semibold" title={t('schedule.plannedArrivalsFromToday')}>{t('schedule.arrivals')}</th>
+      <th className="px-2 md:px-3 py-2 text-right font-semibold" title={t('schedule.targetAfterAllTerminationsAnd')}><span className="md:hidden">{t('schedule.net')}</span><span className="hidden md:inline">{t('schedule.netShortage')}</span></th>
     </tr>
   );
 }

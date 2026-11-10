@@ -25,6 +25,7 @@ import {
 } from '@/components/rekrutacja/recruitment-derived';
 import { exportRecruitmentToExcel } from '@/components/rekrutacja/export-rekrutacja';
 
+import { t } from '@/lib/i18n';
 export default function RekrutacjaPage() {
   const { isLoading: isContextLoading, config, employees: allEmployees, absences } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
@@ -168,13 +169,13 @@ export default function RekrutacjaPage() {
       }
       const totalOs = formRows.reduce((s, r) => s + parseInt(r.count, 10), 0);
       toast({
-        title: formRows.length > 1 ? `Dodano ${formRows.length} stanowiska` : 'Dodano zapotrzebowanie',
-        description: `${newDepartment} — ${totalOs} os. do rekrutacji`,
+        title: formRows.length > 1 ? t('recruit.addedCountPositions', { count: formRows.length }) : t('recruit.requestAdded'),
+        description: t('recruit.departmentCountPplToRecruit', { department: newDepartment, count: totalOs }),
       });
       setNewDepartment('');
       setFormRows([{ jobTitle: '', count: '' }]);
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się dodać zapotrzebowania.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotAddTheRequest') });
     } finally {
       setIsAdding(false);
     }
@@ -190,17 +191,17 @@ export default function RekrutacjaPage() {
     if (taken) {
       toast({
         variant: 'destructive',
-        title: 'Duplikat',
-        description: `Zapotrzebowanie dla działu ${department} już istnieje.`,
+        title: t('recruit.duplicate'),
+        description: t('recruit.aRequestForDepartmentDepartment', { department }),
       });
       return false;
     }
     try {
       await update(dbRef(db, `recruitment/${recruitment.id}`), { department });
-      toast({ title: 'Zapisano', description: department });
+      toast({ title: t('recruit.saved'), description: department });
       return true;
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać zmian.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotSaveChanges') });
       return false;
     }
   };
@@ -214,7 +215,7 @@ export default function RekrutacjaPage() {
       await remove(dbRef(db, `recruitment/${toDelete.id}`));
       setToDelete(null);
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć zapotrzebowania.' });
+      toast({ variant: 'destructive', title: t('recruit.error'), description: t('recruit.couldNotDeleteTheRequest') });
     } finally {
       setIsDeleting(false);
     }

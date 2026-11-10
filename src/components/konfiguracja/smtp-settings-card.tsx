@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Eye, EyeOff, KeyRound, Save } from 'lucide-react';
 import type { EmailSettings } from './use-email-settings';
 
+import { t } from '@/lib/i18n';
 type SmtpSettingsCardProps = {
   settings: EmailSettings;
 };
@@ -32,18 +33,18 @@ export function SmtpSettingsCard({ settings }: SmtpSettingsCardProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-3">
           <KeyRound className="h-6 w-6" />
-          E-mail — wysyłka (SMTP)
+          {t('settings.emailSendingSmtp')}
         </CardTitle>
         <CardDescription>
-          Skonfiguruj firmową skrzynkę Outlook/M365 lub dowolny serwer SMTP. Gmail działa też — zostaw host pusty.
+          {t('settings.setUpACompanyOutlook')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-xl border p-4 space-y-4">
-          <p className="text-sm font-semibold">Serwer SMTP (Outlook / firmowy)</p>
+          <p className="text-sm font-semibold">{t('settings.smtpServerOutlookCompany')}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <Label htmlFor="smtp-host">Serwer (host)</Label>
+              <Label htmlFor="smtp-host">{t('settings.serverHost')}</Label>
               <Input
                 id="smtp-host"
                 value={smtpHost}
@@ -65,7 +66,7 @@ export function SmtpSettingsCard({ settings }: SmtpSettingsCardProps) {
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <Label htmlFor="smtp-secure" className="text-sm">SSL/TLS (port 465)</Label>
-              <p className="text-xs text-muted-foreground">Wyłącz dla portu 587 (STARTTLS) — Outlook/M365</p>
+              <p className="text-xs text-muted-foreground">{t('settings.turnOffForPort587')}</p>
             </div>
             <Switch
               id="smtp-secure"
@@ -75,7 +76,7 @@ export function SmtpSettingsCard({ settings }: SmtpSettingsCardProps) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="smtp-user">E-mail (login i nadawca)</Label>
+              <Label htmlFor="smtp-user">{t('settings.emailLoginAndSender')}</Label>
               <Input
                 id="smtp-user"
                 type="email"
@@ -85,18 +86,18 @@ export function SmtpSettingsCard({ settings }: SmtpSettingsCardProps) {
               />
             </div>
             <div>
-              <Label htmlFor="smtp-pass">Hasło</Label>
+              <Label htmlFor="smtp-pass">{t('settings.password')}</Label>
               <Input
                 id="smtp-pass"
                 type="password"
                 value={smtpPass}
                 onChange={(e) => setSmtpPass(e.target.value)}
-                placeholder="hasło skrzynki"
+                placeholder={t('settings.mailboxPassword')}
               />
             </div>
           </div>
           <div>
-            <Label htmlFor="from-name">Nazwa nadawcy</Label>
+            <Label htmlFor="from-name">{t('settings.senderName')}</Label>
             <Input
               id="from-name"
               value={fromName}
@@ -106,17 +107,17 @@ export function SmtpSettingsCard({ settings }: SmtpSettingsCardProps) {
           </div>
           <Button onClick={onSaveSmtpSettings} disabled={!smtpHost || !smtpUser || !smtpPass}>
             <Save className="mr-2 h-4 w-4" />
-            Zapisz ustawienia SMTP
+            {t('settings.saveSmtpSettings')}
           </Button>
         </div>
 
         <div className="relative py-2 text-center">
-          <span className="relative z-10 bg-background px-3 text-xs uppercase tracking-wider text-muted-foreground">lub Gmail (bez hosta)</span>
+          <span className="relative z-10 bg-background px-3 text-xs uppercase tracking-wider text-muted-foreground">{t('settings.orGmailNoHost')}</span>
           <div className="absolute inset-0 top-1/2 h-px bg-border" />
         </div>
 
         <div>
-          <Label htmlFor="gmail-user">Adres Gmail</Label>
+          <Label htmlFor="gmail-user">{t('settings.gmailAddress')}</Label>
           <Input
             id="gmail-user"
             type="email"
@@ -126,7 +127,7 @@ export function SmtpSettingsCard({ settings }: SmtpSettingsCardProps) {
           />
         </div>
         <div>
-          <Label htmlFor="gmail-app-password">Hasło Aplikacji</Label>
+          <Label htmlFor="gmail-app-password">{t('settings.appPassword')}</Label>
           <div className="relative">
             <Input
               id="gmail-app-password"
@@ -149,14 +150,14 @@ export function SmtpSettingsCard({ settings }: SmtpSettingsCardProps) {
                 <Eye className="h-4 w-4" />
               )}
               <span className="sr-only">
-                {showPassword ? "Ukryj hasło" : "Pokaż hasło"}
+                {showPassword ? t('settings.hidePassword') : t('settings.showPassword')}
               </span>
             </Button>
           </div>
         </div>
         <Button onClick={onSaveGmailCredentials}>
           <Save className="mr-2 h-4 w-4" />
-          Zapisz poświadczenia
+          {t('settings.saveCredentials')}
         </Button>
       </CardContent>
     </Card>

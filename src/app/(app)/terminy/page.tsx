@@ -13,6 +13,7 @@ import { parseMaybeDate } from '@/lib/date';
 import { EmployeeCard, ContractCard, FingerprintCard } from '@/components/planning-cards';
 import { Button } from '@/components/ui/button';
 
+import { t } from '@/lib/i18n';
 export default function TerminyPage() {
   const { isLoading: isContextLoading, fingerprintAppointments } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
@@ -86,11 +87,11 @@ export default function TerminyPage() {
   }, [fingerprintAppointments]);
 
   const sections = [
-    { id: 'umowy', label: 'Umowy', count: expiringContracts.length },
-    { id: 'odciski', label: 'Odciski palców', count: upcomingAppointments.length },
-    { id: 'zwolnienia', label: 'Zwolnienia', count: plannedTerminations.length },
-    { id: 'urlopy-trwajace', label: 'Na urlopie', count: onVacation.length },
-    { id: 'urlopy-nadchodzace', label: 'Nadchodzące urlopy', count: upcomingVacations.length },
+    { id: 'umowy', label: t('calendar.contracts'), count: expiringContracts.length },
+    { id: 'odciski', label: t('calendar.fingerprints'), count: upcomingAppointments.length },
+    { id: 'zwolnienia', label: t('calendar.terminations'), count: plannedTerminations.length },
+    { id: 'urlopy-trwajace', label: t('calendar.onLeave'), count: onVacation.length },
+    { id: 'urlopy-nadchodzace', label: t('calendar.upcomingLeave'), count: upcomingVacations.length },
   ].filter((s) => s.count > 0);
 
   const currentTab = sections.some((s) => s.id === activeTab)
@@ -99,7 +100,7 @@ export default function TerminyPage() {
 
   const sectionContent: Record<string, React.ReactNode> = {
     umowy: expiringContracts.length === 0 ? (
-      <p className="text-center text-sm text-muted-foreground py-6">Brak umów wygających w ciągu 30 dni.</p>
+      <p className="text-center text-sm text-muted-foreground py-6">{t('calendar.noContractsExpiringWithin30')}</p>
     ) : (
       <div className="space-y-3">
         {expiringContracts.map(employee => (
@@ -108,7 +109,7 @@ export default function TerminyPage() {
       </div>
     ),
     odciski: upcomingAppointments.length === 0 ? (
-      <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych wizyt w ciągu 30 dni.</p>
+      <p className="text-center text-sm text-muted-foreground py-6">{t('calendar.noAppointmentsWithin30Days')}</p>
     ) : (
       <div className="space-y-3">
         {upcomingAppointments.map(appointment => (
@@ -117,7 +118,7 @@ export default function TerminyPage() {
       </div>
     ),
     zwolnienia: plannedTerminations.length === 0 ? (
-      <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych zwolnień.</p>
+      <p className="text-center text-sm text-muted-foreground py-6">{t('calendar.noPlannedTerminations')}</p>
     ) : (
       <div className="space-y-3">
         {plannedTerminations.map(employee => (
@@ -126,7 +127,7 @@ export default function TerminyPage() {
       </div>
     ),
     'urlopy-trwajace': onVacation.length === 0 ? (
-      <p className="text-center text-sm text-muted-foreground py-6">Obecnie nikt nie przebywa na urlopie.</p>
+      <p className="text-center text-sm text-muted-foreground py-6">{t('calendar.noOneIsOnLeave')}</p>
     ) : (
       <div className="space-y-3">
         {onVacation.map(employee => (
@@ -135,7 +136,7 @@ export default function TerminyPage() {
       </div>
     ),
     'urlopy-nadchodzace': upcomingVacations.length === 0 ? (
-      <p className="text-center text-sm text-muted-foreground py-6">Brak zaplanowanych urlopów.</p>
+      <p className="text-center text-sm text-muted-foreground py-6">{t('calendar.noPlannedLeave')}</p>
     ) : (
       <div className="space-y-3">
         {upcomingVacations.map(employee => (
@@ -232,7 +233,7 @@ export default function TerminyPage() {
       saveAs(blob, `Planowanie_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
     } catch (error) {
       console.error('Błąd podczas eksportu:', error);
-      alert('Nie udało się wyeksportować danych do pliku Excel.');
+      alert(t('calendar.couldNotExportTheData'));
     }
   };
 
@@ -245,12 +246,12 @@ export default function TerminyPage() {
         ) : (
         <>
             <PageHeader
-                title="Terminy"
-                description="Wygasające umowy, odciski palców, planowane zwolnienia i urlopy pracowników."
+                title={t('calendar.deadlines')}
+                description={t('calendar.expiringContractsFingerprintsPlannedTerminations')}
             >
                 <Button onClick={handleExport} variant="outline" className="gap-2 bg-white/50 dark:bg-black/50 border-primary/20 hover:bg-primary/5 text-primary">
                     <Download className="h-4 w-4" />
-                    Pobierz Excel
+                    {t('calendar.downloadExcel')}
                 </Button>
             </PageHeader>
 

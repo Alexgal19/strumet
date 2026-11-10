@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 
+import { t } from '@/lib/i18n';
 /** Pole potrzeb: zapis dopiero po opuszczeniu pola / Enter (bez zapisu przy każdym znaku). */
 export function PotrzebyInput({ value, onCommit }: { value: number; onCommit: (n: number) => void }) {
   const [draft, setDraft] = useState(String(value));
@@ -21,7 +22,7 @@ export function PotrzebyInput({ value, onCommit }: { value: number; onCommit: (n
     <Input
       type="number"
       min={0}
-      aria-label="Potrzeby"
+      aria-label={t('schedule.needed')}
       value={draft}
       onChange={e => setDraft(e.target.value)}
       onBlur={commit}

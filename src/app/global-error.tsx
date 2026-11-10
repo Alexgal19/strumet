@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { t } from '@/lib/i18n';
 export default function GlobalError({
   error,
   reset,
@@ -18,7 +19,7 @@ export default function GlobalError({
     <html>
       <body>
         <div className="flex h-screen w-full flex-col items-center justify-center gap-4">
-          <h2 className="text-2xl font-bold">Coś poszło nie tak!</h2>
+          <h2 className="text-2xl font-bold">{t('importx.somethingWentWrong')}</h2>
           <button
             className="rounded bg-primary px-4 py-2 text-white hover:bg-primary/90"
             onClick={
@@ -26,7 +27,7 @@ export default function GlobalError({
               () => reset()
             }
           >
-            Spróbuj ponownie
+            {t('importx.tryAgain')}
           </button>
         </div>
       </body>

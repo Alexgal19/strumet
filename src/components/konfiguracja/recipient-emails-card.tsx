@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Mail, PlusCircle, Send, Trash2 } from 'lucide-react';
 import type { EmailSettings } from './use-email-settings';
 
+import { t } from '@/lib/i18n';
 type RecipientEmailsCardProps = {
   settings: EmailSettings;
 };
@@ -27,10 +28,10 @@ export function RecipientEmailsCard({ settings }: RecipientEmailsCardProps) {
           <div>
             <CardTitle className="flex items-center gap-3">
               <Mail className="h-6 w-6" />
-              Adresy email do powiadomień
+              {t('settings.notificationEmailAddresses')}
             </CardTitle>
             <CardDescription className="mt-1.5">
-              Dodaj adresy, na które będą wysyłane powiadomienia email.
+              {t('settings.addTheAddressesThatEmail')}
             </CardDescription>
           </div>
           <Button
@@ -45,7 +46,7 @@ export function RecipientEmailsCard({ settings }: RecipientEmailsCardProps) {
             ) : (
               <Send className="mr-2 h-4 w-4" />
             )}
-            Wyślij test
+            {t('settings.sendTest')}
           </Button>
         </div>
       </CardHeader>
@@ -65,12 +66,12 @@ export function RecipientEmailsCard({ settings }: RecipientEmailsCardProps) {
           />
           <Button onClick={addEmail} variant="secondary">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Dodaj
+            {t('settings.add')}
           </Button>
         </div>
         <div className="space-y-2">
           {recipientEmails.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Brak adresów email. Dodaj pierwszy.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t('settings.noEmailAddressesAddThe')}</p>
           ) : (
             recipientEmails.map(email => (
               <div key={email} className="flex items-center justify-between rounded-md border p-3">

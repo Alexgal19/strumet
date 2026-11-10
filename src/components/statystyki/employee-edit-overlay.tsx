@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { EmployeeForm } from '@/components/employee-form';
 import type { AllConfig, Employee } from '@/lib/types';
 
+import { t } from '@/lib/i18n';
 export function EmployeeEditOverlay({
   isMobile,
   open,
@@ -35,7 +36,7 @@ export function EmployeeEditOverlay({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader className="p-4 border-b bg-background/80 shrink-0 text-left">
-          <SheetTitle className="text-xl font-bold tracking-tight">Edytuj pracownika</SheetTitle>
+          <SheetTitle className="text-xl font-bold tracking-tight">{t('stats.editEmployee')}</SheetTitle>
         </SheetHeader>
         <div className="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar">
           <EmployeeForm
@@ -55,7 +56,7 @@ export function EmployeeEditOverlay({
         className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[90dvh] flex flex-col"
       >
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Edytuj pracownika</DialogTitle>
+          <DialogTitle>{t('stats.editEmployee')}</DialogTitle>
         </DialogHeader>
         <div className="flex-grow overflow-y-auto -mr-6 pr-6">
           <EmployeeForm

@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { addMonths, format, getDaysInMonth } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/i18n';
 import {
   ChevronDown,
   ChevronRight,
@@ -34,6 +34,7 @@ import {
   HarmonogramEmployeeRow,
 } from '@/lib/harmonogram';
 
+import { t } from '@/lib/i18n';
 const mobileQuery = '(max-width: 767px)';
 
 function subscribeToMobile(onChange: () => void) {
@@ -220,16 +221,16 @@ export function HarmonogramView({
                 setSelectedDayIndex(null);
               }}
             >
-              Dzisiaj
+              {t('schedule.today')}
             </Button>
           </div>
 
-          <div className="sticky top-0 z-20 -mx-4 flex items-center gap-2 border-b bg-card px-4 py-2" aria-label="Wybierz dzień harmonogramu">
-            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" onClick={() => moveDay(-1)} aria-label="Poprzedni dzień">
+          <div className="sticky top-0 z-20 -mx-4 flex items-center gap-2 border-b bg-card px-4 py-2" aria-label={t('schedule.pickAScheduleDay')}>
+            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" onClick={() => moveDay(-1)} aria-label={t('schedule.previousDay')}>
               <ChevronRight className="h-5 w-5 rotate-180" />
             </Button>
             <label className="min-w-0 flex-1">
-              <span className="sr-only">Dzień harmonogramu</span>
+              <span className="sr-only">{t('schedule.scheduleDay')}</span>
               <select
                 className="h-12 w-full rounded-md border border-input bg-background px-3 text-center text-sm font-semibold capitalize text-foreground"
                 value={activeDayIndex}
@@ -237,26 +238,26 @@ export function HarmonogramView({
               >
                 {result.days.map((day, index) => (
                   <option key={day.toISOString()} value={index}>
-                    {format(day, 'EEEE, d MMMM', { locale: pl })}
+                    {format(day, 'EEEE, d MMMM', { locale: getDateLocale() })}
                   </option>
                 ))}
               </select>
             </label>
-            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" onClick={() => moveDay(1)} aria-label="Następny dzień">
+            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" onClick={() => moveDay(1)} aria-label={t('schedule.nextDay')}>
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2" aria-label="Podsumowanie obsady">
-            <MobileMetric label="Obecni" value={totals.presentNa} />
-            <MobileMetric label="Potrzeby" value={totals.potrzeby} />
-            <MobileMetric label="Brak obsady" value={Math.max(0, totals.potrzeby - totals.presentNa)} alert={totals.presentNa < totals.potrzeby} />
-            <MobileMetric label="Nieobecni i urlopy" value={totals.absentNa} />
+          <div className="grid grid-cols-2 gap-2" aria-label={t('schedule.staffingSummary')}>
+            <MobileMetric label={t('schedule.present')} value={totals.presentNa} />
+            <MobileMetric label={t('schedule.needed')} value={totals.potrzeby} />
+            <MobileMetric label={t('schedule.understaffed')} value={Math.max(0, totals.potrzeby - totals.presentNa)} alert={totals.presentNa < totals.potrzeby} />
+            <MobileMetric label={t('schedule.absentAndOnLeave')} value={totals.absentNa} />
           </div>
-          <p className="text-[13px] text-muted-foreground">Stan zatrudnienia: {totals.stanZatrudnienia} · Różnica względem potrzeb: {totals.employedGap[activeDayIndex] > 0 ? '+' : ''}{totals.employedGap[activeDayIndex]}</p>
+          <p className="text-[13px] text-muted-foreground">{t('schedule.headcountEmployedDifferenceVsNeeds', { employed: totals.stanZatrudnienia, diff: `${totals.employedGap[activeDayIndex] > 0 ? '+' : ''}${totals.employedGap[activeDayIndex]}` })}</p>
 
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold">Działy</h3>
+            <h3 className="text-sm font-semibold">{t('schedule.departments')}</h3>
             {displayRows.map(dept => {
               const open = expandedDepts.has(dept.dept);
               const cell = dept.cells[activeDayIndex];
@@ -269,7 +270,7 @@ export function HarmonogramView({
                     </span>
                     <span className="shrink-0 text-right text-sm tabular-nums">
                       <span className={(cell?.mam ?? 0) < dept.potrzeby ? 'text-[13px] font-semibold text-destructive' : 'text-[13px] text-muted-foreground'}>
-                        {(cell?.mam ?? 0) < dept.potrzeby ? `Brakuje ${dept.potrzeby - (cell?.mam ?? 0)}` : 'Obsada pełna'}
+                        {(cell?.mam ?? 0) < dept.potrzeby ? t('schedule.shortByCount', { count: dept.potrzeby - (cell?.mam ?? 0) }) : t('schedule.fullyStaffed')}
                       </span>
                     </span>
                     {open ? <ChevronDown className="h-5 w-5 shrink-0" /> : <ChevronRight className="h-5 w-5 shrink-0" />}
@@ -282,7 +283,7 @@ export function HarmonogramView({
                         const managerOpen = expandedManagers.has(managerKey);
                         return (
                           <div key={managerKey} className="min-w-0 rounded-lg border bg-muted/20">
-                            <MobileHierarchyButton label={manager.manager === 'Brak kierownika' ? manager.manager : `Kierownik: ${manager.manager}`} row={manager} dayIndex={activeDayIndex} open={managerOpen} onClick={() => toggleManager(managerKey)} />
+                            <MobileHierarchyButton label={manager.manager === 'Brak kierownika' ? t('schedule.noManager') : t('schedule.managerName', { name: manager.manager })} row={manager} dayIndex={activeDayIndex} open={managerOpen} onClick={() => toggleManager(managerKey)} />
                             {managerOpen && (
                               <div className="space-y-2 border-t p-2">
                                 {manager.positions.map(position => {
@@ -303,7 +304,7 @@ export function HarmonogramView({
                                               </div>
                                             );
                                           })}
-                                          {position.employees.length === 0 && <p className="py-2 text-[13px] text-muted-foreground">Brak przypisanych pracowników.</p>}
+                                          {position.employees.length === 0 && <p className="py-2 text-[13px] text-muted-foreground">{t('schedule.noEmployeesAssigned')}</p>}
                                         </div>
                                       )}
                                     </div>
@@ -321,7 +322,7 @@ export function HarmonogramView({
             })}
             {displayRows.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                Brak danych.
+                {t('schedule.noData')}
               </p>
             )}
           </div>
@@ -331,7 +332,7 @@ export function HarmonogramView({
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base capitalize">
-            Harmonogram obsady — {result.monthLabel}
+            {t('schedule.staffingScheduleMonth', { month: result.monthLabel })}
           </CardTitle>
           <div className="flex-1 px-4 hidden sm:flex items-center">
             {totals.currentMonthArrivals && totals.currentMonthArrivals.length > 0 && (
@@ -339,19 +340,19 @@ export function HarmonogramView({
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className=" gap-2 border-blue-500/30 bg-blue-50/50 hover:bg-blue-100/50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400 dark:hover:bg-blue-900/30">
                     <CalendarPlus className="h-4 w-4" />
-                    Zaplanowane przyjęcia: {totals.currentMonthArrivals.reduce((sum, a) => sum + a.count, 0)} os.
+                    {t('schedule.plannedArrivalsCountPpl', { count: totals.currentMonthArrivals.reduce((sum, a) => sum + a.count, 0) })}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0" align="start">
                   <div className="border-b bg-muted/50 px-4 py-2.5">
-                    <h4 className="font-medium flex items-center gap-2 text-sm"><CalendarDays className="h-4 w-4" /> Oczekiwani w tym miesiącu</h4>
+                    <h4 className="font-medium flex items-center gap-2 text-sm"><CalendarDays className="h-4 w-4" /> {t('schedule.expectedThisMonth')}</h4>
                   </div>
                   <div className="p-2 max-h-[300px] overflow-auto">
                     {totals.currentMonthArrivals.map(arr => (
                       <div key={arr.id} className="flex flex-col gap-0.5 rounded-md p-2 hover:bg-muted/50 text-sm">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-foreground">{format(new Date(arr.date), 'dd.MM')}</span>
-                          <span className="font-bold bg-foreground text-background px-2 py-0.5 rounded text-xs">{arr.count} os.</span>
+                          <span className="font-bold bg-foreground text-background px-2 py-0.5 rounded text-xs">{t('schedule.countPpl', { count: arr.count })}</span>
                         </div>
                         <span className="text-foreground text-xs">{arr.jobTitle} <span className="opacity-70">({arr.department})</span></span>
                       </div>
@@ -365,19 +366,19 @@ export function HarmonogramView({
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className=" gap-2 border-violet-500/30 bg-violet-50/50 hover:bg-violet-100/50 text-violet-700 dark:bg-violet-950/20 dark:text-violet-400 dark:hover:bg-violet-900/30">
                     <CalendarDays className="h-4 w-4" />
-                    Kolejne miesiące: {totals.upcomingArrivals.reduce((sum, a) => sum + a.count, 0)} os.
+                    {t('schedule.laterMonthsCountPpl', { count: totals.upcomingArrivals.reduce((sum, a) => sum + a.count, 0) })}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0" align="start">
                   <div className="border-b bg-muted/50 px-4 py-2.5">
-                    <h4 className="font-medium flex items-center gap-2 text-sm"><CalendarDays className="h-4 w-4" /> Oczekiwani w kolejnych miesiącach</h4>
+                    <h4 className="font-medium flex items-center gap-2 text-sm"><CalendarDays className="h-4 w-4" /> {t('schedule.expectedInLaterMonths')}</h4>
                   </div>
                   <div className="p-2 max-h-[300px] overflow-auto">
                     {totals.upcomingArrivals.map(arr => (
                       <div key={arr.id} className="flex flex-col gap-0.5 rounded-md p-2 hover:bg-muted/50 text-sm">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-foreground">{format(new Date(arr.date), 'dd.MM.yyyy')}</span>
-                          <span className="font-bold bg-foreground text-background px-2 py-0.5 rounded text-xs">{arr.count} os.</span>
+                          <span className="font-bold bg-foreground text-background px-2 py-0.5 rounded text-xs">{t('schedule.countPpl', { count: arr.count })}</span>
                         </div>
                         <span className="text-foreground text-xs">{arr.jobTitle} <span className="opacity-70">({arr.department})</span></span>
                       </div>
@@ -396,7 +397,7 @@ export function HarmonogramView({
                 variant="outline"
                 className="h-8 w-8"
                 onClick={() => setMonthOffset(m => m - 1)}
-                aria-label="Poprzedni miesiąc"
+                aria-label={t('schedule.previousMonth')}
               >
                 <ChevronRight className="h-4 w-4 rotate-180" />
               </Button>
@@ -407,7 +408,7 @@ export function HarmonogramView({
                 className="h-8"
                 onClick={() => setMonthOffset(0)}
               >
-                Ten miesiąc
+                {t('schedule.thisMonth')}
               </Button>
               <Button
                 type="button"
@@ -415,7 +416,7 @@ export function HarmonogramView({
                 variant="outline"
                 className="h-8 w-8"
                 onClick={() => setMonthOffset(m => m + 1)}
-                aria-label="Następny miesiąc"
+                aria-label={t('schedule.nextMonth')}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -432,7 +433,7 @@ export function HarmonogramView({
                   setSelectedDayIndex(null);
                 }}
               >
-                Dzisiaj
+                {t('schedule.today')}
               </Button>
             </div>
 
@@ -443,10 +444,10 @@ export function HarmonogramView({
                 size="sm"
                 className="h-8 gap-1 text-[13px]"
                 onClick={expandAll}
-                title="Rozwiń wszystkie poziomy"
+                title={t('schedule.expandAllLevels')}
               >
                 <Maximize2 className="h-3.5 w-3.5" />
-                Rozwiń wszystko
+                {t('schedule.expandAll')}
               </Button>
               <Button
                 type="button"
@@ -454,10 +455,10 @@ export function HarmonogramView({
                 size="sm"
                 className="h-8 gap-1 text-[13px]"
                 onClick={collapseAll}
-                title="Zwiń wszystkie poziomy"
+                title={t('schedule.collapseAllLevels')}
               >
                 <Minimize2 className="h-3.5 w-3.5" />
-                Zwiń wszystko
+                {t('schedule.collapseAll')}
               </Button>
             </div>
 
@@ -483,23 +484,23 @@ export function HarmonogramView({
         <div className="flex flex-wrap items-center gap-4 text-[13px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="animate-absence-blink inline-block h-3 w-3 rounded" />
-            nieobecni (najedź, aby zobaczyć kto)
+            {t('schedule.absentHoverToSeeWho')}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded bg-pink-500/60" />
-            na urlopie
+            {t('schedule.onLeave')}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded bg-amber-400/80" />
-            zwalnia się (data zwolnienia / plan. zwolnienie)
+            {t('schedule.leavingTerminationPlannedTerminationDate')}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded bg-emerald-500/60" />
-            zmiany / przyjęcia
+            {t('schedule.changesArrivals')}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="text-muted-foreground font-mono">—</span>
-            zwolniony / przed zatrudnieniem
+            {t('schedule.terminatedBeforeHire')}
           </span>
         </div>
       </CardHeader>
@@ -509,21 +510,21 @@ export function HarmonogramView({
             <thead>
               <tr>
                 <th className="sticky left-0 top-0 z-30 min-w-[150px] max-w-[170px] md:min-w-[180px] md:max-w-none truncate border-b bg-background px-2 py-2 text-left font-semibold">
-                  Dział / Kierownik / Stanowisko / Pracownik
+                  {t('schedule.departmentManagerJobTitleEmployee')}
                 </th>
                 <th className="md:sticky md:left-[180px] top-0 z-20 md:z-30 min-w-[60px] border-b bg-background px-2 py-2 text-right font-semibold text-[13px]">
-                  Potrzeby
+                  {t('schedule.needed')}
                 </th>
                 <th className="md:sticky md:left-[240px] top-0 z-20 md:z-30 min-w-[70px] border-b bg-background px-2 py-2 text-right font-semibold">
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-xs uppercase text-muted-foreground">Stan na</span>
+                    <span className="text-xs uppercase text-muted-foreground">{t('schedule.asOf')}</span>
                     <span className="text-primary font-bold leading-none text-[13px]">
                       {selectedDayIndex === null && todayIndex >= 0
-                        ? `Dziś (${format(result.days[activeDayIndex], 'd.MM')})`
+                        ? t('schedule.todayDate', { date: format(result.days[activeDayIndex], 'd.MM') })
                         : format(result.days[activeDayIndex], 'd.MM')}
                     </span>
                     <span className="text-xs leading-none text-muted-foreground/70">
-                      aktywni
+                      {t('schedule.active')}
                     </span>
                   </div>
                 </th>
@@ -540,7 +541,7 @@ export function HarmonogramView({
                         (!isSelected && i === todayIndex ? ' text-primary' : '') +
                         (!isSelected && isWeekend ? ' text-muted-foreground/70' : '')
                       }
-                      title={format(d, 'dd.MM.yyyy, EEEE', { locale: pl })}
+                      title={format(d, 'dd.MM.yyyy, EEEE', { locale: getDateLocale() })}
                     >
                       {format(d, 'd')}
                     </th>
@@ -571,7 +572,7 @@ export function HarmonogramView({
                       <td className="md:sticky md:left-[180px] z-10 bg-background px-2 py-2 text-right font-semibold tabular-nums text-[13px]">
                         {deptRow.potrzeby}
                       </td>
-                      <td className={`md:sticky md:left-[240px] z-10 bg-background px-2 py-2 text-right tabular-nums text-[13px] ${deptRow.obecnie < deptRow.potrzeby ? 'text-red-600 font-bold' : ''}`} title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                      <td className={`md:sticky md:left-[240px] z-10 bg-background px-2 py-2 text-right tabular-nums text-[13px] ${deptRow.obecnie < deptRow.potrzeby ? 'text-red-600 font-bold' : ''}`} title={t('schedule.employedActiveStatusIncludingAbsent')}>
                         {deptRow.obecnie}
                       </td>
                       {deptRow.cells.map((cell, i) => (
@@ -606,15 +607,15 @@ export function HarmonogramView({
                                   <Users className="h-3.5 w-3.5 text-primary/70 shrink-0" />
                                   <span className="truncate">
                                     {mgrRow.manager === 'Brak kierownika'
-                                      ? 'Brak kierownika'
-                                      : `Kierownik: ${mgrRow.manager}`}
+                                      ? t('schedule.noManager')
+                                      : t('schedule.managerName', { name: mgrRow.manager })}
                                   </span>
                                 </span>
                               </td>
                               <td className="md:sticky md:left-[180px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[13px] font-semibold tabular-nums">
                                 {mgrRow.potrzeby}
                               </td>
-                              <td className={`md:sticky md:left-[240px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[13px] tabular-nums ${mgrRow.obecnie < mgrRow.potrzeby ? 'text-red-600 font-bold' : ''}`} title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                              <td className={`md:sticky md:left-[240px] z-10 bg-muted/50 px-2 py-1.5 text-right text-[13px] tabular-nums ${mgrRow.obecnie < mgrRow.potrzeby ? 'text-red-600 font-bold' : ''}`} title={t('schedule.employedActiveStatusIncludingAbsent')}>
                                 {mgrRow.obecnie}
                               </td>
                               {mgrRow.cells.map((cell, i) => (
@@ -652,7 +653,7 @@ export function HarmonogramView({
                                       <td className="md:sticky md:left-[180px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] font-semibold tabular-nums">
                                         {isAdmin ? (<div onClick={(e) => e.stopPropagation()}><Input type="number" min={0} value={posRow.potrzeby} onChange={(e) => onUpdatePotrzeby?.(posRow.department, posRow.manager, posRow.jobTitle, parseInt(e.target.value) || 0)} className="h-6 w-14 px-1 py-0 text-right text-[13px] inline-block font-semibold bg-transparent" /></div>) : (posRow.potrzeby)}
                                       </td>
-                                      <td className={`md:sticky md:left-[240px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] tabular-nums ${posRow.obecnie < posRow.potrzeby ? 'text-red-600 font-bold' : ''}`} title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                                      <td className={`md:sticky md:left-[240px] z-10 bg-muted/25 px-2 py-1.5 text-right text-[13px] tabular-nums ${posRow.obecnie < posRow.potrzeby ? 'text-red-600 font-bold' : ''}`} title={t('schedule.employedActiveStatusIncludingAbsent')}>
                                         {posRow.obecnie}
                                       </td>
                                       {posRow.cells.map((cell, i) => (
@@ -681,7 +682,7 @@ export function HarmonogramView({
                                           <td className="md:sticky md:left-[180px] z-10 bg-background/90 px-2 py-1 text-right text-[13px] text-muted-foreground/60">
                                             —
                                           </td>
-                                          <td className="md:sticky md:left-[240px] z-10 bg-background/90 px-2 py-1 text-right text-[13px] tabular-nums" title="Zatrudnieni (status aktywny)">
+                                          <td className="md:sticky md:left-[240px] z-10 bg-background/90 px-2 py-1 text-right text-[13px] tabular-nums" title={t('schedule.employedActiveStatus')}>
                                             {empRow.obecnie ? (
                                               <span className="font-bold">1</span>
                                             ) : (
@@ -748,24 +749,24 @@ export function HarmonogramView({
                 }[] = [
                   {
                     key: 'nb-urlop',
-                    label: 'Nieobecni + urlopy',
+                    label: t('schedule.absentLeave'),
                     labelClass: 'text-amber-600 dark:text-amber-400',
                     stanValue: totals.absentNa,
-                    stanTitle: `Dziś nieobecnych + na urlopie: ${totals.absentNa}`,
+                    stanTitle: t('schedule.absentOnLeaveTodayCount', { count: totals.absentNa }),
                     perDay: perDayAbsent,
                     valueClass: v => (v > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground/40'),
-                    dayTitle: i => `Nieobecni + na urlopie ${format(result.days[i], 'dd.MM')}: ${perDayAbsent[i] ?? 0}`,
+                    dayTitle: i => t('schedule.absentOnLeaveDateCount', { date: format(result.days[i], 'dd.MM'), count: perDayAbsent[i] ?? 0 }),
                   },
                   {
                     key: 'potrzeby-stan-zatrudnienia',
-                    label: 'Stan zatrudnienia (status aktywny) − potrzeby',
+                    label: t('schedule.headcountActiveStatusNeeded'),
                     stanValue: sign(totals.employedGap[activeDayIndex] ?? 0),
-                    stanTitle: `Zatrudnieni (status aktywny): ${totals.stanZatrudnienia} • Potrzeby: ${totals.potrzeby}`,
+                    stanTitle: t('schedule.employedActiveStatusEmployedNeeded', { employed: totals.stanZatrudnienia, needed: totals.potrzeby }),
                     perDay: totals.employedGap,
                     valueClass: gapColor,
                     dayTitle: i => {
                       const v = totals.employedGap[i] ?? 0;
-                      return `Zatrudnieni (status aktywny): ${totals.stanZatrudnienia} • Potrzeby: ${totals.potrzeby} • Różnica: ${sign(v)}`;
+                      return t('schedule.employedActiveStatusEmployedNeeded2', { employed: totals.stanZatrudnienia, needed: totals.potrzeby, diff: sign(v) });
                     },
                   },
                 ];
@@ -774,12 +775,12 @@ export function HarmonogramView({
                   <>
                     <tr className="group border-t-2">
                       <td className={label + ' border-t-2'} style={{ bottom: '84px' }}>
-                        Suma
+                        {t('schedule.total')}
                       </td>
                       <td className={fixed + ' border-t-2 font-bold'} style={{ bottom: '84px' }}>
                         {totals.potrzeby}
                       </td>
-                      <td className={stan + ' border-t-2 font-bold' + (totals.stanZatrudnienia < totals.potrzeby ? ' text-red-600' : '')} style={{ bottom: '84px' }} title="Zatrudnieni (status aktywny) — z nieobecnymi i na urlopie">
+                      <td className={stan + ' border-t-2 font-bold' + (totals.stanZatrudnienia < totals.potrzeby ? ' text-red-600' : '')} style={{ bottom: '84px' }} title={t('schedule.employedActiveStatusIncludingAbsent')}>
                         {totals.stanZatrudnienia}
                       </td>
                       {result.days.map((d, i) => (
@@ -838,7 +839,7 @@ export function HarmonogramView({
           </table>
           {displayRows.length === 0 && (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              Brak danych.
+              {t('schedule.noData')}
             </p>
           )}
         </div>
@@ -890,7 +891,7 @@ function MobileHierarchyButton({
       <span className="shrink-0 text-right text-[13px] tabular-nums">
         <span className="block">{present} / {row.potrzeby}</span>
         <span className={present < row.potrzeby ? 'text-destructive' : 'text-muted-foreground'}>
-          {present < row.potrzeby ? `Brakuje ${row.potrzeby - present}` : 'Obsada pełna'}
+          {present < row.potrzeby ? t('schedule.shortByCount', { count: row.potrzeby - present }) : t('schedule.fullyStaffed')}
         </span>
       </span>
       {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
@@ -901,9 +902,9 @@ function MobileHierarchyButton({
 function MobileStatusLists({ cell }: { cell?: HarmonogramCell }) {
   if (!cell) return null;
   const groups = [
-    { label: 'Nieobecni', entries: cell.absentees, color: 'text-destructive' },
-    { label: 'Na urlopie', entries: cell.vacationers, color: 'text-pink-600 dark:text-pink-400' },
-    { label: 'Zwalnia się', entries: cell.terminating ?? [], color: 'text-amber-600 dark:text-amber-400' },
+    { label: t('schedule.absent'), entries: cell.absentees, color: 'text-destructive' },
+    { label: t('schedule.onLeave2'), entries: cell.vacationers, color: 'text-pink-600 dark:text-pink-400' },
+    { label: t('schedule.leaving'), entries: cell.terminating ?? [], color: 'text-amber-600 dark:text-amber-400' },
   ];
   return (
     <div className="space-y-2">
@@ -925,12 +926,12 @@ function MobileStatusLists({ cell }: { cell?: HarmonogramCell }) {
 
 function mobileEmployeeStatus(cell?: HarmonogramCell) {
   switch (cell?.statusType) {
-    case 'present': return 'Obecny';
-    case 'absent': return 'Nieobecny';
-    case 'vacation': return 'Urlop';
-    case 'terminating': return 'Ostatni dzień';
-    case 'terminated': return 'Zwolniony';
-    case 'not_hired': return 'Przed zatrudnieniem';
+    case 'present': return t('schedule.present2');
+    case 'absent': return t('schedule.absent2');
+    case 'vacation': return t('schedule.leave');
+    case 'terminating': return t('schedule.lastDay');
+    case 'terminated': return t('schedule.terminated');
+    case 'not_hired': return t('schedule.beforeHire');
     default: return '—';
   }
 }
@@ -1130,7 +1131,7 @@ function TooltipPanel({
       {absentees.length > 0 && (
         <div>
           <p className="animate-absence-blink px-3 py-1.5 text-[13px] font-semibold text-destructive">
-            Nieobecni ({absentees.length})
+            {t('schedule.absentCount', { count: absentees.length })}
           </p>
           <AbsenceTooltipTable
             rows={absentees.map(a => ({
@@ -1145,7 +1146,7 @@ function TooltipPanel({
       {vacationers.length > 0 && (
         <div>
           <p className="bg-pink-500/15 px-3 py-1.5 text-[13px] font-semibold text-pink-600 dark:text-pink-400">
-            Na urlopie ({vacationers.length})
+            {t('schedule.onLeaveCount', { count: vacationers.length })}
           </p>
           <AbsenceTooltipTable
             rows={vacationers.map(e => ({
@@ -1160,7 +1161,7 @@ function TooltipPanel({
       {terminating.length > 0 && (
         <div>
           <p className="bg-amber-500/15 px-3 py-1.5 text-[13px] font-semibold text-amber-600 dark:text-amber-400">
-            Zwalnia się ({terminating.length})
+            {t('schedule.leavingCount', { count: terminating.length })}
           </p>
           <AbsenceTooltipTable
             rows={terminating.map(e => ({
@@ -1186,9 +1187,9 @@ function AbsenceTooltipTable({
     <table className="block w-full overflow-x-auto text-[13px]">
       <thead>
         <tr className="group border-b text-left text-muted-foreground">
-          <th className="px-3 py-1 font-medium">Pracownik</th>
-          <th className="px-2 py-1 font-medium">Stanowisko</th>
-          <th className="px-3 py-1 font-medium">Kierownik</th>
+          <th className="px-3 py-1 font-medium">{t('schedule.employee')}</th>
+          <th className="px-2 py-1 font-medium">{t('schedule.jobTitle')}</th>
+          <th className="px-3 py-1 font-medium">{t('schedule.manager')}</th>
         </tr>
       </thead>
       <tbody>

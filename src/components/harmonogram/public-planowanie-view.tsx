@@ -16,6 +16,7 @@ import { splitArrivals } from '@/lib/przyjecia-historia';
 import { PublicZapotrzebowaniaView } from './public-zapotrzebowania-view';
 import { HistoriaPrzyjec } from './historia-przyjec';
 
+import { t } from '@/lib/i18n';
 /** Widok publiczny (bez logowania): tylko do odczytu — zapotrzebowania + harmonogram */
 export function PublicPlanowanieView() {
   const [data, setData] = useState<HarmonogramData | null>(null);
@@ -65,13 +66,13 @@ export function PublicPlanowanieView() {
     setLocal(newAmount);
     try {
       const db = getDB();
-      if (!db) throw new Error('Brak połączenia z bazą.');
+      if (!db) throw new Error(t('schedule.noDatabaseConnection'));
       await update(dbRef(db, 'potrzebyObsady'), { [key]: newAmount });
       return true;
     } catch (err) {
       console.error('Failed to update potrzeby:', err);
       setLocal(previous);
-      toast({ variant: 'destructive', title: 'Nie zapisano potrzeb', description: 'Spróbuj ponownie.' });
+      toast({ variant: 'destructive', title: t('schedule.needsNotSaved'), description: t('schedule.pleaseTryAgain') });
       return false;
     }
   };
@@ -80,7 +81,7 @@ export function PublicPlanowanieView() {
     <div className="flex flex-col md:h-full">
       {error ? (
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          Nie udało się pobrać danych harmonogramu.
+          {t('schedule.couldNotLoadTheSchedule')}
         </div>
       ) : !data ? (
         <div className="flex h-full items-center justify-center">
@@ -89,8 +90,8 @@ export function PublicPlanowanieView() {
       ) : (
         <>
           <PageHeader
-            title="Obsada"
-            description="Sprawdź obsadę i zapotrzebowanie według działu."
+            title={t('schedule.staffing')}
+            description={t('schedule.checkStaffingAndNeedsBy')}
           />
 
           <div className="flex flex-col gap-4 pb-6 md:overflow-y-auto">
@@ -103,7 +104,7 @@ export function PublicPlanowanieView() {
                   className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
                   onClick={() => setView('harmonogram')}
                 >
-                  Harmonogram obsady
+                  {t('schedule.staffingSchedule')}
                 </Button>
                 <Button
                   type="button"
@@ -112,7 +113,7 @@ export function PublicPlanowanieView() {
                   className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
                   onClick={() => setView('zapotrzebowania')}
                 >
-                  Zapotrzebowania
+                  {t('schedule.needs')}
                 </Button>
                 <Button
                   type="button"
@@ -121,7 +122,7 @@ export function PublicPlanowanieView() {
                   className="min-h-12 rounded-none border-0 flex-1 sm:min-h-9 sm:flex-initial"
                   onClick={() => setView('historia')}
                 >
-                  Historia{(() => {
+                  {t('schedule.history')}{(() => {
                     const n = splitArrivals(Object.values(data.planowanePrzyjecia || {}), format(new Date(), 'yyyy-MM-dd')).past.length;
                     return n > 0 ? ` (${n})` : '';
                   })()}
