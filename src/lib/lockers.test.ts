@@ -35,6 +35,32 @@ describe('buildLockerOccupancy', () => {
     expect(map.K1).toEqual(['A', 'B']);
   });
 
+  it('frees the locker once the planned termination date has passed', () => {
+    const today = new Date(2026, 10, 10);
+    const map = buildLockerOccupancy(
+      [
+        emp('Left', { lockerNumber: 'K5', plannedTerminationDate: '2026-11-01' }),
+        emp('Leaving', { lockerNumber: 'K6', plannedTerminationDate: '2026-11-20' }),
+      ],
+      today,
+    );
+    expect(map.K5).toBeUndefined();
+    expect(map.K6).toEqual(['Leaving']);
+  });
+
+  it('frees the locker when a past termination date is set on an active employee', () => {
+    const today = new Date(2026, 10, 10);
+    const map = buildLockerOccupancy(
+      [
+        emp('Gone', { lockerNumber: 'K7', terminationDate: '2026-09-15' }),
+        emp('LastDayLater', { lockerNumber: 'K8', terminationDate: '2026-11-28' }),
+      ],
+      today,
+    );
+    expect(map.K7).toBeUndefined();
+    expect(map.K8).toEqual(['LastDayLater']);
+  });
+
   it('does not count the same locker twice for one employee', () => {
     const map = buildLockerOccupancy([emp('A', { lockerNumber: 'K1', lockerNumber2: 'k1' })]);
     expect(map.K1).toEqual(['A']);

@@ -18,7 +18,7 @@ import type { LockerPosition } from '@/components/szafki/locker-types';
 import { ALL_ZONES } from '@/components/szafki/locker-data';
 import { ZoneView, getZoneRows } from '@/components/szafki/zone-view';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { EMPLOYEE_LOCKER_FIELDS, buildLockerOccupancy, normalizeLockerLabel } from '@/lib/lockers';
+import { EMPLOYEE_LOCKER_FIELDS, buildLockerOccupancy, holdsLocker, normalizeLockerLabel } from '@/lib/lockers';
 
 const ZONE_NAMES: Record<string, TranslationKey> = {
   zone1: 'lockers.zone1',
@@ -93,7 +93,7 @@ export default function LockersPage() {
           // Update only ACTIVE employees matching the old label
           // Terminated employees' locker assignments should NOT be updated
           employees
-            .filter((emp: Employee) => emp.status === 'aktywny')
+            .filter((emp: Employee) => holdsLocker(emp))
             .forEach((emp: Employee) => {
               if (!emp.id) return;
               EMPLOYEE_LOCKER_FIELDS.forEach((field) => {
