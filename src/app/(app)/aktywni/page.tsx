@@ -39,6 +39,7 @@ import { ContractEndDateImportButton } from '@/components/contract-end-date-impo
 import { DepartmentExcelExportButton } from '@/components/department-excel-export-button';
 import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
+import { useI18n, rich } from '@/lib/i18n';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRouter } from 'next/navigation';
 import { EmployeeTable } from '../employees/employee-table';
@@ -72,6 +73,7 @@ export default function AktywniPage() {
   // Pracownik na urlopie NIE znika z listy — wiersz pulsuje na różowo (patrz employee-table/columns)
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   const router = useRouter();
+  const { t } = useI18n();
   const isMobile = useIsMobile();
 
   const [terminatingEmployee, setTerminatingEmployee] = useState<Employee | null>(null);
@@ -162,8 +164,8 @@ export default function AktywniPage() {
   return (
     <div className="flex h-full w-full flex-col px-4 pt-4 md:px-6 md:pt-5">
           <PageHeader
-            title="Pracownicy aktywni"
-            description="Przeglądaj, filtruj i zarządzaj aktywnymi pracownikami."
+            title={t('employee.activeTitle')}
+            description={t('employee.activeDesc')}
           >
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <DepartmentExcelExportButton
@@ -173,37 +175,36 @@ export default function AktywniPage() {
               />
               <Popover open={isMoreOpen} onOpenChange={setIsMoreOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon" title="Więcej opcji" className="h-12 w-12 md:h-10 md:w-10">
+                  <Button variant="outline" size="icon" title={t('employee.moreOptions')} className="h-12 w-12 md:h-10 md:w-10">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-2 flex flex-col gap-1" align="end">
-                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Import i Aktualizacja</div>
+                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">{t('employee.importUpdate')}</div>
                   <ExcelImportButton variant="ghost" className="w-full justify-start min-h-12 md:min-h-9" />
                   <HireDateImportButton variant="ghost" className="w-full justify-start min-h-12 md:min-h-9" />
                   <ContractEndDateImportButton variant="ghost" className="w-full justify-start min-h-12 md:min-h-9" />
 
                   <div className="my-1 h-px bg-border" />
-                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">Zarządzanie masowe</div>
+                  <div className="text-xs font-semibold text-muted-foreground px-2 py-1.5">{t('employee.bulkManagement')}</div>
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" className="w-full justify-start min-h-12 md:min-h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsMoreOpen(false)}>
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Usuń daty zatrudnienia
+                        {t('employee.deleteHireDates')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('employee.areYouSure')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                          dat zatrudnienia dla wszystkich pracowników (aktywnych i zwolnionych).
+                          {t('employee.deleteHireDatesDesc')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteAllHireDates}>Kontynuuj</AlertDialogAction>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAllHireDates}>{t('employee.continue')}</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -212,20 +213,19 @@ export default function AktywniPage() {
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" className="w-full justify-start min-h-12 md:min-h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsMoreOpen(false)}>
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Usuń wszystkich pracowników
+                        {t('employee.deleteAllEmployees')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Czy jesteś absolutnie pewien?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('employee.areYouSure')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tej akcji nie można cofnąć. Spowoduje to trwałe usunięcie wszystkich
-                          pracowników (aktywnych i zwolnionych) z bazy danych.
+                          {t('employee.deleteAllDesc')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteAllEmployees}>Kontynuuj</AlertDialogAction>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAllEmployees}>{t('employee.continue')}</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -236,7 +236,7 @@ export default function AktywniPage() {
 
               <Button onClick={handleAddNew} className="hidden md:inline-flex">
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Dodaj pracownika
+                {t('employee.addEmployee')}
               </Button>
             </div>
           </PageHeader>
@@ -246,20 +246,20 @@ export default function AktywniPage() {
             onClick={handleAddNew}
             size="icon"
             className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 h-14 w-14 rounded-full shadow-lg shadow-primary/30 md:hidden"
-            title="Dodaj pracownika"
+            title={t('employee.addEmployee')}
           >
             <PlusCircle className="h-6 w-6" />
-            <span className="sr-only">Dodaj pracownika</span>
+            <span className="sr-only">{t('employee.addEmployee')}</span>
           </Button>
 
           <div className="flex flex-col flex-grow min-h-0">
              {hireWeekOnly && (
                <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
                  <Badge variant="secondary" className="min-h-8 gap-1.5 px-2.5 text-xs">
-                   Zatrudnieni w tym tygodniu: {visibleEmployees.length}
+                   {t('employee.hiredThisWeek', { count: visibleEmployees.length })}
                  </Badge>
                  <Button variant="ghost" size="sm" onClick={clearHireWeekFilter}>
-                   Wyczyść filtr
+                   {t('employee.clearFilter')}
                  </Button>
                </div>
              )}
@@ -290,13 +290,13 @@ export default function AktywniPage() {
           <AlertDialog open={!!deletingEmployee} onOpenChange={(open) => !open && setDeletingEmployee(null)}>
               <AlertDialogContent>
                   <AlertDialogHeader>
-                      <AlertDialogTitle>Czy na pewno chcesz trwale usunąć pracownika?</AlertDialogTitle>
+                      <AlertDialogTitle>{t('employee.deleteEmployeeTitle')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                          Tej akcji <strong>nie można cofnąć</strong>. Spowoduje to trwałe usunięcie pracownika <strong>{deletingEmployee?.fullName}</strong> i wszystkich jego danych z bazy.
+                          {rich(t('employee.deleteEmployeeDesc'), { undo: <strong>{t('employee.cannotUndo')}</strong>, name: <strong>{deletingEmployee?.fullName}</strong> })}
                       </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                      <AlertDialogCancel onClick={() => setDeletingEmployee(null)}>Anuluj</AlertDialogCancel>
+                      <AlertDialogCancel onClick={() => setDeletingEmployee(null)}>{t('common.cancel')}</AlertDialogCancel>
                       <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async (e) => {
                           e.preventDefault();
                           if(deletingEmployee) {
@@ -304,7 +304,7 @@ export default function AktywniPage() {
                               setDeletingEmployee(null)
                           }
                       }}>
-                          Usuń trwale
+                          {t('employee.deletePermanently')}
                       </AlertDialogAction>
                   </AlertDialogFooter>
               </AlertDialogContent>
@@ -314,10 +314,10 @@ export default function AktywniPage() {
         <Dialog open={!!clothingPrintData} onOpenChange={(open) => !open && setClothingPrintData(null)}>
           <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-3xl max-h-[90dvh] flex flex-col">
             <DialogHeader className="flex-shrink-0 flex flex-row items-center justify-between pr-8">
-              <DialogTitle>Wydawanie odzieży roboczej</DialogTitle>
+              <DialogTitle>{t('employee.clothingTitle')}</DialogTitle>
               <Button size="sm" onClick={handleDoPrint}>
                 <Printer className="mr-2 h-4 w-4" />
-                Drukuj / PDF
+                {t('employee.printPdf')}
               </Button>
             </DialogHeader>
             <div className="flex-grow overflow-y-auto">
@@ -363,8 +363,8 @@ export default function AktywniPage() {
           );
 
           const title = !editingEmployee || editingEmployee === 'new' || !editingEmployee.id
-            ? 'Dodaj pracownika'
-            : 'Edytuj pracownika';
+            ? t('employee.addEmployee')
+            : t('employee.editEmployee');
 
           const timeline = editingEmployee && editingEmployee !== 'new' && editingEmployee.id ? (
             <div className="mt-6">

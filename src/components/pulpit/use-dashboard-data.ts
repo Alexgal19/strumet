@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { startOfDay, endOfDay, isWithinInterval, subDays } from 'date-fns';
 import { parseMaybeDate } from '@/lib/date';
 import type { AppNotification, Employee, StatsSnapshot } from '@/lib/types';
+import { useI18n } from '@/lib/i18n';
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
@@ -42,6 +43,7 @@ type UseDashboardDataArgs = {
 };
 
 export function useDashboardData({ activeEmployees, notifications, statsHistory }: UseDashboardDataArgs) {
+  const { tp } = useI18n();
   const today = useMemo(() => startOfDay(new Date()), []);
 
   // --- Stats ---
@@ -100,18 +102,8 @@ export function useDashboardData({ activeEmployees, notifications, statsHistory 
   const upcomingHiresNote = useMemo(() => {
     const count = stats.upcomingHires;
     if (count <= 0) return null;
-    const mod10 = count % 10;
-    const mod100 = count % 100;
-    const few = mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20);
-    const verb = count === 1 || !few ? 'zaczyna' : 'zaczynają';
-    const noun =
-      count === 1
-        ? '1 osoba'
-        : few
-          ? `${count} osoby`
-          : `${count} osób`;
-    return `W tym ${noun} ${verb} dopiero od wskazanej w firmie daty rozpoczęcia pracy`;
-  }, [stats.upcomingHires]);
+    return tp('dashboard.upcomingHires', count);
+  }, [stats.upcomingHires, tp]);
 
   // --- Turnover ---
   const turnoverRate: TurnoverRate = useMemo(() => {

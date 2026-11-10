@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Bell } from 'lucide-react';
 import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { AppNotification } from '@/lib/types';
 import { ExpandableList } from './expandable-list';
@@ -16,18 +16,19 @@ type NotificationsCardProps = {
 };
 
 export function NotificationsCard({ recentNotifications, unreadCount }: NotificationsCardProps) {
+  const { t } = useI18n();
   return (
     <Card className="glass-card lg:col-span-2">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-primary" />
-          <CardTitle className="text-base">Powiadomienia</CardTitle>
+          <CardTitle className="text-base">{t('dashboard.notifications')}</CardTitle>
           {unreadCount > 0 && (
             <Badge
               variant="default"
               className="bg-emerald-500 hover:bg-emerald-600 text-white"
             >
-              {unreadCount} nowych
+              {t('dashboard.newCount', { count: unreadCount })}
             </Badge>
           )}
         </div>
@@ -59,9 +60,7 @@ export function NotificationsCard({ recentNotifications, unreadCount }: Notifica
                           {notif.message}
                         </p>
                         <p className="text-xs text-muted-foreground/60 mt-1.5">
-                          {format(new Date(notif.createdAt), 'dd.MM.yyyy HH:mm', {
-                            locale: pl,
-                          })}
+                          {format(new Date(notif.createdAt), 'dd.MM.yyyy HH:mm')}
                         </p>
                       </div>
                     </div>
@@ -93,9 +92,7 @@ export function NotificationsCard({ recentNotifications, unreadCount }: Notifica
                         {notif.message}
                       </p>
                       <p className="text-xs text-muted-foreground/60 mt-1.5">
-                        {format(new Date(notif.createdAt), 'dd.MM.yyyy HH:mm', {
-                          locale: pl,
-                        })}
+                        {format(new Date(notif.createdAt), 'dd.MM.yyyy HH:mm')}
                       </p>
                     </div>
                   </div>
@@ -107,7 +104,7 @@ export function NotificationsCard({ recentNotifications, unreadCount }: Notifica
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <Bell className="h-10 w-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">
-              Brak nowych powiadomień.
+              {t('dashboard.noNotifications')}
             </p>
           </div>
         )}

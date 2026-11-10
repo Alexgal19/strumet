@@ -7,6 +7,7 @@ import type { Car } from "@/lib/types"
 import { formatDate, parseMaybeDate } from "@/lib/date"
 import { CarRowActions } from "./car-actions"
 import { ShieldAlert, ShieldCheck, Wrench } from "lucide-react"
+import type { I18nValue } from "@/lib/i18n"
 
 interface GetColumnsProps {
   onEdit: (car: Car) => void
@@ -14,6 +15,7 @@ interface GetColumnsProps {
   onRestore?: (car: Car) => void
   onDelete: (car: Car) => void
   status: 'active' | 'history'
+  t: I18nValue['t']
 }
 
 const dateSortingFn = (rowA: any, rowB: any, columnId: string) => {
@@ -78,13 +80,14 @@ export function getColumns({
   onTerminate,
   onRestore,
   onDelete,
-  status
+  status,
+  t,
 }: GetColumnsProps): ColumnDef<Car>[] {
   return [
     {
       accessorKey: "registrationNumber",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Rejestracja" />
+        <DataTableColumnHeader column={column} title={t('cars.registration')} />
       ),
       cell: ({ row }) => (
         <span className="font-bold uppercase tracking-wider">{row.getValue("registrationNumber")}</span>
@@ -94,7 +97,7 @@ export function getColumns({
     {
       accessorKey: "makeModel",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Marka / Model" />
+        <DataTableColumnHeader column={column} title={t('cars.makeModel')} />
       ),
       cell: ({ row }) => (
         <span>{row.getValue("makeModel") || "-"}</span>
@@ -103,21 +106,21 @@ export function getColumns({
     {
       accessorKey: "driverFullName",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Kierowca" />
+        <DataTableColumnHeader column={column} title={t('cars.driver')} />
       ),
       cell: ({ row }) => {
         const driverName = row.getValue("driverFullName") as string;
         return driverName ? (
           <span className="font-medium text-primary">{driverName}</span>
         ) : (
-          <span className="text-muted-foreground italic text-sm">Brak</span>
+          <span className="text-muted-foreground italic text-sm">{t('common.none')}</span>
         );
       },
     },
     {
       accessorKey: "dateFrom",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Od kiedy" />
+        <DataTableColumnHeader column={column} title={t('cars.since')} />
       ),
       cell: ({ row }) => formatDate(row.getValue("dateFrom"), "dd.MM.yyyy"),
       sortingFn: dateSortingFn,
@@ -125,7 +128,7 @@ export function getColumns({
     ...(status === 'history' ? [{
       accessorKey: "dateTo",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Do kiedy" />
+        <DataTableColumnHeader column={column} title={t('cars.until')} />
       ),
       cell: ({ row }) => formatDate(row.getValue("dateTo"), "dd.MM.yyyy"),
       sortingFn: dateSortingFn,
@@ -134,7 +137,7 @@ export function getColumns({
       {
         accessorKey: "insuranceEndDate",
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Ubezpieczenie do" />
+          <DataTableColumnHeader column={column} title={t('cars.insuranceUntil')} />
         ),
         cell: ({ row }) => renderExpiryCell(row.getValue("insuranceEndDate"), 'insurance'),
         sortingFn: dateSortingFn,
@@ -142,7 +145,7 @@ export function getColumns({
       {
         accessorKey: "inspectionEndDate",
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Przegląd do" />
+          <DataTableColumnHeader column={column} title={t('cars.inspectionUntil')} />
         ),
         cell: ({ row }) => renderExpiryCell(row.getValue("inspectionEndDate"), 'inspection'),
         sortingFn: dateSortingFn,

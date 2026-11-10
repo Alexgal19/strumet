@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Car, Employee } from '@/lib/types';
 import { formatDate, parseMaybeDate } from '@/lib/date';
@@ -16,6 +16,7 @@ import { EmployeeCombobox } from '@/components/employee-combobox';
 
 const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onChange: (date?: string) => void, placeholder: string }) => {
     const dateValue = parseMaybeDate(value);
+    const { t, dateLocale } = useI18n();
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -25,7 +26,7 @@ const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onC
                     className={cn("w-full justify-start text-left font-normal h-11 transition-all", !dateValue && "text-muted-foreground")}
                 >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateValue ? formatDate(dateValue, "PPP") : <span>{placeholder}</span>}
+                    {dateValue ? formatDate(dateValue, "PPP", dateLocale) : <span>{placeholder}</span>}
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 flex flex-col">
@@ -33,13 +34,13 @@ const DatePickerInput = ({ value, onChange, placeholder }: { value?: string, onC
                     mode="single"
                     selected={dateValue || undefined}
                     onSelect={(date) => onChange(date ? formatFns(date, 'yyyy-MM-dd') : undefined)}
-                    locale={pl}
+                    locale={dateLocale}
                     initialFocus
                 />
                 {value && (
                    <Button type="button" variant="ghost" size="sm" className="m-2 mt-0" onClick={() => onChange(undefined)}>
                      <Trash2 className="mr-2 h-4 w-4" />
-                     Wyczyść datę
+                     {t('employee.clearDate')}
                    </Button>
                 )}
             </PopoverContent>
@@ -83,6 +84,7 @@ const getInitialFormData = (car: Car | null): Omit<Car, 'id' | 'status'> => {
 
 export function CarForm({ car, onSave, onCancel, employees }: CarFormProps) {
     const [formData, setFormData] = useState<Omit<Car, 'id' | 'status'>>(getInitialFormData(car));
+    const { t } = useI18n();
 
     useEffect(() => {
         setFormData(getInitialFormData(car));
@@ -96,7 +98,7 @@ export function CarForm({ car, onSave, onCancel, employees }: CarFormProps) {
         setFormData(prev => ({
             ...prev,
             driverId: driverId === "none" ? "" : driverId,
-            driverFullName: driverName === "Brak kierowcy" ? "" : driverName
+            driverFullName: driverId === "none" ? "" : driverName
         }));
     };
 
@@ -115,39 +117,39 @@ export function CarForm({ car, onSave, onCancel, employees }: CarFormProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="registrationNumber" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Numer Rejestracyjny *</Label>
+                    <Label htmlFor="registrationNumber" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('cars.registrationNumber')}</Label>
                     <Input
                         id="registrationNumber"
                         value={formData.registrationNumber}
                         onChange={(e) => handleInputChange('registrationNumber', e.target.value)}
-                        placeholder="np. WX 12345"
+                        placeholder={t('cars.registrationPlaceholder')}
                         required
                         className="h-11 uppercase"
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="makeModel" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Marka / Model</Label>
+                    <Label htmlFor="makeModel" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('cars.makeModel')}</Label>
                     <Input
                         id="makeModel"
                         value={formData.makeModel || ''}
                         onChange={(e) => handleInputChange('makeModel', e.target.value)}
-                        placeholder="np. Toyota Corolla"
+                        placeholder={t('cars.makeModelPlaceholder')}
                         className="h-11"
                     />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="vin" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Numer VIN</Label>
+                    <Label htmlFor="vin" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('cars.vin')}</Label>
                     <Input
                         id="vin"
                         value={formData.vin || ''}
                         onChange={(e) => handleInputChange('vin', e.target.value)}
-                        placeholder="17 znaków VIN"
+                        placeholder={t('cars.vinPlaceholder')}
                         className="h-11 uppercase"
                     />
                 </div>
                 
                 <div className="space-y-2 md:col-span-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Przypisany Kierowca</Label>
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('cars.assignedDriver')}</Label>
                     <EmployeeCombobox
                         employees={activeEmployees}
                         value={formData.driverId || null}
@@ -155,45 +157,45 @@ export function CarForm({ car, onSave, onCancel, employees }: CarFormProps) {
                             const emp = activeEmployees.find((e) => e.id === id);
                             handleDriverSelect(id, emp?.fullName ?? '');
                         }}
-                        onSelectNone={() => handleDriverSelect('none', 'Brak kierowcy')}
-                        noneLabel="Brak kierowcy"
-                        placeholder={formData.driverFullName || 'Brak kierowcy'}
+                        onSelectNone={() => handleDriverSelect('none', '')}
+                        noneLabel={t('cars.noDriver')}
+                        placeholder={formData.driverFullName || t('cars.noDriver')}
                         triggerClassName="h-11 font-normal"
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ważność Ubezpieczenia (OC/AC)</Label>
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('cars.insuranceValid')}</Label>
                     <DatePickerInput
                         value={formData.insuranceEndDate}
                         onChange={(date) => handleInputChange('insuranceEndDate', date)}
-                        placeholder="Wybierz datę ubezpieczenia"
+                        placeholder={t('cars.insuranceDate')}
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ważność Przeglądu</Label>
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('cars.inspectionValid')}</Label>
                     <DatePickerInput
                         value={formData.inspectionEndDate}
                         onChange={(date) => handleInputChange('inspectionEndDate', date)}
-                        placeholder="Wybierz datę przeglądu"
+                        placeholder={t('cars.inspectionDate')}
                     />
                 </div>
                 
                 <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Od kiedy (w firmie)</Label>
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('cars.sinceLong')}</Label>
                     <DatePickerInput
                         value={formData.dateFrom}
                         onChange={(date) => handleInputChange('dateFrom', date)}
-                        placeholder="Wybierz datę"
+                        placeholder={t('common.selectDate')}
                     />
                 </div>
                 {car?.status === 'history' && (
                     <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Do kiedy (w historii)</Label>
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('cars.untilLong')}</Label>
                         <DatePickerInput
                             value={formData.dateTo}
                             onChange={(date) => handleInputChange('dateTo', date)}
-                            placeholder="Wybierz datę"
+                            placeholder={t('common.selectDate')}
                         />
                     </div>
                 )}
@@ -201,10 +203,10 @@ export function CarForm({ car, onSave, onCancel, employees }: CarFormProps) {
             
             <div className="flex gap-3 justify-end pt-4">
                 <Button type="button" variant="outline" onClick={onCancel} className="h-11">
-                    Anuluj
+                    {t('common.cancel')}
                 </Button>
                 <Button type="submit" className="h-11">
-                    {car ? 'Zapisz zmiany' : 'Dodaj auto'}
+                    {car ? t('employee.saveChanges') : t('cars.addCar')}
                 </Button>
             </div>
         </form>

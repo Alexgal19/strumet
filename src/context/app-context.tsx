@@ -22,6 +22,7 @@ import { getFirebaseServices } from '@/lib/firebase';
 import { setupPushNotifications } from '@/lib/push';
 import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n, type TranslationKey, type TranslateVars } from '@/lib/i18n';
 import { format, startOfDay } from 'date-fns';
 import { getEffectiveTerminationDate, withEffectiveTerminationDate } from '@/lib/employee-status';
 import type {
@@ -226,6 +227,11 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { toast } = useToast();
+    // Stabilna funkcja tłumacząca — nie zmienia tożsamości callbacków przy zmianie języka
+    const { t } = useI18n();
+    const tRef = useRef(t);
+    tRef.current = t;
+    const tr = useCallback((key: TranslationKey, vars?: TranslateVars) => tRef.current(key, vars), []);
 
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [cars, setCars] = useState<Car[]>([]);
@@ -627,16 +633,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }
             if (id) {
                 await set(ref(db, `cars/${id}`), finalData);
-                toast({ title: 'Sukces', description: 'Dane auta zostały zaktualizowane.' });
+                toast({ title: tr('common.success'), description: tr('toasts.carUpdated') });
             } else {
                 const newCarRef = push(ref(db, 'cars'));
                 await set(newCarRef, { ...finalData, status: 'active' });
-                toast({ title: 'Sukces', description: 'Nowe auto zostało dodane.' });
+                toast({ title: tr('common.success'), description: tr('toasts.carAdded') });
             }
             return true;
         } catch (error) {
             console.error("Error saving car: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać auta.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.carSaveFailed') });
             return false;
         }
     }, [services, toast]);
@@ -649,11 +655,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 status: 'history',
                 dateTo: format(new Date(), 'yyyy-MM-dd')
             });
-            toast({ title: 'Sukces', description: 'Auto przeniesione do historii.' });
+            toast({ title: tr('common.success'), description: tr('toasts.carToHistory') });
             return true;
         } catch (error) {
             console.error("Error terminating car: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zaktualizować statusu.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.statusFailed') });
             return false;
         }
     }, [services, toast]);
@@ -666,11 +672,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 status: 'active',
                 dateTo: null
             });
-            toast({ title: 'Sukces', description: 'Auto przywrócone do aktywnych.' });
+            toast({ title: tr('common.success'), description: tr('toasts.carRestored') });
             return true;
         } catch (error) {
             console.error("Error restoring car:", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić auta.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.carRestoreFailed') });
             return false;
         }
     }, [services, toast]);
@@ -680,11 +686,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const { db } = services;
         try {
             await remove(ref(db, `cars/${carId}`));
-            toast({ title: 'Sukces', description: 'Auto usunięte bezpowrotnie.' });
+            toast({ title: tr('common.success'), description: tr('toasts.carDeleted') });
             return true;
         } catch (error) {
             console.error("Error deleting car: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć auta.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.carDeleteFailed') });
             return false;
         }
     }, [services, toast]);
@@ -733,18 +739,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         console.error('[transfery] Error:', transferError);
                     }
                 }
-                toast({ title: 'Sukces', description: 'Dane pracownika zostały zaktualizowane.' });
+                toast({ title: tr('common.success'), description: tr('toasts.employeeUpdated') });
                 void logAudit('Aktualizacja pracownika', finalData.fullName || id);
             } else {
                 const newEmployeeRef = push(ref(db, 'employees'));
                 await set(newEmployeeRef, { ...finalData, status: 'aktywny', status_fullName: `aktywny_${finalData.fullName.toLowerCase()}` });
-                toast({ title: 'Sukces', description: 'Nowy pracownik został dodany.' });
+                toast({ title: tr('common.success'), description: tr('toasts.employeeAdded') });
                 void logAudit('Dodanie pracownika', finalData.fullName || '');
             }
             return true;
         } catch (error) {
             console.error("Error saving employee: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać danych pracownika.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.employeeSaveFailed') });
             return false;
         }
     }, [services, toast, logAudit, employees, currentUser]);
@@ -764,19 +770,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             };
             if (options?.terminationReason) updates.terminationReason = options.terminationReason;
             await update(ref(db, `employees/${employeeId}`), updates);
-            toast({ title: 'Pracownik zwolniony', description: 'Status pracownika został zmieniony na "zwolniony".' });
+            toast({ title: tr('toasts.employeeTerminated'), description: tr('toasts.employeeTerminatedDesc') });
             void logAudit('Zwolnienie pracownika', employeeFullName);
             return true;
         } catch (error) {
             console.error("Error terminating employee: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zwolnić pracownika.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.employeeTerminateFailed') });
             return false;
         }
     }, [services, toast, logAudit]);
 
     const handleRestoreEmployee = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
         if (!services) {
-            toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Firebase nie jest zainicjowany.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.firebaseNotReady') });
             return false;
         }
         const { db } = services;
@@ -793,7 +799,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 terminationDate: null,
                 status_fullName: `aktywny_${employeeFullName.toLowerCase()}`
             });
-            toast({ title: 'Sukces', description: 'Pracownik zosta\u0142 przywr\u00f3cony.' });
+            toast({ title: tr('common.success'), description: tr('toasts.employeeRestored') });
             void logAudit('Przywrócenie pracownika', employeeFullName);
             return true;
         } catch (error) {
@@ -804,14 +810,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     ? { ...e, status: 'zwolniony' as const, status_fullName: `zwolniony_${employeeFullName.toLowerCase()}` }
                     : e
             ));
-            toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Nie uda\u0142o si\u0119 przywr\u00f3ci\u0107 pracownika.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.employeeRestoreFailed') });
             return false;
         }
     }, [services, toast, logAudit]);
 
     const handleEndVacation = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
         if (!services) {
-            toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Firebase nie jest zainicjowany.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.firebaseNotReady') });
             return false;
         }
         const { db } = services;
@@ -826,7 +832,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 vacationStartDate: null,
                 vacationEndDate: null,
             });
-            toast({ title: 'Sukces', description: 'Urlop zosta\u0142 zako\u0144czony. Pracownik wr\u00f3ci\u0142 do listy aktywnych.' });
+            toast({ title: tr('common.success'), description: tr('toasts.vacationEnded') });
             void logAudit('Zakończenie urlopu', employeeFullName);
             return true;
         } catch (error) {
@@ -836,7 +842,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     ? { ...e, vacationStartDate: e.vacationStartDate, vacationEndDate: e.vacationEndDate }
                     : e
             ));
-            toast({ variant: 'destructive', title: 'B\u0142\u0105d', description: 'Nie uda\u0142o si\u0119 zako\u0144czy\u0107 urlopu.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.vacationEndFailed') });
             return false;
         }
     }, [services, toast, logAudit]);
@@ -862,12 +868,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }
 
             await update(ref(db), updates);
-            toast({ title: 'Sukces', description: 'Pracownik i wszystkie powiązane dane zostały trwale usunięte.' });
+            toast({ title: tr('common.success'), description: tr('toasts.employeeDeleted') });
             void logAudit('Trwałe usunięcie pracownika', employees.find((e) => e.id === employeeId)?.fullName || employeeId);
             return true;
         } catch (error) {
             console.error("Error deleting employee permanently: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracownika.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.employeeDeleteFailed') });
             return false;
         }
     }, [services, toast, employees, logAudit]);
@@ -884,10 +890,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 updates[`/employees/${employee.id}/hireDate`] = null;
             });
             await update(ref(db), updates);
-            toast({ title: 'Sukces', description: 'Wszystkie daty zatrudnienia zostały usunięte.' });
+            toast({ title: tr('common.success'), description: tr('toasts.hireDatesDeleted') });
         } catch (error) {
             console.error("Error deleting all hire dates: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć dat zatrudnienia.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.hireDatesDeleteFailed') });
         }
     }, [services, toast]);
 
@@ -915,12 +921,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             try {
                 await update(ref(db), updates);
                 toast({
-                    title: 'Aktualizacja zakończona',
-                    description: `Zaktualizowano daty zatrudnienia dla ${updatedCount} pracowników.`,
+                    title: tr('toasts.updateDone'),
+                    description: tr('toasts.hireDatesUpdated', { count: updatedCount }),
                 });
             } catch (error) {
                 console.error("Error updating hire dates:", error);
-                toast({ variant: 'destructive', title: 'Błąd', description: 'Wystąpił błąd podczas aktualizacji dat.' });
+                toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.datesUpdateError') });
                 return;
             }
         }
@@ -928,8 +934,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (notFound.length > 0) {
             toast({
                 variant: 'destructive',
-                title: 'Nie znaleziono pracowników',
-                description: `Nie można było znaleźć ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
+                title: tr('toasts.employeesNotFound'),
+                description: tr('toasts.employeesNotFoundDesc', { count: notFound.length, names: notFound.slice(0, 3).join(', ') }),
             });
         }
     }, [services, toast]);
@@ -970,17 +976,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (updatedCount > 0) {
             try {
                 await update(ref(db), updates);
-                let description = `Zaktualizowano daty końca umowy dla ${updatedCount} pracowników.`;
+                let description = tr('toasts.contractDatesUpdated', { count: updatedCount });
                 if (fuzzyMatched.length > 0) {
-                    description += `\nDopasowano z literówką: ${fuzzyMatched.slice(0, 3).join(', ')}${fuzzyMatched.length > 3 ? '...' : ''}`;
+                    description += '\n' + tr('toasts.fuzzyMatched', { names: `${fuzzyMatched.slice(0, 3).join(', ')}${fuzzyMatched.length > 3 ? '...' : ''}` });
                 }
                 toast({
-                    title: 'Aktualizacja zakończona',
+                    title: tr('toasts.updateDone'),
                     description,
                 });
             } catch (error) {
                 console.error("Error updating contract end dates:", error);
-                toast({ variant: 'destructive', title: 'Błąd', description: 'Wystąpił błąd podczas aktualizacji dat.' });
+                toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.datesUpdateError') });
                 return;
             }
         }
@@ -988,8 +994,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (notFound.length > 0) {
             toast({
                 variant: 'destructive',
-                title: 'Nie znaleziono pracowników',
-                description: `Nie można było dopasować ${notFound.length} pracowników: ${notFound.slice(0, 3).join(', ')}...`,
+                title: tr('toasts.employeesNotFound'),
+                description: tr('toasts.employeesNotMatchedDesc', { count: notFound.length, names: notFound.slice(0, 3).join(', ') }),
             });
         }
     }, [services, toast]);
@@ -1007,10 +1013,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }
 
             await update(ref(db), updates);
-            toast({ title: 'Sukces', description: 'Wszyscy pracownicy i powiązane dane zostały usunięci.' });
+            toast({ title: tr('common.success'), description: tr('toasts.allEmployeesDeleted') });
         } catch (error) {
             console.error("Error deleting all employees: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć pracowników.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.employeesDeleteFailed') });
         }
     }, [services, toast]);
 
@@ -1025,7 +1031,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             const terminatedEmployees = allEmployees.filter(e => e.status === 'zwolniony');
 
             if (terminatedEmployees.length === 0) {
-                toast({ title: 'Informacja', description: 'Brak zwolnionych pracowników do przywrócenia.' });
+                toast({ title: tr('toasts.info'), description: tr('toasts.noTerminated') });
                 return;
             }
 
@@ -1035,10 +1041,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                  updates[`/employees/${employee.id}/status_fullName`] = `aktywny_${employee.fullName.toLowerCase()}`;
             }
             await update(ref(db), updates);
-            toast({ title: 'Sukces', description: `Przywrócono ${terminatedEmployees.length} pracowników.` });
+            toast({ title: tr('common.success'), description: tr('toasts.restoredCount', { count: terminatedEmployees.length }) });
         } catch (error) {
             console.error("Error restoring all terminated employees: ", error);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przywrócić pracowników.' });
+            toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.employeesRestoreFailed') });
         }
     }, [services, toast]);
 

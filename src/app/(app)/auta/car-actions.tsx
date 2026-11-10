@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { Car } from "@/lib/types"
+import { useI18n } from "@/lib/i18n"
 
 interface CarRowActionsProps<TData> {
   row: Row<TData>
@@ -30,20 +31,21 @@ export function CarRowActions<TData>({
   onDelete,
 }: CarRowActionsProps<TData>) {
   const car = row.original as Car
+  const { t } = useI18n()
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Otwórz menu</span>
+          <span className="sr-only">{t('employee.openMenu')}</span>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
         <DropdownMenuItem onSelect={() => onEdit(car)}>
           <Edit className="mr-2 h-4 w-4" />
-          Edytuj
+          {t('common.edit')}
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />
@@ -54,14 +56,14 @@ export function CarRowActions<TData>({
             onSelect={() => onTerminate(car)}
           >
             <Archive className="mr-2 h-4 w-4" />
-            Przenieś do historii
+            {t('cars.moveToHistory')}
           </DropdownMenuItem>
         )}
         
         {car.status === "history" && onRestore && (
           <DropdownMenuItem onSelect={() => onRestore(car)}>
             <RotateCcw className="mr-2 h-4 w-4" />
-            Przywróć z historii
+            {t('cars.restoreFromHistory')}
           </DropdownMenuItem>
         )}
         
@@ -70,7 +72,7 @@ export function CarRowActions<TData>({
           onSelect={() => onDelete(car)}
         >
           <Trash2 className="mr-2 h-4 w-4" />
-          Usuń trwale
+          {t('employee.deletePermanently')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

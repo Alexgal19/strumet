@@ -6,6 +6,7 @@ import { LogIn, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile, useHasMounted } from '@/hooks/use-mobile';
 import { useAppContext } from '@/context/app-context';
+import { useI18n } from '@/lib/i18n';
 
 import { getNavRole, getPrimaryItems, isNavItemActive } from './app-navigation';
 
@@ -18,6 +19,7 @@ const AppBottomNav = ({ pathname, onOpenMenu }: AppBottomNavProps) => {
   const isMobile = useIsMobile();
   const hasMounted = useHasMounted();
   const { isAdmin, isEditor } = useAppContext();
+  const { t } = useI18n();
 
   if (!hasMounted || !isMobile) return null;
 
@@ -32,7 +34,7 @@ const AppBottomNav = ({ pathname, onOpenMenu }: AppBottomNavProps) => {
     <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
       {/* Safe area + background */}
       <div className="bg-background/95 backdrop-blur-md border-t border-border/60 pb-[env(safe-area-inset-bottom)]">
-        <nav aria-label="Nawigacja dolna" className="flex w-full items-stretch justify-around px-1 max-w-md mx-auto">
+        <nav aria-label={t('nav.bottomNav')} className="flex w-full items-stretch justify-around px-1 max-w-md mx-auto">
           {primaryItems.map((item) => {
             const Icon = item.icon;
             const isActive = isNavItemActive(pathname, item.href);
@@ -58,7 +60,7 @@ const AppBottomNav = ({ pathname, onOpenMenu }: AppBottomNavProps) => {
                   'text-xs font-medium tracking-tight transition-colors',
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 )}>
-                  {item.shortLabel ?? item.label}
+                  {t(item.shortLabel ?? item.label)}
                 </span>
               </Link>
             );
@@ -67,19 +69,19 @@ const AppBottomNav = ({ pathname, onOpenMenu }: AppBottomNavProps) => {
           {role === 'guest' ? (
             <Link href="/login" className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-muted-foreground">
               <span className="flex h-7 w-12 items-center justify-center rounded-full"><LogIn className="h-5 w-5" /></span>
-              <span className="text-xs font-medium tracking-tight">Zaloguj</span>
+              <span className="text-xs font-medium tracking-tight">{t('nav.login')}</span>
             </Link>
           ) : (
           <button
             type="button"
             onClick={onOpenMenu}
-            aria-label="Więcej sekcji"
+            aria-label={t('nav.moreSections')}
             className={cn('relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] hover:text-foreground transition-colors duration-200', moreActive ? 'text-primary' : 'text-muted-foreground')}
           >
             <span className={cn("relative flex items-center justify-center w-12 h-7 rounded-full", moreActive && "bg-primary/12")}>
               <Menu className="h-5 w-5" strokeWidth={1.8} />
             </span>
-            <span className="text-xs font-medium tracking-tight">Więcej</span>
+            <span className="text-xs font-medium tracking-tight">{t('nav.more')}</span>
           </button>
           )}
         </nav>

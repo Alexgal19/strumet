@@ -11,7 +11,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, Trash2, UserX, ClipboardCopy, Shirt, ArrowLeft, ArrowRight, CalendarOff, X, Upload, ImageIcon, Loader2, Download } from 'lucide-react';
 import { format as formatFns } from 'date-fns';
-import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Employee, AllConfig, ClothingIssuance } from '@/lib/types';
 import { Separator } from './ui/separator';
@@ -23,10 +22,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { useIsMobile } from '@/hooks/use-mobile';
 import { joinFullName, getEmployeeNameParts } from '@/lib/person-name';
 import { certificateViewUrl, certificateExt } from '@/lib/certificate-url';
+import { useI18n, type TranslationKey } from '@/lib/i18n';
 
 
 export const DatePickerInput = ({ value, onChange, placeholder, maxDate }: { value?: string, onChange: (date?: string) => void, placeholder: string, maxDate?: Date }) => {
     const dateValue = parseMaybeDate(value);
+    const { t, dateLocale } = useI18n();
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -36,7 +37,7 @@ export const DatePickerInput = ({ value, onChange, placeholder, maxDate }: { val
                     className={cn("w-full justify-start text-left font-normal h-11 transition-all", !dateValue && "text-muted-foreground")}
                 >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateValue ? formatDate(dateValue, "PPP") : <span>{placeholder}</span>}
+                    {dateValue ? formatDate(dateValue, "PPP", dateLocale) : <span>{placeholder}</span>}
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 flex flex-col" align="center" side="bottom" collisionPadding={16}>
@@ -44,14 +45,14 @@ export const DatePickerInput = ({ value, onChange, placeholder, maxDate }: { val
                     mode="single"
                     selected={dateValue || undefined}
                     onSelect={(date) => onChange(date ? formatFns(date, 'yyyy-MM-dd') : undefined)}
-                    locale={pl}
+                    locale={dateLocale}
                     disabled={maxDate ? { after: maxDate } : undefined}
                     initialFocus
                 />
                 {value && (
                    <Button type="button" variant="ghost" size="sm" className="m-2 mt-0" onClick={() => onChange(undefined)}>
                      <Trash2 className="mr-2 h-4 w-4" />
-                     Wyczyść datę
+                     {t('employee.clearDate')}
                    </Button>
                 )}
             </PopoverContent>
@@ -69,7 +70,7 @@ interface EmployeeFormProps {
 }
 
 // Kroki kreatora na mobile — każdy panel = jeden ekran (Android wizard)
-const STEPS = ['Dane osobowe', 'Zatrudnienie', 'Identyfikacja i planowanie'] as const;
+const STEPS: TranslationKey[] = ['employee.stepPersonal', 'employee.stepEmployment', 'employee.stepIdPlanning'];
 const STEP_FIELDS: Record<number, string[]> = {
   0: ['lastName', 'firstName', 'nationality', 'legalizationStatus'],
   1: ['department', 'jobTitle', 'manager', 'hireDate'],
@@ -134,6 +135,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
     const terminationReasons = config.terminationReasons ?? [];
     const { toast } = useToast();
     const { absences, addAbsence, deleteAbsence } = useAppContext();
+    const { t, dateLocale } = useI18n();
     const isMobile = useIsMobile();
     const isMobileWizard = isMobile && !employee;
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'status'>>(getInitialFormData(employee));
@@ -186,7 +188,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 await addAbsence(employee.id, date);
             }
         } catch {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się zapisać nieobecności.' });
+            toast({ variant: 'destructive', title: t('common.error'), description: t('employee.absenceSaveFailed') });
         } finally {
             setIsSavingAbsence(false);
         }
@@ -198,7 +200,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
         try {
             await deleteAbsence(absenceId);
         } catch {
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się usunąć nieobecności.' });
+            toast({ variant: 'destructive', title: t('common.error'), description: t('employee.absenceDeleteFailed') });
         } finally {
             setIsSavingAbsence(false);
         }
@@ -226,22 +228,22 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
 
     const buildErrors = (): Record<string, string> => {
         const newErrors: Record<string, string> = {};
-        if (!firstName.trim()) newErrors.firstName = "Imię jest wymagane.";
-        if (!lastName.trim()) newErrors.lastName = "Nazwisko jest wymagane.";
-        if (!formData.jobTitle) newErrors.jobTitle = "Stanowisko jest wymagane.";
-        if (!formData.department) newErrors.department = "Dział jest wymagany.";
-        if (!formData.manager) newErrors.manager = "Kierownik jest wymagany.";
-        if (!formData.cardNumber.trim()) newErrors.cardNumber = "Numer karty jest wymagany.";
-        if (!formData.nationality) newErrors.nationality = "Narodowość jest wymagana.";
-        if (!formData.hireDate) newErrors.hireDate = "Data zatrudnienia jest wymagana.";
-        if (!formData.legalizationStatus || formData.legalizationStatus === 'Brak') newErrors.legalizationStatus = "Status legalizacyjny jest wymagany.";
+        if (!firstName.trim()) newErrors.firstName = t('employee.firstNameRequired');
+        if (!lastName.trim()) newErrors.lastName = t('employee.lastNameRequired');
+        if (!formData.jobTitle) newErrors.jobTitle = t('employee.jobTitleRequired');
+        if (!formData.department) newErrors.department = t('employee.departmentRequired');
+        if (!formData.manager) newErrors.manager = t('employee.managerRequired');
+        if (!formData.cardNumber.trim()) newErrors.cardNumber = t('employee.cardNumberRequired');
+        if (!formData.nationality) newErrors.nationality = t('employee.nationalityRequired');
+        if (!formData.hireDate) newErrors.hireDate = t('employee.hireDateRequired');
+        if (!formData.legalizationStatus || formData.legalizationStatus === 'Brak') newErrors.legalizationStatus = t('employee.legalizationRequired');
 
 
         if (formData.vacationStartDate && formData.vacationEndDate) {
             const startDate = parseMaybeDate(formData.vacationStartDate);
             const endDate = parseMaybeDate(formData.vacationEndDate);
             if (startDate && endDate && endDate < startDate) {
-                newErrors.vacationEndDate = "Data końcowa nie może być wcześniejsza niż początkowa.";
+                newErrors.vacationEndDate = t('employee.vacationEndBeforeStart');
             }
         }
 
@@ -266,8 +268,8 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
         if (fullNameForCopy.trim()) {
             navigator.clipboard.writeText(fullNameForCopy.trim());
             toast({
-                title: "Skopiowano!",
-                description: "Nazwisko i imię skopiowane do schowka.",
+                title: t('employee.copied'),
+                description: t('employee.nameCopied'),
             });
         }
     };
@@ -276,7 +278,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
         const file = e.target.files?.[0];
         if (!file) return;
         const maxSize = 5 * 1024 * 1024; // 5 MB
-        if (file.size > maxSize) { toast({ variant: 'destructive', title: 'Błąd', description: 'Plik jest za duży (max 5 MB).' }); return; }
+        if (file.size > maxSize) { toast({ variant: 'destructive', title: t('common.error'), description: t('employee.fileTooLarge') }); return; }
         setIsUploading(true);
         try {
             const empId = employee?.id || `temp_${Date.now()}`;
@@ -305,10 +307,10 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
 
             handleChange('certificateUrl', url);
             handleChange('welderLicense', 'Tak');
-            toast({ title: 'Gotowe!', description: 'Certyfikat został dodany.' });
+            toast({ title: t('employee.done'), description: t('employee.certAdded') });
         } catch (err) {
             console.error('Upload error:', err);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się przesłać pliku.' });
+            toast({ variant: 'destructive', title: t('common.error'), description: t('employee.uploadFailed') });
         } finally {
             setIsUploading(false);
             if (certInputRef.current) certInputRef.current.value = '';
@@ -331,7 +333,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             }
         } catch { /* ignore */ }
         handleChange('certificateUrl', undefined);
-        toast({ title: 'Usunięto', description: 'Certyfikat został usunięty.' });
+        toast({ title: t('employee.deleted'), description: t('employee.certDeleted') });
     };
 
     const handleCertDownload = async () => {
@@ -353,7 +355,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             URL.revokeObjectURL(localUrl);
         } catch (err) {
             console.error('Download error:', err);
-            toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się pobrać pliku.' });
+            toast({ variant: 'destructive', title: t('common.error'), description: t('employee.downloadFailed') });
         }
     };
 
@@ -415,7 +417,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/30 p-3 sm:p-4 md:mb-5">
                 {employee && (
                     <div className="w-full min-w-0 border-b border-border/60 pb-3">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Dane pracownika</p>
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('employee.employeeData')}</p>
                         <p className="mt-1 break-words text-lg font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">{employee.fullName}</p>
                         <p className="mt-1 break-words text-sm text-muted-foreground">{employee.department}{employee.jobTitle ? ` · ${employee.jobTitle}` : ''}</p>
                     </div>
@@ -423,7 +425,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 <div ref={topRef} className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={handleCopyFullName} className="h-9 gap-2 bg-background/50">
                         <ClipboardCopy className="h-4 w-4" />
-                        <span>Kopiuj dane</span>
+                        <span>{t('employee.copyData')}</span>
                     </Button>
                     <Popover>
                         <PopoverTrigger asChild>
@@ -438,7 +440,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                                 )}
                             >
                                 <CalendarOff className="h-4 w-4" />
-                                <span>Nieobecność</span>
+                                <span>{t('employee.absence')}</span>
                                 {absenceDates.length > 0 && (
                                     <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold text-white">
                                         {absenceDates.length}
@@ -452,19 +454,17 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                                     mode="multiple"
                                     selected={absenceDates.map(a => a.date)}
                                     onSelect={handleToggleAbsenceDays}
-                                    locale={pl}
+                                    locale={dateLocale}
                                     initialFocus
                                 />
                                 <div className="border-t p-3 space-y-2">
                                     <p className="text-xs text-muted-foreground">
-                                        Kliknij dzień, aby oznaczyć nieobecność — zapisuje się od razu i
-                                        synchronizuje z zakładką „Obecność”. Strzałkami przełączasz
-                                        miesiące.
+                                        {t('employee.absenceHint')}
                                     </p>
                                     {absenceDates.length > 0 && (
                                         <div className="space-y-1.5">
                                             <p className="text-xs font-medium">
-                                                Dni nieobecności ({absenceDates.length}):
+                                                {t('employee.absenceDays', { count: absenceDates.length })}
                                             </p>
                                             <div className="flex flex-wrap gap-1.5">
                                                 {absenceDates.map(a => (
@@ -475,7 +475,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                                                         {formatDate(a.key)}
                                                         <button
                                                             type="button"
-                                                            aria-label={`Usuń nieobecność ${formatDate(a.key)}`}
+                                                            aria-label={t('employee.removeAbsence', { date: formatDate(a.key) })}
                                                             className="rounded-sm hover:bg-destructive/20"
                                                             onClick={() => handleRemoveAbsence(a.id)}
                                                         >
@@ -500,7 +500,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         className="h-9 gap-2 bg-background/50"
                     >
                         <Shirt className="h-4 w-4" />
-                        <span>Wydaj odzież</span>
+                        <span>{t('employee.issueClothing')}</span>
                     </Button>
                 )}
             </div>
@@ -510,7 +510,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
               {isMobileWizard && (
                 <div className="px-3 sm:px-6 pb-3 sm:pb-4">
                   <p className="text-sm font-semibold text-foreground mb-2">
-                    Krok {step + 1} z {STEPS.length} — {STEPS[step]}
+                    {t('employee.stepOf', { step: step + 1, total: STEPS.length, name: t(STEPS[step]) })}
                   </p>
                   <div className="flex gap-1.5">
                     {STEPS.map((s, i) => (
@@ -528,23 +528,23 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 0 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-primary" />
-                      <h3 className="font-semibold text-foreground">Dane osobowe</h3>
+                      <h3 className="font-semibold text-foreground">{t('employee.stepPersonal')}</h3>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="lastName" className="text-sm font-medium">Nazwisko</Label>
-                        <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} className="h-10 transition-all focus:ring-2 focus:ring-primary/20" placeholder="np. Kowalski" />
+                        <Label htmlFor="lastName" className="text-sm font-medium">{t('employee.lastName')}</Label>
+                        <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} className="h-10 transition-all focus:ring-2 focus:ring-primary/20" placeholder={t('employee.lastNamePlaceholder')} />
                         {renderError('lastName')}
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="firstName" className="text-sm font-medium">Imię</Label>
-                        <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10 transition-all focus:ring-2 focus:ring-primary/20" placeholder="np. Jan" />
+                        <Label htmlFor="firstName" className="text-sm font-medium">{t('employee.firstName')}</Label>
+                        <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10 transition-all focus:ring-2 focus:ring-primary/20" placeholder={t('employee.firstNamePlaceholder')} />
                         {renderError('firstName')}
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Narodowość</Label>
+                        <Label className="text-sm font-medium">{t('employee.nationality')}</Label>
                         <Select value={formData.nationality} onValueChange={value => handleChange('nationality', value)}>
                             <SelectTrigger className="h-10 transition-all">
-                                <SelectValue placeholder="Wybierz" />
+                                <SelectValue placeholder={t('employee.choose')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {nationalities.map(n => <SelectItem key={n.id} value={n.name}>{n.name}</SelectItem>)}
@@ -553,10 +553,10 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         {renderError('nationality')}
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Status legalizacyjny</Label>
+                        <Label className="text-sm font-medium">{t('employee.legalizationStatus')}</Label>
                         <Select value={formData.legalizationStatus || 'Brak'} onValueChange={value => handleChange('legalizationStatus', value)}>
                             <SelectTrigger className="h-10 transition-all">
-                                <SelectValue placeholder="Wybierz" />
+                                <SelectValue placeholder={t('employee.choose')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {legalizationStatuses.map(status => (
@@ -572,13 +572,13 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 1 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-blue-500" />
-                      <h3 className="font-semibold text-foreground">Zatrudnienie</h3>
+                      <h3 className="font-semibold text-foreground">{t('employee.stepEmployment')}</h3>
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Dział</Label>
+                        <Label className="text-sm font-medium">{t('employee.department')}</Label>
                         <Select value={formData.department} onValueChange={value => handleChange('department', value)}>
                             <SelectTrigger className="h-10 transition-all">
-                                <SelectValue placeholder="Wybierz" />
+                                <SelectValue placeholder={t('employee.choose')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
@@ -587,10 +587,10 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         {renderError('department')}
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Stanowisko</Label>
+                        <Label className="text-sm font-medium">{t('employee.jobTitle')}</Label>
                         <Select value={formData.jobTitle} onValueChange={value => handleChange('jobTitle', value)}>
                             <SelectTrigger className="h-10 transition-all">
-                                <SelectValue placeholder="Wybierz" />
+                                <SelectValue placeholder={t('employee.choose')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {jobTitles.map(j => <SelectItem key={j.id} value={j.name}>{j.name}</SelectItem>)}
@@ -599,10 +599,10 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         {renderError('jobTitle')}
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Kierownik</Label>
+                        <Label className="text-sm font-medium">{t('employee.manager')}</Label>
                         <Select value={formData.manager} onValueChange={value => handleChange('manager', value)}>
                             <SelectTrigger className="h-10 transition-all">
-                                <SelectValue placeholder="Wybierz" />
+                                <SelectValue placeholder={t('employee.choose')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {managers.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
@@ -611,28 +611,28 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                         {renderError('manager')}
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Data zatrudnienia</Label>
+                        <Label className="text-sm font-medium">{t('employee.hireDate')}</Label>
                         <DatePickerInput
                             value={formData.hireDate}
                             onChange={(date) => handleChange('hireDate', date)}
-                            placeholder="Wybierz datę"
+                            placeholder={t('common.selectDate')}
                         />
                         {renderError('hireDate')}
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Licencja spawacza</Label>
+                        <Label className="text-sm font-medium">{t('employee.welderLicense')}</Label>
                         <Select value={formData.welderLicense} onValueChange={value => handleChange('welderLicense', value)}>
                             <SelectTrigger className="h-10 transition-all">
-                                <SelectValue placeholder="Czy posiada?" />
+                                <SelectValue placeholder={t('employee.hasLicence')} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Tak">Tak, posiada</SelectItem>
-                                <SelectItem value="Nie">Nie posiada</SelectItem>
+                                <SelectItem value="Tak">{t('employee.licenceYes')}</SelectItem>
+                                <SelectItem value="Nie">{t('employee.licenceNo')}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Skan certyfikatu spawacza</Label>
+                        <Label className="text-sm font-medium">{t('employee.certScan')}</Label>
                         <input
                             ref={certInputRef}
                             type="file"
@@ -650,15 +650,15 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                                         className="flex flex-1 items-center gap-2 rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
                                     >
                                         <ImageIcon className="h-5 w-5 text-blue-500 shrink-0" />
-                                        <span className="text-sm text-blue-600 underline truncate">Otwórz</span>
+                                        <span className="text-sm text-blue-600 underline truncate">{t('employee.open')}</span>
                                     </a>
-                                    <Button type="button" variant="outline" className="h-auto px-3 shrink-0" onClick={handleCertDownload} title="Pobierz">
+                                    <Button type="button" variant="outline" className="h-auto px-3 shrink-0" onClick={handleCertDownload} title={t('employee.download')}>
                                         <Download className="h-5 w-5 text-green-600" />
                                     </Button>
                                 </div>
                                 <div className="flex gap-2">
                                     <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => certInputRef.current?.click()} disabled={isUploading}>
-                                        <Upload className="mr-2 h-4 w-4" />Zmień
+                                        <Upload className="mr-2 h-4 w-4" />{t('employee.change')}
                                     </Button>
                                     <Button type="button" variant="destructive" size="sm" onClick={handleCertDelete} disabled={isUploading}>
                                         <Trash2 className="h-4 w-4" />
@@ -674,9 +674,9 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                                 disabled={isUploading}
                             >
                                 {isUploading ? (
-                                    <><Loader2 className="h-5 w-5 animate-spin" /><span className="text-xs">Przesyłanie...</span></>
+                                    <><Loader2 className="h-5 w-5 animate-spin" /><span className="text-xs">{t('employee.uploading')}</span></>
                                 ) : (
-                                    <><Upload className="h-5 w-5" /><span className="text-xs">Dodaj skan certyfikatu</span></>
+                                    <><Upload className="h-5 w-5" /><span className="text-xs">{t('employee.addCertScan')}</span></>
                                 )}
                             </Button>
                         )}
@@ -687,31 +687,31 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 2 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-purple-500" />
-                      <h3 className="font-semibold text-foreground">Identyfikacja</h3>
+                      <h3 className="font-semibold text-foreground">{t('employee.identification')}</h3>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="cardNumber" className="text-sm font-medium">Numer karty</Label>
+                        <Label htmlFor="cardNumber" className="text-sm font-medium">{t('employee.cardNumberLong')}</Label>
                         <Input id="cardNumber" value={formData.cardNumber} onChange={e => handleChange('cardNumber', e.target.value)} className="h-10" placeholder="0000" />
                         {renderError('cardNumber')}
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="lockerNumber" className="text-sm font-medium">Szafka główna</Label>
+                        <Label htmlFor="lockerNumber" className="text-sm font-medium">{t('employee.mainLocker')}</Label>
                         <Input id="lockerNumber" value={formData.lockerNumber} onChange={e => handleChange('lockerNumber', e.target.value)} className="h-10" />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="lockerNumber2" className="text-sm font-medium">Szafka główna 2</Label>
-                        <Input id="lockerNumber2" value={formData.lockerNumber2 ?? ''} onChange={e => handleChange('lockerNumber2', e.target.value)} className="h-10" placeholder="Opcjonalnie" />
+                        <Label htmlFor="lockerNumber2" className="text-sm font-medium">{t('employee.mainLocker2')}</Label>
+                        <Input id="lockerNumber2" value={formData.lockerNumber2 ?? ''} onChange={e => handleChange('lockerNumber2', e.target.value)} className="h-10" placeholder={t('common.optional')} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="lockerNumber3" className="text-sm font-medium">Szafka główna 3</Label>
-                        <Input id="lockerNumber3" value={formData.lockerNumber3 ?? ''} onChange={e => handleChange('lockerNumber3', e.target.value)} className="h-10" placeholder="Opcjonalnie" />
+                        <Label htmlFor="lockerNumber3" className="text-sm font-medium">{t('employee.mainLocker3')}</Label>
+                        <Input id="lockerNumber3" value={formData.lockerNumber3 ?? ''} onChange={e => handleChange('lockerNumber3', e.target.value)} className="h-10" placeholder={t('common.optional')} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="departmentLockerNumber" className="text-sm font-medium">Szafka działowa</Label>
+                        <Label htmlFor="departmentLockerNumber" className="text-sm font-medium">{t('employee.departmentLocker')}</Label>
                         <Input id="departmentLockerNumber" value={formData.departmentLockerNumber} onChange={e => handleChange('departmentLockerNumber', e.target.value)} className="h-10" />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="sealNumber" className="text-sm font-medium">Numer pieczątki</Label>
+                        <Label htmlFor="sealNumber" className="text-sm font-medium">{t('employee.stampNumber')}</Label>
                         <Input id="sealNumber" value={formData.sealNumber} onChange={e => handleChange('sealNumber', e.target.value)} className="h-10" />
                     </div>
                 </div>
@@ -720,36 +720,36 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 <div className={cn('flex min-w-0 flex-col gap-4 rounded-xl border border-border/70 bg-card p-4 shadow-sm sm:p-5', isMobileWizard && step !== 2 && 'hidden')}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-6 w-1 rounded-full bg-orange-500" />
-                      <h3 className="font-semibold text-foreground">Planowanie</h3>
+                      <h3 className="font-semibold text-foreground">{t('employee.planning')}</h3>
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Plan. zwolnienie</Label>
-                        <DatePickerInput value={formData.plannedTerminationDate} onChange={d => handleChange('plannedTerminationDate', d)} placeholder="Wybierz datę" />
+                        <Label className="text-sm font-medium">{t('employee.plannedTerminationShort')}</Label>
+                        <DatePickerInput value={formData.plannedTerminationDate} onChange={d => handleChange('plannedTerminationDate', d)} placeholder={t('common.selectDate')} />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Urlop od</Label>
-                        <DatePickerInput value={formData.vacationStartDate} onChange={d => handleChange('vacationStartDate', d)} placeholder="Początek" />
+                        <Label className="text-sm font-medium">{t('employee.vacationFrom')}</Label>
+                        <DatePickerInput value={formData.vacationStartDate} onChange={d => handleChange('vacationStartDate', d)} placeholder={t('employee.start')} />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Urlop do</Label>
-                        <DatePickerInput value={formData.vacationEndDate} onChange={d => handleChange('vacationEndDate', d)} placeholder="Koniec" />
+                        <Label className="text-sm font-medium">{t('employee.vacationTo')}</Label>
+                        <DatePickerInput value={formData.vacationEndDate} onChange={d => handleChange('vacationEndDate', d)} placeholder={t('employee.end')} />
                         {renderError('vacationEndDate')}
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Data zwolnienia</Label>
-                        <DatePickerInput value={formData.terminationDate} onChange={d => handleChange('terminationDate', d)} placeholder="Wybierz datę" />
+                        <Label className="text-sm font-medium">{t('employee.terminationDate')}</Label>
+                        <DatePickerInput value={formData.terminationDate} onChange={d => handleChange('terminationDate', d)} placeholder={t('common.selectDate')} />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Powód zwolnienia</Label>
+                        <Label className="text-sm font-medium">{t('employee.terminationReason')}</Label>
                         <Select
                             value={formData.terminationReason || NO_REASON}
                             onValueChange={value => handleChange('terminationReason', value === NO_REASON ? undefined : value)}
                         >
                             <SelectTrigger className="h-10 transition-all">
-                                <SelectValue placeholder="Wybierz powód" />
+                                <SelectValue placeholder={t('employee.chooseReason')} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={NO_REASON}>— brak —</SelectItem>
+                                <SelectItem value={NO_REASON}>{t('employee.noReason')}</SelectItem>
                                 {terminationReasons.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
                                 {formData.terminationReason && !terminationReasons.some(r => r.name === formData.terminationReason) && (
                                     <SelectItem value={formData.terminationReason}>{formData.terminationReason}</SelectItem>
@@ -759,15 +759,15 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                     </div>
                     {(employee?.status === 'zwolniony' || formData.terminationDate) ? (
                         <div className="space-y-2">
-                            <Label className="text-sm font-medium">Przepracowane dni</Label>
+                            <Label className="text-sm font-medium">{t('employee.daysWorked')}</Label>
                             <Input 
                                 className="h-10 bg-muted/50 text-muted-foreground cursor-default" 
                                 readOnly 
                                 value={(() => {
                                     const h = parseMaybeDate(formData.hireDate);
-                                    const t = parseMaybeDate(formData.terminationDate);
-                                    if (h && t) {
-                                        const days = Math.floor((t.getTime() - h.getTime()) / (1000 * 60 * 60 * 24));
+                                    const term = parseMaybeDate(formData.terminationDate);
+                                    if (h && term) {
+                                        const days = Math.floor((term.getTime() - h.getTime()) / (1000 * 60 * 60 * 24));
                                         return Math.max(0, days).toString();
                                     }
                                     return '';
@@ -778,7 +778,7 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                     {isMobile && employee?.status === 'aktywny' && onTerminate && (
                         <Button type="button" variant="outline" onClick={() => onTerminate(employee.id, employee.fullName)} className="mt-2 w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
                             <UserX className="mr-2 h-4 w-4" />
-                            Zwolnij pracownika
+                            {t('employee.terminateEmployee')}
                         </Button>
                     )}
                 </div>
@@ -789,21 +789,21 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                 {isMobile ? (
                     <div className="sticky bottom-0 z-10 mt-auto -mx-4 border-t border-border bg-background/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.3)] backdrop-blur-sm">
                         <div className="flex gap-2">
-                            <Button type="button" variant="outline" onClick={onCancel} className="h-12 flex-1">Anuluj</Button>
+                            <Button type="button" variant="outline" onClick={onCancel} className="h-12 flex-1">{t('common.cancel')}</Button>
                             {isMobileWizard && step > 0 && (
                                 <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} className="h-12 flex-1">
                                     <ArrowLeft className="mr-1 h-4 w-4" />
-                                    Wstecz
+                                    {t('common.previous')}
                                 </Button>
                             )}
                             {isMobileWizard && step < STEPS.length - 1 ? (
                                 <Button type="button" onClick={handleNextStep} className="h-12 flex-1">
-                                    Dalej
+                                    {t('common.next')}
                                     <ArrowRight className="ml-1 h-4 w-4" />
                                 </Button>
                             ) : (
                                 <Button type="submit" disabled={isMobileWizard && !isReadyToSubmit} className="h-12 flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
-                                    Zapisz
+                                    {t('common.save')}
                                 </Button>
                             )}
                         </div>
@@ -814,14 +814,14 @@ export function EmployeeForm({ employee, onSave, onCancel, onTerminate, onPrintC
                             {employee && employee.status === 'aktywny' && onTerminate && (
                                 <Button type="button" variant="ghost" onClick={() => onTerminate(employee.id, employee.fullName)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                     <UserX className="mr-2 h-4 w-4" />
-                                    Zwolnij
+                                    {t('employee.terminate')}
                                 </Button>
                             )}
                         </div>
                         <div className="flex gap-3 ml-auto">
-                            <Button type="button" variant="outline" onClick={onCancel} className="h-11 px-6">Anuluj</Button>
+                            <Button type="button" variant="outline" onClick={onCancel} className="h-11 px-6">{t('common.cancel')}</Button>
                             <Button type="submit" className="h-11 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
-                                Zapisz zmiany
+                                {t('employee.saveChanges')}
                             </Button>
                         </div>
                     </div>

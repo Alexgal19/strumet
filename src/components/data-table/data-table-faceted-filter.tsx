@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
+import { useI18n } from "@/lib/i18n"
 
 interface DataTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>
@@ -37,6 +38,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   title,
   options,
 }: DataTableFacetedFilterProps<TData, TValue>) {
+  const { t } = useI18n()
   const facets = column?.getFilterValue() as string[]
 
   const selectedValues = new Set(facets as string[])
@@ -86,7 +88,7 @@ export function DataTableFacetedFilter<TData, TValue>({
         <Command filter={commandExcelFilter}>
           <CommandInput placeholder={title} />
           <CommandList>
-            <CommandEmpty>Nie znaleziono.</CommandEmpty>
+            <CommandEmpty>{t('employee.notFound')}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = selectedValues.has(option.value)
@@ -137,7 +139,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                     onSelect={() => column?.setFilterValue(undefined)}
                     className="justify-center text-center"
                   >
-                    Wyczyść filtry
+                    {t('employee.clearFilters')}
                   </CommandItem>
                 </CommandGroup>
               </>

@@ -5,17 +5,20 @@ import {
   Mail, History, LayoutGrid, Car, NotebookPen, CalendarRange,
   CalendarCheck, UserPlus, ArrowLeftRight,
 } from 'lucide-react';
+import type { TranslationKey } from '@/lib/i18n';
 
 export interface MenuItem {
   href: string;
   icon: React.ElementType;
-  label: string;
-  shortLabel?: string;
+  /** Klucz tłumaczenia — wyświetlaj przez t(item.label). */
+  label: TranslationKey;
+  shortLabel?: TranslationKey;
   primary?: boolean;
 }
 
 export interface NavSection {
-  title: string;
+  /** Klucz tłumaczenia — wyświetlaj przez t(section.title). */
+  title: TranslationKey;
   items: MenuItem[];
   /** Sekcja widoczna tylko dla administratora (np. System). */
   adminOnly?: boolean;
@@ -32,32 +35,32 @@ export interface NavSection {
  *  - /login, /register - ekrany logowania poza układem aplikacji.
  */
 export const NAV_SECTIONS: NavSection[] = [
-  { title: 'Główne', items: [
-    { href: '/pulpit', icon: LayoutDashboard, label: 'Pulpit', primary: true },
-    { href: '/aktywni', icon: Users, label: 'Pracownicy aktywni', shortLabel: 'Pracownicy', primary: true },
-    { href: '/zwolnieni', icon: UserX, label: 'Zwolnieni', primary: true },
-    { href: '/odwiedzalnosc', icon: CalendarDays, label: 'Obecność', primary: true },
+  { title: 'nav.sectionMain', items: [
+    { href: '/pulpit', icon: LayoutDashboard, label: 'nav.pulpit', primary: true },
+    { href: '/aktywni', icon: Users, label: 'nav.aktywni', shortLabel: 'nav.aktywniShort', primary: true },
+    { href: '/zwolnieni', icon: UserX, label: 'nav.zwolnieni', primary: true },
+    { href: '/odwiedzalnosc', icon: CalendarDays, label: 'nav.odwiedzalnosc', primary: true },
   ] },
-  { title: 'Więcej', items: [
-    { href: '/harmonogram', icon: CalendarClock, label: 'Obsada' },
-    { href: '/statystyki', icon: BarChart3, label: 'Statystyki' },
-    { href: '/rekrutacja', icon: UserPlus, label: 'Rekrutacja' },
-    { href: '/kalendarz', icon: CalendarRange, label: 'Kalendarz' },
-    { href: '/terminy', icon: CalendarCheck, label: 'Terminy' },
-    { href: '/szafki', icon: LayoutGrid, label: 'Szafki' },
-    { href: '/notatki', icon: NotebookPen, label: 'Notatki' },
-    { href: '/auta', icon: Car, label: 'Auta' },
-    { href: '/karty-obiegowe', icon: CreditCard, label: 'Karty obiegowe' },
-    { href: '/odciski-palcow', icon: Fingerprint, label: 'Odciski palców' },
-    { href: '/brak-logowania', icon: FileWarning, label: 'Brak logowania' },
-    { href: '/wydawanie-odziezy', icon: Shirt, label: 'Odzież' },
-    { href: '/wydawanie-odziezy-nowi', icon: Shirt, label: 'Odzież (nowi)' },
+  { title: 'nav.sectionMore', items: [
+    { href: '/harmonogram', icon: CalendarClock, label: 'nav.harmonogram' },
+    { href: '/statystyki', icon: BarChart3, label: 'nav.statystyki' },
+    { href: '/rekrutacja', icon: UserPlus, label: 'nav.rekrutacja' },
+    { href: '/kalendarz', icon: CalendarRange, label: 'nav.kalendarz' },
+    { href: '/terminy', icon: CalendarCheck, label: 'nav.terminy' },
+    { href: '/szafki', icon: LayoutGrid, label: 'nav.szafki' },
+    { href: '/notatki', icon: NotebookPen, label: 'nav.notatki' },
+    { href: '/auta', icon: Car, label: 'nav.auta' },
+    { href: '/karty-obiegowe', icon: CreditCard, label: 'nav.kartyObiegowe' },
+    { href: '/odciski-palcow', icon: Fingerprint, label: 'nav.odciskiPalcow' },
+    { href: '/brak-logowania', icon: FileWarning, label: 'nav.brakLogowania' },
+    { href: '/wydawanie-odziezy', icon: Shirt, label: 'nav.odziez' },
+    { href: '/wydawanie-odziezy-nowi', icon: Shirt, label: 'nav.odziezNowi' },
   ] },
-  { title: 'System', adminOnly: true, items: [
-    { href: '/konfiguracja', icon: Settings, label: 'Konfiguracja' },
-    { href: '/szablony-email', icon: Mail, label: 'Szablony email' },
-    { href: '/historia-email', icon: History, label: 'Historia email' },
-    { href: '/kolejnosc-nazwisk', icon: ArrowLeftRight, label: 'Kolejność nazwisk' },
+  { title: 'nav.sectionSystem', adminOnly: true, items: [
+    { href: '/konfiguracja', icon: Settings, label: 'nav.konfiguracja' },
+    { href: '/szablony-email', icon: Mail, label: 'nav.szablonyEmail' },
+    { href: '/historia-email', icon: History, label: 'nav.historiaEmail' },
+    { href: '/kolejnosc-nazwisk', icon: ArrowLeftRight, label: 'nav.kolejnoscNazwisk' },
   ] },
 ];
 
@@ -83,6 +86,7 @@ export function getPrimaryItems(role: NavRole): MenuItem[] {
 export function isNavItemActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
-export function getPageTitle(pathname: string): string {
-  return ALL_NAV_ITEMS.find((item) => isNavItemActive(pathname, item.href))?.label ?? 'Baza-ST';
+/** Klucz tłumaczenia tytułu strony; null = brak pozycji w menu (pokaż nazwę aplikacji). */
+export function getPageTitleKey(pathname: string): TranslationKey | null {
+  return ALL_NAV_ITEMS.find((item) => isNavItemActive(pathname, item.href))?.label ?? null;
 }

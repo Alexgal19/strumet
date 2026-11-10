@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 export function LockerBox({
   label,
@@ -19,13 +20,14 @@ export function LockerBox({
   onChange: (val: string) => void;
   onClick: () => void;
 }) {
+  const { t } = useI18n();
   const boxSize = 'w-[76px] h-[60px] shrink-0 rounded-md';
 
   if (isEditing) {
     return (
       <input
         autoFocus
-        title="Edytuj numer szafki"
+        title={t('lockers.editNumber')}
         value={label}
         onChange={(e) => onChange(e.target.value)}
         onBlur={() => onClick()}
@@ -40,12 +42,12 @@ export function LockerBox({
   const isOccupied = occupants.length > 0;
   const isConflict = occupants.length > 1;
   // Pierwszy człon nazwiska wystarczy, żeby rozpoznać właściciela
-  const shortName = isConflict ? `${occupants.length} os.` : occupants[0]?.split(' ')[0];
+  const shortName = isConflict ? t('lockers.peopleShort', { count: occupants.length }) : occupants[0]?.split(' ')[0];
 
   return (
     <button
       type="button"
-      title={isOccupied ? `${label}\n${occupants.join('\n')}` : `${label} — wolna`}
+      title={isOccupied ? `${label}\n${occupants.join('\n')}` : t('lockers.free', { label })}
       onClick={onClick}
       className={cn(
         boxSize,

@@ -1,4 +1,4 @@
-import { format as formatFns, parseISO, isValid, parse, startOfDay, compareAsc } from 'date-fns';
+import { format as formatFns, parseISO, isValid, parse, startOfDay, compareAsc, type Locale } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 /**
@@ -87,16 +87,18 @@ export function parseMaybeDate(
  * Formats a date into a user-friendly string (dd.MM.yyyy by default).
  * @param input - The date to format (accepts various types).
  * @param pattern - The date-fns format pattern.
+ * @param locale - Locale for month/day names (e.g. pattern "PPP"); defaults to Polish.
  * @returns The formatted date string, or an empty string if invalid.
  */
 export function formatDate(
   input: Date | string | number | null | undefined,
-  pattern: string = 'dd.MM.yyyy'
+  pattern: string = 'dd.MM.yyyy',
+  locale: Locale = pl
 ): string {
   const date = parseMaybeDate(input);
   if (!date) return '';
   try {
-    return formatFns(date, pattern, { locale: pl });
+    return formatFns(date, pattern, { locale });
   } catch (e) {
     return '';
   }

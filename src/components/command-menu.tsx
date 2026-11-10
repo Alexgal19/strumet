@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { SunMoon } from 'lucide-react';
+import { Languages, SunMoon } from 'lucide-react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/command';
 import { useAppContext } from '@/context/app-context';
 import { commandExcelFilter } from '@/lib/search';
+import { useI18n } from '@/lib/i18n';
 import { getNavRole, getVisibleSections } from '@/components/app-navigation';
 
 interface CommandMenuProps {
@@ -26,6 +27,7 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
   const router = useRouter();
   const { isAdmin, isEditor } = useAppContext();
   const { resolvedTheme, setTheme } = useTheme();
+  const { t, locale, setLocale } = useI18n();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -50,11 +52,11 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} filter={commandExcelFilter}>
-      <CommandInput placeholder="Szukaj strony lub akcji..." />
+      <CommandInput placeholder={t('nav.commandPlaceholder')} />
       <CommandList>
-        <CommandEmpty>Brak wyników.</CommandEmpty>
+        <CommandEmpty>{t('common.noResults')}</CommandEmpty>
         {sections.map((section) => (
-          <CommandGroup key={section.title} heading={section.title}>
+          <CommandGroup key={section.title} heading={t(section.title)}>
             {section.items.map((item) => {
               const Icon = item.icon;
               return (
@@ -63,14 +65,14 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
                   onSelect={() => run(() => router.push(item.href))}
                 >
                   <Icon className="mr-2 h-4 w-4" />
-                  {item.label}
+                  {t(item.label)}
                 </CommandItem>
               );
             })}
           </CommandGroup>
         ))}
         <CommandSeparator />
-        <CommandGroup heading="Akcje">
+        <CommandGroup heading={t('common.actions')}>
           <CommandItem
             onSelect={() =>
               run(() =>
@@ -79,7 +81,11 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
             }
           >
             <SunMoon className="mr-2 h-4 w-4" />
-            Zmień motyw ({resolvedTheme === 'dark' ? 'jasny' : 'ciemny'})
+            {resolvedTheme === 'dark' ? t('nav.toggleThemeToLight') : t('nav.toggleThemeToDark')}
+          </CommandItem>
+          <CommandItem onSelect={() => run(() => setLocale(locale === 'pl' ? 'en' : 'pl'))}>
+            <Languages className="mr-2 h-4 w-4" />
+            {t('nav.switchLanguage')}
           </CommandItem>
         </CommandGroup>
       </CommandList>

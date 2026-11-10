@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import type { ChartDatum } from './use-dashboard-data';
+import { useI18n } from '@/lib/i18n';
 
 const DashboardPieChart = dynamic(() => import('@/components/dashboard-pie-chart'), {
   ssr: false,
@@ -19,17 +20,18 @@ type ChartsSectionProps = {
 };
 
 export function ChartsSection({ departmentData, nationalityData }: ChartsSectionProps) {
+  const { t } = useI18n();
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <DashboardPieChart
         data={departmentData}
-        title="Rozkład wg Działów"
-        description="Liczba pracowników w poszczególnych działach."
+        title={t('dashboard.byDepartment')}
+        description={t('dashboard.byDepartmentDesc')}
       />
       <DashboardPieChart
         data={nationalityData}
-        title="Rozkład wg Narodowości"
-        description="Struktura pracowników z podziałem na narodowości."
+        title={t('dashboard.byNationality')}
+        description={t('dashboard.byNationalityDesc')}
       />
     </div>
   );

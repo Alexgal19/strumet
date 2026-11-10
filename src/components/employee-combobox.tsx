@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { commandExcelFilter } from '@/lib/search';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { Employee } from '@/lib/types';
+import { useI18n } from '@/lib/i18n';
 
 interface EmployeeComboboxProps {
   employees: Employee[];
@@ -38,20 +39,21 @@ export function EmployeeCombobox({
   employees,
   value,
   onValueChange,
-  placeholder = 'Wybierz pracownika...',
+  placeholder,
   triggerClassName,
   noneLabel,
   onSelectNone,
 }: EmployeeComboboxProps) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   const isMobile = useIsMobile();
   const selected = employees.find((e) => e.id === value) ?? null;
 
   const renderList = (listClassName?: string) => (
     <Command filter={commandExcelFilter}>
-      <CommandInput placeholder="Szukaj pracownika..." />
+      <CommandInput placeholder={t('cars.searchEmployee')} />
       <CommandList className={listClassName}>
-        <CommandEmpty>Nie znaleziono pracownika.</CommandEmpty>
+        <CommandEmpty>{t('cars.employeeNotFound')}</CommandEmpty>
         <CommandGroup>
           {noneLabel && onSelectNone && (
             <CommandItem
@@ -93,7 +95,7 @@ export function EmployeeCombobox({
       aria-expanded={open}
       className={cn('w-full justify-between', triggerClassName)}
     >
-      <span className="truncate">{selected ? selected.fullName : placeholder}</span>
+      <span className="truncate">{selected ? selected.fullName : (placeholder ?? t('cars.chooseEmployee'))}</span>
       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
     </Button>
   );
@@ -108,7 +110,7 @@ export function EmployeeCombobox({
           onInteractOutside={(e) => e.preventDefault()}
         >
           <SheetHeader className="p-4 pb-2 border-b shrink-0 text-left">
-            <SheetTitle className="text-base">Wybierz pracownika</SheetTitle>
+            <SheetTitle className="text-base">{t('cars.chooseEmployeeTitle')}</SheetTitle>
           </SheetHeader>
           <div className="flex-1 min-h-0">{renderList('max-h-full')}</div>
         </SheetContent>

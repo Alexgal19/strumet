@@ -12,20 +12,22 @@ import { Employee, FingerprintAppointment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/date';
 import { CalendarClock, FileText, Fingerprint } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 export const EmployeeCard = ({ employee, type }: { employee: Employee; type: 'termination' | 'vacation' | 'vacation-planned' }) => {
+  const { t, dateLocale } = useI18n();
   let dateLabel: string | undefined;
 
   if (type === 'termination') {
-    const dateString = formatDate(employee.plannedTerminationDate, 'PPP');
-    dateLabel = `Data zwolnienia: ${dateString}`;
+    const dateString = formatDate(employee.plannedTerminationDate, 'PPP', dateLocale);
+    dateLabel = t('dashboard.cardTermination', { date: dateString });
   } else if (type === 'vacation') {
-    const dateString = formatDate(employee.vacationEndDate, 'PPP');
-    dateLabel = `Koniec urlopu: ${dateString}`;
+    const dateString = formatDate(employee.vacationEndDate, 'PPP', dateLocale);
+    dateLabel = t('dashboard.cardVacationEnd', { date: dateString });
   } else if (type === 'vacation-planned') {
     const startDate = formatDate(employee.vacationStartDate, 'dd.MM');
     const endDate = formatDate(employee.vacationEndDate, 'dd.MM.yyyy');
-    dateLabel = `Urlop: ${startDate} - ${endDate}`;
+    dateLabel = t('dashboard.cardVacation', { start: startDate, end: endDate });
   }
 
   return (
@@ -55,7 +57,8 @@ export const EmployeeCard = ({ employee, type }: { employee: Employee; type: 'te
 };
 
 export const ContractCard = ({ employee }: { employee: Employee }) => {
-  const dateLabel = `Koniec umowy: ${formatDate(employee.contractEndDate, 'PPP')}`;
+  const { t, dateLocale } = useI18n();
+  const dateLabel = t('dashboard.cardContractEnd', { date: formatDate(employee.contractEndDate, 'PPP', dateLocale) });
   return (
     <Card className="w-full animate-fade-in-up border-orange-500/50 bg-orange-500/10">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
@@ -77,7 +80,8 @@ export const ContractCard = ({ employee }: { employee: Employee }) => {
 };
 
 export const FingerprintCard = ({ appointment }: { appointment: FingerprintAppointment }) => {
-  const dateLabel = `Data: ${formatDate(appointment.appointmentDate, 'PPP')}`;
+  const { t, dateLocale } = useI18n();
+  const dateLabel = t('dashboard.cardDate', { date: formatDate(appointment.appointmentDate, 'PPP', dateLocale) });
   return (
     <Card className="w-full animate-fade-in-up border-blue-500/50 bg-blue-500/10">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">

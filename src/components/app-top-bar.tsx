@@ -25,14 +25,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { getFirebaseServices } from '@/lib/firebase';
 import { ref, update } from 'firebase/database';
 import { formatDistanceToNow } from 'date-fns';
-import { pl } from 'date-fns/locale';
 import { runManualChecks } from '@/ai/flows/run-manual-checks';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
 import { useHasMounted } from '@/hooks/use-mobile';
+import { useI18n } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n';
 import { CommandMenu } from './command-menu';
 import { ThemeToggle } from './theme-toggle';
-import { getPageTitle } from './app-navigation';
+import { LanguageToggle } from './language-toggle';
+import { getPageTitleKey } from './app-navigation';
 import { LocalVoiceDialog } from './local-voice-dialog';
 
 function Notifications() {
@@ -40,6 +42,7 @@ function Notifications() {
   const [isChecking, setIsChecking] = useState(false);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { t, dateLocale } = useI18n();
   const services = getFirebaseServices();
   const db = services?.db;
 
@@ -63,20 +66,20 @@ function Notifications() {
     try {
       const result = await runManualChecks();
       toast({
-        title: 'Sprawdzanie zakończone',
-        description: `Utworzono ${result.totalNotifications} nowych powiadomień. Wysłano ${result.totalEmails} e-maili.`,
+        title: t('nav.checksDone'),
+        description: t('nav.checksDoneDesc', { notifications: result.totalNotifications, emails: result.totalEmails }),
       });
     } catch {
-      toast({ variant: 'destructive', title: 'Błąd', description: 'Nie udało się uruchomić sprawdzania.' });
+      toast({ variant: 'destructive', title: t('common.error'), description: t('nav.checksFailed') });
     } finally {
       setIsChecking(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button aria-label="Powiadomienia" className="relative rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center">
+        <button aria-label={t('nav.notifications')} className="relative rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 justify-center p-0 text-xs bg-emerald-500 text-white border-0">
@@ -87,7 +90,7 @@ function Notifications() {
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="p-4">
-          <h4 className="font-semibold text-sm">Powiadomienia</h4>
+          <h4 className="font-semibold text-sm">{t('nav.notifications')}</h4>
         </div>
         <Separator />
         <ScrollArea className="h-80">
@@ -104,26 +107,26 @@ function Notifications() {
                     <p className="font-medium leading-tight">{notif.title}</p>
                     <p className="text-muted-foreground mt-1">{notif.message}</p>
                     <p className="text-xs text-muted-foreground/70 mt-2">
-                      {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: pl })}
+                      {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: dateLocale })}
                     </p>
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <div className="text-center text-muted-foreground p-8 text-sm">Brak nowych powiadomień</div>
+            <div className="text-center text-muted-foreground p-8 text-sm">{t('nav.noNotifications')}</div>
           )}
         </ScrollArea>
         <Separator />
         <div className="p-2 space-y-1">
           <Button variant="ghost" size="sm" className="w-full min-h-12" onClick={handleManualCheck} disabled={isChecking}>
             {isChecking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Uruchom sprawdzanie
+            {t('nav.runChecks')}
           </Button>
           {notifications.length > 0 && (
             <Button variant="ghost" size="sm" className="w-full min-h-12 text-destructive hover:text-destructive" onClick={() => setIsClearDialogOpen(true)}>
               <Trash2 className="mr-2 h-4 w-4" />
-              Wyczyść wszystkie
+              {t('nav.clearAll')}
             </Button>
           )}
         </div>
@@ -132,18 +135,18 @@ function Notifications() {
       <AlertDialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Usunąć wszystkie powiadomienia?</AlertDialogTitle>
+            <AlertDialogTitle>{t('nav.clearAllTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tej akcji nie można cofnąć. Wszystkie powiadomienia zostaną trwale usunięte.
+              {t('nav.clearAllDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleClearAll}
             >
-              Usuń wszystkie
+              {t('nav.deleteAll')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -156,12 +159,12 @@ interface AppTopBarProps {
   pathname: string;
 }
 
-function getBreadcrumb(pathname: string): { parent: string; parentHref: string; current: string } | null {
+function getBreadcrumb(pathname: string): { parent: TranslationKey; parentHref: string; current: TranslationKey } | null {
   if (pathname.startsWith('/pracownicy/')) {
-    return { parent: 'Pracownicy aktywni', parentHref: '/aktywni', current: 'Edytuj pracownika' };
+    return { parent: 'nav.aktywni', parentHref: '/aktywni', current: 'nav.editEmployee' };
   }
   if (pathname.startsWith('/szablony-email/')) {
-    return { parent: 'Szablony email', parentHref: '/szablony-email', current: 'Edytuj szablon' };
+    return { parent: 'nav.szablonyEmail', parentHref: '/szablony-email', current: 'nav.editTemplate' };
   }
   return null;
 }
@@ -170,6 +173,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
   const hasMounted = useHasMounted();
   const { isAdmin, isEditor } = useAppContext();
   const router = useRouter();
+  const { t } = useI18n();
 
   const handleLogout = useCallback(async () => {
     const services = getFirebaseServices();
@@ -191,7 +195,8 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
 
   const breadcrumb = getBreadcrumb(pathname);
   // Dynamic page title for mobile top bar — Android pattern
-  const mobilePageTitle = breadcrumb?.current ?? getPageTitle(pathname);
+  const titleKey = breadcrumb?.current ?? getPageTitleKey(pathname);
+  const mobilePageTitle = titleKey ? t(titleKey) : 'Baza-ST';
 
   return (
     <>
@@ -204,7 +209,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
             className="hidden lg:flex h-9 w-72 shrink-0 items-center gap-2 rounded-xl border border-border/60 bg-background/60 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/50"
           >
             <Search className="h-4 w-4 shrink-0" />
-            <span className="flex-1 text-left">Szukaj...</span>
+            <span className="flex-1 text-left">{t('common.search')}</span>
             <kbd className="pointer-events-none rounded border border-border bg-muted px-1.5 font-mono text-xs font-medium">
               ⌘K
             </kbd>
@@ -213,10 +218,10 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
           {breadcrumb ? (
             <nav className="flex items-center gap-2 text-sm flex-1 min-w-0">
               <Link href={breadcrumb.parentHref} className="text-muted-foreground hover:text-foreground transition-colors font-medium whitespace-nowrap">
-                {breadcrumb.parent}
+                {t(breadcrumb.parent)}
               </Link>
               <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-              <span className="text-primary font-bold truncate">{breadcrumb.current}</span>
+              <span className="text-primary font-bold truncate">{t(breadcrumb.current)}</span>
             </nav>
           ) : (
             <div className="flex-1" />
@@ -226,13 +231,14 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
             {(isAdmin || isEditor) && <Notifications />}
             {(isAdmin || isEditor) && <LocalVoiceDialog />}
             <Separator orientation="vertical" className="h-6 bg-border/50" />
+            <LanguageToggle />
             <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"
               onClick={handleLogout}
               className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-              title="Wyloguj"
+              title={t('common.logout')}
             >
               <LogOut className="h-4 w-4" />
             </Button>
@@ -246,7 +252,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
               variant="ghost"
               size="icon"
               onClick={handleBack}
-              aria-label="Wróć"
+              aria-label={t('common.back')}
               className="h-12 w-12 rounded-full text-foreground shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -256,7 +262,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
               variant="ghost"
               size="icon"
               onClick={() => setCommandOpen(true)}
-              aria-label="Szukaj sekcji"
+              aria-label={t('nav.searchSections')}
               className="h-12 w-12 rounded-full text-foreground shrink-0"
             >
               <Search className="h-5 w-5" />
@@ -271,6 +277,7 @@ export function AppTopBar({ pathname }: AppTopBarProps) {
           <div className="flex items-center gap-0.5 shrink-0">
             {(isAdmin || isEditor) && <Notifications />}
             {(isAdmin || isEditor) && <span className="[&_button]:min-h-12 [&_button]:min-w-12"><LocalVoiceDialog /></span>}
+            <span className="[&_button]:min-h-12 [&_button]:min-w-12"><LanguageToggle /></span>
             <span className="[&_button]:min-h-12 [&_button]:min-w-12"><ThemeToggle /></span>
           </div>
         </header>

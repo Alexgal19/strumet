@@ -17,10 +17,18 @@ import { Save, RotateCcw, Lock, Search } from 'lucide-react';
 import type { LockerPosition } from '@/components/szafki/locker-types';
 import { ALL_ZONES } from '@/components/szafki/locker-data';
 import { ZoneView, getZoneRows } from '@/components/szafki/zone-view';
+import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { EMPLOYEE_LOCKER_FIELDS, buildLockerOccupancy, normalizeLockerLabel } from '@/lib/lockers';
+
+const ZONE_NAMES: Record<string, TranslationKey> = {
+  zone1: 'lockers.zone1',
+  'zone2-f1': 'lockers.zone2f1',
+  'zone2-f2': 'lockers.zone2f2',
+};
 
 export default function LockersPage() {
   const { isAdmin } = useAppContext();
+  const { t } = useI18n();
   const { employees } = useEmployees();
   const { toast } = useToast();
   const [labels, setLabels] = useState<Record<string, string>>({});
@@ -105,15 +113,15 @@ export default function LockersPage() {
       await update(ref(db), dbUpdates);
 
       toast({
-        title: 'Zapisano',
-        description: 'Numeracja szafek oraz przypisania pracowników zostały zaktualizowane.',
+        title: t('common.saved'),
+        description: t('lockers.savedDesc'),
       });
       setHasChanges(false);
     } catch (err) {
       console.error(err);
       toast({
-        title: 'Błąd',
-        description: 'Nie udało się zapisać zmian.',
+        title: t('common.error'),
+        description: t('common.saveFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -130,8 +138,8 @@ export default function LockersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Szafki pracowników"
-        description="Mapa szafek z możliwością edycji numeracji"
+        title={t('lockers.title')}
+        description={t('lockers.desc')}
       >
         <div className="flex items-center gap-2">
           {isAdmin && (
@@ -144,19 +152,19 @@ export default function LockersPage() {
                     disabled={isSaving}
                   >
                     <RotateCcw className="mr-1.5 h-4 w-4" />
-                    Reset
+                    {t('lockers.reset')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Przywrócić domyślną numerację?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('lockers.resetTitle')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Wszystkie zmiany numeracji zostaną cofnięte do wartości domyślnych. Pamiętaj o zapisaniu.
+                      {t('lockers.resetDesc')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleReset}>Przywróć</AlertDialogAction>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReset}>{t('common.restore')}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -166,7 +174,7 @@ export default function LockersPage() {
                 disabled={!hasChanges || isSaving}
               >
                 <Save className="mr-1.5 h-4 w-4" />
-                {isSaving ? 'Zapisywanie...' : 'Zapisz'}
+                {isSaving ? t('common.saving') : t('common.save')}
               </Button>
             </>
           )}
@@ -177,7 +185,7 @@ export default function LockersPage() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Szukaj szafki lub pracownika (np. 77, K15, Kowalski)..."
+          placeholder={t('lockers.searchPlaceholder')}
           value={highlightQuery}
           onChange={(e) => setHighlightQuery(e.target.value)}
           className="pl-9"
@@ -187,7 +195,7 @@ export default function LockersPage() {
       {!isAdmin && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
           <Lock className="h-4 w-4" />
-          Tylko administrator może edytować numerację szafek.
+          {t('lockers.adminOnly')}
         </div>
       )}
 
@@ -195,27 +203,27 @@ export default function LockersPage() {
       <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm border border-green-500 bg-green-500/20" />
-          <span>Zajęta (przypisana do pracownika)</span>
+          <span>{t('lockers.legendTaken')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm border border-amber-500 bg-amber-500/20" />
-          <span>Przypisana do kilku osób</span>
+          <span>{t('lockers.legendShared')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm border border-border/60 bg-muted/40" />
-          <span>Wolna</span>
+          <span>{t('lockers.legendFree')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm ring-2 ring-primary" />
-          <span>Wyszukana</span>
+          <span>{t('lockers.legendFound')}</span>
         </div>
       </div>
 
       <Tabs defaultValue="zone1" className="w-full">
         <TabsList className="mb-4 w-full flex-wrap sm:flex-nowrap justify-start h-auto gap-1">
-          <TabsTrigger value="zone1" className="flex-1 sm:flex-initial text-xs sm:text-sm">Strefa 1 (1-140)</TabsTrigger>
-          <TabsTrigger value="zone2-f1" className="flex-1 sm:flex-initial text-xs sm:text-sm">Strefa 2 — Piętro 1 (K1-K120)</TabsTrigger>
-          <TabsTrigger value="zone2-f2" className="flex-1 sm:flex-initial text-xs sm:text-sm">Strefa 2 — Piętro 2 (K121-K240)</TabsTrigger>
+          <TabsTrigger value="zone1" className="flex-1 sm:flex-initial text-xs sm:text-sm">{t('lockers.zone1Tab')}</TabsTrigger>
+          <TabsTrigger value="zone2-f1" className="flex-1 sm:flex-initial text-xs sm:text-sm">{t('lockers.zone2f1Tab')}</TabsTrigger>
+          <TabsTrigger value="zone2-f2" className="flex-1 sm:flex-initial text-xs sm:text-sm">{t('lockers.zone2f2Tab')}</TabsTrigger>
         </TabsList>
 
         {zoneRows.map(({ zone, rows }) => {
@@ -228,12 +236,13 @@ export default function LockersPage() {
             <TabsContent key={zone.id} value={zone.id}>
               <Card>
                 <CardHeader>
-                  <CardTitle>{zone.name}</CardTitle>
+                  <CardTitle>{ZONE_NAMES[zone.id] ? t(ZONE_NAMES[zone.id]) : zone.name}</CardTitle>
                   <CardDescription>
-                    Zajęte {taken} z {total} · wolne {total - taken}. Najedź na szafkę, aby zobaczyć właściciela{isAdmin ? '; kliknij, aby edytować jej numer' : ''}.
+                    {t('lockers.zoneSummary', { taken, total, free: total - taken })}{' '}
+                    {isAdmin ? t('lockers.hoverEditHint') : t('lockers.hoverHint')}
                     {highlightQuery && (
                       <span className="ml-1 text-primary font-medium">
-                        Wyniki wyszukiwania dla &quot;{highlightQuery}&quot;
+                        {t('lockers.searchResults', { query: highlightQuery })}
                       </span>
                     )}
                   </CardDescription>

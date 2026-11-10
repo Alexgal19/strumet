@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
 import { getFirebaseServices } from '@/lib/firebase';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useI18n } from '@/lib/i18n';
 
 import { getNavRole, getVisibleSections, isNavItemActive } from './app-navigation';
 
@@ -30,6 +31,7 @@ interface AppMobileDrawerProps {
  */
 export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawerProps) {
   const { isAdmin, isEditor } = useAppContext();
+  const { t } = useI18n();
   const router = useRouter();
   const [query, setQuery] = useState('');
 
@@ -48,12 +50,12 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
   };
 
   const isGuest = !isAdmin && !isEditor;
-  const normalizedQuery = query.trim().toLocaleLowerCase('pl').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normalizedQuery = query.trim().toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const sections = getVisibleSections(getNavRole(isAdmin, isEditor))
     .map((section) => ({
       ...section,
       items: section.items.filter((item) =>
-        `${item.label} ${section.title}`.toLocaleLowerCase('pl').normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(normalizedQuery)
+        `${t(item.label)} ${t(section.title)}`.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(normalizedQuery)
       ),
     }))
     .filter((section) => section.items.length > 0);
@@ -80,19 +82,19 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Znajdź sekcję..."
-              aria-label="Znajdź sekcję"
+              placeholder={t('nav.findSection')}
+              aria-label={t('nav.findSectionLabel')}
               className="h-12 w-full rounded-xl border bg-background pl-11 pr-4 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
         )}
         <ScrollArea className="flex-1 min-h-0">
           <div className="px-4 py-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-            {sections.length === 0 && <p className="px-2 py-6 text-sm text-muted-foreground">Nie znaleziono sekcji.</p>}
+            {sections.length === 0 && <p className="px-2 py-6 text-sm text-muted-foreground">{t('nav.noSection')}</p>}
             {sections.map((section) => (
               <div key={section.title} className="mb-4 last:mb-0">
                 <p className="px-2 pb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
-                  {section.title}
+                  {t(section.title)}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {section.items.map((item) => {
@@ -112,7 +114,7 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
                         )}
                       >
                         <Icon className="h-5 w-5 shrink-0" />
-                        <span className="text-[13px] leading-tight">{item.label}</span>
+                        <span className="text-[13px] leading-tight">{t(item.label)}</span>
                       </Link>
                     );
                   })}
@@ -132,7 +134,7 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
               className="flex items-center gap-4 px-3 min-h-[48px] w-full rounded-2xl text-primary hover:bg-primary/10 transition-colors font-medium"
             >
               <LogIn className="h-5 w-5" />
-              <span>Zaloguj się</span>
+              <span>{t('nav.loginLong')}</span>
             </button>
           ) : (
             <button
@@ -140,7 +142,7 @@ export function AppMobileDrawer({ open, onOpenChange, pathname }: AppMobileDrawe
               className="flex items-center gap-4 px-3 min-h-[48px] w-full rounded-2xl text-destructive hover:bg-destructive/10 transition-colors font-medium"
             >
               <LogOut className="h-5 w-5" />
-              <span>Wyloguj</span>
+              <span>{t('common.logout')}</span>
             </button>
           )}
         </div>

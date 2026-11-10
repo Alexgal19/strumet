@@ -9,6 +9,7 @@ import { Employee } from '@/lib/types';
 import { useAppContext } from '@/context/app-context';
 import { formatDate, parseMaybeDate } from '@/lib/date';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 interface TimelineEvent {
   date: Date;
@@ -26,6 +27,7 @@ const TYPE_STYLES: Record<TimelineEvent['type'], string> = {
 
 export function EmployeeTimeline({ employee }: { employee: Employee }) {
   const { absences, clothingIssuances, circulationCards, fingerprintAppointments } = useAppContext();
+  const { t } = useI18n();
 
   const events = useMemo<TimelineEvent[]>(() => {
     const list: TimelineEvent[] = [];
@@ -35,40 +37,40 @@ export function EmployeeTimeline({ employee }: { employee: Employee }) {
       if (date) list.push({ date, label, type });
     };
 
-    push(employee.hireDate, 'Zatrudnienie', 'success');
-    push(employee.contractEndDate, 'Koniec umowy', 'warning');
-    push(employee.vacationStartDate, 'Początek urlopu', 'info');
-    push(employee.vacationEndDate, 'Koniec urlopu', 'info');
-    push(employee.plannedTerminationDate, 'Planowane zwolnienie', 'destructive');
-    push(employee.terminationDate, 'Zwolnienie', 'destructive');
+    push(employee.hireDate, t('employee.eventHired'), 'success');
+    push(employee.contractEndDate, t('employee.eventContractEnd'), 'warning');
+    push(employee.vacationStartDate, t('employee.eventVacationStart'), 'info');
+    push(employee.vacationEndDate, t('employee.eventVacationEnd'), 'info');
+    push(employee.plannedTerminationDate, t('employee.eventPlannedTermination'), 'destructive');
+    push(employee.terminationDate, t('employee.eventTermination'), 'destructive');
 
     absences
       .filter((a) => a.employeeId === employee.id)
-      .forEach((a) => push(a.date, 'Nieobecność', 'muted'));
+      .forEach((a) => push(a.date, t('employee.eventAbsence'), 'muted'));
 
     clothingIssuances
       .filter((c) => c.employeeId === employee.id)
-      .forEach((c) => push(c.date, 'Wydanie odzieży', 'info'));
+      .forEach((c) => push(c.date, t('employee.eventClothing'), 'info'));
 
     circulationCards
       .filter((c) => c.employeeId === employee.id)
-      .forEach((c) => push(c.date, 'Karta obiegowa', 'info'));
+      .forEach((c) => push(c.date, t('employee.eventCirculationCard'), 'info'));
 
     fingerprintAppointments
       .filter((f) => f.employeeId === employee.id)
-      .forEach((f) => push(f.appointmentDate, 'Wizyta na odciski', 'warning'));
+      .forEach((f) => push(f.appointmentDate, t('employee.eventFingerprints'), 'warning'));
 
     return list.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [employee, absences, clothingIssuances, circulationCards, fingerprintAppointments]);
+  }, [employee, absences, clothingIssuances, circulationCards, fingerprintAppointments, t]);
 
   if (events.length === 0) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Historia pracownika</CardTitle>
+          <CardTitle className="text-base">{t('employee.historyTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">Brak zdarzeń do wyświetlenia.</p>
+          <p className="text-sm text-muted-foreground">{t('employee.historyEmpty')}</p>
         </CardContent>
       </Card>
     );
@@ -77,9 +79,9 @@ export function EmployeeTimeline({ employee }: { employee: Employee }) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Historia pracownika</CardTitle>
+        <CardTitle className="text-base">{t('employee.historyTitle')}</CardTitle>
         <CardDescription className="text-xs">
-          Zatrudnienie, umowy, urlopy, nieobecności, odzież, karty i odciski — chronologicznie.
+          {t('employee.historyDesc')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -97,7 +99,7 @@ export function EmployeeTimeline({ employee }: { employee: Employee }) {
                   {formatDate(event.date.toISOString(), 'dd.MM.yyyy')}
                 </span>
                 <span className="text-sm">{event.label}</span>
-                {event.type === 'warning' && <Badge variant="outline" className="text-xs px-1.5">termin</Badge>}
+                {event.type === 'warning' && <Badge variant="outline" className="text-xs px-1.5">{t('employee.deadline')}</Badge>}
               </div>
             </div>
           ))}

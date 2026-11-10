@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Employee, Absence } from '@/lib/types';
 import { format, subDays, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { useI18n } from '@/lib/i18n';
 import { Building, CalendarDays, ChevronRight, UserX, Users, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +24,7 @@ interface GroupedDepartment {
 }
 
 export function AbsentOverview({ employees, absences, isLoading }: AbsentOverviewProps) {
+  const { t, tp, dateLocale } = useI18n();
   const today = useMemo(() => new Date(), []);
   const todayString = format(today, 'yyyy-MM-dd');
 
@@ -58,7 +59,7 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
   const groupedToday: GroupedDepartment[] = useMemo(() => {
     const groups = new Map<string, Employee[]>();
     getAbsentees(todayString).forEach((employee) => {
-      const dept = employee.department || 'Bez działu';
+      const dept = employee.department || t('dashboard.noDepartment');
       const list = groups.get(dept) ?? [];
       list.push(employee);
       groups.set(dept, list);
@@ -66,7 +67,7 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
     return Array.from(groups.entries())
       .map(([department, people]) => ({ department, people }))
       .sort((a, b) => a.department.localeCompare(b.department, 'pl'));
-  }, [absenteesByDate, employeeMap, todayString]);
+  }, [absenteesByDate, employeeMap, todayString, t]);
 
   // Ostatnie 7 dni (włącznie z dzisiaj), tylko dni z nieobecnościami
   const last7Days = useMemo(() => {
@@ -91,7 +92,7 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
       if (!isWithinInterval(date, { start: monthStart, end: monthEnd })) return;
       const employee = employeeMap.get(a.employeeId);
       if (!employee) return;
-      const dept = employee.department || 'Bez działu';
+      const dept = employee.department || t('dashboard.noDepartment');
       deptCounts.set(dept, (deptCounts.get(dept) ?? 0) + 1);
       peopleThisMonth.add(a.employeeId);
       totalDays += 1;
@@ -104,7 +105,7 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count),
     };
-  }, [absences, employeeMap, today]);
+  }, [absences, employeeMap, today, t]);
 
   if (isLoading) {
     return (
@@ -126,15 +127,15 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <UserX className="h-5 w-5 text-destructive" />
-              <CardTitle className="text-base">Nieobecni dzisiaj</CardTitle>
+              <CardTitle className="text-base">{t('dashboard.absentToday')}</CardTitle>
               {groupedToday.length > 0 && (
                 <Badge variant="destructive">
-                  {groupedToday.reduce((sum, g) => sum + g.people.length, 0)} os.
+                  {t('dashboard.peopleShort', { count: groupedToday.reduce((sum, g) => sum + g.people.length, 0) })}
                 </Badge>
               )}
             </div>
             <span className="text-xs font-medium text-muted-foreground capitalize">
-              {format(today, 'EEEE, d MMMM yyyy', { locale: pl })}
+              {format(today, 'EEEE, d MMMM yyyy', { locale: dateLocale })}
             </span>
           </div>
         </CardHeader>
@@ -143,7 +144,7 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <Users className="h-10 w-10 text-muted-foreground/30 mb-3" />
               <p className="text-sm text-muted-foreground">
-                Wszyscy obecni — brak nieobecności dzisiaj.
+                {t('dashboard.allPresent')}
               </p>
             </div>
           ) : (
@@ -166,7 +167,7 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
                             {person.fullName}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {person.jobTitle || '—'}{person.manager ? ` • Kierownik: ${person.manager}` : ''}
+                            {person.jobTitle || '—'}{person.manager ? t('dashboard.managerPrefix', { name: person.manager }) : ''}
                           </p>
                         </div>
                       </div>
@@ -178,7 +179,7 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
           )}
           <Button asChild variant="ghost" size="sm" className="mt-4 -ml-2 text-primary">
             <Link href="/odwiedzalnosc">
-              Zarządzaj obecnością
+              {t('dashboard.manageAttendance')}
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
@@ -191,13 +192,13 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5 text-blue-500 dark:text-blue-400" />
-              <CardTitle className="text-base">Ostatnie 7 dni</CardTitle>
+              <CardTitle className="text-base">{t('dashboard.last7Days')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             {last7Days.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Brak nieobecności w ostatnich 7 dniach.
+                {t('dashboard.noAbsences7')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -212,14 +213,14 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
                     )}
                   >
                     <span className="shrink-0 text-xs font-semibold text-muted-foreground w-16 pt-0.5">
-                      {format(day.date, 'EEE dd.MM', { locale: pl })}
+                      {format(day.date, 'EEE dd.MM', { locale: dateLocale })}
                     </span>
                     <div className="min-w-0">
                       <p className="text-xs leading-relaxed truncate">
                         {day.people.map((p) => p.fullName).join(', ')}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {day.people.length} {day.people.length === 1 ? 'osoba' : 'osób'}
+                        {tp('dashboard.people', day.people.length)}
                       </p>
                     </div>
                   </div>
@@ -234,21 +235,20 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary" />
-                <CardTitle className="text-base">Statystyki miesiąca</CardTitle>
+                <CardTitle className="text-base">{t('dashboard.monthStats')}</CardTitle>
               </div>
               <span className="text-xs font-medium text-muted-foreground capitalize">
-                {format(today, 'LLLL', { locale: pl })}
+                {format(today, 'LLLL', { locale: dateLocale })}
               </span>
             </div>
             <CardDescription className="text-xs">
-              {monthStats.totalDays} dni nieobecności • {monthStats.peopleCount}{' '}
-              {monthStats.peopleCount === 1 ? 'osoba' : 'osób'}
+              {tp('dashboard.absenceDays', monthStats.totalDays)} • {tp('dashboard.people', monthStats.peopleCount)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {monthStats.departments.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Brak nieobecności w tym miesiącu.
+                {t('dashboard.noAbsencesMonth')}
               </p>
             ) : (
               <div className="space-y-1.5">
@@ -265,7 +265,7 @@ export function AbsentOverview({ employees, absences, isLoading }: AbsentOvervie
                         />
                       </div>
                       <Badge variant="secondary" className="shrink-0">
-                        {dept.count} {dept.count === 1 ? 'dzień' : 'dni'}
+                        {tp('dashboard.days', dept.count)}
                       </Badge>
                     </div>
                   </div>

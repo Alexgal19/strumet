@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarDays, X, UserX } from 'lucide-react';
 import { format, startOfDay } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Employee, Absence } from '@/lib/types';
 
@@ -21,6 +21,7 @@ interface AbsenceDateSearchCardProps {
  * z dokładnymi datami, pogrupowane po działach (spójne z raportem Excel).
  */
 export function AbsenceDateSearchCard({ employees, absences }: AbsenceDateSearchCardProps) {
+  const { t, dateLocale } = useI18n();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const isActive = selectedDates.length > 0;
 
@@ -58,12 +59,12 @@ export function AbsenceDateSearchCard({ employees, absences }: AbsenceDateSearch
         <div className="min-w-0">
           <CardTitle className="text-base flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-primary" />
-            Nieobecności — filtr po dniach
+            {t('dashboard.absenceFilterTitle')}
           </CardTitle>
           <CardDescription>
             {isActive
-              ? `Wyniki dla: ${sortedSelected.map(d => format(d, 'dd.MM.yyyy', { locale: pl })).join(', ')}`
-              : 'Wybierz dni, aby zobaczyć kto był wtedy nieobecny.'}
+              ? t('dashboard.resultsFor', { dates: sortedSelected.map(d => format(d, 'dd.MM.yyyy')).join(', ') })
+              : t('dashboard.pickDaysHint')}
           </CardDescription>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -75,7 +76,7 @@ export function AbsenceDateSearchCard({ employees, absences }: AbsenceDateSearch
                 className={cn('h-10 justify-start', isActive && 'text-primary border-primary/40')}
               >
                 <CalendarDays className="mr-2 h-4 w-4 shrink-0" />
-                {isActive ? `Wybrane dni: ${selectedDates.length}` : 'Wybierz dni'}
+                {isActive ? t('dashboard.selectedDays', { count: selectedDates.length }) : t('dashboard.pickDays')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
@@ -83,7 +84,7 @@ export function AbsenceDateSearchCard({ employees, absences }: AbsenceDateSearch
                 mode="multiple"
                 selected={selectedDates}
                 onSelect={(dates) => setSelectedDates(dates ?? [])}
-                locale={pl}
+                locale={dateLocale}
               />
               <div className="flex gap-2 p-2 border-t">
                 <Button
@@ -92,7 +93,7 @@ export function AbsenceDateSearchCard({ employees, absences }: AbsenceDateSearch
                   className="flex-1"
                   onClick={() => setSelectedDates([startOfDay(new Date())])}
                 >
-                  Dziś
+                  {t('dashboard.today')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -102,15 +103,15 @@ export function AbsenceDateSearchCard({ employees, absences }: AbsenceDateSearch
                   onClick={() => setSelectedDates([])}
                 >
                   <X className="mr-1 h-4 w-4" />
-                  Wyczyść
+                  {t('common.clear')}
                 </Button>
               </div>
             </PopoverContent>
           </Popover>
           {isActive && (
-            <Button variant="ghost" size="icon" className="h-10 w-10" title="Wyczyść filtr" onClick={() => setSelectedDates([])}>
+            <Button variant="ghost" size="icon" className="h-10 w-10" title={t('dashboard.clearFilter')} onClick={() => setSelectedDates([])}>
               <X className="h-4 w-4" />
-              <span className="sr-only">Wyczyść filtr</span>
+              <span className="sr-only">{t('dashboard.clearFilter')}</span>
             </Button>
           )}
         </div>
@@ -120,14 +121,14 @@ export function AbsenceDateSearchCard({ employees, absences }: AbsenceDateSearch
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <CalendarDays className="h-10 w-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">
-              Filtr jest pusty — wybierz jeden lub więcej dni na kalendarzu.
+              {t('dashboard.filterEmpty')}
             </p>
           </div>
         ) : results.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <UserX className="h-10 w-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">
-              W wybranych dniach nie ma zarejestrowanych nieobecności.
+              {t('dashboard.noAbsencesSelected')}
             </p>
           </div>
         ) : (
@@ -136,7 +137,7 @@ export function AbsenceDateSearchCard({ employees, absences }: AbsenceDateSearch
               <div key={employee.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{employee.fullName}</p>
-                  <p className="text-xs text-muted-foreground">{employee.department || 'Bez działu'}</p>
+                  <p className="text-xs text-muted-foreground">{employee.department || t('dashboard.noDepartment')}</p>
                 </div>
                 <p className="text-sm font-semibold">{dates.map(d => format(new Date(d + 'T00:00:00'), 'dd.MM')).join(', ')}</p>
               </div>

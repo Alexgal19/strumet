@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { getFirebaseServices } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, get, set } from "firebase/database";
+import { useI18n } from "@/lib/i18n";
+import { LanguageToggle } from "@/components/language-toggle";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -25,6 +27,7 @@ interface BeforeInstallPromptEvent extends Event {
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -46,7 +49,7 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      setError("Hasła nie pasują do siebie.");
+      setError(t('auth.passwordsMismatch'));
       return;
     }
     setError('');
@@ -75,21 +78,21 @@ export default function RegisterPage() {
       });
 
       toast({
-        title: "Rejestracja pomyślna",
-        description: `Konto zostało utworzone z rolą: ${role}. Teraz możesz się zalogować.`,
+        title: t('auth.registered'),
+        description: t('auth.registeredDesc', { role }),
       });
       router.push("/login");
     } catch (error: any) {
-      let errorMessage = "Wystąpił błąd podczas rejestracji.";
+      let errorMessage = t('auth.registerError');
       switch (error.code) {
         case 'auth/email-already-in-use':
-          errorMessage = 'Ten adres email jest już zajęty.';
+          errorMessage = t('auth.emailInUse');
           break;
         case 'auth/invalid-email':
-          errorMessage = 'Nieprawidłowy format adresu email.';
+          errorMessage = t('auth.invalidEmail');
           break;
         case 'auth/weak-password':
-          errorMessage = 'Hasło jest zbyt słabe. Powinno mieć co najmniej 6 znaków.';
+          errorMessage = t('auth.weakPassword');
           break;
         default:
            errorMessage = error.message || errorMessage;
@@ -105,34 +108,37 @@ export default function RegisterPage() {
     if (!deferredPrompt) {
       toast({
         variant: 'destructive',
-        title: 'Błąd',
-        description: 'Nie można zainstalować aplikacji w tym momencie.',
+        title: t('common.error'),
+        description: t('auth.installUnavailableShort'),
       });
       return;
     }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      toast({ title: 'Sukces', description: 'Aplikacja została zainstalowana.' });
+      toast({ title: t('common.success'), description: t('auth.installed') });
     }
     setDeferredPrompt(null);
   };
 
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-background p-4">
+    <div className="relative flex h-full w-full items-center justify-center bg-background p-4">
+      <div className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))]">
+        <LanguageToggle />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Database className="h-8 w-8" />
           </div>
-          <CardTitle className="text-2xl font-bold">Utwórz konto</CardTitle>
-          <CardDescription>Wprowadź swoje dane, aby się zarejestrować.</CardDescription>
+          <CardTitle className="text-2xl font-bold">{t('auth.createAccount')}</CardTitle>
+          <CardDescription>{t('auth.registerSubtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input 
                 id="email" 
                 type="email" 
@@ -144,7 +150,7 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Hasło</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input 
                 id="password" 
                 type="password" 
@@ -155,7 +161,7 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Potwierdź hasło</Label>
+              <Label htmlFor="confirm-password">{t('auth.confirmPassword')}</Label>
               <Input 
                 id="confirm-password" 
                 type="password"                  
@@ -168,21 +174,21 @@ export default function RegisterPage() {
             {error && <p className="text-sm font-medium text-destructive">{error}</p>}
             <div className="space-y-2 pt-2">
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin" /> : "Zarejestruj się"}
+                {isLoading ? <Loader2 className="animate-spin" /> : t('auth.register')}
               </Button>
             </div>
           </form>
           <div className="mt-4 text-center text-sm">
-            Masz już konto?{" "}
+            {t('auth.haveAccount')}{" "}
             <Link href="/login" className="underline font-bold">
-              Zaloguj się
+              {t('auth.login')}
             </Link>
           </div>
            {deferredPrompt && (
             <div className="mt-6 border-t pt-4">
               <Button variant="outline" className="w-full" onClick={handleInstallClick}>
                 <Download className="mr-2 h-4 w-4" />
-                Zainstaluj aplikację
+                {t('auth.install')}
               </Button>
             </div>
           )}

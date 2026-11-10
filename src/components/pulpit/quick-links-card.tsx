@@ -5,41 +5,43 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, CalendarClock, ArrowRight, BarChart3, Settings } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 type QuickLinksCardProps = {
   isAdmin: boolean;
 };
 
 export function QuickLinksCard({ isAdmin }: QuickLinksCardProps) {
+  const { t } = useI18n();
   return (
     <Card className="glass-card">
       <CardHeader>
-        <CardTitle className="text-base">Szybkie linki</CardTitle>
+        <CardTitle className="text-base">{t('dashboard.quickLinks')}</CardTitle>
         <CardDescription>
-          Przejdź do najczęściej używanych sekcji.
+          {t('dashboard.quickLinksDesc')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <QuickLink
           href="/aktywni"
           icon={<Users className="h-4 w-4" />}
-          label="Pracownicy aktywni"
+          label={t('nav.aktywni')}
         />
         <QuickLink
           href="/statystyki"
           icon={<BarChart3 className="h-4 w-4" />}
-          label="Statystyki"
+          label={t('nav.statystyki')}
         />
         <QuickLink
           href="/harmonogram"
           icon={<CalendarClock className="h-4 w-4" />}
-          label="Planowanie"
+          label={t('dashboard.planning')}
         />
         {isAdmin && (
           <QuickLink
             href="/konfiguracja"
             icon={<Settings className="h-4 w-4" />}
-            label="Konfiguracja"
+            label={t('nav.konfiguracja')}
           />
         )}
       </CardContent>

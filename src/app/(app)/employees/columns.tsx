@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { Copy, UserX } from "lucide-react"
 import { getEmployeeNameParts } from "@/lib/person-name"
 import { EmployeeRowActions } from "./employee-actions"
+import type { I18nValue } from "@/lib/i18n"
 
 const isPlannedTermination = (employee: Employee): boolean => {
   const planned = parseMaybeDate(employee.plannedTerminationDate);
@@ -39,6 +40,7 @@ interface GetColumnsProps {
   onDuplicate?: (employee: Employee) => void
   absentTodayIds?: Set<string>
   status: 'aktywny' | 'zwolniony'
+  t: I18nValue['t']
 }
 
 // Custom, robust sorting function for dates.
@@ -65,7 +67,8 @@ export function getColumns({
   onToggleAbsenceToday,
   onDuplicate,
   absentTodayIds,
-  status
+  status,
+  t,
 }: GetColumnsProps): ColumnDef<Employee>[] {
   return [
     {
@@ -77,7 +80,7 @@ export function getColumns({
             (table.getIsSomeRowsSelected() && "indeterminate")
           }
           onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
-          aria-label="Zaznacz wszystkie"
+          aria-label={t('employee.selectAll')}
           className="translate-y-[2px]"
         />
       ),
@@ -86,7 +89,7 @@ export function getColumns({
           <Checkbox
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Zaznacz wiersz"
+            aria-label={t('employee.selectRow')}
             className="translate-y-[2px]"
           />
         </div>
@@ -98,7 +101,7 @@ export function getColumns({
       id: "lastName",
       accessorFn: (row) => getEmployeeNameParts(row).lastName,
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Nazwisko" />
+        <DataTableColumnHeader column={column} title={t('employee.lastName')} />
       ),
       cell: ({ row }) => {
         const employee = row.original;
@@ -111,18 +114,18 @@ export function getColumns({
             {onVacation && (
               <Badge
                 className="animate-pulse bg-pink-500 text-white hover:bg-pink-500"
-                title={`Na urlopie${employee.vacationEndDate ? ` do ${formatDate(employee.vacationEndDate)}` : ''}`}
+                title={employee.vacationEndDate ? t('employee.onVacationUntil', { date: formatDate(employee.vacationEndDate) }) : t('employee.onVacation')}
               >
-                URLOP
+                {t('employee.onVacationBadge')}
               </Badge>
             )}
             {plannedTerm && (
               <Badge
                 variant="outline"
                 className="whitespace-nowrap border-orange-500/60 text-orange-600 dark:text-orange-400"
-                title={`Planowane zwolnienie: ${formatDate(employee.plannedTerminationDate)}`}
+                title={t('employee.plannedTermination', { date: formatDate(employee.plannedTerminationDate) })}
               >
-                Zwalnia się
+                {t('employee.leaving')}
               </Badge>
             )}
           </div>
@@ -134,7 +137,7 @@ export function getColumns({
       id: "firstName",
       accessorFn: (row) => getEmployeeNameParts(row).firstName,
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Imię" />
+        <DataTableColumnHeader column={column} title={t('employee.firstName')} />
       ),
       cell: ({ row }) => {
         const { firstName } = getEmployeeNameParts(row.original);
@@ -145,7 +148,7 @@ export function getColumns({
     {
       accessorKey: "hireDate",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Data zatrudnienia" />
+        <DataTableColumnHeader column={column} title={t('employee.hireDate')} />
       ),
       cell: ({ row }) => formatDate(row.getValue("hireDate"), "dd.MM.yyyy"),
       sortingFn: dateSortingFn,
@@ -153,7 +156,7 @@ export function getColumns({
     ...(status === 'aktywny' ? [{
       accessorKey: "contractEndDate",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
-        <DataTableColumnHeader column={column} title="Umowa do" />
+        <DataTableColumnHeader column={column} title={t('employee.contractEndDate')} />
       ),
       cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("contractEndDate"), "dd.MM.yyyy"),
       sortingFn: dateSortingFn,
@@ -161,7 +164,7 @@ export function getColumns({
      ...(status === 'zwolniony' ? [{
       accessorKey: "terminationDate",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
-        <DataTableColumnHeader column={column} title="Data zwolnienia" />
+        <DataTableColumnHeader column={column} title={t('employee.terminationDate')} />
       ),
       cell: ({ row }: CellContext<Employee, unknown>) => formatDate(row.getValue("terminationDate"), "dd.MM.yyyy"),
       sortingFn: dateSortingFn,
@@ -169,7 +172,7 @@ export function getColumns({
     {
       id: "daysWorked",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
-        <DataTableColumnHeader column={column} title="Przepracowane dni" />
+        <DataTableColumnHeader column={column} title={t('employee.daysWorked')} />
       ),
       cell: ({ row }: CellContext<Employee, unknown>) => {
         const hireDate = parseMaybeDate(row.original.hireDate);
@@ -193,7 +196,7 @@ export function getColumns({
     {
       accessorKey: "terminationReason",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
-        <DataTableColumnHeader column={column} title="Powód zwolnienia" />
+        <DataTableColumnHeader column={column} title={t('employee.terminationReason')} />
       ),
       cell: ({ row }: CellContext<Employee, unknown>) => {
         const reason = row.original.terminationReason;
@@ -203,7 +206,7 @@ export function getColumns({
     {
       accessorKey: "jobTitle",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Stanowisko" />
+        <DataTableColumnHeader column={column} title={t('employee.jobTitle')} />
       ),
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -212,7 +215,7 @@ export function getColumns({
     {
       accessorKey: "department",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Dział" />
+        <DataTableColumnHeader column={column} title={t('employee.department')} />
       ),
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -221,7 +224,7 @@ export function getColumns({
     {
       accessorKey: "manager",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Kierownik" />
+        <DataTableColumnHeader column={column} title={t('employee.manager')} />
       ),
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -230,13 +233,13 @@ export function getColumns({
     {
       accessorKey: "cardNumber",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Nr karty" />
+        <DataTableColumnHeader column={column} title={t('employee.cardNumber')} />
       ),
     },
     {
       accessorKey: "nationality",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Narodowość" />
+        <DataTableColumnHeader column={column} title={t('employee.nationality')} />
       ),
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id))
@@ -245,11 +248,11 @@ export function getColumns({
     {
       accessorKey: "welderLicense",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Licencja spraw." />
+        <DataTableColumnHeader column={column} title={t('employee.welderLicenseShort')} />
       ),
       cell: ({ row }) => {
         const value = row.getValue("welderLicense") as string | undefined;
-        return <span>{value === 'Tak' ? 'Tak' : 'Nie'}</span>;
+        return <span>{value === 'Tak' ? t('common.yes') : t('common.no')}</span>;
       },
       filterFn: (row, id, value) => {
         if (!value || value.length === 0) return true;
@@ -261,7 +264,7 @@ export function getColumns({
     ...(status === 'aktywny' ? [{
       accessorKey: "legalizationStatus",
       header: ({ column }: HeaderContext<Employee, unknown>) => (
-        <DataTableColumnHeader column={column} title="Status legalizacyjny" />
+        <DataTableColumnHeader column={column} title={t('employee.legalizationStatus')} />
       ),
       cell: ({ row }: CellContext<Employee, unknown>) => {
         const status = row.getValue("legalizationStatus") as string | undefined;
@@ -298,11 +301,11 @@ export function getColumns({
                       ? "text-destructive bg-destructive/10 hover:bg-destructive/20"
                       : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   )}
-                  title={isAbsentToday ? "Nieobecny dziś — kliknij, aby cofnąć" : "Oznacz jako nieobecny dziś"}
+                  title={isAbsentToday ? t('employee.absentTodayUndo') : t('employee.markAbsentToday')}
                   onClick={() => onToggleAbsenceToday(employee, isAbsentToday)}
                 >
                   <UserX className="h-4 w-4" />
-                  <span className="sr-only">Nieobecny dziś</span>
+                  <span className="sr-only">{t('employee.absentToday')}</span>
                 </Button>
               )}
               <EmployeeRowActions

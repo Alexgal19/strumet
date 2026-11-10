@@ -6,6 +6,7 @@ import { CalendarClock } from 'lucide-react';
 import { EmployeeCard } from '@/components/planning-cards';
 import type { Employee } from '@/lib/types';
 import { ExpandableList } from './expandable-list';
+import { useI18n } from '@/lib/i18n';
 
 type VacationsCardProps = {
   onVacation: Employee[];
@@ -13,6 +14,7 @@ type VacationsCardProps = {
 };
 
 export function VacationsCard({ onVacation, upcomingVacations }: VacationsCardProps) {
+  const { t } = useI18n();
   const vacationItems = [
     ...onVacation.map((e) => ({
       key: `vac-${e.id}`,
@@ -32,7 +34,7 @@ export function VacationsCard({ onVacation, upcomingVacations }: VacationsCardPr
         <div className="flex items-center gap-2">
           <CalendarClock className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
           <CardTitle className="text-base">
-            Urlopy ({onVacation.length + upcomingVacations.length})
+            {t('dashboard.vacations', { count: onVacation.length + upcomingVacations.length })}
           </CardTitle>
         </div>
       </CardHeader>
@@ -76,7 +78,7 @@ export function VacationsCard({ onVacation, upcomingVacations }: VacationsCardPr
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <CalendarClock className="h-10 w-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">
-              Brak pracowników na urlopie i zaplanowanych urlopów.
+              {t('dashboard.noVacations')}
             </p>
           </div>
         )}

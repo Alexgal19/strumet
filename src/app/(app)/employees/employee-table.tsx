@@ -56,6 +56,7 @@ import { ExcelExportButton } from "@/components/excel-export-button"
 import { cn } from "@/lib/utils"
 import { getStatusColor } from "@/lib/legalization-statuses"
 import { getEmployeeNameParts } from "@/lib/person-name"
+import { useI18n } from "@/lib/i18n"
 
 interface EmployeeTableProps {
   data: Employee[]
@@ -91,6 +92,7 @@ export function EmployeeTable({
   initialSorting = [],
 }: EmployeeTableProps) {
   const [rowSelection, setRowSelection] = React.useState({})
+  const { t } = useI18n()
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
     manager: false,
     cardNumber: false,
@@ -158,8 +160,9 @@ export function EmployeeTable({
             ? new Set(absentTodayMap.keys())
             : undefined,
         status: tableStatus,
+        t,
       }),
-    [onEdit, onTerminate, onRestore, onDelete, onLegalizationEmail, onAbsenceEmail, onDuplicate, handleToggleAbsenceToday, absentTodayMap, tableStatus]
+    [t, onEdit, onTerminate, onRestore, onDelete, onLegalizationEmail, onAbsenceEmail, onDuplicate, handleToggleAbsenceToday, absentTodayMap, tableStatus]
   )
 
   const table = useReactTable({
@@ -301,8 +304,8 @@ export function EmployeeTable({
       return (
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
           <UserX className="h-12 w-12 mb-4" />
-          <h3 className="text-lg font-semibold">Brak pracowników</h3>
-          <p className="text-sm">Nie znaleziono pracowników pasujących do wybranych kryteriów filtrowania.</p>
+          <h3 className="text-lg font-semibold">{t('employee.noEmployees')}</h3>
+          <p className="text-sm">{t('employee.noEmployeesFilter')}</p>
         </div>
       )
     }
@@ -334,15 +337,15 @@ export function EmployeeTable({
               }}
             >
               <SelectTrigger className="h-9 text-xs w-full">
-                <SelectValue placeholder="Sortuj według..." />
+                <SelectValue placeholder={t('employee.sortBy')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="fullName:asc">Nazwisko A-Z</SelectItem>
-                <SelectItem value="fullName:desc">Nazwisko Z-A</SelectItem>
-                <SelectItem value="hireDate:desc">Data zatrudnienia (najnowsze)</SelectItem>
-                <SelectItem value="hireDate:asc">Data zatrudnienia (najstarsze)</SelectItem>
-                <SelectItem value="department:asc">Dział A-Z</SelectItem>
-                <SelectItem value="jobTitle:asc">Stanowisko A-Z</SelectItem>
+                <SelectItem value="fullName:asc">{t('employee.sortNameAsc')}</SelectItem>
+                <SelectItem value="fullName:desc">{t('employee.sortNameDesc')}</SelectItem>
+                <SelectItem value="hireDate:desc">{t('employee.sortHireNewest')}</SelectItem>
+                <SelectItem value="hireDate:asc">{t('employee.sortHireOldest')}</SelectItem>
+                <SelectItem value="department:asc">{t('employee.sortDepartment')}</SelectItem>
+                <SelectItem value="jobTitle:asc">{t('employee.sortJobTitle')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -413,7 +416,7 @@ export function EmployeeTable({
     <div className="flex flex-col h-full bg-background border rounded-lg overflow-hidden animate-in-slide-up">
       {selectedEmployees.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-b bg-primary/5 px-6 py-2.5">
-          <Badge variant="secondary">Zaznaczono: {selectedEmployees.length}</Badge>
+          <Badge variant="secondary">{t('employee.selectedCount', { count: selectedEmployees.length })}</Badge>
           {exportColumns && (
             <ExcelExportButton
               employees={selectedEmployees}
@@ -425,7 +428,7 @@ export function EmployeeTable({
             <>
               <Button variant="outline" size="sm" onClick={handleBulkAbsence} disabled={isBulkWorking}>
                 <CalendarX className="mr-2 h-4 w-4" />
-                Nieobecni dziś
+                {t('employee.bulkAbsent')}
               </Button>
               <Button
                 variant="outline"
@@ -435,7 +438,7 @@ export function EmployeeTable({
                 disabled={isBulkWorking}
               >
                 <Users className="mr-2 h-4 w-4" />
-                Zwolnij zaznaczonych
+                {t('employee.bulkTerminate')}
               </Button>
             </>
           )}
@@ -448,7 +451,7 @@ export function EmployeeTable({
               disabled={isBulkWorking}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
-              Przywróć zaznaczonych
+              {t('employee.bulkRestore')}
             </Button>
           )}
           <Button
@@ -459,11 +462,11 @@ export function EmployeeTable({
             disabled={isBulkWorking}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Usuń trwale
+            {t('employee.deletePermanently')}
           </Button>
           <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setRowSelection({})}>
             <X className="mr-1 h-4 w-4" />
-            Odznacz
+            {t('employee.deselect')}
           </Button>
         </div>
       )}
@@ -564,9 +567,9 @@ export function EmployeeTable({
                 >
                   <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10">
                     <UserX className="h-12 w-12 mb-4" />
-                    <h3 className="text-lg font-semibold">Brak wyników</h3>
+                    <h3 className="text-lg font-semibold">{t('employee.noResults')}</h3>
                     <p className="text-sm max-w-sm">
-                      Nie znaleziono pracowników pasujących do wybranych kryteriów.
+                      {t('employee.noResultsDesc')}
                     </p>
                   </div>
                 </TableCell>
@@ -578,8 +581,7 @@ export function EmployeeTable({
       <div className="flex items-center justify-end space-x-2 py-4 text-sm text-muted-foreground">
         {table.getFilteredSelectedRowModel().rows.length > 0 && (
           <span>
-            Wybrano {table.getFilteredSelectedRowModel().rows.length} z{" "}
-            {table.getFilteredRowModel().rows.length} wierszy.
+            {t('employee.selectedRows', { count: table.getFilteredSelectedRowModel().rows.length, total: table.getFilteredRowModel().rows.length })}
           </span>
         )}
       </div>
@@ -589,17 +591,17 @@ export function EmployeeTable({
           <AlertDialogHeader>
             <AlertDialogTitle>
               {bulkConfirm === 'terminate'
-                ? `Zwolnić ${selectedEmployees.length} zaznaczonych pracowników?`
-                : `Trwale usunąć ${selectedEmployees.length} zaznaczonych pracowników?`}
+                ? t('employee.bulkTerminateTitle', { count: selectedEmployees.length })
+                : t('employee.bulkDeleteTitle', { count: selectedEmployees.length })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {bulkConfirm === 'terminate'
-                ? 'Pracownicy zostaną przeniesieni do archiwum zwolnionych.'
-                : 'Tej akcji nie można cofnąć. Wszyscy zaznaczeni pracownicy i ich dane zostaną trwale usunięci z bazy.'}
+                ? t('employee.bulkTerminateDesc')
+                : t('employee.bulkDeleteDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className={bulkConfirm === 'delete' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
               disabled={isBulkWorking}
@@ -609,7 +611,7 @@ export function EmployeeTable({
                 if (bulkConfirm === 'delete') handleBulkDelete()
               }}
             >
-              {bulkConfirm === 'terminate' ? 'Zwolnij' : 'Usuń trwale'}
+              {bulkConfirm === 'terminate' ? t('employee.terminate') : t('employee.deletePermanently')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

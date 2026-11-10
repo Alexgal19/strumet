@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Employee } from "@/lib/types";
 import { formatDate } from "@/lib/date";
+import { useI18n } from "@/lib/i18n";
 import { User, Briefcase, Building2, Calendar, CreditCard, Globe, ShieldCheck, DoorOpen, Fingerprint, Tag } from "lucide-react";
 
 interface EmployeeSummaryProps {
@@ -36,10 +37,11 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 }
 
 export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
+  const { t } = useI18n();
   const handleTriggerClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     const menuItem = target.closest('[role="menuitem"]');
-    if (menuItem && menuItem.textContent?.includes('Generuj podsumowanie')) {
+    if (menuItem && menuItem.textContent?.includes(t('employee.generateSummary'))) {
       e.preventDefault();
     }
   };
@@ -72,38 +74,38 @@ export function EmployeeSummary({ employee, children }: EmployeeSummaryProps) {
             {employee.fullName}
           </DialogTitle>
           <DialogDescription>
-            Podsumowanie danych pracownika
+            {t('employee.summaryDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-0 py-2">
-          <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Stanowisko" value={employee.jobTitle} />
-          <InfoRow icon={<Building2 className="h-4 w-4" />} label="Dział" value={employee.department} />
-          <InfoRow icon={<User className="h-4 w-4" />} label="Kierownik" value={employee.manager} />
-          <InfoRow icon={<Globe className="h-4 w-4" />} label="Narodowość" value={employee.nationality} />
-          <InfoRow icon={<Calendar className="h-4 w-4" />} label="Data zatrudnienia" value={hireDateFormatted} />
+          <InfoRow icon={<Briefcase className="h-4 w-4" />} label={t('employee.jobTitle')} value={employee.jobTitle} />
+          <InfoRow icon={<Building2 className="h-4 w-4" />} label={t('employee.department')} value={employee.department} />
+          <InfoRow icon={<User className="h-4 w-4" />} label={t('employee.manager')} value={employee.manager} />
+          <InfoRow icon={<Globe className="h-4 w-4" />} label={t('employee.nationality')} value={employee.nationality} />
+          <InfoRow icon={<Calendar className="h-4 w-4" />} label={t('employee.hireDate')} value={hireDateFormatted} />
           <div className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
             <div className="mt-0.5 text-muted-foreground shrink-0"><Calendar className="h-4 w-4" /></div>
             <div className="flex items-center gap-2 flex-wrap">
               <div>
-                <p className="text-xs text-muted-foreground">Umowa do</p>
+                <p className="text-xs text-muted-foreground">{t('employee.contractEndDate')}</p>
                 <p className="text-sm font-medium">{contractEndFormatted || '—'}</p>
               </div>
               {isContractExpiringSoon && contractEndFormatted && (
-                <Badge variant="destructive" className="text-xs">Wygasa wkrótce</Badge>
+                <Badge variant="destructive" className="text-xs">{t('employee.expiresSoon')}</Badge>
               )}
             </div>
           </div>
-          <InfoRow icon={<ShieldCheck className="h-4 w-4" />} label="Status legalizacyjny" value={employee.legalizationStatus} />
-          <InfoRow icon={<CreditCard className="h-4 w-4" />} label="Nr karty" value={employee.cardNumber} />
-          <InfoRow icon={<DoorOpen className="h-4 w-4" />} label="Nr szafki" value={[employee.lockerNumber, employee.lockerNumber2, employee.lockerNumber3].map(v => v?.trim()).filter(Boolean).join(', ')} />
-          <InfoRow icon={<DoorOpen className="h-4 w-4" />} label="Nr szafki w dziale" value={employee.departmentLockerNumber} />
-          <InfoRow icon={<Tag className="h-4 w-4" />} label="Nr pieczęci" value={employee.sealNumber} />
+          <InfoRow icon={<ShieldCheck className="h-4 w-4" />} label={t('employee.legalizationStatus')} value={employee.legalizationStatus} />
+          <InfoRow icon={<CreditCard className="h-4 w-4" />} label={t('employee.cardNumber')} value={employee.cardNumber} />
+          <InfoRow icon={<DoorOpen className="h-4 w-4" />} label={t('employee.lockerNumber')} value={[employee.lockerNumber, employee.lockerNumber2, employee.lockerNumber3].map(v => v?.trim()).filter(Boolean).join(', ')} />
+          <InfoRow icon={<DoorOpen className="h-4 w-4" />} label={t('employee.departmentLockerNumber')} value={employee.departmentLockerNumber} />
+          <InfoRow icon={<Tag className="h-4 w-4" />} label={t('employee.sealNumber')} value={employee.sealNumber} />
         </div>
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button type="button" variant="secondary">Zamknij</Button>
+            <Button type="button" variant="secondary">{t('common.close')}</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

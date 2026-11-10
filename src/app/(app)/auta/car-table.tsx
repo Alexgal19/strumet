@@ -36,6 +36,7 @@ import { Car } from "@/lib/types"
 import { getColumns } from "./columns"
 import { formatDate, parseMaybeDate } from "@/lib/date"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useI18n } from "@/lib/i18n"
 
 interface CarTableProps {
   data: Car[]
@@ -64,10 +65,9 @@ function getExpiryStatus(dateStr: string | null | undefined): 'ok' | 'warning' |
   return 'ok';
 }
 
-function renderMobileStatusRow(dateStr: string | null | undefined, type: 'insurance' | 'inspection') {
+function renderMobileStatusRow(dateStr: string | null | undefined, type: 'insurance' | 'inspection', label: string) {
   const status = getExpiryStatus(dateStr);
   const formatted = formatDate(dateStr, "dd.MM.yyyy");
-  const label = type === 'insurance' ? 'Ubezpieczenie' : 'Przegląd';
 
   if (status === 'none') {
     return (
@@ -110,6 +110,7 @@ export function CarTable({
   onDelete,
 }: CarTableProps) {
   const [rowSelection, setRowSelection] = React.useState({})
+  const { t } = useI18n()
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -122,8 +123,9 @@ export function CarTable({
         onRestore,
         onDelete,
         status: tableStatus,
+        t,
       }),
-    [onEdit, onTerminate, onRestore, onDelete, tableStatus]
+    [onEdit, onTerminate, onRestore, onDelete, tableStatus, t]
   )
 
   const table = useReactTable({
@@ -171,7 +173,7 @@ export function CarTable({
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 bg-card/50 rounded-xl border border-border/50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground font-medium">Ładowanie danych aut...</p>
+        <p className="text-sm text-muted-foreground font-medium">{t('cars.loading')}</p>
       </div>
     )
   }
@@ -182,7 +184,7 @@ export function CarTable({
         {data.length === 0 ? (
           <div className="rounded-xl border bg-card/50 h-32 flex flex-col items-center justify-center gap-2 text-muted-foreground">
             <CarIcon className="h-8 w-8 opacity-20" />
-            <p className="text-sm">Brak aut w bazie.</p>
+            <p className="text-sm">{t('cars.noCars')}</p>
           </div>
         ) : (
           data.map((car) => (
@@ -191,19 +193,19 @@ export function CarTable({
                 <span className="font-bold text-base uppercase tracking-wider">{car.registrationNumber}</span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label="Akcje">
+                    <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={t('common.actions')}>
                       <MoreVertical className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem className="min-h-[48px]" onClick={() => onEdit(car)}>
-                      Edytuj
+                      {t('common.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="min-h-[48px] text-destructive focus:text-destructive"
                       onClick={() => onDelete(car)}
                     >
-                      Usuń
+                      {t('common.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -213,13 +215,13 @@ export function CarTable({
                 {car.driverFullName ? (
                   <span className="font-medium text-primary">{car.driverFullName}</span>
                 ) : (
-                  <span className="text-muted-foreground italic">Brak kierowcy</span>
+                  <span className="text-muted-foreground italic">{t('cars.noDriver')}</span>
                 )}
               </div>
               {tableStatus === 'active' && (
                 <div className="flex flex-col gap-1.5 pt-2 border-t border-border/50">
-                  {renderMobileStatusRow(car.insuranceEndDate, 'insurance')}
-                  {renderMobileStatusRow(car.inspectionEndDate, 'inspection')}
+                  {renderMobileStatusRow(car.insuranceEndDate, 'insurance', t('cars.insurance'))}
+                  {renderMobileStatusRow(car.inspectionEndDate, 'inspection', t('cars.inspection'))}
                 </div>
               )}
             </Card>
@@ -302,7 +304,7 @@ export function CarTable({
                 >
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     <CarIcon className="h-8 w-8 opacity-20" />
-                    <p>Brak aut w tej zakładce.</p>
+                    <p>{t('cars.noCarsTab')}</p>
                   </div>
                 </TableCell>
               </TableRow>

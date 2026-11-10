@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { getFirebaseServices } from "@/lib/firebase";
 import { signInWithEmailAndPassword, type Auth } from "firebase/auth";
+import { useI18n } from "@/lib/i18n";
+import { LanguageToggle } from "@/components/language-toggle";
 
 
 interface BeforeInstallPromptEvent extends Event {
@@ -26,6 +28,7 @@ interface BeforeInstallPromptEvent extends Event {
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -48,8 +51,8 @@ export default function LoginPage() {
         setError(e.message || "Failed to initialize Firebase services.");
         toast({
           variant: "destructive",
-          title: "Błąd krytyczny",
-          description: e.message || "Nie udało się połączyć z usługami Firebase.",
+          title: t('auth.criticalError'),
+          description: e.message || t('auth.firebaseFailed'),
         })
       } finally {
         setIsLoading(false);
@@ -76,7 +79,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) {
-      setError("Usługi uwierzytelniania nie są gotowe. Spróbuj ponownie za chwilę.");
+      setError(t('auth.authNotReady'));
       return;
     }
     setError('');
@@ -84,20 +87,20 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      toast({ title: 'Sukces', description: 'Zalogowano pomyślnie.' });
+      toast({ title: t('common.success'), description: t('auth.loggedIn') });
       router.push("/");
     } catch (error: any) {
-      let errorMessage = "Wystąpił błąd podczas logowania.";
+      let errorMessage = t('auth.loginError');
       // Simplified error handling
       if (error.code) {
         switch (error.code) {
           case 'auth/user-not-found':
           case 'auth/wrong-password':
           case 'auth/invalid-credential':
-            errorMessage = 'Nieprawidłowy email lub hasło.';
+            errorMessage = t('auth.wrongCredentials');
             break;
           case 'auth/invalid-email':
-            errorMessage = 'Nieprawidłowy format adresu email.';
+            errorMessage = t('auth.invalidEmail');
             break;
           default:
             errorMessage = error.message || errorMessage;
@@ -119,15 +122,15 @@ export default function LoginPage() {
     if (!deferredPrompt) {
       toast({
         variant: 'destructive',
-        title: 'Błąd',
-        description: 'Nie można zainstalować aplikacji w tym momencie. Spróbuj otworzyć stronę w Chrome lub Edge.',
+        title: t('common.error'),
+        description: t('auth.installUnavailable'),
       });
       return;
     }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      toast({ title: 'Sukces', description: 'Aplikacja została zainstalowana.' });
+      toast({ title: t('common.success'), description: t('auth.installed') });
     }
     setDeferredPrompt(null);
   };
@@ -140,6 +143,10 @@ export default function LoginPage() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-500/20 rounded-full blur-[100px] animate-pulse delay-1000" />
       </div>
 
+      <div className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-20">
+        <LanguageToggle />
+      </div>
+
       <div className="z-10 w-full max-w-sm animate-in fade-in slide-in-from-bottom-5 duration-500">
         <Card className="w-full border-0 bg-card/50 backdrop-blur-xl shadow-2xl ring-1 ring-border">
           <CardHeader className="text-center space-y-4 pb-6">
@@ -148,13 +155,13 @@ export default function LoginPage() {
             </div>
             <div className="space-y-1">
               <CardTitle className="text-3xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">Baza-ST</CardTitle>
-              <CardDescription className="text-muted-foreground text-base">Zaloguj się, aby zarządzać personelem</CardDescription>
+              <CardDescription className="text-muted-foreground text-base">{t('auth.subtitle')}</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium ml-1">Email</Label>
+                <Label htmlFor="email" className="text-sm font-medium ml-1">{t('auth.email')}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -168,7 +175,7 @@ export default function LoginPage() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium ml-1">Hasło</Label>
+                  <Label htmlFor="password" className="text-sm font-medium ml-1">{t('auth.password')}</Label>
                 </div>
                 <Input
                   id="password"
@@ -191,7 +198,7 @@ export default function LoginPage() {
                 className="w-full h-11 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25 transition-all text-base font-medium"
                 disabled={isLoading}
               >
-                {isLoading ? <Loader2 className="animate-spin" /> : "Zaloguj się"}
+                {isLoading ? <Loader2 className="animate-spin" /> : t('auth.login')}
               </Button>
             </form>
 
@@ -200,7 +207,7 @@ export default function LoginPage() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-transparent px-2 text-muted-foreground">Lub</span>
+                <span className="bg-transparent px-2 text-muted-foreground">{t('auth.or')}</span>
               </div>
             </div>
 
@@ -211,13 +218,13 @@ export default function LoginPage() {
               onClick={() => router.push('/harmonogram')}
             >
               <User className="mr-2 h-4 w-4" />
-              Wejdź jako gość
+              {t('auth.guest')}
             </Button>
 
             <div className="text-center text-sm">
-              <span className="text-muted-foreground">Nie masz konta? </span>
+              <span className="text-muted-foreground">{t('auth.noAccount')} </span>
               <Link href="/register" className="text-primary hover:text-primary/80 font-semibold transition-colors">
-                Zarejestruj się
+                {t('auth.register')}
               </Link>
             </div>
 
@@ -225,7 +232,7 @@ export default function LoginPage() {
               <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <Button variant="outline" className="w-full h-11" onClick={handleInstallClick}>
                   <Download className="mr-2 h-4 w-4" />
-                  Zainstaluj aplikację
+                  {t('auth.install')}
                 </Button>
               </div>
             )}
@@ -233,9 +240,9 @@ export default function LoginPage() {
             <Dialog open={isIOSOpen} onOpenChange={setIsIOSOpen}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Instalacja na iOS</DialogTitle>
+                  <DialogTitle>{t('auth.iosTitle')}</DialogTitle>
                   <DialogDescription>
-                    Aby zainstalować aplikację na swoim urządzeniu iOS, wykonaj następujące kroki:
+                    {t('auth.iosIntro')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col space-y-4 py-4">
@@ -244,7 +251,7 @@ export default function LoginPage() {
                       <Share className="h-5 w-5" />
                     </div>
                     <div className="text-sm">
-                      1. Kliknij przycisk <span className="font-semibold">Udostępnij</span> w pasku nawigacji Safari.
+                      {t('auth.ios1a')} <span className="font-semibold">{t('auth.ios1b')}</span> {t('auth.ios1c')}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -252,7 +259,7 @@ export default function LoginPage() {
                       <PlusSquare className="h-5 w-5" />
                     </div>
                     <div className="text-sm">
-                      2. Wybierz opcję <span className="font-semibold">Do ekranu początkowego</span>.
+                      {t('auth.ios2a')} <span className="font-semibold">{t('auth.ios2b')}</span>{t('auth.ios2c')}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -260,7 +267,7 @@ export default function LoginPage() {
                       <span className="font-bold">3</span>
                     </div>
                     <div className="text-sm">
-                      3. Kliknij <span className="font-semibold">Dodaj</span> w prawym górnym rogu.
+                      {t('auth.ios3a')} <span className="font-semibold">{t('auth.ios3b')}</span> {t('auth.ios3c')}
                     </div>
                   </div>
                 </div>

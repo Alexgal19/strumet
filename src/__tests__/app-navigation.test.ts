@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ALL_NAV_ITEMS, getPageTitle, getPrimaryItems, getVisibleSections,
+  ALL_NAV_ITEMS, getPageTitleKey, getPrimaryItems, getVisibleSections,
   isNavItemActive,
 } from '@/components/app-navigation';
 
@@ -40,8 +40,9 @@ describe('shared application navigation', () => {
   it('matches route boundaries and labels nested routes', () => {
     expect(isNavItemActive('/wydawanie-odziezy-nowi', '/wydawanie-odziezy')).toBe(false);
     expect(isNavItemActive('/szablony-email/example', '/szablony-email')).toBe(true);
-    expect(getPageTitle('/rekrutacja')).toBe('Rekrutacja');
-    expect(getPageTitle('/harmonogram')).toBe('Obsada');
+    expect(getPageTitleKey('/rekrutacja')).toBe('nav.rekrutacja');
+    expect(getPageTitleKey('/harmonogram')).toBe('nav.harmonogram');
+    expect(getPageTitleKey('/nieznana')).toBeNull();
   });
 
   it('has a menu entry for every list page in src/app/(app)', () => {

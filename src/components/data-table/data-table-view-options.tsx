@@ -12,31 +12,34 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import { useI18n, type TranslationKey } from "@/lib/i18n"
 
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>
 }
 
 /** Czytelne nazwy kolumn — zamiast surowych identyfikatorów z tabeli. */
-const COLUMN_LABELS: Record<string, string> = {
-  lastName: "Nazwisko",
-  firstName: "Imię",
-  hireDate: "Data zatrudnienia",
-  contractEndDate: "Umowa do",
-  terminationDate: "Data zwolnienia",
-  daysWorked: "Przepracowane dni",
-  jobTitle: "Stanowisko",
-  department: "Dział",
-  manager: "Kierownik",
-  cardNumber: "Nr karty",
-  nationality: "Narodowość",
-  welderLicense: "Licencja spawacza",
-  legalizationStatus: "Status legalizacyjny",
+const COLUMN_LABELS: Record<string, TranslationKey> = {
+  lastName: "employee.lastName",
+  firstName: "employee.firstName",
+  hireDate: "employee.hireDate",
+  contractEndDate: "employee.contractEndDate",
+  terminationDate: "employee.terminationDate",
+  daysWorked: "employee.daysWorked",
+  terminationReason: "employee.terminationReason",
+  jobTitle: "employee.jobTitle",
+  department: "employee.department",
+  manager: "employee.manager",
+  cardNumber: "employee.cardNumber",
+  nationality: "employee.nationality",
+  welderLicense: "employee.welderLicense",
+  legalizationStatus: "employee.legalizationStatus",
 }
 
 export function DataTableViewOptions<TData>({
   table,
 }: DataTableViewOptionsProps<TData>) {
+  const { t } = useI18n()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -46,11 +49,11 @@ export function DataTableViewOptions<TData>({
           className="ml-auto"
         >
           <Settings2 className="mr-2 h-4 w-4" />
-          Kolumny
+          {t('employee.columns')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
-        <DropdownMenuLabel>Wybór kolumn</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('employee.chooseColumns')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {table
           .getAllColumns()
@@ -65,7 +68,7 @@ export function DataTableViewOptions<TData>({
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
               >
-                {COLUMN_LABELS[column.id] ?? column.id}
+                {COLUMN_LABELS[column.id] ? t(COLUMN_LABELS[column.id]) : column.id}
               </DropdownMenuCheckboxItem>
             )
           })}

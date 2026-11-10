@@ -15,6 +15,7 @@ import {
 import { getDashboardActions } from '@/lib/dashboard-actions';
 import { buildHarmonogram, type HarmonogramData } from '@/lib/harmonogram';
 import type { Employee, FingerprintAppointment } from '@/lib/types';
+import { useI18n } from '@/lib/i18n';
 
 interface DashboardActionCardsProps {
   employees: Employee[];
@@ -30,16 +31,8 @@ interface ShortageSummary {
 const cardClass =
   'glass-card group flex min-w-0 flex-col justify-between gap-3 rounded-3xl p-4 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-function plural(count: number, one: string, few: string, many: string): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (count === 1) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-  return many;
-}
-
-function namesPreview(items: { fullName: string }[]): string {
-  if (items.length === 0) return 'Brak w tym tygodniu';
+function namesPreview(items: { fullName: string }[], emptyText: string): string {
+  if (items.length === 0) return emptyText;
   const preview = items.slice(0, 2).map((item) => item.fullName).join(', ');
   return items.length > 2 ? `${preview} +${items.length - 2}` : preview;
 }
@@ -54,6 +47,7 @@ export function DashboardActionCards({
     [employees, fingerprintAppointments]
   );
 
+  const { t, tp } = useI18n();
   const [shortage, setShortage] = useState<ShortageSummary | null>(null);
   const [shortageFailed, setShortageFailed] = useState(false);
 
@@ -88,14 +82,14 @@ export function DashboardActionCards({
 
   const shortageValue = isLoading ? '—' : shortage ? String(shortage.missing) : '—';
   const shortageHint = isLoading
-    ? 'Wczytywanie…'
+    ? t('dashboard.loading')
     : shortageFailed
-      ? 'Otwórz Obsadę, aby zobaczyć braki'
+      ? t('dashboard.openStaffing')
       : shortage === null
-        ? 'Liczę braki…'
+        ? t('dashboard.countingGaps')
         : shortage.missing === 0
-          ? 'Komplet obsady'
-          : `${shortage.positions} ${plural(shortage.positions, 'stanowisko', 'stanowiska', 'stanowisk')} bez pełnej obsady`;
+          ? t('dashboard.fullyStaffed')
+          : tp('dashboard.positionsShort', shortage.positions);
   const hasShortage = !isLoading && !!shortage && shortage.missing > 0;
 
   const terminationsCount = isLoading ? '—' : String(actions.terminationsThisWeek.length);
@@ -104,19 +98,19 @@ export function DashboardActionCards({
   const reminderRows = [
     {
       href: '/terminy?tab=umowy',
-      label: 'Umowy do 30 dni',
+      label: t('dashboard.contracts30'),
       count: actions.expiringContracts.length,
       icon: FileClock,
     },
     {
       href: '/terminy?tab=odciski',
-      label: 'Odciski palców',
+      label: t('dashboard.fingerprints'),
       count: actions.upcomingAppointments.length,
       icon: Fingerprint,
     },
     {
       href: '/terminy?tab=zwolnienia',
-      label: 'Zaplanowane zwolnienia',
+      label: t('dashboard.plannedTerminations'),
       count: actions.plannedTerminations.length,
       icon: CalendarClock,
     },
@@ -127,10 +121,10 @@ export function DashboardActionCards({
     <section className="space-y-3" aria-labelledby="dashboard-actions-title">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <h2 id="dashboard-actions-title" className="text-xl font-bold tracking-tight">
-          Wymaga działania
+          {t('dashboard.actionsTitle')}
         </h2>
         <p className="text-xs text-muted-foreground">
-          Kliknij kafel, aby otworzyć listę z włączonym filtrem.
+          {t('dashboard.actionsHint')}
         </p>
       </div>
 
@@ -138,10 +132,10 @@ export function DashboardActionCards({
         <Link
           href="/harmonogram?braki=1"
           className={cardClass}
-          aria-label={`Braki dziś: ${shortageValue}`}
+          aria-label={t('dashboard.gapsTodayLabel', { value: shortageValue })}
         >
           <div className="flex items-start justify-between gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Braki dziś</span>
+            <span className="text-sm font-medium text-muted-foreground">{t('dashboard.gapsToday')}</span>
             <AlertTriangle
               className={hasShortage ? 'h-5 w-5 shrink-0 text-destructive' : 'h-5 w-5 shrink-0 text-emerald-600'}
             />
@@ -163,18 +157,18 @@ export function DashboardActionCards({
         <Link
           href="/terminy?tab=zwolnienia"
           className={cardClass}
-          aria-label={`Zwolnienia w tym tygodniu: ${terminationsCount}`}
+          aria-label={t('dashboard.terminationsWeekLabel', { value: terminationsCount })}
         >
           <div className="flex items-start justify-between gap-2">
             <span className="text-sm font-medium text-muted-foreground">
-              Zwolnienia w tym tygodniu
+              {t('dashboard.terminationsWeek')}
             </span>
             <UserX className="h-5 w-5 shrink-0 text-amber-600" />
           </div>
           <div>
             <span className="text-3xl font-bold tabular-nums">{terminationsCount}</span>
             <p className="mt-1 truncate text-xs leading-snug text-muted-foreground">
-              {isLoading ? 'Wczytywanie…' : namesPreview(actions.terminationsThisWeek)}
+              {isLoading ? t('dashboard.loading') : namesPreview(actions.terminationsThisWeek, t('dashboard.noneThisWeek'))}
             </p>
           </div>
         </Link>
@@ -182,25 +176,25 @@ export function DashboardActionCards({
         <Link
           href="/aktywni?zatrudnienie=tydzien"
           className={cardClass}
-          aria-label={`Przyjęcia w tym tygodniu: ${hiresCount}`}
+          aria-label={t('dashboard.hiresWeekLabel', { value: hiresCount })}
         >
           <div className="flex items-start justify-between gap-2">
             <span className="text-sm font-medium text-muted-foreground">
-              Przyjęcia w tym tygodniu
+              {t('dashboard.hiresWeek')}
             </span>
             <UserPlus className="h-5 w-5 shrink-0 text-emerald-600" />
           </div>
           <div>
             <span className="text-3xl font-bold tabular-nums">{hiresCount}</span>
             <p className="mt-1 truncate text-xs leading-snug text-muted-foreground">
-              {isLoading ? 'Wczytywanie…' : namesPreview(actions.hiresThisWeek)}
+              {isLoading ? t('dashboard.loading') : namesPreview(actions.hiresThisWeek, t('dashboard.noneThisWeek'))}
             </p>
           </div>
         </Link>
 
         <div className={cardClass}>
           <div className="flex items-start justify-between gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Przypomnienia</span>
+            <span className="text-sm font-medium text-muted-foreground">{t('dashboard.reminders')}</span>
             <Bell className="h-5 w-5 shrink-0 text-primary" />
           </div>
           <ul className="space-y-1">
@@ -225,7 +219,7 @@ export function DashboardActionCards({
             })}
           </ul>
           <p className="text-xs text-muted-foreground">
-            Łącznie {isLoading ? '—' : remindersTotal} w najbliższych 30 dniach
+            {t('dashboard.remindersTotal', { value: isLoading ? '—' : remindersTotal })}
           </p>
         </div>
       </div>

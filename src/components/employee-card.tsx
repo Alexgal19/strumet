@@ -18,6 +18,7 @@ import { haptic } from "@/lib/haptics";
 import { vacationHasStarted, parseMaybeDate, formatDate } from "@/lib/date";
 import { EmployeeSummary } from "./employee-summary";
 import { getStatusColor } from "@/lib/legalization-statuses";
+import { useI18n } from "@/lib/i18n";
 
 const isPlannedTermination = (employee: Employee): boolean => {
   const planned = parseMaybeDate(employee.plannedTerminationDate);
@@ -73,6 +74,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
   isAbsentToday,
   onToggleAbsenceToday,
 }: EmployeeCardProps) {
+  const { t } = useI18n();
   const initial = employee.fullName?.charAt(0)?.toUpperCase() ?? '?';
   const avatarColor = getAvatarColor(employee.fullName ?? '');
   const onVacation = vacationHasStarted(employee.vacationStartDate);
@@ -161,7 +163,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
             )}
           >
             <CalendarX className="h-4 w-4" />
-            {isAbsentToday ? 'Obecny' : 'Nieobecny'}
+            {isAbsentToday ? t('employee.present') : t('employee.absent')}
           </button>
         </div>
       )}
@@ -178,7 +180,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
               className="flex w-[76px] flex-col items-center justify-center gap-1 bg-emerald-600 text-xs font-semibold text-white"
             >
               <RotateCcw className="h-4 w-4" />
-              Przywróć
+              {t('common.restore')}
             </button>
           )}
           {onTerminate && (
@@ -190,7 +192,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
               className="flex w-[76px] flex-col items-center justify-center gap-1 bg-amber-600 text-xs font-semibold text-white"
             >
               <UserX className="h-4 w-4" />
-              Zwolnij
+              {t('employee.terminate')}
             </button>
           )}
         </div>
@@ -237,17 +239,17 @@ export const EmployeeCard = React.memo(function EmployeeCard({
               {onVacation && (
                 <span
                   className="animate-pulse inline-flex rounded-full bg-pink-500 px-2 py-0.5 text-xs font-semibold text-white"
-                  title={`Na urlopie${employee.vacationEndDate ? ` do ${formatDate(employee.vacationEndDate)}` : ''}`}
+                  title={employee.vacationEndDate ? t('employee.onVacationUntil', { date: formatDate(employee.vacationEndDate) }) : t('employee.onVacation')}
                 >
-                  URLOP
+                  {t('employee.onVacationBadge')}
                 </span>
               )}
               {plannedTerm && (
                 <span
                   className="inline-flex rounded-full border border-orange-500/60 px-2 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400"
-                  title={`Planowane zwolnienie: ${formatDate(employee.plannedTerminationDate)}`}
+                  title={t('employee.plannedTermination', { date: formatDate(employee.plannedTerminationDate) })}
                 >
-                  Zwalnia się
+                  {t('employee.leaving')}
                 </span>
               )}
             </div>
@@ -263,7 +265,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
                 ? 'border-destructive/40 bg-destructive text-destructive-foreground'
                 : 'border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
             )}
-            title={isAbsentToday ? 'Nieobecny dziś — kliknij, aby cofnąć' : 'Oznacz jako nieobecny dziś'}
+            title={isAbsentToday ? t('employee.absentTodayUndo') : t('employee.markAbsentToday')}
             onClick={(e) => {
               e.stopPropagation();
               haptic(10);
@@ -271,7 +273,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
             }}
           >
             <UserX className="h-4 w-4" />
-            {isAbsentToday ? 'Nieobecny' : 'Nieob.'}
+            {isAbsentToday ? t('employee.absent') : t('employee.absentShort')}
           </button>
         )}
 
@@ -283,45 +285,45 @@ export const EmployeeCard = React.memo(function EmployeeCard({
               onClick={e => e.stopPropagation()}
             >
               <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Akcje</span>
+              <span className="sr-only">{t('common.actions')}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Akcje</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
             {onEdit && (
               <DropdownMenuItem onSelect={onEdit}>
-                <Edit className="mr-2 h-4 w-4" />Edytuj
+                <Edit className="mr-2 h-4 w-4" />{t('common.edit')}
               </DropdownMenuItem>
             )}
             {onLegalizationEmail && (
               <DropdownMenuItem onSelect={onLegalizationEmail}>
-                <Mail className="mr-2 h-4 w-4" />Wniosek do Legalizacji
+                <Mail className="mr-2 h-4 w-4" />{t('employee.legalizationRequest')}
               </DropdownMenuItem>
             )}
             {onAbsenceEmail && (
               <DropdownMenuItem onSelect={onAbsenceEmail}>
-                <Mail className="mr-2 h-4 w-4" />Zgłoś nieobecność
+                <Mail className="mr-2 h-4 w-4" />{t('employee.reportAbsence')}
               </DropdownMenuItem>
             )}
             <EmployeeSummary employee={employee}>
               <DropdownMenuItem onSelect={e => e.preventDefault()}>
-                <Briefcase className="mr-2 h-4 w-4" />Generuj podsumowanie
+                <Briefcase className="mr-2 h-4 w-4" />{t('employee.generateSummary')}
               </DropdownMenuItem>
             </EmployeeSummary>
             <DropdownMenuSeparator />
             {onRestore && (
               <DropdownMenuItem onSelect={onRestore}>
-                <RotateCcw className="h-4 w-4" />Przywróć
+                <RotateCcw className="h-4 w-4" />{t('common.restore')}
               </DropdownMenuItem>
             )}
             {onTerminate && (
               <DropdownMenuItem onSelect={onTerminate} className="text-destructive">
-                <UserX className="h-4 w-4" />Zwolnij
+                <UserX className="h-4 w-4" />{t('employee.terminate')}
               </DropdownMenuItem>
             )}
             {onDeletePermanently && (
               <DropdownMenuItem onSelect={onDeletePermanently} className="text-destructive">
-                <Trash2 className="h-4 w-4" />Usuń trwale
+                <Trash2 className="h-4 w-4" />{t('employee.deletePermanently')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

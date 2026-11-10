@@ -4,6 +4,7 @@ import { excelLikeMatch } from '@/lib/search';
 import { normalizeLockerLabel } from '@/lib/lockers';
 import type { LockerPosition, LockerZone } from './locker-types';
 import { LockerBox } from './locker-box';
+import { useI18n } from '@/lib/i18n';
 
 export interface LockerRow {
   key: string;
@@ -53,6 +54,7 @@ export function ZoneView({
   onEdit: (id: string | null) => void;
   onChange: (id: string, val: string) => void;
 }) {
+  const { t } = useI18n();
   const query = highlightQuery.trim();
   const labelOf = (l: LockerPosition) => labels[l.id] ?? l.defaultLabel;
   const occupantsOf = (l: LockerPosition) => occupancy[normalizeLockerLabel(labelOf(l))] ?? [];
@@ -66,9 +68,9 @@ export function ZoneView({
         return (
           <div key={row.key} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
             <div className="flex items-baseline gap-2 sm:w-32 sm:shrink-0 sm:flex-col sm:gap-0.5">
-              <span className="text-sm font-semibold">Rząd {idx + 1}</span>
+              <span className="text-sm font-semibold">{t('lockers.row', { n: idx + 1 })}</span>
               <span className="text-xs text-muted-foreground">
-                {row.lockers.length > 1 ? `${first} – ${last}` : first} · {taken}/{row.lockers.length} zajęte
+                {row.lockers.length > 1 ? `${first} – ${last}` : first} · {t('lockers.rowTaken', { taken, total: row.lockers.length })}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">

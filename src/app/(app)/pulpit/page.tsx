@@ -10,7 +10,7 @@ import { AbsentOverview } from '@/components/absent-overview';
 import { AbsenceDateSearchCard } from '@/components/absence-date-search-card';
 import { DashboardActionCards } from '@/components/dashboard-action-cards';
 import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { useI18n } from '@/lib/i18n';
 import { DashboardSkeleton } from '@/components/pulpit/dashboard-skeleton';
 import { KpiCards } from '@/components/pulpit/kpi-cards';
 import { VacationsCard } from '@/components/pulpit/vacations-card';
@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const { employees: activeEmployees, isLoading: isEmployeesLoading } =
     useEmployees('aktywny');
   const isMobile = useIsMobile();
+  const { t, dateLocale } = useI18n();
   const [activeTab, setActiveTab] = useState('dzis');
   const isLoading = isContextLoading || isEmployeesLoading;
 
@@ -59,10 +60,9 @@ export default function DashboardPage() {
   const absentSection = (
     <div className="space-y-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-bold tracking-tight">Nieobecni</h2>
+        <h2 className="text-xl font-bold tracking-tight">{t('dashboard.absentTitle')}</h2>
         <p className="text-xs text-muted-foreground">
-          Dane zapisują się na stałe — historia pozostaje dostępna po zmianie
-          miesiąca.
+          {t('dashboard.absentNote')}
         </p>
       </div>
       <AbsentOverview
@@ -105,13 +105,13 @@ export default function DashboardPage() {
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid h-auto w-full grid-cols-2">
         <TabsTrigger value="dzis" className="min-h-[48px] text-xs sm:text-sm">
-          Dziś
+          {t('dashboard.tabToday')}
         </TabsTrigger>
         <TabsTrigger
           value="statystyki"
           className="min-h-[48px] text-xs sm:text-sm"
         >
-          Statystyki
+          {t('dashboard.tabStats')}
         </TabsTrigger>
       </TabsList>
       <TabsContent value="dzis" className="mt-6">
@@ -134,10 +134,8 @@ export default function DashboardPage() {
     <div className="min-h-full flex flex-col w-full space-y-8 pb-8">
       {/* Header */}
       <PageHeader
-        title={`Dzień dobry — ${format(new Date(), 'EEEE, d MMMM', {
-          locale: pl,
-        })}`}
-        description="Podsumowanie dnia, kluczowe wskaźniki i nadchodzące zdarzenia."
+        title={t('dashboard.greeting', { date: format(new Date(), 'EEEE, d MMMM', { locale: dateLocale }) })}
+        description={t('dashboard.pageDesc')}
       />
 
       <DashboardActionCards
