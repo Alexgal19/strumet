@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
 import { Employee } from "@/lib/types"
-import { formatDate, parseMaybeDate, vacationHasStarted } from "@/lib/date"
+import { formatDate, parseMaybeDate, isOnVacation } from "@/lib/date"
 import { getStatusColor } from "@/lib/legalization-statuses"
 import { cn } from "@/lib/utils"
 import { Copy, UserX } from "lucide-react"
@@ -106,7 +106,7 @@ export function getColumns({
       cell: ({ row }) => {
         const employee = row.original;
         const { lastName } = getEmployeeNameParts(employee);
-        const onVacation = vacationHasStarted(employee.vacationStartDate);
+        const onVacation = isOnVacation(employee.vacationStartDate, employee.vacationEndDate);
         const plannedTerm = isPlannedTermination(employee);
         return (
           <div className="flex items-center gap-1.5">

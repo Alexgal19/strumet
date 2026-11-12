@@ -25,7 +25,7 @@ import { useAppContext } from '@/context/app-context';
 import { useEmployees } from '@/hooks/use-employees';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { parseMaybeDate, vacationHasStarted } from '@/lib/date';
+import { parseMaybeDate, isOnVacation } from '@/lib/date';
 import type { Employee, Stats } from '@/lib/types';
 import { EmployeeEditOverlay } from './employee-edit-overlay';
 
@@ -94,7 +94,7 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
             totalJobTitles: Object.keys(jobCounts).length,
         };
 
-        const onVacationCount = activeEmployees.filter(e => vacationHasStarted(e.vacationStartDate)).length;
+        const onVacationCount = activeEmployees.filter(e => isOnVacation(e.vacationStartDate, e.vacationEndDate)).length;
         const todayMidnight = new Date();
         todayMidnight.setHours(0, 0, 0, 0);
         const plannedTerminationCount = activeEmployees.filter(e => {
@@ -197,7 +197,7 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
                                         {emps.map(employee => (<button key={employee.id} className={cn("flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-2 text-sm text-left", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={isAdmin ? () => handleEmployeeClick(employee) : undefined}>
                                             <span className="flex items-center gap-1.5">
                                                 {employee.fullName}
-                                                {vacationHasStarted(employee.vacationStartDate) && (
+                                                {isOnVacation(employee.vacationStartDate, employee.vacationEndDate) && (
                                                     <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-xs font-semibold text-white">{t('stats.leave')}</span>
                                                 )}
                                                 {(() => {
@@ -223,7 +223,7 @@ export const ReportTab = forwardRef<unknown, {}>((_, ref) => {
         return employeesToShow.map(employee => (<button key={employee.id} className={cn("flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-2 text-sm text-left", isAdmin && "hover:bg-muted/50 cursor-pointer")} onClick={isAdmin ? () => handleEmployeeClick(employee) : undefined}>
             <span className="flex items-center gap-1.5 font-medium">
                 {employee.fullName}
-                {vacationHasStarted(employee.vacationStartDate) && (
+                {isOnVacation(employee.vacationStartDate, employee.vacationEndDate) && (
                     <span className="animate-pulse rounded-full bg-pink-500 px-1.5 py-0.5 text-xs font-semibold text-white">{t('stats.leave')}</span>
                 )}
                 {(() => {

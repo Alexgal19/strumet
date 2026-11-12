@@ -256,6 +256,19 @@ export function vacationIsOver(
 }
 
 /**
+ * Checks whether an employee is currently on vacation: the start day has been
+ * reached and the end day (last day of vacation, inclusive) has not yet passed.
+ * When no end date is set, the vacation is treated as open-ended.
+ */
+export function isOnVacation(
+  start: Date | string | number | null | undefined,
+  end: Date | string | number | null | undefined,
+  now: Date = new Date()
+): boolean {
+  return vacationHasStarted(start, now) && !vacationIsOver(end, now);
+}
+
+/**
  * Checks whether "now" falls within the vacation interval [start, end] (both inclusive).
  */
 export function isWithinVacation(

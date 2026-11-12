@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Employee } from '@/lib/types';
 import { useAppContext } from '@/context/app-context';
-import { vacationHasStarted } from '@/lib/date';
+import { isOnVacation } from '@/lib/date';
 import { isActiveEmployee, isEffectivelyTerminated } from '@/lib/employee-status';
 import { startOfDay } from 'date-fns';
 
@@ -26,7 +26,7 @@ export const useEmployees = (
       });
     }
     if (excludeOnVacation) {
-      result = result.filter((e: Employee) => !vacationHasStarted(e.vacationStartDate));
+      result = result.filter((e: Employee) => !isOnVacation(e.vacationStartDate, e.vacationEndDate));
     }
     return result;
   }, [employees, status, excludeOnVacation]);

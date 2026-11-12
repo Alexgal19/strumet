@@ -15,7 +15,7 @@ import {
 import type { Employee } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/lib/haptics";
-import { vacationHasStarted, parseMaybeDate, formatDate } from "@/lib/date";
+import { isOnVacation, parseMaybeDate, formatDate } from "@/lib/date";
 import { EmployeeSummary } from "./employee-summary";
 import { getStatusColor } from "@/lib/legalization-statuses";
 import { useI18n } from "@/lib/i18n";
@@ -77,7 +77,7 @@ export const EmployeeCard = React.memo(function EmployeeCard({
   const { t } = useI18n();
   const initial = employee.fullName?.charAt(0)?.toUpperCase() ?? '?';
   const avatarColor = getAvatarColor(employee.fullName ?? '');
-  const onVacation = vacationHasStarted(employee.vacationStartDate);
+  const onVacation = isOnVacation(employee.vacationStartDate, employee.vacationEndDate);
   const plannedTerm = isPlannedTermination(employee);
 
   // --- Swipe (strefa kciuka): w lewo -> akcje, w prawo -> nieobecność ---

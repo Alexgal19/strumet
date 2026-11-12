@@ -14,7 +14,7 @@ import { format as formatFns } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Employee, AllConfig, ClothingIssuance } from '@/lib/types';
 import { Separator } from './ui/separator';
-import { formatDate, parseMaybeDate } from '@/lib/date';
+import { formatDate, parseMaybeDate, vacationIsOver } from '@/lib/date';
 import { legalizationStatuses } from '@/lib/legalization-statuses';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
@@ -82,6 +82,8 @@ const NO_REASON = '__none__';
 
 const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 'status'> => {
     if (employee) {
+        // Urlop, który już się zakończył, nie jest pokazywany w formularzu — pola są czyszczone.
+        const vacationExpired = vacationIsOver(employee.vacationEndDate);
         return {
             fullName: employee.fullName || '',
             hireDate: employee.hireDate || '',
@@ -96,8 +98,8 @@ const getInitialFormData = (employee: Employee | null): Omit<Employee, 'id' | 's
             departmentLockerNumber: employee.departmentLockerNumber || '',
             sealNumber: employee.sealNumber || '',
             plannedTerminationDate: employee.plannedTerminationDate,
-            vacationStartDate: employee.vacationStartDate,
-            vacationEndDate: employee.vacationEndDate,
+            vacationStartDate: vacationExpired ? undefined : employee.vacationStartDate,
+            vacationEndDate: vacationExpired ? undefined : employee.vacationEndDate,
             contractEndDate: employee.contractEndDate,
             legalizationStatus: employee.legalizationStatus || 'Brak',
             terminationDate: employee.terminationDate,
