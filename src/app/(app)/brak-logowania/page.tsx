@@ -54,7 +54,7 @@ import { EmployeeCombobox } from '@/components/employee-combobox';
 
 import { t } from '@/lib/i18n';
 export default function NoLoginPage() {
-  const { isLoading: isAppLoading, absenceRecords, addAbsenceRecord, deleteAbsenceRecord } = useAppContext();
+  const { isLoading: isAppLoading, absenceRecords, addAbsenceRecord, deleteAbsenceRecord, employees: allEmployees } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
@@ -75,6 +75,11 @@ export default function NoLoginPage() {
     if (!Array.isArray(records)) return [];
     return records.slice().sort((a, b) => new Date(b.incidentDate).getTime() - new Date(a.incidentDate).getTime());
   }, [absenceRecords]);
+
+  const exportRecords = useMemo(() => {
+    const nationalityById = new Map(allEmployees.map(e => [e.id, e.nationality]));
+    return sortedRecords.map(r => ({ ...r, nationality: nationalityById.get(r.employeeId) ?? '' }));
+  }, [sortedRecords, allEmployees]);
 
   const selectedEmployee = useMemo(() => {
     return activeEmployees.find(e => e.id === selectedEmployeeId) ?? null;
@@ -243,9 +248,10 @@ export default function NoLoginPage() {
                         </div>
                         {sortedRecords.length > 0 && (
                             <GenericExcelExportButton
-                                data={sortedRecords}
+                                data={exportRecords}
                                 columns={[
                                     { key: 'employeeFullName', name: t('ops.employee') },
+                                    { key: 'nationality', name: t('employee.nationality') },
                                     { key: 'incidentDate', name: t('ops.date') },
                                     { key: 'hours', name: t('ops.hours') },
                                     { key: 'reason', name: t('ops.reason') },

@@ -91,6 +91,7 @@ export function AttendanceExcelExportButton({
                 return {
                     'Dział': departmentOf(emp),
                     'Imię i nazwisko': emp.fullName,
+                    'Narodowość': emp.nationality ?? '',
                     'Stanowisko': emp.jobTitle,
                     'Liczba dni': absenceCount,
                     'Daty nieobecności': formatDateList(empAbsences),
@@ -101,6 +102,7 @@ export function AttendanceExcelExportButton({
             return {
                 'Dział': departmentOf(emp),
                 'Imię i nazwisko': emp.fullName,
+                'Narodowość': emp.nationality ?? '',
                 'Stanowisko': emp.jobTitle,
                 'Liczba nieobecności': absenceCount,
                 'Dni nieobecności': formatDateList(empAbsences),
@@ -110,11 +112,11 @@ export function AttendanceExcelExportButton({
 
         const summaryWs = XLSX.utils.json_to_sheet(summaryData);
 
-        // Format percentage column (tylko pełny miesięczny wariant — 6. kolumna, index 5)
+        // Format percentage column (tylko pełny miesięczny wariant — 7. kolumna, index 6)
         if (!hasDateFilter) {
             const range = XLSX.utils.decode_range(summaryWs['!ref']!);
             for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-                const ref = XLSX.utils.encode_cell({ r: R, c: 5 });
+                const ref = XLSX.utils.encode_cell({ r: R, c: 6 });
                 if (!summaryWs[ref]) continue;
                 summaryWs[ref].z = '0.00%';
                 summaryWs[ref].t = 'n'; // ensure it's a number
@@ -122,12 +124,12 @@ export function AttendanceExcelExportButton({
         }
 
         summaryWs['!cols'] = hasDateFilter
-            ? [{ wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 12 }, { wch: 30 }]
-            : [{ wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 18 }, { wch: 30 }, { wch: 15 }];
+            ? [{ wch: 20 }, { wch: 30 }, { wch: 18 }, { wch: 25 }, { wch: 12 }, { wch: 30 }]
+            : [{ wch: 20 }, { wch: 30 }, { wch: 18 }, { wch: 25 }, { wch: 18 }, { wch: 30 }, { wch: 15 }];
         XLSX.utils.book_append_sheet(workbook, summaryWs, 'Podsumowanie');
 
         // 2. Absence Dates Sheet — jeden wiersz na nieobecność, pogrupowany po działach
-        const listHeaders = ['Dział', 'Pracownik', 'Data', 'Dzień tygodnia'];
+        const listHeaders = ['Dział', 'Pracownik', 'Narodowość', 'Data', 'Dzień tygodnia'];
         const listRows: any[][] = [listHeaders];
 
         const employeeById = new Map(employees.map(e => [e.id, e]));
@@ -146,13 +148,14 @@ export function AttendanceExcelExportButton({
                 listRows.push([
                     departmentOf(emp ?? ({ department: '' } as Employee)),
                     emp?.fullName ?? a.employeeId,
+                    emp?.nationality ?? '',
                     format(dateObj, 'dd.MM.yyyy'),
                     format(dateObj, 'EEEE', { locale: pl }),
                 ]);
             });
 
         const listWs = XLSX.utils.aoa_to_sheet(listRows);
-        listWs['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 14 }, { wch: 16 }];
+        listWs['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 18 }, { wch: 14 }, { wch: 16 }];
         XLSX.utils.book_append_sheet(workbook, listWs, 'Nieobecności (daty)');
 
         // 3. Attendance Matrix Sheet — pogrupowana po działach;
@@ -160,12 +163,13 @@ export function AttendanceExcelExportButton({
         const matrixHeaders = [
             'Dział',
             'Imię i nazwisko',
+            'Narodowość',
             ...scopeDates.map(d => (hasDateFilter ? format(d, 'dd.MM') : getDate(d).toString())),
         ];
         const matrixData = [matrixHeaders];
 
         exportEmployees.forEach(emp => {
-            const row: any[] = [departmentOf(emp), emp.fullName];
+            const row: any[] = [departmentOf(emp), emp.fullName, emp.nationality ?? ''];
             const empAbsences = absenceMap.get(emp.id);
 
             scopeDates.forEach(day => {
@@ -187,7 +191,7 @@ export function AttendanceExcelExportButton({
         const matrixWs = XLSX.utils.aoa_to_sheet(matrixData);
 
         // Basic styling for matrix columns
-        const matrixCols = [{ wch: 20 }, { wch: 30 }];
+        const matrixCols = [{ wch: 20 }, { wch: 30 }, { wch: 18 }];
         for (let i = 0; i < scopeDates.length; i++) {
             matrixCols.push({ wch: hasDateFilter ? 8 : 3 }); // Wybrane dni czytelniej opisane
         }

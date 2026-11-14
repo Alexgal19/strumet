@@ -138,10 +138,11 @@ export default function CirculationCardsPage() {
                     </div>
                     {selectedEmployee && employeeCardHistory.length > 0 && (
                         <GenericExcelExportButton
-                            data={employeeCardHistory}
+                            data={employeeCardHistory.map(c => ({ ...c, nationality: selectedEmployee.nationality ?? '' }))}
                             columns={[
                                 { key: 'date', name: t('ops.generatedOn') },
                                 { key: 'employeeFullName', name: t('ops.employee') },
+                                { key: 'nationality', name: t('employee.nationality') },
                             ]}
                             fileName="historia_kart_obiegowych"
                         />

@@ -10,6 +10,7 @@ export interface DirectorReportEmployeeItem {
   jobTitle: string;
   department: string;
   manager?: string;
+  nationality?: string;
   date: string; // ISO or YYYY-MM-DD
   formattedDate: string; // dd.MM.yyyy
   status?: string;
@@ -144,6 +145,7 @@ export function calculateDirectorReport(params: {
         jobTitle: job,
         department: e.department?.trim() || 'Brak działu',
         manager: e.manager,
+        nationality: e.nationality,
         date: format(termDate, 'yyyy-MM-dd'),
         formattedDate: format(termDate, 'dd.MM.yyyy'),
         status: e.status,
@@ -174,6 +176,7 @@ export function calculateDirectorReport(params: {
         jobTitle: job,
         department: e.department?.trim() || 'Brak działu',
         manager: e.manager,
+        nationality: e.nationality,
         date: format(hireDate, 'yyyy-MM-dd'),
         formattedDate: format(hireDate, 'dd.MM.yyyy'),
         status: e.status,

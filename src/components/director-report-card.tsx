@@ -224,6 +224,7 @@ export function DirectorReportCard({
       // 2. Odeszli
       const terminatedData = report.terminatedEmployees.map(emp => ({
         'Nazwisko i imię': emp.fullName,
+        'Narodowość': emp.nationality ?? '',
         'Stanowisko': emp.jobTitle,
         'Dział': emp.department,
         'Koniec pracy': emp.formattedDate,
@@ -235,6 +236,7 @@ export function DirectorReportCard({
       // 3. Zatrudnieni
       const hiredData = report.hiredEmployees.map(emp => ({
         'Nazwisko i imię': emp.fullName,
+        'Narodowość': emp.nationality ?? '',
         'Stanowisko': emp.jobTitle,
         'Dział': emp.department,
         'Data zatrudnienia': emp.formattedDate

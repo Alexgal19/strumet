@@ -216,10 +216,11 @@ export default function ClothingIssuancePage() {
                         </div>
                         {selectedEmployee && employeeIssuanceHistory.length > 0 && (
                             <GenericExcelExportButton
-                                data={employeeIssuanceHistory}
+                                data={employeeIssuanceHistory.map(i => ({ ...i, nationality: selectedEmployee.nationality ?? '' }))}
                                 columns={[
                                     { key: 'date', name: t('ops.date') },
                                     { key: 'employeeFullName', name: t('ops.employee') },
+                                    { key: 'nationality', name: t('employee.nationality') },
                                     { key: 'items', name: t('ops.items') },
                                 ]}
                                 fileName="historia_wydan_odziezy"

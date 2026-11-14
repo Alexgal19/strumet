@@ -50,7 +50,7 @@ import { useEmployees } from '@/hooks/use-employees';
 
 import { t } from '@/lib/i18n';
 export default function FingerprintAppointmentsPage() {
-  const { isLoading: isAppLoading, fingerprintAppointments, addFingerprintAppointment, deleteFingerprintAppointment } = useAppContext();
+  const { isLoading: isAppLoading, fingerprintAppointments, addFingerprintAppointment, deleteFingerprintAppointment, employees: allEmployees } = useAppContext();
   const { employees: activeEmployees, isLoading: isEmployeesLoading } = useEmployees('aktywny');
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
@@ -64,6 +64,11 @@ export default function FingerprintAppointmentsPage() {
   const sortedAppointments = useMemo(() => {
     return [...fingerprintAppointments].sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
   }, [fingerprintAppointments]);
+
+  const exportAppointments = useMemo(() => {
+    const nationalityById = new Map(allEmployees.map(e => [e.id, e.nationality]));
+    return sortedAppointments.map(a => ({ ...a, nationality: nationalityById.get(a.employeeId) ?? '' }));
+  }, [sortedAppointments, allEmployees]);
 
   const selectedEmployee = useMemo(() => {
     return activeEmployees.find(e => e.id === selectedEmployeeId) ?? null;
@@ -193,9 +198,10 @@ export default function FingerprintAppointmentsPage() {
                 </div>
                 {sortedAppointments.length > 0 && (
                     <GenericExcelExportButton
-                        data={sortedAppointments}
+                        data={exportAppointments}
                         columns={[
                             { key: 'employeeFullName', name: t('ops.employee') },
+                            { key: 'nationality', name: t('employee.nationality') },
                             { key: 'appointmentDate', name: t('ops.dateAndTime') },
                         ]}
                         fileName="terminy_odciskow_palcow"
