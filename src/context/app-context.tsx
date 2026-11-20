@@ -24,7 +24,7 @@ import { onAuthStateChanged, User as FirebaseUser, type Auth } from 'firebase/au
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, type TranslationKey, type TranslateVars } from '@/lib/i18n';
 import { format, startOfDay } from 'date-fns';
-import { getEffectiveTerminationDate, withEffectiveTerminationDate } from '@/lib/employee-status';
+import { getEffectiveTerminationDate, withEffectiveTerminationDate, getRestoreUpdates, isFormerEmployee } from '@/lib/employee-status';
 import type {
     Employee,
     AllConfig,
@@ -786,34 +786,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             return false;
         }
         const { db } = services;
+        const previous = employees.find(e => e.id === employeeId);
+        const updates = getRestoreUpdates({
+            fullName: employeeFullName,
+            plannedTerminationDate: previous?.plannedTerminationDate,
+        });
         try {
             // Optimistic update: immediately update local state so UI reflects change
-            setEmployees(prev => prev.map(e =>
-                e.id === employeeId
-                    ? { ...e, status: 'aktywny' as const, terminationDate: undefined, status_fullName: `aktywny_${employeeFullName.toLowerCase()}` }
-                    : e
-            ));
+            setEmployees(prev => prev.map(e => {
+                if (e.id !== employeeId) return e;
+                const next: Employee = { ...e };
+                for (const [key, value] of Object.entries(updates)) {
+                    (next as any)[key] = value === null ? undefined : value;
+                }
+                return next;
+            }));
 
-            await update(ref(db, `employees/${employeeId}`), {
-                status: 'aktywny',
-                terminationDate: null,
-                status_fullName: `aktywny_${employeeFullName.toLowerCase()}`
-            });
+            await update(ref(db, `employees/${employeeId}`), updates);
             toast({ title: tr('common.success'), description: tr('toasts.employeeRestored') });
             void logAudit('Przywrócenie pracownika', employeeFullName);
             return true;
         } catch (error) {
             console.error("[handleRestoreEmployee] Error:", error);
             // Rollback optimistic update on error
-            setEmployees(prev => prev.map(e =>
-                e.id === employeeId
-                    ? { ...e, status: 'zwolniony' as const, status_fullName: `zwolniony_${employeeFullName.toLowerCase()}` }
-                    : e
-            ));
+            if (previous) {
+                setEmployees(prev => prev.map(e => (e.id === employeeId ? previous : e)));
+            }
             toast({ variant: 'destructive', title: tr('common.error'), description: tr('toasts.employeeRestoreFailed') });
             return false;
         }
-    }, [services, toast, logAudit]);
+    }, [services, toast, logAudit, employees]);
 
     const handleEndVacation = useCallback(async (employeeId: string, employeeFullName: string): Promise<boolean> => {
         if (!services) {
@@ -1028,7 +1030,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             
             const allEmployeesSnapshot = await get(ref(db, 'employees'));
             const allEmployees = objectToArray(allEmployeesSnapshot.val());
-            const terminatedEmployees = allEmployees.filter(e => e.status === 'zwolniony');
+            const terminatedEmployees = allEmployees.filter(e => isFormerEmployee(e));
 
             if (terminatedEmployees.length === 0) {
                 toast({ title: tr('toasts.info'), description: tr('toasts.noTerminated') });
@@ -1036,9 +1038,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }
 
             for (const employee of terminatedEmployees) {
-                 updates[`/employees/${employee.id}/status`] = 'aktywny';
-                 updates[`/employees/${employee.id}/terminationDate`] = null;
-                 updates[`/employees/${employee.id}/status_fullName`] = `aktywny_${employee.fullName.toLowerCase()}`;
+                for (const [key, value] of Object.entries(getRestoreUpdates(employee))) {
+                    updates[`/employees/${employee.id}/${key}`] = value;
+                }
             }
             await update(ref(db), updates);
             toast({ title: tr('common.success'), description: tr('toasts.restoredCount', { count: terminatedEmployees.length }) });

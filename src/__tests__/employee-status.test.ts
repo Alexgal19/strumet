@@ -1,4 +1,4 @@
-import { getEffectiveTerminationDate, withEffectiveTerminationDate } from '@/lib/employee-status';
+import { getEffectiveTerminationDate, withEffectiveTerminationDate, getRestoreUpdates, isActiveEmployee, isFormerEmployee } from '@/lib/employee-status';
 import type { Employee } from '@/lib/types';
 
 describe('getEffectiveTerminationDate', () => {
@@ -25,5 +25,37 @@ describe('getEffectiveTerminationDate', () => {
     const e = emp({ plannedTerminationDate: '2026-10-10' });
     expect(withEffectiveTerminationDate(e, today)).toBe(e);
     expect(withEffectiveTerminationDate(emp({ plannedTerminationDate: '2026-09-30' }), today).terminationDate).toBe('2026-09-30');
+  });
+});
+
+describe('getRestoreUpdates', () => {
+  const today = new Date(2026, 9, 3); // 2026-10-03
+  const emp = (over: Partial<Employee>) => ({ id: 'x', fullName: 'Kowalski Jan', status: 'zwolniony', ...over }) as Employee;
+  const apply = (e: Employee) => {
+    const next: any = { ...e };
+    for (const [k, v] of Object.entries(getRestoreUpdates(e, today))) next[k] = v === null ? undefined : v;
+    return next as Employee;
+  };
+
+  it('czyści status, datę i powód zwolnienia', () => {
+    expect(getRestoreUpdates(emp({ terminationDate: '2026-10-01', terminationReason: 'Pomyłka' }), today)).toEqual({
+      status: 'aktywny',
+      terminationDate: null,
+      terminationReason: null,
+      status_fullName: 'aktywny_kowalski jan',
+    });
+  });
+
+  it('usuwa minioną planowaną datę zwolnienia, żeby osoba wróciła do aktywnych', () => {
+    const e = emp({ status: 'aktywny', plannedTerminationDate: '2026-09-30' });
+    expect(isFormerEmployee(e, today)).toBe(true);
+    expect(getRestoreUpdates(e, today).plannedTerminationDate).toBeNull();
+    expect(isActiveEmployee(apply(e), today)).toBe(true);
+  });
+
+  it('zostawia przyszłą planowaną datę zwolnienia', () => {
+    const e = emp({ plannedTerminationDate: '2026-10-10' });
+    expect('plannedTerminationDate' in getRestoreUpdates(e, today)).toBe(false);
+    expect(isActiveEmployee(apply(e), today)).toBe(true);
   });
 });

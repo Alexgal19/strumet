@@ -10,7 +10,8 @@ import { Employee } from "@/lib/types"
 import { formatDate, parseMaybeDate, isOnVacation } from "@/lib/date"
 import { getStatusColor } from "@/lib/legalization-statuses"
 import { cn } from "@/lib/utils"
-import { Copy, UserX } from "lucide-react"
+import { Copy, RotateCcw, UserX } from "lucide-react"
+import { isFormerEmployee } from "@/lib/employee-status"
 import { getEmployeeNameParts } from "@/lib/person-name"
 import { EmployeeRowActions } from "./employee-actions"
 import type { I18nValue } from "@/lib/i18n"
@@ -291,6 +292,18 @@ export function getColumns({
             className="relative cursor-pointer"
           >
             <div className="flex items-center gap-1">
+              {onRestore && isFormerEmployee(employee) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5 text-primary hover:text-primary"
+                  title={t('common.restore')}
+                  onClick={() => onRestore(employee)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>{t('common.restore')}</span>
+                </Button>
+              )}
               {onToggleAbsenceToday && (
                 <Button
                   variant="ghost"

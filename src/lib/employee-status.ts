@@ -27,3 +27,30 @@ export function withEffectiveTerminationDate(employee: Employee, today = startOf
   const effective = getEffectiveTerminationDate(employee, today);
   return effective ? { ...employee, terminationDate: effective } : employee;
 }
+
+/**
+ * Pola do zapisania przy przywróceniu pracownika do aktywnych — tak, jakby zwolnienia nie było.
+ * Czyści status, datę i powód zwolnienia. Planowaną datę zwolnienia usuwa tylko wtedy, gdy już minęła
+ * (to ona sama przenosi osobę do zwolnionych); przyszłą planowaną datę zostawia bez zmian.
+ */
+export function getRestoreUpdates(
+  employee: Pick<Employee, 'fullName' | 'plannedTerminationDate'>,
+  today = startOfDay(new Date())
+): Record<string, string | null> {
+  const updates: Record<string, string | null> = {
+    status: 'aktywny',
+    terminationDate: null,
+    terminationReason: null,
+    status_fullName: `aktywny_${(employee.fullName || '').toLowerCase()}`,
+  };
+  const planned = parseMaybeDate(employee.plannedTerminationDate);
+  if (planned !== null && startOfDay(planned) < today) {
+    updates.plannedTerminationDate = null;
+  }
+  return updates;
+}
+
+/** Czy pracownik jest na liście zwolnionych (status "zwolniony" albo minęła planowana data zwolnienia). */
+export function isFormerEmployee(employee: Employee, today = startOfDay(new Date())): boolean {
+  return employee.status === 'zwolniony' || isEffectivelyTerminated(employee, today);
+}

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Employee } from "@/lib/types"
 import { useI18n } from "@/lib/i18n"
+import { isFormerEmployee } from "@/lib/employee-status"
 
 const EmployeeSummary = dynamic(
   () => import("@/components/employee-summary").then((mod) => mod.EmployeeSummary),
@@ -97,7 +98,7 @@ export function EmployeeRowActions<TData>({
             {t('employee.terminate')}
           </DropdownMenuItem>
         )}
-        {employee.status === "zwolniony" && onRestore && (
+        {onRestore && isFormerEmployee(employee) && (
           <DropdownMenuItem onSelect={() => onRestore(employee)}>
             <RotateCcw className="mr-2 h-4 w-4" />
             {t('common.restore')}
