@@ -51,7 +51,7 @@ export default function LockersPage() {
     return list;
   }, []);
 
-  // Zajętość liczona ze wszystkich szafek aktywnych pracowników (3 główne + działowa).
+  // Zajętość liczona z 3 szafek w szatni aktywnych pracowników (bez szafki na wydziale).
   // Szafki zwolnionych są wolne.
   const occupancy = useMemo(() => buildLockerOccupancy(employees), [employees]);
   const zoneRows = useMemo(() => ALL_ZONES.map((zone) => ({ zone, rows: getZoneRows(zone) })), []);

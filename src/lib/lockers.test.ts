@@ -19,11 +19,11 @@ const emp = (fullName: string, extra: Partial<Employee> = {}): Employee => ({
 });
 
 describe('buildLockerOccupancy', () => {
-  it('counts all three main lockers and the department locker', () => {
+  it('counts all three main lockers but not the department locker', () => {
     const map = buildLockerOccupancy([
       emp('Kowalski Jan', { lockerNumber: 'K206', lockerNumber2: ' k207', lockerNumber3: '15', departmentLockerNumber: '99' }),
     ]);
-    expect(Object.keys(map).sort()).toEqual(['15', '99', 'K206', 'K207']);
+    expect(Object.keys(map).sort()).toEqual(['15', 'K206', 'K207']);
   });
 
   it('ignores terminated employees and lists every active owner of a shared locker', () => {

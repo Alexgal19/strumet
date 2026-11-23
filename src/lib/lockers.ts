@@ -3,12 +3,14 @@ import { startOfDay } from 'date-fns';
 import { isActiveEmployee } from './employee-status';
 import { parseMaybeDate } from './date';
 
-/** Wszystkie pola pracownika, w których zapisany jest numer szafki. */
+/**
+ * Pola pracownika z numerami szafek z zakładki „Szafki” (szatnia).
+ * „Szafka na wydziale” (departmentLockerNumber) ma własną numerację i NIE jest tu liczona.
+ */
 export const EMPLOYEE_LOCKER_FIELDS = [
   'lockerNumber',
   'lockerNumber2',
   'lockerNumber3',
-  'departmentLockerNumber',
 ] as const satisfies readonly (keyof Employee)[];
 
 export type EmployeeLockerField = (typeof EMPLOYEE_LOCKER_FIELDS)[number];
